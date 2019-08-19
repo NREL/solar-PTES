@@ -1,1 +1,3 @@
 test file for solar-PTES
+
+Pau: I have cloned this repository into my computer and I am adding one line in the test.txt file.
