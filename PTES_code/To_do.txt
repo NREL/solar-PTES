@@ -1,0 +1,45 @@
+LIST OF THINGS TO DO
+--------------------
+--------------------
+
+BRAYTON PTES CODE:
+------------------
+- Change calling method for compexp subroutine. Include argument for type of machine (i.e. compressor/expander, possibly cryogenic compressor/expander?), argument for isentropic/polytropic and argument for T or p as objective.
+- Have only one row of "state" and "stage" arrays for charge and discharge?
+- Change effectiveness for specified DT at pinch point in HEX subroutines? Or given UA?
+- Develop multi-stream HEX subroutine
+- Display warning/error if golden_search does not find maximum
+- See if 1st/2nd law errors depend on mode of operation (Tmax/PR, etc.)
+- Specify update_state as method inside fluid_class!
+- Document better hex_TQ_cond subroutine
+- Tabular interpolation for CoolProp fluids
+- Figure out why first and second law errors are larger than computer accuracy
+- Include "read state" method in fluid_class, and include "units" for each state (and stage) array
+- Extract UA value from HEX subroutines
+- Compare different working fluids (make it work for Air)
+- Message on cycle sustainability (and other warnings and error flags in ENERGY_BALANCE)
+- Tidy up code and document it more thoroughly
+
+
+LAES CODE:
+----------
+- Make compression/expansion stages straight lines in T-s diagrams?
+- Use isentropic efficiency in LAES (and check result is correct)
+- Right entropy units in plots
+- LAES: Optimise xAir for minimum vapour fraction?
+
+
+
+GENERAL:
+--------
+- Sort To_do list
+- Move test_profiles into "Other_scripts" folder. Move PTES_PLOT_MULTI_RUN elsewhere.
+- Add CoolProp "backend" as an argument for fluid_class creator
+- Add option for Ideal Gas properties inside fluid_class and all functions.
+- Think about how to do time_steps and transient components
+- Include "tank_stage" array inside double_tank class to store information about heat losses, etc.
+- Move liquid_tanks_compute function into double_tank class, as a method
+- Pre-define initial mass of tanks inside double_tank class and then empty them partially, during charge
+- Consider whether to move cycle position index inside fluid_class
+- Think how to have components as Objects rather than functions. They would contain the "stages" information and also size, geometry, cost, etc.
+- Tidy up heat exchanger function and collapse "Crat" inside "var" parameter

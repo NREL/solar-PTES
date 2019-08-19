@@ -1,0 +1,6 @@
+figure(4)
+plot(xv(1:iter).*PR,1-yv(1:iter),'^k')
+title('Golden search')
+xlabel('PR discharge')
+ylabel('Efficiency')
+xlim([PR_fact_min PR_fact_max].*PR)
