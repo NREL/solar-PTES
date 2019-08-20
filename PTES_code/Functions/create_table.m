@@ -4,7 +4,11 @@ function [A] = create_table(substance)
 %   Return the file ID where data has been written
 
 % Set fileName according to the substance's name
-fileName  = strcat('./Data/',substance,'.dat');
+if strncmp(substance,'INCOMP::',8) %skip first part of substance name
+    fileName  = strcat('./Data/',substance(9:end),'.dat');
+else
+    fileName  = strcat('./Data/',substance,'.dat');
+end
 
 % Check if file already exists. If it does, return control to invoking
 % function. Otherwise, create file and proceed.
@@ -28,38 +32,38 @@ elseif strcmp(substance,'MineralOil') % Mineral oil
     
 elseif strcmp(substance,'Methanol')
     Tmin  = 125; % Not correct. Used only for "multy-run" screening
-    Tbot  = CoolProp.PropsSI('T_triple',' ',0,' ',0,'Methanol') + 0.1;
-    Ttop  = CoolProp.PropsSI('T','P',1e5,'Q',0,'Methanol');
+    Tbot  = py.CoolProp.CoolProp.PropsSI('T_triple',' ',0,' ',0,'Methanol') + 0.1;
+    Ttop  = py.CoolProp.CoolProp.PropsSI('T','P',1e5,'Q',0,'Methanol');
     Tmax  = 1300; % Not correct. Used only for screening purposes
     
 elseif strcmp(substance,'Propane')
     Tmin  = 50; % Not correct. Used only for screening purposes
-    Tbot  = CoolProp.PropsSI('T_triple',' ',0,' ',0,'Propane') + 0.1;
-    Ttop  = CoolProp.PropsSI('T','P',1e5,'Q',0,'Propane'); 
+    Tbot  = py.CoolProp.CoolProp.PropsSI('T_triple',' ',0,' ',0,'Propane') + 0.1;
+    Ttop  = py.CoolProp.CoolProp.PropsSI('T','P',1e5,'Q',0,'Propane'); 
     Tmax  = 1300; % Not correct. Used only for screening purposes
     
 elseif strcmp(substance,'Isopentane')
     Tmin  = 50; % Not correct. Used only for screening purposes
-    Tbot  = CoolProp.PropsSI('T_triple',' ',0,' ',0,'Isopentane') + 0.1;
-    Ttop  = CoolProp.PropsSI('T','P',1e5,'Q',0,'Isopentane'); 
+    Tbot  = py.CoolProp.CoolProp.PropsSI('T_triple',' ',0,' ',0,'Isopentane') + 0.1;
+    Ttop  = py.CoolProp.CoolProp.PropsSI('T','P',1e5,'Q',0,'Isopentane'); 
     Tmax  = 1300; % Not correct. Used only for screening purposes 
     
 elseif strcmp(substance,'Ethanol')
     Tmin  = 50; % Not correct. Used only for screening purposes
-    Tbot  = CoolProp.PropsSI('T_triple',' ',0,' ',0,'Ethanol') + 0.1;
-    Ttop  = CoolProp.PropsSI('T','P',1e5,'Q',0,'Ethanol'); 
+    Tbot  = py.CoolProp.CoolProp.PropsSI('T_triple',' ',0,' ',0,'Ethanol') + 0.1;
+    Ttop  = py.CoolProp.CoolProp.PropsSI('T','P',1e5,'Q',0,'Ethanol'); 
     Tmax  = 1300; % Not correct. Used only for screening purposes
     
 elseif strcmp(substance,'Hexane')
     Tmin  = 50; % Not correct. Used only for screening purposes
-    Tbot  = CoolProp.PropsSI('T_triple',' ',0,' ',0,'Hexane') + 0.1;
-    Ttop  = CoolProp.PropsSI('T','P',1e5,'Q',0,'Hexane'); 
+    Tbot  = py.CoolProp.CoolProp.PropsSI('T_triple',' ',0,' ',0,'Hexane') + 0.1;
+    Ttop  = py.CoolProp.CoolProp.PropsSI('T','P',1e5,'Q',0,'Hexane'); 
     Tmax  = 1300; % Not correct. Used only for screening purposes
     
 elseif strcmp(substance,'Pentane')
     Tmin  = 50; % Not correct. Used only for screening purposes
-    Tbot  = CoolProp.PropsSI('T_triple',' ',0,' ',0,'Pentane') + 0.1;
-    Ttop  = CoolProp.PropsSI('T','P',1e5,'Q',0,'Pentane'); 
+    Tbot  = py.CoolProp.CoolProp.PropsSI('T_triple',' ',0,' ',0,'Pentane') + 0.1;
+    Ttop  = py.CoolProp.CoolProp.PropsSI('T','P',1e5,'Q',0,'Pentane'); 
     Tmax  = 1300; % Not correct. Used only for screening purposes
     
 elseif strcmp(substance,'EthyleneGlycol')
@@ -76,8 +80,8 @@ elseif strcmp(substance,'Oxygen')
     
 elseif strcmp(substance,'Water')
     Tmin  = 50; % Not correct. Used only for screening purposes
-    Tbot  = CoolProp.PropsSI('T_triple',' ',0,' ',0,'Water') + 0.1;
-    Ttop  = CoolProp.PropsSI('T','P',1e5,'Q',0,'Water') - 0.5; 
+    Tbot  = py.CoolProp.CoolProp.PropsSI('T_triple',' ',0,' ',0,'Water') + 0.1;
+    Ttop  = py.CoolProp.CoolProp.PropsSI('T','P',1e5,'Q',0,'Water') - 0.5; 
     Tmax  = 1300; % Not correct. Used only for screening purposes  
     
 elseif strcmp(substance,'Generic') %imaginary liquid
@@ -86,8 +90,8 @@ elseif strcmp(substance,'Generic') %imaginary liquid
     
 elseif strcmp(substance,'INCOMP::MEG2[0.56]') % Ethylene Glycol solution
     Tmin  = 50; % Not correct. Used only for screening purposes
-    Tbot  = CoolProp.Props1SI('Tmin',substance)+0.1;
-    Ttop  = CoolProp.Props1SI('Tmax',substance)-0.1;
+    Tbot  = py.CoolProp.CoolProp.PropsSI('Tmin',' ',0,' ',0,'INCOMP::MEG2[0.56]')+0.1;
+    Ttop  = py.CoolProp.CoolProp.PropsSI('Tmax',' ',0,' ',0,'INCOMP::MEG2[0.56]')-0.1;
     Tmax  = 1300; % Not correct. Used only for screening purposes 
     
 else
@@ -107,15 +111,15 @@ if any(strcmp(substance,{'Methanol','Propane','Isopentane','Ethanol','Hexane','P
     for i=1:n
         if T(i) > Tbot
             if T(i) < Ttop
-                Cp(i)  = CoolProp.PropsSI('C','T',T(i),'P',1e5,substance);
-                v(i)   = 1/CoolProp.PropsSI('D','T',T(i),'P',1e5,substance);
+                Cp(i)  = py.CoolProp.CoolProp.PropsSI('C','T',T(i),'P',1e5,substance);
+                v(i)   = 1/py.CoolProp.CoolProp.PropsSI('D','T',T(i),'P',1e5,substance);
             else
-                Cp(i)  = CoolProp.PropsSI('C','T',Ttop-0.5,'P',1e5,substance);
-                v(i)   = 1/CoolProp.PropsSI('D','T',Ttop-0.5,'P',1e5,substance);
+                Cp(i)  = py.CoolProp.CoolProp.PropsSI('C','T',Ttop-0.5,'P',1e5,substance);
+                v(i)   = 1/py.CoolProp.CoolProp.PropsSI('D','T',Ttop-0.5,'P',1e5,substance);
             end
         else
-            Cp(i)  = CoolProp.PropsSI('C','T',Tbot,'P',1e5,substance);
-            v(i)   = 1/CoolProp.PropsSI('D','T',Tbot,'P',1e5,substance);
+            Cp(i)  = py.CoolProp.CoolProp.PropsSI('C','T',Tbot,'P',1e5,substance);
+            v(i)   = 1/py.CoolProp.CoolProp.PropsSI('D','T',Tbot,'P',1e5,substance);
         end
     end
 elseif strcmp(substance,'SolarSalt')
