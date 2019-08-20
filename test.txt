@@ -1,3 +1,6 @@
 test file for solar-PTES
 
 Pau: I have cloned this repository into my computer and I am adding one line in the test.txt file.
+
+Josh 20 Aug: I have cloned the repository, but got a fatal error due to illegal Windows filename "INCOMP::MEG2[0.56].dat" (Coolprop). Adding info to test.txt and will push changes.
+
