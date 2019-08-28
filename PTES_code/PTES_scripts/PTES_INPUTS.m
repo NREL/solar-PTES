@@ -29,7 +29,7 @@ Ne_ch      = 2; % number of expansions during charge
 % Working fluid
 gas = fluid_class('Nitrogen','WF','CP','TTSE',30);
 % Storage fluids
-fluidH(1:Nc_ch) = fluid_class('SolarSalt','SF','TAB','0',2);
+fluidH(1:Nc_ch) = fluid_class('SolarSalt','SF','TAB',0,2);
 fluidC(1:Ne_ch) = fluid_class('INCOMP::MEG2[0.56]','SF','TAB',0,2);
 % Heat rejection streams
 environ = environment_class(T0,p0,10);

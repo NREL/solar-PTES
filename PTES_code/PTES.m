@@ -12,7 +12,7 @@
 clear;
 
 % Enter debugging mode if an error occurs
-%dbstop if error
+dbstop if error
 %dbclear all
 
 % Set paths
