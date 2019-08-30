@@ -28,16 +28,17 @@ Ne_ch      = 2; % number of expansions during charge
 % elements in state arrays.
 % Working fluid
 gas = fluid_class('Nitrogen','WF','CP','TTSE',30);
-% Storage fluids
-fluidH(1:Nc_ch) = fluid_class('SolarSalt','SF','TAB',0,2);
-fluidC(1:Ne_ch) = fluid_class('INCOMP::MEG2[0.56]','SF','TAB',0,2);
-% Heat rejection streams
-environ = environment_class(T0,p0,10);
 
 % Set double tanks. Double tanks have four states:
 % 1=begin charge, 2=end charge, 3=start discharge, 4=end discharge
 HT = double_tank_class(4);  %hot double tank
 CT = double_tank_class(4);  %cold double tank
+
+% Storage fluids
+fluidH(1:Nc_ch) = fluid_class('SolarSalt','SF','TAB',0,2);
+fluidC(1:Ne_ch) = fluid_class('INCOMP::MEG2[0.56]','SF','TAB',0,2);
+% Heat rejection streams
+environ = environment_class(T0,p0,10);
 
 % Set component parameters
 eta    = 0.90;  % polytropic efficiency
