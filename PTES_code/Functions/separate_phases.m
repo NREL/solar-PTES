@@ -23,9 +23,9 @@ stateM.mdot = mdot - mdotS;
 
 % Update states
 stateM.h = CP1('PQ_INPUTS',stateM.p,0.0,'H',main.handle);
-stateM   = update_state(stateM,main.handle,main.read,main.A,2);
+stateM   = update_state(stateM,main.handle,main.read,main.TAB,2);
 stateS.h = CP1('PQ_INPUTS',stateS.p,1.0,'H',second.handle);
-stateS   = update_state(stateS,second.handle,second.read,second.A,2);
+stateS   = update_state(stateS,second.handle,second.read,second.TAB,2);
 
 % Compute stage energy flows
 stageM.Dh   = 0;

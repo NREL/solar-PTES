@@ -4,22 +4,37 @@
 % Set atmospheric conditions and cycle parameters
 T0      = 27 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
-TC_0    = T0;           % temperature of discharged cold fluid, K
-TH_0    = 250 + 273.15; % temperature of discharged hot fluid, K
-mdot    = 10;           % working fluid mass flow rate, kg/s
-t_ch    = 10 * 3600;    % charge time, s
 pmax    = 100e5;        % top pressure, Pa
 PRch    = 3.5;          % charge pressure ratio
-PRr     = 1.4;          % discharge pressure ratio: PRdis = PRch*PRr
+PRr     = 1.3;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 1;            % set Tmax? (this option substitutes PRch)
 Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
+% Hot storage tanks
+fHname  = 'SolarSalt';  % fluid name
+TH_dis0 = 250 + 273.15; % initial temperature of discharged hot fluid, K
+MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
+TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
+MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
+% Cold storage tanks
+fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
+TC_dis0 = T0;           % initial temperature of discharged cold fluid, K
+MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
+TC_chg0 = T0-50;        % initial temperature of charged cold fluid, K
+MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
+
+% The Load structure stores information about the duration, type of cycle
+% (charge, storage or discharge) and mass flow rate of each time period
+Load.time = [5;5;4;10].*3600;           % time spent in each load period, s
+Load.type = ["chg";"chg";"str";"dis"];  % type of load period
+Load.mdot = [10;10;0;10];               % working fluid mass flow rate, kg/s
+Load.num  = numel(Load.time);
 
 % Set operation modes
-mode       = 0; % cycle mode: 0=PTES, 1=Heat pump, 2=Heat engine
-Nc_ch      = 1; % number of compressions during charge
-Ne_ch      = 2; % number of expansions during charge
+mode  = 0; % cycle mode: 0=PTES, 1=Heat pump, 2=Heat engine
+Nc_ch = 1; % number of compressions during charge
+Ne_ch = 2; % number of expansions during charge
 
 % Set working fluids, storage fluids, and heat rejection streams. 'WF' or
 % 'SF' indicates working fluid or storage fluid. 'CP' or 'TAB' indicate
@@ -27,26 +42,23 @@ Ne_ch      = 2; % number of expansions during charge
 % 'HEOS', 'TTSE' or 'BICUBIC&HEOS'). 'num' indicates number of preallocated
 % elements in state arrays.
 % Working fluid
-gas = fluid_class('Nitrogen','WF','CP','TTSE',30);
-
-% Set double tanks. Double tanks have four states:
-% 1=begin charge, 2=end charge, 3=start discharge, 4=end discharge
-HT = double_tank_class(4);  %hot double tank
-CT = double_tank_class(4);  %cold double tank
-
+gas = fluid_class('Nitrogen','WF','CP','TTSE',Load.num,30);
 % Storage fluids
-fluidH(1:Nc_ch) = fluid_class('SolarSalt','SF','TAB',0,2);
-fluidC(1:Ne_ch) = fluid_class('INCOMP::MEG2[0.56]','SF','TAB',0,2);
+fluidH(1:Nc_ch) = fluid_class(fHname,'SF','TAB',NaN,Load.num,2);
+fluidC(1:Ne_ch) = fluid_class(fCname,'SF','TAB',NaN,Load.num,2);
+% Set double tanks
+HT = double_tank_class(fluidH,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,Load.num+1); %hot double tank
+CT = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank
 % Heat rejection streams
 environ = environment_class(T0,p0,10);
 
 % Set component parameters
-eta    = 0.90;  % polytropic efficiency
-eff    = 0.97;  % heat exchanger effectiveness
-ploss  = 0.01;  % pressure loss in HEXs
+eta   = 0.90;  % polytropic efficiency
+eff   = 0.97;  % heat exchanger effectiveness
+ploss = 0.01;  % pressure loss in HEXs
 
 multi_run  = 0; % run cycle several times with different parameters?
-optimise   = 1; % optimise cycle?
+optimise   = 0; % optimise cycle?
 make_plots = 1; % make plots?
 save_figs  = 0; % save figures at the end?
 

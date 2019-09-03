@@ -67,7 +67,7 @@ end
 % Update state
 state.h = h2;
 state.p = p2;
-state   = update_state(state,fluid.handle,fluid.read,fluid.A,2);
+state   = update_state(state,fluid.handle,fluid.read,fluid.TAB,2);
 
 % Compute energy flows along stage
 stage.Dh   = state.h - h1;

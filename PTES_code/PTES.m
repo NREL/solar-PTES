@@ -49,35 +49,42 @@ for icrv = 1:Ncrv
         % preliminary tasks
         PTES_INITIALISE
         
-        switch mode
-            case 0 % PTES
-                % Run charge cycle, compute state of storage tanks and run
-                % discharge cycle
-                PTES_CHARGE
-                PTES_TANKS_STORAGE % no storage loss considered at the moment
-                
-                if optimise % obtain optimal PRr
-                    f = @(PRr) ptes_discharge_function(gas, fluidH, fluidC, HT, CT, environ,...
-                        T0, T1, pbot, PRr, PRch, mdot, Nc_dis, Ne_dis,...
-                        eta, eff, ploss, t_ch, mode);
+        for iL = 1:Load.num
+            switch mode
+                case 0 % PTES
+                    % Run charge cycle, compute state of storage tanks and run
+                    % discharge cycle
+                    switch Load.type(iL)
+                        case 'chg'
+                            PTES_CHARGE
+                            
+                        case 'str'
+                            PTES_TANKS_STORAGE % no storage loss considered at the moment
+                            
+                        case 'dis'
+                            if optimise % obtain optimal PRr
+                                f = @(PRr) ptes_discharge_function(gas, fluidH, fluidC, HT, CT, environ,...
+                                    T0, T1, pbot, PRr, PRch, Load.mdot(iL), Nc_dis, Ne_dis,...
+                                    eta, eff, ploss, Load.time(iL), mode);
+                                
+                                [PRr,ineff,xv,yv,iter] = golden_search(f,PRr_min,PRr_max,0.005,'Min',100);
+                            end
+                            PTES_DISCHARGE
+                    end
+                case 1 % Heat pump only
+                    PTES_CHARGE
                     
-                    [PRr,ineff,xv,yv,iter] = golden_search(f,PRr_min,PRr_max,0.005,'Min',100);
-                end
-                PTES_DISCHARGE
-                
-            case 1 % Heat pump only
-                PTES_CHARGE
-                
-            case 2 % Heat engine only
-                PTES_SOLAR_TANKS
-                if optimise % obtain optimal PRr
-                    f = @(PRr) ptes_discharge_function(gas, fluidH, fluidC, HT, CT, environ,...
-                        T0, T1, pbot, PRr, PRch, mdot, Nc_dis, Ne_dis,...
-                        eta, eff, ploss, t_ch, mode);
-                    
-                    [PRr,ineff,xv,yv,iter] = golden_search(f,PRr_min,PRr_max,0.005,'Min',100);
-                end
-                PTES_DISCHARGE
+                case 2 % Heat engine only
+                    PTES_SOLAR_TANKS
+                    if optimise % obtain optimal PRr
+                        f = @(PRr) ptes_discharge_function(gas, fluidH, fluidC, HT, CT, environ,...
+                            T0, T1, pbot, PRr, PRch, Load.mdot(iL), Nc_dis, Ne_dis,...
+                            eta, eff, ploss, Load.time(iL), mode);
+                        
+                        [PRr,ineff,xv,yv,iter] = golden_search(f,PRr_min,PRr_max,0.005,'Min',100);
+                    end
+                    PTES_DISCHARGE
+            end
         end
         
         % Compute energy balance

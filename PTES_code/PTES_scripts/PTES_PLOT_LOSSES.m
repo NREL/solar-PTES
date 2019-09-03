@@ -2,11 +2,11 @@ figure(8)
 switch mode
     case 0
         names = {'$$\mathrm{PTES_{ch}}$$','$$\mathrm{PTES_{dis}}$$'};
-        b = bar(WL_matrix./W_in_ch*100,'stacked');
+        b = bar(WL_matrix./W_in_chg*100,'stacked');
         set(gca, 'XTick', 1:2, 'XTickLabel', names, 'TickLabelInterpreter', 'latex')
     case 1
         names = {'Heat pump'};
-        b = bar(WL_matrix./W_in_ch*100,'stacked');
+        b = bar(WL_matrix./W_in_chg*100,'stacked');
         set(gca, 'XTick', 1, 'XTickLabel', names, 'TickLabelInterpreter', 'latex')
     case 2
         names = {'Heat engine'};

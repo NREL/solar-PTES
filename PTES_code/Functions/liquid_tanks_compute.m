@@ -4,7 +4,7 @@ function [ A2, B1, B2, WL ] = liquid_tanks_compute( fluid_streams, i1, i2, A1, t
 % lost work of the mixing process at the inlet of the sink tank. A is the
 % source tank, B is the sink tank. 1=start, 2=end. t is time.
 % The subroutine assumes that the sink tank was initially empty (B1.M=0).
-% i1 distinguishes the charge row (1) to the discharge row (2) of fluid states
+% i1 distinguishes the charge row to the discharge row of fluid states
 % i2 distinguishes the inlet column (1) to the outlet column (2) of fluid states
 
 % Give A2, B1 and B2 the same class as A1
@@ -32,7 +32,7 @@ mixed_stream_state.h = h_mix;
 mixed_stream_state.p = p_mix;
 
 % Update properties based on enthalpy and pressure
-mixed_stream_state = update_state(mixed_stream_state,fluid_streams(1).handle,fluid_streams(1).read,fluid_streams(1).A,2);
+mixed_stream_state = update_state(mixed_stream_state,fluid_streams(1).handle,fluid_streams(1).read,fluid_streams(1).TAB,2);
 T_mix = mixed_stream_state.T;
 v_mix = 1/mixed_stream_state.rho;
 s_mix = mixed_stream_state.s;

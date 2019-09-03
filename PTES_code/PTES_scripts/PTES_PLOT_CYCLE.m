@@ -82,30 +82,41 @@ end
 switch mode
     case 0 % PTES
         % Plot points
-        for int = 1:stages_ch
-            pl1 = plot([gas.state(1,int).s]/1000,[gas.state(1,int).T]+K_C,'k-o','MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',5); hold on;
+        for iL=1:Load.num
+            if strcmp(Load.type(iL),'chg')
+                for int = 1:stages_ch
+                    pl1 = plot([gas.state(iL,int).s]/1000,[gas.state(iL,int).T]+K_C,'k-o','MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',5); hold on;
+                end
+                break
+            end
         end
-        for int = 1:stages_dis
-            pl2 = plot([gas.state(2,int).s]/1000,[gas.state(2,int).T]+K_C,'k:s','MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',5); hold on;
+        for iL=1:Load.num
+            if strcmp(Load.type(iL),'dis')
+                for int = 1:stages_dis
+                    pl2 = plot([gas.state(iL,int).s]/1000,[gas.state(iL,int).T]+K_C,'k:s','MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',5); hold on;
+                end
+                break
+            end
         end
         lgn = legend([pl1 pl2],'charge','discharge','Location','best');
-        title(strcat('$$\eta$$',sprintf('=%.2f',eta),'  $$\epsilon$$',sprintf('=%.3f',eff),'  $$f_p$$',sprintf('=%.3f',ploss),'  $$\chi$$',sprintf('=%.2f',chi_PTES)));
-        
-    case 1 % Heat pump only
-        % Plot points
-        for int = 1:stages_ch
-            pl1 = plot([gas.state(1,int).s]/1000,[gas.state(1,int).T]+K_C,'k-o','MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',5); hold on;
-        end
-        lgn = legend(pl1,'charge','Location','best');
-        title(strcat('$$\eta$$',sprintf('=%.2f',eta),'  $$\epsilon$$',sprintf('=%.3f',eff),'  $$f_p$$',sprintf('=%.3f',ploss),'  $$\chi_{\mathrm{hot}}$$',sprintf('=%.2f',chi_hot),sprintf('  COP=%.2f',COP)));
-        
-    case 2 % Heat engine only
-        % Plot points
-        for int = 1:stages_dis
-            pl2 = plot([gas.state(2,int).s]/1000,[gas.state(2,int).T]+K_C,'k-s','MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',5); hold on;
-        end
-        lgn = legend(pl2,'discharge','Location','best');
-        title(strcat('$$\eta$$',sprintf('=%.2f',eta),'  $$\epsilon$$',sprintf('=%.3f',eff),'  $$f_p$$',sprintf('=%.3f',ploss),'  $$\chi$$',sprintf('=%.2f',chi_tot),'  EFF',sprintf('=%.2f',EFF)));
+        title(strcat('$$\eta$$',sprintf('=%.2f',eta),'  $$\epsilon$$',sprintf('=%.3f',eff),'  $$f_p$$',sprintf('=%.3f',ploss)));
+%         title(strcat('$$\eta$$',sprintf('=%.2f',eta),'  $$\epsilon$$',sprintf('=%.3f',eff),'  $$f_p$$',sprintf('=%.3f',ploss),'  $$\chi$$',sprintf('=%.2f',chi_PTES)));
+%         
+%     case 1 % Heat pump only
+%         % Plot points
+%         for int = 1:stages_ch
+%             pl1 = plot([gas.state(1,int).s]/1000,[gas.state(1,int).T]+K_C,'k-o','MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',5); hold on;
+%         end
+%         lgn = legend(pl1,'charge','Location','best');
+%         title(strcat('$$\eta$$',sprintf('=%.2f',eta),'  $$\epsilon$$',sprintf('=%.3f',eff),'  $$f_p$$',sprintf('=%.3f',ploss),'  $$\chi_{\mathrm{hot}}$$',sprintf('=%.2f',chi_hot),sprintf('  COP=%.2f',COP)));
+%         
+%     case 2 % Heat engine only
+%         % Plot points
+%         for int = 1:stages_dis
+%             pl2 = plot([gas.state(2,int).s]/1000,[gas.state(2,int).T]+K_C,'k-s','MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',5); hold on;
+%         end
+%         lgn = legend(pl2,'discharge','Location','best');
+%         title(strcat('$$\eta$$',sprintf('=%.2f',eta),'  $$\epsilon$$',sprintf('=%.3f',eff),'  $$f_p$$',sprintf('=%.3f',ploss),'  $$\chi$$',sprintf('=%.2f',chi_tot),'  EFF',sprintf('=%.2f',EFF)));
 end
 
 xlabel('Specific Entropy [kJ/kg.K]');
