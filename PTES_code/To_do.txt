@@ -1,9 +1,8 @@
 LIST OF THINGS TO DO
 --------------------
-- Move liquid_tanks_compute function into double_tank class, as a method
-- Pre-define initial mass of tanks inside double_tank class and then empty them partially, during charge
-- Provide all "time-variable" input parameters as arrays (including time array that determines the load and whether the cycle is a charge or a discharge cycle).
-- Include "tank_stage" array inside double_tank class to store information about heat losses, etc.
-- Consider whether to move cycle position index inside fluid_class
+- Upload Kevin code into Github
+- State storage duration to compute initial mass of storage tanks.
+- Finish re-implementation of "Heat engine" mode
 - Think how to have components as Objects rather than functions. They would contain the "stages" information and also size, geometry, cost, etc.
+- Consider whether to move cycle position index inside fluid_class
 - Tidy up heat exchanger function and collapse "Crat" inside "var" parameter

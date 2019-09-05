@@ -1,9 +1,9 @@
 % At this point, assume no storage losses
 
 % Hot tanks
-HT.A(3) = HT.A(2); % charge source
-HT.B(3) = HT.B(2); % charge sink
+HT.A(iL+1) = HT.A(iL); % charge source
+HT.B(iL+1) = HT.B(iL); % charge sink
 
 % Cold tanks
-CT.A(3) = CT.A(2); % charge source
-CT.B(3) = CT.B(2); % charge sink
+CT.A(iL+1) = CT.A(iL); % charge source
+CT.B(iL+1) = CT.B(iL); % charge sink

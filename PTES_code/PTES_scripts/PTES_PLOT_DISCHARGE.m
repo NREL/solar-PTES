@@ -36,7 +36,7 @@ ylabel('Temperature [K]');
 %axis('auto');
 ylim([0 1000])
 yticks(0:100:1000)
-chi = RTeff(gas,t_ch,t_dis);
+chi = 0;%RTeff(gas,t_ch,t_dis);
 title(strcat('$$\eta$$',sprintf('=%.2f',eta),'  $$\epsilon$$',sprintf('=%.3f',eff),'  $$f_p$$',sprintf('=%.3f',ploss), '  $$\chi$$',sprintf('=%.2f',chi)));
 %title(strcat('$$\eta$$',sprintf('=%.2f',eta),'  $$\epsilon$$',sprintf('=%.3f',eff),'  $$f_p$$',sprintf('=%.3f',ploss),...
 %    '  $$\mathrm{WR}_{dis} $$',sprintf('=%.1f',WR_dis), '  $$\chi$$',sprintf('=%.2f',chi)));

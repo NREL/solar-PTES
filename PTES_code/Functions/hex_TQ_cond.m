@@ -102,10 +102,10 @@ end
 % Update states
 stateH.h = hH1;    
 stateH.p = pH2*(1-ploss);
-stateH = update_state(stateH,fluidH.handle,fluidH.read,fluidH.A,2);
+stateH = update_state(stateH,fluidH.handle,fluidH.read,fluidH.TAB,2);
 stateC.h = hC2;
 stateC.p = pC1*(1-ploss);
-stateC = update_state(stateC,fluidC.handle,fluidC.read,fluidC.A,2);
+stateC = update_state(stateC,fluidC.handle,fluidC.read,fluidC.TAB,2);
 
 % Compute stages
 % Entropy change

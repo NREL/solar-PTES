@@ -30,9 +30,9 @@ if strcmp(fluid.read,'CP') %read from CoolProp
     end
     
 elseif strcmp(fluid.read,'TAB') %read from table
-    Tx  = fluid.A(:,1);
-    Cpy = fluid.A(:,5);
-    hy  = fluid.A(:,2);
+    Tx  = fluid.TAB(:,1);
+    Cpy = fluid.TAB(:,5);
+    hy  = fluid.TAB(:,2);
     Cpv = rtab1(Tx,Cpy,Tv,0);
     hv  = rtab1(Tx,hy,Tv,0);
 else
