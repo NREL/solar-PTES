@@ -29,7 +29,7 @@ Ne_ch = 2; % number of expansions during charge
 
 % The Load structure stores information about the duration, type of cycle
 % (charge, storage or discharge) and mass flow rate of each time period.
-Load.mode = 2;
+Load.mode = 0;
 switch Load.mode
     case 0 % PTES
         Load.time = [5;5;4;10].*3600;          % time spent in each load period, s
@@ -42,9 +42,9 @@ switch Load.mode
         Load.mdot = 10;                        % working fluid mass flow rate, kg/s
         Load.num  = numel(Load.time);
     case 2 % Heat engine (no cold tanks)
-        error('not implemented')
+        %error('not implemented')
         Load.time = [0,10].*3600;                  % time spent in each load period, s
-        Load.type = ["sol","dis"];                     % type of load period
+        Load.type = ["sol","dis"];                 % type of load period
         Load.mdot = [0,10];                        % working fluid mass flow rate, kg/s
         Load.num  = numel(Load.time);
 end
