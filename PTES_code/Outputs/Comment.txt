@@ -1,0 +1,2 @@
+Output files in this folder are currently being ignored (i.e. not synced in the repository) via .gitignore.
+However, the Outputs folder in itself must exist for the code to be able to run without errors.
