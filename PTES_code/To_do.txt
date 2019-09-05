@@ -1,5 +1,6 @@
 LIST OF THINGS TO DO
 --------------------
+- Finish re-implementation of "Heat engine" mode
 - Think how to have components as Objects rather than functions. They would contain the "stages" information and also size, geometry, cost, etc.
 - Consider whether to move cycle position index inside fluid_class
 - Tidy up heat exchanger function and collapse "Crat" inside "var" parameter

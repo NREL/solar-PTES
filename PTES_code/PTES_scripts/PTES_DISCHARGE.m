@@ -14,7 +14,7 @@ gas.state(iL,1).mdot = Load.mdot(iL);
 [gas] = update(gas,[iL,1],1);
 % Regenerator cold inlet
 iReg1 = 1; % index regenerator hot inlet
-switch mode
+switch Load.mode
     case 0 % PTES
         iReg2 = iReg1 + 1 + 3*Nc_dis; % index regenerator cold inlet (after regeneration + heat rejection + cooling + compression)    
     case 2 % Heat engine only
@@ -39,10 +39,10 @@ while 1
         T_aim = environ.T0;
         [gas,environ,i,iE] = hex_set(gas,[iL,i],environ,[iL,iE],T_aim,eff,ploss);
         
-        switch mode
+        switch Load.mode
             case 0 % PTES
                 % COOL (gas-liquid)
-                fluidC(iC).state(iL,1).T = CT.B(3).T; fluidC(iC).state(iL,1).p = CT.B(3).p;% fluidC(iC).state(iL,1).mdot = fluidC(Ne_ch+1-iC).state(1,1).mdot;
+                fluidC(iC).state(iL,1).T = CT.B(iL).T; fluidC(iC).state(iL,1).p = CT.B(iL).p;
                 [fluidC(iC)] = update(fluidC(iC),[iL,1],1);
                 [gas,fluidC(iC),i,~] = hex_TQ_cond(gas,[iL,i],fluidC(iC),[iL,1],eff,1.0,ploss,'hex',0,0);
                 iC=iC+1;
@@ -61,7 +61,7 @@ while 1
     
     for iN = 1:Ne_dis
         % HEAT (gas-fluid)
-        fluidH(iH).state(iL,1).T = HT.B(3).T; fluidH(iH).state(iL,1).p = HT.B(3).p; THmin = HT.A(1).T;
+        fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p; THmin = HT.A(1).T;
         [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
         [fluidH(iH),gas,~,i] = hex_TQ_cond(fluidH(iH),[iL,1],gas,[iL,i],eff,1.0,ploss,'hex',2, THmin);
         iH=iH+1;
@@ -74,6 +74,7 @@ while 1
     
     % Close cycle
     gas.stage(iL,i).type = gas.stage(iL,1).type;
+    gas = count_Nstg(gas);
     
     % Determine convergence and proceed
     A = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
@@ -102,7 +103,7 @@ end
 % Find t_dis (minimum for both cycles to avoid depletion)
 [MdotH] = total_Mdot(fluidH,[iL,1]);
 t_dis  = HT.B(3).M/MdotH;
-if mode == 0
+if Load.mode == 0
     [MdotC] = total_Mdot(fluidC,[iL,1]);
     tC_dis  = CT.B(3).M/MdotC;
     t_dis   = min([t_dis,tC_dis]);
@@ -112,7 +113,7 @@ Load.time(iL) = min([Load.time(iL),t_dis])*(1-1e-6);
 % Compute effect of fluid streams entering/leaving the sink/source tanks
 % Hot tanks
 [HT] = run_tanks(HT,fluidH,iL,Load,T0);
-if mode == 0
+if Load.mode == 0
     % Cold tanks
     [CT] = run_tanks(CT,fluidC,iL,Load,T0);
 end

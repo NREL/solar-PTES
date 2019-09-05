@@ -23,18 +23,31 @@ TC_dis0 = T0;           % initial temperature of discharged cold fluid, K
 MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
 TC_chg0 = T0-50;        % initial temperature of charged cold fluid, K
 MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
-
-% The Load structure stores information about the duration, type of cycle
-% (charge, storage or discharge) and mass flow rate of each time period
-Load.time = [5;5;4;10].*3600;           % time spent in each load period, s
-Load.type = ["chg";"chg";"str";"dis"];  % type of load period
-Load.mdot = [10;10;0;10];               % working fluid mass flow rate, kg/s
-Load.num  = numel(Load.time);
-
-% Set operation modes
-mode  = 0; % cycle mode: 0=PTES, 1=Heat pump, 2=Heat engine
+% Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
 Ne_ch = 2; % number of expansions during charge
+
+% The Load structure stores information about the duration, type of cycle
+% (charge, storage or discharge) and mass flow rate of each time period.
+Load.mode = 2;
+switch Load.mode
+    case 0 % PTES
+        Load.time = [5;5;4;10].*3600;          % time spent in each load period, s
+        Load.type = ["chg";"chg";"str";"dis"]; % type of load period
+        Load.mdot = [10;10;0;10];              % working fluid mass flow rate, kg/s
+        Load.num  = numel(Load.time);
+    case 1 % Heat pump
+        Load.time = 10.*3600;                  % time spent in each load period, s
+        Load.type = "chg";                     % type of load period
+        Load.mdot = 10;                        % working fluid mass flow rate, kg/s
+        Load.num  = numel(Load.time);
+    case 2 % Heat engine (no cold tanks)
+        error('not implemented')
+        Load.time = [0,10].*3600;                  % time spent in each load period, s
+        Load.type = ["sol","dis"];                     % type of load period
+        Load.mdot = [0,10];                        % working fluid mass flow rate, kg/s
+        Load.num  = numel(Load.time);
+end
 
 % Set working fluids, storage fluids, and heat rejection streams. 'WF' or
 % 'SF' indicates working fluid or storage fluid. 'CP' or 'TAB' indicate

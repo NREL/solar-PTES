@@ -43,48 +43,35 @@ for icrv = 1:Ncrv
         % Set multi_run variables
         if multi_run==1, PTES_SET_MULTI_RUN; end
         
-        tic %start timer
+        tic % start timer
         
         % Reinitialise arrays (gas, fluids and tanks) to zero and do other
         % preliminary tasks
         PTES_INITIALISE
         
         for iL = 1:Load.num
-            switch mode
-                case 0 % PTES
-                    % Run charge cycle, compute state of storage tanks and run
-                    % discharge cycle
-                    switch Load.type(iL)
-                        case 'chg'
-                            PTES_CHARGE
-                            
-                        case 'str'
-                            PTES_TANKS_STORAGE % no storage loss considered at the moment
-                            
-                        case 'dis'
-                            if optimise % obtain optimal PRr
-                                f = @(PRr) ptes_discharge_function(gas, fluidH, fluidC, HT, CT, environ,...
-                                    T0, T1, pbot, PRr, PRch, Load.mdot(iL), Nc_dis, Ne_dis,...
-                                    eta, eff, ploss, Load.time(iL), mode);
-                                
-                                [PRr,ineff,xv,yv,iter] = golden_search(f,PRr_min,PRr_max,0.005,'Min',100);
-                            end
-                            PTES_DISCHARGE
-                    end
-                case 1 % Heat pump only
+            switch Load.type(iL)
+                case 'chg'
                     PTES_CHARGE
                     
-                case 2 % Heat engine only
-                    PTES_SOLAR_TANKS
-                    if optimise % obtain optimal PRr
-                        f = @(PRr) ptes_discharge_function(gas, fluidH, fluidC, HT, CT, environ,...
-                            T0, T1, pbot, PRr, PRch, Load.mdot(iL), Nc_dis, Ne_dis,...
-                            eta, eff, ploss, Load.time(iL), mode);
-                        
-                        [PRr,ineff,xv,yv,iter] = golden_search(f,PRr_min,PRr_max,0.005,'Min',100);
-                    end
+                case 'str'
+                    PTES_TANKS_STORAGE
+                    
+                case 'dis'
                     PTES_DISCHARGE
+                    
+                case 'sol'
+                    PTES_SOLAR_TANKS
             end
+        end
+        
+        if optimise % obtain optimal PRr
+            error('not implemented')
+            f = @(PRr) ptes_discharge_function(gas, fluidH, fluidC, HT, CT, environ,...
+                T0, T1, pbot, PRr, PRch, Load.mdot(iL), Nc_dis, Ne_dis,...
+                eta, eff, ploss, Load.time(iL), mode);
+            
+            [PRr,ineff,xv,yv,iter] = golden_search(f,PRr_min,PRr_max,0.005,'Min',100);
         end
         
         % Compute energy balance
@@ -93,23 +80,7 @@ for icrv = 1:Ncrv
         toc %stop timer
         
         if multi_run
-            switch mode
-                case 0
-                    chi = chi_PTES;
-                    COP=0;
-                    EFF=0;
-                case 1
-                    chi = chi_hot;
-                    EFF=0;
-                case 2
-                    chi = chi_tot;
-                    COP=0;
-                    rhoP_ch=0;
-            end
-            fprintf(ID1,'%15.5g', PRch , eta, eff, ploss, chi,COP,EFF,...
-                HT.B(2).T, CT.B(2).T, WR_dis, rhoE, rhoP_ch,...
-                WL_comp, WL_exp, WL_hexs, WL_reject, WL_mix_liq, WL_tanks);
-            fprintf(ID1,'\n');
+            PTES_PRINT_MULTI_RUN
         end
     end
 end
@@ -119,7 +90,7 @@ end
 %%% MAKE PLOTS %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if make_plots
-    switch mode
+    switch Load.mode
         case 0 % PTES
             PTES_WRITE_CHARGE
             PTES_WRITE_DISCHARGE
@@ -146,23 +117,6 @@ end
 
 %%% FINISH PROGRAM %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Close files and save copy of multi_run files
-fprintf(1,'\n...END...\n');
-fclose('all');
-if ~multi_run
-    diary off
-    % Save plots
-    if save_figs == 1
-        save_fig(1,'./Outputs/T-s',0,0,0)
-        %save_fig(3,'./Outputs/Golden_search',0,0,0)
-        save_fig(8,'./Outputs/Losses',0,0,0)
-    end
-end
-
-% Releasing CoolProp AbstractState
-ierr = 0; buffer_size = 10;
-herr= char((1:1:buffer_size));
-for i0=1:1000
-    calllib('coolprop','AbstractState_free',i0, ierr,herr,buffer_size)
-end
+% Close files, save plots and release CoolProp AbstractStates
+PTES_FINISH
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

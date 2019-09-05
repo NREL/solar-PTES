@@ -1,5 +1,5 @@
 figure(8)
-switch mode
+switch Load.mode
     case 0
         names = {'$$\mathrm{PTES_{ch}}$$','$$\mathrm{PTES_{dis}}$$'};
         b = bar(WL_matrix./W_in_chg*100,'stacked');

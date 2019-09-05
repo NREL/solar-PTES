@@ -10,7 +10,7 @@ switch Celcius
         K_C = -273.15;
 end
 
-switch mode
+switch Load.mode
     case 0 % PTES
         n1 = stages_ch*num;
         n2 = (stages_ch + stages_dis)*num;
@@ -79,7 +79,7 @@ switch mode
         plot(Spoints,Tlevels(3,:)+K_C,'r-','LineWidth',1.0);
 end
 
-switch mode
+switch Load.mode
     case 0 % PTES
         % Plot points
         for iL=1:Load.num

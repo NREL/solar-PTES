@@ -37,7 +37,7 @@ while 1
         ptop  = gas.state(iL,i).p;
         
         % COOL (gas-liquid)
-        fluidH(iH).state(iL,1).T = HT.A(1).T; fluidH(iH).state(iL,1).p = HT.A(1).p; %#ok<*SAGROW>
+        fluidH(iH).state(iL,1).T = HT.A(iL).T; fluidH(iH).state(iL,1).p = HT.A(iL).p; %#ok<*SAGROW>
         [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
         [gas,fluidH(iH),i,~] = hex_TQ_cond(gas,[iL,i],fluidH(iH),[iL,1],eff,1.0,ploss,'hex',0,0);
         iH=iH+1;
@@ -58,7 +58,7 @@ while 1
         [gas,i] = compexp(gas,[iL,i],eta,p_aim,1);        
         
         % HEAT (gas-liquid)
-        fluidC(iC).state(iL,1).T = CT.A(1).T; fluidC(iC).state(iL,1).p = CT.A(1).p;
+        fluidC(iC).state(iL,1).T = CT.A(iL).T; fluidC(iC).state(iL,1).p = CT.A(iL).p;
         [fluidC(iC)] = update(fluidC(iC),[iL,1],1);
         [fluidC(iC),gas,~,i] = hex_TQ_cond(fluidC(iC),[iL,1],gas,[iL,i],eff,1.0,ploss,'hex', 0, 0);
         iC=iC+1;
@@ -69,6 +69,7 @@ while 1
     
     % Close cycle
     gas.stage(iL,i).type = gas.stage(iL,1).type;
+    gas = count_Nstg(gas);
     
     % Determine convergence and proceed
     A = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
