@@ -102,7 +102,7 @@ end
 
 % Find t_dis (minimum for both cycles to avoid depletion)
 [MdotH] = total_Mdot(fluidH,[iL,1]);
-t_dis  = HT.B(3).M/MdotH;
+t_dis  = HT.B(iL).M/MdotH;
 if Load.mode == 0
     [MdotC] = total_Mdot(fluidC,[iL,1]);
     tC_dis  = CT.B(3).M/MdotC;

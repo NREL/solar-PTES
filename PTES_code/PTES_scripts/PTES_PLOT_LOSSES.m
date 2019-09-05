@@ -10,7 +10,7 @@ switch Load.mode
         set(gca, 'XTick', 1, 'XTickLabel', names, 'TickLabelInterpreter', 'latex')
     case 2
         names = {'Heat engine'};
-        b = bar(WL_matrix./Exergy_into_tanks*100,'stacked');
+        b = bar(WL_matrix./Exergy_from_tanks*100,'stacked');
         set(gca, 'XTick', 2, 'XTickLabel', names, 'TickLabelInterpreter', 'latex')
         %xlim([0 3.0])
 end

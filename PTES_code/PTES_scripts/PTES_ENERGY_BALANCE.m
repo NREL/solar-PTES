@@ -55,7 +55,7 @@ ip2 = find(i_dis == 1,1,'first'); %index for printing (first discharge period)
 
 
 %Compute lost work on specific component types
-WL_PTES_ch  = zeros(1,6);
+WL_PTES_chg = zeros(1,6);
 WL_PTES_dis = zeros(1,6);
 for iL=1:Load.num
     if strcmp(Load.type(iL),'chg')
@@ -74,7 +74,7 @@ for iL=1:Load.num
                     error('unknown stage type');
             end
             if any(strcmp(gas.stage(iL,i0).type,{'comp','exp','hex','regen','hex_reject'}))
-                WL_PTES_ch(i1) = WL_PTES_ch(i1) + gas.stage(iL,i0).sirr*T0*gas.state(iL,i0).mdot*Load.time(iL);
+                WL_PTES_chg(i1) = WL_PTES_chg(i1) + gas.stage(iL,i0).sirr*T0*gas.state(iL,i0).mdot*Load.time(iL);
             end
         end
     end
@@ -101,19 +101,19 @@ for iL=1:Load.num
 end
 switch Load.mode
     case 0 % PTES
-        WL_PTES_ch(5)  = HT.WL_chg + CT.WL_chg;
+        WL_PTES_chg(5)  = HT.WL_chg + CT.WL_chg;
         WL_PTES_dis(5) = HT.WL_dis + CT.WL_dis;
-        WL_PTES_ch(6)  = 0;
+        WL_PTES_chg(6)  = 0;
         WL_PTES_dis(6) = HT.A(end).B - HT.A(1).B + HT.B(end).B - HT.B(1).B + CT.A(end).B - CT.A(1).B + CT.B(end).B - CT.B(1).B;
     case 1 % Heat pump only
-        WL_PTES_ch(5)  = HT.WL_chg + CT.WL_chg;
+        WL_PTES_chg(5)  = HT.WL_chg + CT.WL_chg;
         WL_PTES_dis(5) = 0;
-        WL_PTES_ch(6)  = 0;
+        WL_PTES_chg(6)  = 0;
         WL_PTES_dis(6) = 0;
     case 2 % Heat engine only
-        WL_PTES_ch(5)  = 0;
+        WL_PTES_chg(5)  = 0;
         WL_PTES_dis(5) = HT.WL_dis;
-        WL_PTES_ch(6)  = 0;
+        WL_PTES_chg(6)  = 0;
         %WL_PTES_dis(6) = 0;
         WL_PTES_dis(6) = HT.A(end).B - HT.A(1).B + HT.B(end).B - HT.B(1).B;
 end
@@ -176,7 +176,7 @@ if WM==1
     fprintf(1,'\n');
 end
 
-WL_matrix = [ WL_PTES_ch ; WL_PTES_dis ; ];
+WL_matrix = [ WL_PTES_chg ; WL_PTES_dis ; ];
 Total_loss = sum(WL_matrix(:));
 
 
@@ -209,12 +209,12 @@ switch Load.mode
         
     case 2 % Heat engine only
         Heat_from_tanks   = (HT.A(2).H - HT.A(end).H) + (HT.B(2).H - HT.B(end).H);
-        Exergy_into_tanks = (HT.A(2).B - HT.A(1).B) + (HT.B(2).B - HT.B(1).B);
+        Exergy_from_tanks = (HT.A(2).B - HT.A(end).B) + (HT.B(2).B - HT.B(end).B);
         Heat_rejected = QE_dis;
-        Total_Work_lost = Exergy_into_tanks - W_out_dis;
+        Total_Work_lost = Exergy_from_tanks - W_out_dis;
         First_law_error = (Heat_from_tanks - W_out_dis - Heat_rejected)/(W_out_dis);
         Second_law_error = (Total_loss - Total_Work_lost)/Total_Work_lost;
-        chi_tot = (W_out_dis)/Exergy_into_tanks;
+        chi_tot = (W_out_dis)/Exergy_from_tanks;
         EFF = W_out_dis/QH_dis;
         rhoE = W_out_dis/fact/(HT.A(end).V)*1e3; %kWh/m3
         %rhoP_dis = (W_out_dis/t_dis/(gas_min_rho_dis.mdot/gas_min_rho_dis.rho)/1e6); %MW/(m3/s)
@@ -232,7 +232,7 @@ switch Load.mode
     case {0,1}
         Exergy_in = W_in_chg;
     case 2
-        Exergy_in = Exergy_into_tanks;
+        Exergy_in = Exergy_from_tanks;
 end
 WL_comp    = sum(WL_matrix(:,1))/Exergy_in*100;
 WL_exp     = sum(WL_matrix(:,2))/Exergy_in*100;

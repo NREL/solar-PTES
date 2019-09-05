@@ -70,8 +70,8 @@ switch Load.mode
         Smax = max(plot_file(1:n2,4))/1000;
         Spoints = linspace(Smin-0.00*(Smax-Smin),Smax+0.00*(Smax-Smin),2);
         Tlevels(1,1:2) = T0;
-        Tlevels(2,1:2) = HT.B(3).T;
-        Tlevels(3,1:2) = HT.A(4).T;
+        Tlevels(2,1:2) = HT.B(2).T;
+        Tlevels(3,1:2) = HT.A(2).T;
         
         % Plot levels of storage media temperatures
         plot(Spoints,Tlevels(1,:)+K_C,'k--','LineWidth',1.0);
