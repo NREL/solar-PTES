@@ -15,11 +15,16 @@ clear;
 dbstop if error
 %dbclear all
 
-% Set paths
-addpath('./Classes/')
-addpath('./Generic/')
-addpath('./Functions/')
-addpath('./PTES_scripts/')
+% Determine Operating System
+c = computer();
+
+% Add paths
+switch computer
+    case 'GLNXA64' %Linux
+        addpath('./Classes/','./Generic/','./Functions/','./PTES_scripts/')
+    case 'PCWIN64' %Windows
+        addpath('.\Classes\','.\Generic\','.\Functions\','.\PTES_scripts\')
+end
 
 % Set properties for plots
 set_graphics
