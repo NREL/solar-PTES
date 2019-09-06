@@ -1,0 +1,28 @@
+-------------------------------
+SMALL THINGS
+-------------------------------
+19-09-06	:	Upload Josh's simple model analysis into Git repository. Completed:
+19-09-06	:	Upload Kevin's steam rankine models. Completed:
+19-09-06	:	Develop simple model of a recuperated sCO2-PTES cycle. Completed:
+
+
+-------------------------------
+SMALL-ISH THINGS
+-------------------------------
+19-09-06	:	Heat losses from liquid tanks
+19-09-06	:	Parasitic fan losses
+19-09-06	:	Parastic pumping losses
+19-09-06	:	Formulate off-design compressor/expander equations for inclusion in code
+
+
+-------------------------------
+LARGE THINGS
+-------------------------------
+19-09-06	:	Include cost correlations and uncertainty analysis
+19-09-06	:	Write packed bed model for MATLAB
+19-09-06	:	Either extend Kevin's code or incorporate it into the current framework to do full analysis of heat pump plus a steam Rankine cycle
+19-09-06	:	Electric heater class?
+19-09-06	:	Validate heat exchanger models somehow
+19-09-06	:	Develop a version of the code that models sCO2-PTES cycles rather than ideal-gas cycles (may require different control)
+19-09-06	:	Develop a version of the code that models recompression sCO2 cycles
+19-09-06	:	Develop a version of the code that models time-shifted recompression sCO2 cycles
