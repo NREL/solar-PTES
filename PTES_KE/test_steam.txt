@@ -1,0 +1,24 @@
+------------------------------------------------------------
+SECTION 1:  Working fluid data
+------------------------------------------------------------
+Water       		:		Working fluid. Has to match CoolProp name
+25.0				:		Ambient temperature, C, for cycle
+------------------------------------------------------------
+SECTION 2:	Rankine Cycle Data - discharging
+------------------------------------------------------------
+100					:		Design steam flow rate, kg/s
+100                 :       Actual steam flow rate, kg/s
+3					:		Number of expansion stages
+100                 :       Inlet design pressure of HP turbine, bar
+0.2051				:		Outlet design pressure of LP turbine, bar
+510                 :       Inlet temperature of HP turbine, C
+510                 :       Reheat temperature, C                
+0.85                :       Ref. isentropic efficiency of expansion, -
+0.95                :       Ref. isentropic efficiency of pumping, -
+1                   :       Off-design eff. method: 1 = Patnode, 2 = Atlas Copco
+1                   :       Terminal temp. difference of FWH's, C 
+0.1543,0.1315,      :       Design steam extractions for FWH's, -       
+------------------------------------------------------------
+SECTION 3:	Losses in heat exchangers
+------------------------------------------------------------
+0.01                :       Fractional pressure loss in each heat exchanger
