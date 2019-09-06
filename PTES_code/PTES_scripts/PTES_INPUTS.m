@@ -11,30 +11,33 @@ PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 1;            % set Tmax? (this option substitutes PRch)
 Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
+% Number of intercooled/interheated compressions/expansions
+Nc_ch = 1; % number of compressions during charge
+Ne_ch = 2; % number of expansions during charge
 % Hot storage tanks
 fHname  = 'SolarSalt';  % fluid name
 TH_dis0 = 250 + 273.15; % initial temperature of discharged hot fluid, K
 MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
 TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
 MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
+nH      = Nc_ch;        % number of hot fluid streams
 % Cold storage tanks
 fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
 TC_dis0 = T0;           % initial temperature of discharged cold fluid, K
 MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
 TC_chg0 = T0-50;        % initial temperature of charged cold fluid, K
 MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
-% Number of intercooled/interheated compressions/expansions
-Nc_ch = 1; % number of compressions during charge
-Ne_ch = 2; % number of expansions during charge
+nC      = Ne_ch;        % number of cold fluid streams
+
 
 % The Load structure stores information about the duration, type of cycle
 % (charge, storage or discharge) and mass flow rate of each time period.
-Load.mode = 0;
+Load.mode = 3;
 switch Load.mode
     case 0 % PTES
-        Load.time = [5;5;4;10].*3600;          % time spent in each load period, s
-        Load.type = ["chg";"chg";"str";"dis"]; % type of load period
-        Load.mdot = [10;10;0;10];              % working fluid mass flow rate, kg/s
+        Load.time = [10;4;10].*3600;        % time spent in each load period, s
+        Load.type = ["chg";"str";"dis"];    % type of load period
+        Load.mdot = [10;0;10];              % working fluid mass flow rate, kg/s
         Load.num  = numel(Load.time);
     case 1 % Heat pump
         Load.time = 10.*3600;                  % time spent in each load period, s
@@ -47,6 +50,15 @@ switch Load.mode
         Load.type = ["sol","dis"];                 % type of load period
         Load.mdot = [0,10];                        % working fluid mass flow rate, kg/s
         Load.num  = numel(Load.time);
+    case 3 % JB charge, Rankine discharge
+        Load.time = [10;4;10].*3600;        % time spent in each load period, s
+        Load.type = ["chg";"str";"ran"];    % type of load period
+        Load.mdot = [10;0;10];              % working fluid mass flow rate, kg/s
+        Load.num  = numel(Load.time);
+        steamA = fluid_class('Water','WF','CP','HEOS',Load.num,30);
+        steamB = fluid_class('Water','WF','CP','HEOS',Load.num,30);
+        steamC = fluid_class('Water','WF','CP','HEOS',Load.num,30);
+        nH = 2;
 end
 
 % Set working fluids, storage fluids, and heat rejection streams. 'WF' or
@@ -57,8 +69,8 @@ end
 % Working fluid
 gas = fluid_class('Nitrogen','WF','CP','TTSE',Load.num,30);
 % Storage fluids
-fluidH(1:Nc_ch) = fluid_class(fHname,'SF','TAB',NaN,Load.num,2);
-fluidC(1:Ne_ch) = fluid_class(fCname,'SF','TAB',NaN,Load.num,2);
+fluidH(1:nH) = fluid_class(fHname,'SF','TAB',NaN,Load.num,2);
+fluidC(1:nC) = fluid_class(fCname,'SF','TAB',NaN,Load.num,2);
 % Set double tanks
 HT = double_tank_class(fluidH,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,Load.num+1); %hot double tank
 CT = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank

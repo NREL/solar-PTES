@@ -73,7 +73,8 @@ while 1
     
     % Determine convergence and proceed
     A = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-    %for i0=1:i, fprintf(1,'\n %f\t%f\t%10s\t%d',gas.state(iL,i0).T,gas.state(iL,i0).p/1e5,gas.stage(iL,i0).type,i0); end; fprintf(1,'\n');
+    %print_states(gas,iL,1:i,Load);
+    
     %disp((A(A~=0) - A_0(A~=0))./A(A~=0)*100);
     if all(abs((A(A~=0) - A_0(A~=0))./A(A~=0))*100 < 1e-3) % is charge cycle converged?
         % Exit charge cycle

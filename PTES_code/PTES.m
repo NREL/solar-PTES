@@ -65,6 +65,9 @@ for icrv = 1:Ncrv
                 case 'dis'
                     PTES_DISCHARGE
                     
+                case 'ran'
+                    RANK_DISCHARGE
+                    
                 case 'sol'
                     PTES_SOLAR_TANKS
             end

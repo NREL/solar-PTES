@@ -31,7 +31,7 @@ main.state(indM(1),indM(2)+1) = stateM;
 main.stage(indM(1),indM(2))   = stageM;
 second.state(indS(1),indS(2)) = stateS;
 
-%Increase stage counter for main stream
+% Increase stage counter for main stream
 iM  = indM(2) + 1;
 end
 
