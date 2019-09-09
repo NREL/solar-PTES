@@ -13,6 +13,7 @@ SMALL-ISH THINGS
 19-09-06	:	Parasitic fan losses
 19-09-06	:	Parastic pumping losses
 19-09-06	:	Formulate off-design compressor/expander equations for inclusion in code
+19-09-09	:	Heat exchangers that can do phase change, e.g. for steam
 
 
 -------------------------------
