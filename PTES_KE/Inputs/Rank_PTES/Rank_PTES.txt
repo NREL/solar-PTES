@@ -1,0 +1,61 @@
+------------------------------------------------------------
+SECTION 1:	Enginer working fluid data
+------------------------------------------------------------
+Water       		:		Working fluid. Has to match CoolProp name
+25.0				:		Ambient temperature, C, for cycle
+------------------------------------------------------------
+SECTION 2:	Rankine Cycle Data - discharging
+------------------------------------------------------------
+100					:		Design steam flow rate, kg/s
+100                 :       Actual steam flow rate, kg/s
+3					:		Number of expansion stages
+100                 :       Inlet design pressure of HP turbine, bar
+0.2051				:		Outlet design pressure of LP turbine, bar
+750                 :       Inlet temperature of HP turbine, C
+750                 :       Reheat temperature, C                
+0.85                :       Ref. isentropic efficiency of expansion, -
+0.95                :       Ref. isentropic efficiency of pumping, -
+1                   :       Off-design eff. method: 1 = Patnode, 2 = Atlas Copco
+1                   :       Terminal temp. difference of FWH's, C 
+0.1543,0.1315,      :       Design steam extractions for FWH's, -       
+------------------------------------------------------------
+SECTION 3:	Losses in heat exchangers
+------------------------------------------------------------
+0.01                :       Fractional pressure loss in each heat exchanger
+5.0                 :       Temperature difference between streams in heat exchangers
+------------------------------------------------------------
+SECTION 3:	Condensor Info
+------------------------------------------------------------
+Air                 :       Cooling medium
+25.0                :       Ambient temperature, C
+101325              :       Ambient air pressure, Pa
+1.0                 :       Condenser pressure UB, bar
+0.0070              :       Condenser pressure LB, bar
+30.0                :       Temperature difference held constant for air over cond. 
+------------------------------------------------------------
+SECTION 4:	PTES Working fluid data
+------------------------------------------------------------
+Air                 :		Working fluid. Has to match CoolProp name
+25.0				:		Ambient temperature, C, for cycle
+------------------------------------------------------------
+SECTION 5:	PTES cycle data - charging
+------------------------------------------------------------
+1					:		Number of compression stages
+25                  :		Inlet pressure to first compressor
+1.0                 :		Overall pressure ratio (initial value)
+y					:		Equal pressure ratios?
+0.90, 275,  10.0,	:		Compressor isentropic efficiency, inlet temp (C), pressure ratio 
+1					:		Number of expansion stages
+y					:		Equal pressure ratios in expansion?
+0.90, 35.0, 10.0,	:		Expander isentropic efficiency, inlet temp (C), pressure ratio 
+------------------------------------------------------------
+SECTION 6:	Losses in heat exchangers
+------------------------------------------------------------
+0.01                :       Fractional pressure loss in each heat exchanger
+5.0                 :       Temperature difference between streams in heat exchangers
+------------------------------------------------------------
+SECTION 7:	Storage temperatures
+------------------------------------------------------------
+565                 :       HS molten salt hi temp, C
+285                 :       HS molten salt low temp, C
+30.0                :       Atmospheric air temp, C
