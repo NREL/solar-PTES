@@ -1,7 +1,7 @@
 % Set stage indices
-i  = 1;  % keeps track of the gas stage number
+%i  = 1;  % keeps track of the gas stage number
 iH = 1;  % keeps track of the Hot fluid stream number
-iC = 1;  % keeps track of the Cold fluid stream number
+%iC = 1;  % keeps track of the Cold fluid stream number
 iE = 1;  % keeps track of the Environment (heat rejection) stream number
 
 %%% PLANT LAYOUT %%%
@@ -51,6 +51,7 @@ p_aim      = steamA.state(iL,i).p/(PR_dis)^(1/3);
 fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p;
 [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
 [steamA,fluidH(iH),i,~] = hex_TQ_cond(steamA,[iL,i],fluidH(iH),[iL,1],eff,1.0,ploss,'hex',0,0);
+iH = iH + 1;
 
 % EXPAND (4-->5)
 p_aim      = steamA.state(iL,i).p/(PR_dis)^(1/3);
@@ -89,6 +90,7 @@ p_aim = Ran_ptop;
 fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p;
 [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
 [steamA,fluidH(iH),i,~] = hex_TQ_cond(steamA,[iL,i],fluidH(iH),[iL,1],eff,1.0,ploss,'hex',0,0);
+iH = iH + 1;
 
 
 
