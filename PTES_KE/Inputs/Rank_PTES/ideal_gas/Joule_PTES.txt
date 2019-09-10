@@ -1,0 +1,34 @@
+------------------------------------------------------------
+SECTION 1:	Working fluid data
+------------------------------------------------------------
+Air                 :		Working fluid. Has to match CoolProp name
+25.0				:		Ambient temperature, C
+------------------------------------------------------------
+SECTION 2:	Charging Data
+------------------------------------------------------------
+200                 :       Charging flow rate
+1					:		Number of compression stages
+25                  :		Inlet pressure to first compressor
+4					:		Overall pressure ratio
+y					:		Equal pressure ratios?
+0.90, 278.0,  10.0,	:		Compressor isentropic efficiency, inlet temp (C), pressure ratio 
+1					:		Number of expansion stages
+y					:		Equal pressure ratios in expansion?
+0.90, 20.0, 10.0,	:		Expander isentropic efficiency, inlet temp (C), pressure ratio 
+------------------------------------------------------------
+SECTION 3:	Discharging Data
+------------------------------------------------------------
+1					:		Number of compression stages
+25.0				:		Inlet pressure to first compressor
+5.00				:		Overall pressure ratio
+y					:		Equal pressure ratios in compression?
+0.90, -150.0, 2.0,	:		Isentropic efficiency, inlet temp (C), pressure ratio 
+1					:		Number of expansion stages
+y					:		Equal pressure ratios in expansion?
+0.90, 500.0, 2.67,	:		Isentropic efficiency, inlet temp (C), pressure ratio  
+------------------------------------------------------------
+SECTION 4:	Losses in heat exchangers
+------------------------------------------------------------
+0.01                :       Fractional pressure loss in each heat exchanger
+5.0                 :       Temperature difference between streams in heat exchangers
+
