@@ -13,9 +13,9 @@ c = computer();
 % Addpaths and load CoolProp
 switch computer
     case 'GLNXA64' %Linux
-        addpath('./inputs/','./classes/','./Generic/');
+        addpath('./_inputs_/','./_classes_/','./_generic_/');
     case 'PCWIN64' %Windows
-        addpath('.\inputs\','.\classes\','.\Generic\');   
+        addpath('.\_inputs_\','.\_classes_\','.\_generic_\');   
 end
 load_coolprop
 set_graphics
