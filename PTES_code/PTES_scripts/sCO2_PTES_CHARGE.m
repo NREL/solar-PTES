@@ -72,7 +72,7 @@ while 1
         % HEAT (gas-liquid)
         fluidC(iC).state(iL,1).T = CT.A(iL).T; fluidC(iC).state(iL,1).p = CT.A(iL).p;
         [fluidC(iC)] = update(fluidC(iC),[iL,1],1);
-        [fluidC(iC),gas,~,i] = hex_TQ_cond(fluidC(iC),[iL,1],gas,[iL,i],eff,1.0,ploss,'hex', 0, 0);
+        [fluidC(iC),gas,~,i] = hex_TQ_cond(fluidC(iC),[iL,1],gas,[iL,i],eff,1.3,ploss,'hex', 0, 0);
         iC=iC+1;
     end
     

@@ -68,7 +68,7 @@ for icrv = 1:Ncrv
                     PTES_TANKS_STORAGE
                     
                 case 'dis'
-                    PTES_DISCHARGE
+                    sCO2_PTES_DISCHARGE
                     
                 case 'sol'
                     PTES_SOLAR_TANKS
@@ -129,8 +129,8 @@ if Nrcp == 0
     plot_hex(gas,[1,5],fluidC,[1,1],100,11); % Cold storage
 
     % Plot the DISCHARGING heat exchangers
-    %plot_hex(gas,[3,6],fluidH,[3,1],100,13); % Hot storage
-    %plot_hex(gas,[3,3],fluidC,[3,1],100,14); % Cold storage
+    plot_hex(gas,[3,4],fluidH,[3,1],100,13); % Hot storage
+    plot_hex(gas,[3,2],fluidC,[3,1],100,14); % Cold storage
 elseif Nrcp == 1
     % Plot the CHARGING heat exchangers
     plot_hex(gas,[1,2],fluidH,[1,1],100,10); % Hot storage

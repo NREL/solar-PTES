@@ -6,7 +6,7 @@ T0      = 27 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 250e5;        % top pressure, Pa
 PRch    = 3.0;          % charge pressure ratio
-PRr     = 1.3;          % discharge pressure ratio: PRdis = PRch*PRr
+PRr     = 0.7;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 0;            % set Tmax? (this option substitutes PRch)
@@ -24,7 +24,7 @@ switch Nrcp
         MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
         % Cold storage tanks
         fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
-        TC_dis0 = T0 + 100;           % initial temperature of discharged cold fluid, K
+        TC_dis0 = 100 + 273.15;           % initial temperature of discharged cold fluid, K
         MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
         TC_chg0 = T0-5;        % initial temperature of charged cold fluid, K
         MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
@@ -51,7 +51,7 @@ Ne_ch = 1; % number of expansions during charge
 
 % The Load structure stores information about the duration, type of cycle
 % (charge, storage or discharge) and mass flow rate of each time period.
-Load.mode = 1;
+Load.mode = 0;
 switch Load.mode
     case 0 % PTES
         Load.time = [10;4;10].*3600;          % time spent in each load period, s
