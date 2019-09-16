@@ -308,6 +308,6 @@ end
 
 
 % Manage warnings
-if  ((CT.A(1).T > T0) && (CT.A(4).T < (CT.A(1).T - 1))) && mode == 0
+if  Load.mode == 0 && ((CT.A(1).T > T0) && (CT.A(4).T < (CT.A(1).T - 1)))
     warning('Unsustainable discharge of cold reservoir!')
 end
