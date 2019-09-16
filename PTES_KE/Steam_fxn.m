@@ -196,7 +196,10 @@ end
     pre_Tin         = DCMP1.out.T;
 
 end
-%% Off-Design Steam Functions
+
+
+
+% Off-Design Steam Functions
 % expander (turbine) efficiency 
 function eta_OD = eta_exp(eta_ref,m_ref,m_dot,mode)
 % Patnode

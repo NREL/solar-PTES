@@ -25,11 +25,11 @@ TC_chg0 = T0-50;        % initial temperature of charged cold fluid, K
 MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
-Ne_ch = 2; % number of expansions during charge
+Ne_ch = 1; % number of expansions during charge
 
 % The Load structure stores information about the duration, type of cycle
 % (charge, storage or discharge) and mass flow rate of each time period.
-Load.mode = 0;
+Load.mode = 1;
 switch Load.mode
     case 0 % PTES
         Load.time = [5;5;4;10].*3600;          % time spent in each load period, s
@@ -39,7 +39,7 @@ switch Load.mode
     case 1 % Heat pump
         Load.time = 10.*3600;                  % time spent in each load period, s
         Load.type = "chg";                     % type of load period
-        Load.mdot = 10;                        % working fluid mass flow rate, kg/s
+        Load.mdot = 1000;                        % working fluid mass flow rate, kg/s
         Load.num  = numel(Load.time);
     case 2 % Heat engine (no cold tanks)
         error('not implemented')

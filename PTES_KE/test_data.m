@@ -1,4 +1,4 @@
-close all
+%close all
 global  DEXP1 DEXP2 DEXP3 DEXP4 DCOND DCMP1 DCMP2 DCMP3 DCMP4 FWH1 FWH2 ...
         PREH BOILER SUPH REH CYC data %#ok<NUSED>
     
@@ -109,7 +109,7 @@ for i = 1:length(P_sat_plot)
     S_sat_L(i)      = CoolProp.PropsSI('S','P',P_sat_plot(i)*1e5,'T',T_sat_L(i)-0.01,data.name) / KIL;
     S_sat_V(i)      = CoolProp.PropsSI('S','P',P_sat_plot(i)*1e5,'T',T_sat_V(i)+0.01,data.name) / KIL;
 end
-
+%{
 % plot
 figure(1)
 fontsize = 14;
@@ -131,3 +131,5 @@ ylabel('Temperature, C','fontweight','bold','fontsize',fontsize)
 xlabel('Specific Entropy, kJ/kg/K','fontweight','bold','fontsize',fontsize)
 set(gca,'fontweight','bold','fontsize',fontsize);
 grid()
+
+%}

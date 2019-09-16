@@ -6,6 +6,10 @@ switch read
                 [state.rho,state.h,state.s,state.Q,~] = CP5('PT_INPUTS',state.p,state.T,'D','H','S','Q','T',handle);
         elseif mode == 2 %Enthalpy and pressure are known
                 [state.T,state.rho,state.s,state.Q,~] = CP5('HmassP_INPUTS',state.h,state.p,'T','D','S','Q','P',handle);
+        elseif mode == 3 % Pressure and Q are known
+                [state.T,state.rho,state.s,state.h,~] = CP5('PQ_INPUTS',state.p,state.Q,'T','D','S','H','P',handle);                
+        elseif mode == 4 % Temperature and Q are known
+                [state.p,state.rho,state.s,state.h,~] = CP5('QT_INPUTS',state.Q,state.T,'P','D','S','H','T',handle);  
         else
             error('not implemented')
         end
