@@ -123,10 +123,15 @@ if make_plots
     end
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Plot the heat exchangers
+% Plot the CHARGING heat exchangers
 plot_hex(gas,[1,2],fluidH,[1,1],100,10); % Hot storage
 plot_hex(gas,[1,6],fluidC,[1,1],100,11); % Cold storage
 plot_hex(gas,[1,3],gas,[1,7],100,12); % Recuperator storage
+
+% Plot the DISCHARGING heat exchangers
+plot_hex(gas,[3,6],fluidH,[3,1],100,13); % Hot storage
+plot_hex(gas,[3,3],fluidC,[3,1],100,14); % Cold storage
+plot_hex(gas,[3,1],gas,[3,5],100,15); % Recuperator storage
 
 %%% FINISH PROGRAM %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -19,7 +19,7 @@ TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
 MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
 % Cold storage tanks
 fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
-TC_dis0 = T0 + 50;           % initial temperature of discharged cold fluid, K
+TC_dis0 = T0 + 0;           % initial temperature of discharged cold fluid, K
 MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
 TC_chg0 = T0-5;        % initial temperature of charged cold fluid, K
 MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
@@ -29,12 +29,12 @@ Ne_ch = 1; % number of expansions during charge
 
 % The Load structure stores information about the duration, type of cycle
 % (charge, storage or discharge) and mass flow rate of each time period.
-Load.mode = 1;
+Load.mode = 0;
 switch Load.mode
     case 0 % PTES
-        Load.time = [5;5;4;10].*3600;          % time spent in each load period, s
-        Load.type = ["chg";"chg";"str";"dis"]; % type of load period
-        Load.mdot = [10;10;0;10];              % working fluid mass flow rate, kg/s
+        Load.time = [10;4;10].*3600;          % time spent in each load period, s
+        Load.type = ["chg";"str";"dis"]; % type of load period
+        Load.mdot = [10;0;10];              % working fluid mass flow rate, kg/s
         Load.num  = numel(Load.time);
     case 1 % Heat pump
         Load.time = 10.*3600;                  % time spent in each load period, s
