@@ -57,7 +57,7 @@ for icrv = 1:Ncrv
         
         % Reinitialise arrays (gas, fluids and tanks) to zero and do other
         % preliminary tasks
-        PTES_INITIALISE
+        SCO2_PTES_INITIALISE
         
         for iL = 1:Load.num
             switch Load.type(iL)
@@ -123,28 +123,6 @@ if make_plots
     end
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if Nrcp == 0
-    % Plot the CHARGING heat exchangers
-    plot_hex(gas,[1,2],fluidH,[1,1],100,10); % Hot storage
-    plot_hex(gas,[1,5],fluidC,[1,1],100,11); % Cold storage
-
-    % Plot the DISCHARGING heat exchangers
-    plot_hex(gas,[3,4],fluidH,[3,1],100,13); % Hot storage
-    plot_hex(gas,[3,1],fluidC,[3,1],100,14); % Cold storage
-elseif Nrcp == 1
-    % Plot the CHARGING heat exchangers
-    plot_hex(gas,[1,2],fluidH,[1,1],100,10); % Hot storage
-    plot_hex(gas,[1,6],fluidC,[1,1],100,11); % Cold storage
-    plot_hex(gas,[1,3],gas,[1,7],100,12); % Recuperator storage
-
-    % Plot the DISCHARGING heat exchangers
-    plot_hex(gas,[3,6],fluidH,[3,1],100,13); % Hot storage
-    plot_hex(gas,[3,3],fluidC,[3,1],100,14); % Cold storage
-    plot_hex(gas,[3,1],gas,[3,5],100,15); % Recuperator storage
-elseif Nrcp == 2
-    error('Not implemented')
-end
-
 %%% FINISH PROGRAM %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Close files, save plots and release CoolProp AbstractStates

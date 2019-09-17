@@ -18,7 +18,7 @@ Nc_ch = 1; % number of compressions during charge
 Ne_ch = 1; % number of expansions during charge
 
 % Number of hot and cold stores IN SERIES
-Ncld = 2; % number of cold stores. Not implemented for >1
+Ncld = 1; % number of cold stores. Not implemented for >1
 Nhot = 1; % number of hot stores. Not implemented for >2
 
 % Number of recuperators
@@ -38,7 +38,7 @@ switch Nrcp
         MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
         TC_chg0 = T0-5;         % initial temperature of charged cold fluid, K
         MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
-        TC_int  = 50 + 273.15 ; % Intermediate temperature between two cold stores
+        TC_int  = 30 + 273.15 ; % Intermediate temperature between two cold stores
     case 1
         % Hot storage tanks
         fHname  = 'SolarSalt';  % fluid name
@@ -57,7 +57,7 @@ end
 
 % The Load structure stores information about the duration, type of cycle
 % (charge, storage or discharge) and mass flow rate of each time period.
-Load.mode = 1;
+Load.mode = 0;
 switch Load.mode
     case 0 % PTES
         Load.time = [10;4;10].*3600;          % time spent in each load period, s
@@ -92,8 +92,8 @@ switch Ncld
     case 1
         CT  = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank
     case 2
-        CT  = double_tank_class(fluidC,TC_int,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank
-        CT2 = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_int,p0,MC_chg0,T0,Load.num+1); %cold double tank
+        CT  = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_int,p0,MC_chg0,T0,Load.num+1); %cold double tank
+        CT2 = double_tank_class(fluidC,TC_int,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank
     case 3
         error('Not implemented')
 end
@@ -102,8 +102,8 @@ switch Nhot
     case 1
         HT  = double_tank_class(fluidH,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,Load.num+1); %hot double tank
     case 2
-        HT  = double_tank_class(fluidH,TH_int,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,Load.num+1); %hot double tank
-        HT2 = double_tank_class(fluidH,TH_dis0,p0,MH_dis0,TH_int,p0,MH_chg0,T0,Load.num+1); %hot double tank
+        HT  = double_tank_class(fluidH,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,Load.num+1); %hot double tank
+        HT2 = double_tank_class(fluidH,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,Load.num+1); %hot double tank
     case 3
         error('Not implemented')
 end
