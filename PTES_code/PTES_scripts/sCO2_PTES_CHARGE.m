@@ -50,7 +50,15 @@ while 1
         fluidH(iH).state(iL,1).T = HT.A(iL).T; fluidH(iH).state(iL,1).p = HT.A(iL).p; %#ok<*SAGROW>
         [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
         [gas,fluidH(iH),i,~] = hex_TQ_cond(gas,[iL,i],fluidH(iH),[iL,1],eff,1.0,ploss,'hex',0,0);
-        plot_hex(gas,[iL,i-1],fluidH(iH),[iL,1],100,10); % Cold storage
+        plot_hex(gas,[iL,i-1],fluidH(iH),[iL,1],100,10); % Hot storage
+        
+        if Nhot == 2
+            fluidH2(iH).state(iL,1).T = HT2.A(iL).T; fluidH2(iH).state(iL,1).p = HT2.A(iL).p;
+            [fluidH2(iH)] = update(fluidH2(iH),[iL,1],1);
+            [gas,fluidH2(iH),i,~] = hex_TQ_cond(gas,[iL,i],fluidH2(iH),[iL,1],eff,1.0,ploss,'hex',0,0);
+            plot_hex(gas,[iL,i-1],fluidH2(iH),[iL,1],100,11); % Cold storage
+        end
+                
         iH=iH+1;
     end    
     if setTmax, PRch = ptop/pbot; end
@@ -81,13 +89,13 @@ while 1
         fluidC(iC).state(iL,1).T = CT.A(iL).T; fluidC(iC).state(iL,1).p = CT.A(iL).p;
         [fluidC(iC)] = update(fluidC(iC),[iL,1],1);
         [fluidC(iC),gas,~,i] = hex_TQ_cond(fluidC(iC),[iL,1],gas,[iL,i],eff,1.6,ploss,'hex', 0, 0);
-        plot_hex(gas,[iL,i-1],fluidC(iC),[iL,1],100,11); % Cold storage
+        plot_hex(gas,[iL,i-1],fluidC(iC),[iL,1],100,12); % Cold storage
         
         if Ncld == 2
-            fluidC(iC).state(iL,3).T = CT2.A(iL).T; fluidC(iC).state(iL,3).p = CT2.A(iL).p;
-            [fluidC(iC)] = update(fluidC(iC),[iL,3],1);
-            [fluidC(iC),gas,~,i] = hex_TQ_cond(fluidC(iC),[iL,3],gas,[iL,i],eff,1.0,ploss,'hex', 0, 0);
-            plot_hex(gas,[iL,i-1],fluidC(iC),[iL,3],100,12); % Cold storage
+            fluidC2(iC).state(iL,1).T = CT2.A(iL).T; fluidC2(iC).state(iL,1).p = CT2.A(iL).p;
+            [fluidC2(iC)] = update(fluidC2(iC),[iL,1],1);
+            [fluidC2(iC),gas,~,i] = hex_TQ_cond(fluidC2(iC),[iL,1],gas,[iL,i],eff,1.0,ploss,'hex', 0, 0);
+            plot_hex(gas,[iL,i-1],fluidC2(iC),[iL,1],100,13); % Cold storage
         end
         
         iC=iC+1;
@@ -96,7 +104,7 @@ while 1
     % REGENERATE (gas-gas)
     if Nrcp == 1
         [~,gas,~,i] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0); 
-        plot_hex(gas,[iL,i-1],gas,[iL,iIN],100,13); % Recuperator
+        plot_hex(gas,[iL,i-1],gas,[iL,iIN],100,14); % Recuperator
     end
     
     % Close cycle
@@ -125,5 +133,7 @@ end
 % Compute effect of fluid streams entering/leaving the sink/source tanks
 % Hot tanks
 [HT] = run_tanks(HT,fluidH,iL,Load,T0);
+if Nhot == 2; [HT2] = run_tanks(HT2,fluidH2,iL,Load,T0);end
 % Cold tanks
 [CT] = run_tanks(CT,fluidC,iL,Load,T0);
+if Ncld == 2; [CT2] = run_tanks(CT2,fluidC2,iL,Load,T0);end

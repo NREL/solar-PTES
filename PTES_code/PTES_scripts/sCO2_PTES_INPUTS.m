@@ -6,7 +6,7 @@ T0      = 27 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 250e5;        % top pressure, Pa
 PRch    = 3.0;          % charge pressure ratio
-PRr     = 0.7;          % discharge pressure ratio: PRdis = PRch*PRr
+PRr     = 0.80;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 0;            % set Tmax? (this option substitutes PRch)
@@ -19,7 +19,7 @@ Ne_ch = 1; % number of expansions during charge
 
 % Number of hot and cold stores IN SERIES
 Ncld = 2; % number of cold stores. Not implemented for >1
-Nhot = 1; % number of hot stores. Not implemented for >2
+Nhot = 2; % number of hot stores. Not implemented for >2
 
 % Number of recuperators
 Nrcp = 0 ; % Can be 0,1,2. If 0 may need two hot stores. If 2 may require a recompression. 
@@ -29,12 +29,12 @@ switch Nrcp
         fHname  = 'MineralOil'; % fluid name
         TH_dis0 = T0;           % initial temperature of discharged hot fluid, K
         MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
-        TH_chg0 = 250 + 273.15; % initial temperature of charged hot fluid, K
+        TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
         MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
-        TH_int  = 100 + 273.15 ;% Intermediate temperature between two hot stores
+        TH_int  = 250 + 273.15 ;% Intermediate temperature between two hot stores
         % Cold storage tanks
         fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
-        TC_dis0 = 100 + 273.15; % initial temperature of discharged cold fluid, K
+        TC_dis0 = 400 + 273.15; % initial temperature of discharged cold fluid, K
         MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
         TC_chg0 = T0-5;         % initial temperature of charged cold fluid, K
         MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
@@ -57,7 +57,7 @@ end
 
 % The Load structure stores information about the duration, type of cycle
 % (charge, storage or discharge) and mass flow rate of each time period.
-Load.mode = 1;
+Load.mode = 0;
 switch Load.mode
     case 0 % PTES
         Load.time = [10;4;10].*3600;          % time spent in each load period, s
@@ -84,26 +84,30 @@ end
 % elements in state arrays.
 % Working fluid
 gas = fluid_class('CarbonDioxide','WF','CP','TTSE',Load.num,30);
-% Storage fluids
-fluidH(1:Nc_ch) = fluid_class(fHname,'SF','TAB',NaN,Load.num,2*Nhot);
-fluidC(1:Ne_ch) = fluid_class(fCname,'SF','TAB',NaN,Load.num,2*Ncld);
+
 % Set double tanks
 switch Ncld
     case 1
+        fluidC(1:Ne_ch) = fluid_class(fCname,'SF','TAB',NaN,Load.num,2); % Storage fluid
         CT  = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank
     case 2
+        fluidC(1:Ne_ch)  = fluid_class(fCname,'SF','TAB',NaN,Load.num,2);
+        fluidC2(1:Ne_ch) = fluid_class(fCname,'SF','TAB',NaN,Load.num,2);
         CT  = double_tank_class(fluidC,TC_int,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank
-        CT2 = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_int,p0,MC_chg0,T0,Load.num+1); %cold double tank
+        CT2 = double_tank_class(fluidC2,TC_dis0,p0,MC_dis0,TC_int,p0,MC_chg0,T0,Load.num+1); %cold double tank
     case 3
         error('Not implemented')
 end
 % Hot tanks
 switch Nhot
     case 1
+        fluidH(1:Nc_ch) = fluid_class(fHname,'SF','TAB',NaN,Load.num,2*Nhot);
         HT  = double_tank_class(fluidH,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,Load.num+1); %hot double tank
     case 2
+        fluidH(1:Nc_ch)  = fluid_class(fHname,'SF','TAB',NaN,Load.num,2);
+        fluidH2(1:Nc_ch) = fluid_class(fHname,'SF','TAB',NaN,Load.num,2);
         HT  = double_tank_class(fluidH,TH_int,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,Load.num+1); %hot double tank
-        HT2 = double_tank_class(fluidH,TH_dis0,p0,MH_dis0,TH_int,p0,MH_chg0,T0,Load.num+1); %hot double tank
+        HT2 = double_tank_class(fluidH2,TH_dis0,p0,MH_dis0,TH_int,p0,MH_chg0,T0,Load.num+1); %hot double tank
     case 3
         error('Not implemented')
 end

@@ -5,11 +5,10 @@ for ir = 1:length(fluidH)
 end
 for ir = 1:length(fluidC)
     fluidC(ir) = reset_fluid(fluidC(ir));
+    if Ncld == 2; fluidC2(ir) = reset_fluid(fluidC2(ir)); end
 end
+
 % Reset tanks
-
-CT = reset_tanks(CT,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0);
-
 switch Ncld
     case 1
         CT = reset_tanks(CT,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0);
