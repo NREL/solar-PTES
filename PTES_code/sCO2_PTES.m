@@ -130,7 +130,7 @@ if Nrcp == 0
 
     % Plot the DISCHARGING heat exchangers
     plot_hex(gas,[3,4],fluidH,[3,1],100,13); % Hot storage
-    plot_hex(gas,[3,2],fluidC,[3,1],100,14); % Cold storage
+    plot_hex(gas,[3,1],fluidC,[3,1],100,14); % Cold storage
 elseif Nrcp == 1
     % Plot the CHARGING heat exchangers
     plot_hex(gas,[1,2],fluidH,[1,1],100,10); % Hot storage

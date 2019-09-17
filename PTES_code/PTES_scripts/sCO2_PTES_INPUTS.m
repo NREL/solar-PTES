@@ -11,6 +11,7 @@ PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 0;            % set Tmax? (this option substitutes PRch)
 Tmax    = 500 + 273.15; % maximum temp at compressor outlet, K
+Lcld    = true ;       % Make cold store as cold as possible?
 
 % Number of recuperators
 Nrcp = 0 ; % Can be 0,1,2. If 0 may need two hot stores. If 2 may require a recompression. 
@@ -31,7 +32,7 @@ switch Nrcp
     case 1
         % Hot storage tanks
         fHname  = 'SolarSalt';  % fluid name
-        TH_dis0 = 400 + 273.15; % initial temperature of discharged hot fluid, K
+        TH_dis0 = T0 + 273.15; % initial temperature of discharged hot fluid, K
         MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
         TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
         MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg

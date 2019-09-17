@@ -56,14 +56,11 @@ while 1
     
     PRc_dis = (PRdis)^(1/Nc_dis)/(1-ploss)^2; % expansion pressure ratio
     for iN = 1:Nc_dis
-        % REJECT HEAT (external HEX)
-        if fluidC(1).state(1,1).T > T0
-            % Skip heat rejection
-            T_aim = gas.state(iL,i).T-1;
-        else
+        % REJECT HEAT (external HEX) *IF* cold store is below ambient (plus a bit)
+        if fluidC(1).state(1,1).T <= T0+10
             T_aim = environ.T0;    
+            [gas,environ,i,iE] = hex_set(gas,[iL,i],environ,[iL,iE],T_aim,eff,ploss);
         end    
-        [gas,environ,i,iE] = hex_set(gas,[iL,i],environ,[iL,iE],T_aim,eff,ploss);
         
         switch Load.mode
             case 0 % PTES
@@ -71,10 +68,17 @@ while 1
                 fluidC(iC).state(iL,1).T = CT.B(iL).T; fluidC(iC).state(iL,1).p = CT.B(iL).p;
                 [fluidC(iC)] = update(fluidC(iC),[iL,1],1);
                 [gas,fluidC(iC),i,~] = hex_TQ_cond(gas,[iL,i],fluidC(iC),[iL,1],eff,1.3,ploss,'hex',0,0);
+                
+                % If cold store outlet is above ambient then reject heat
+                if gas.state(iL,i).T > T0
+                    T_aim = environ.T0;    
+                    [gas,environ,i,iE] = hex_set(gas,[iL,i],environ,[iL,iE],T_aim,eff,ploss);
+                end 
+                
                 iC=iC+1;
             case 1 % Heat engine only
         end
-        
+                
         % COMPRESS
         p_aim = gas.state(iL,i).p*PRc_dis;
         [gas,i] = compexp(gas,[iL,i],eta,p_aim,3); %#ok<*SAGROW>

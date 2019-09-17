@@ -59,8 +59,14 @@ while 1
         [gas,~,i,~] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0);
     end
     
+    % May wish to make cold store as cold as possible, or avoid rejecting
+    % heat here to avoid the worst of the CO2 c_p variation
+    if Lcld
+        T_aim = environ.T0 ;
+    else
+        T_aim = gas.state(iL,i).T - 1.0 ;
+    end
     %     % REJECT HEAT (external HEX)
-    T_aim = environ.T0;
     [gas,environ,i,iE] = hex_set(gas,[iL,i],environ,[iL,iE],T_aim,eff,ploss);
     
     for iN = 1:Ne_ch
