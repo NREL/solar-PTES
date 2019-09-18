@@ -17,12 +17,25 @@ if Nrcp == 0
     gas.state(iL,iT1).mdot = gas.state(iL,1).mdot;
     [gas] = update(gas,[iL,iT1],1);
 elseif Nrcp == 1
-    iReg1 = Ncld + Nc_ch*2;         % index hot regenerator inlet (after compression + cooling)
-    iReg2 = iReg1 + 1 + Nhot + Ne_ch*2; % index cold regenerator inlet (after regeneration + heat_reject + expansion + heating)
+    iReg1 = Nhot + Nc_ch*2;         % index hot regenerator inlet (after compression + cooling)
+    iReg2 = iReg1 + 1 + Ncld + Ne_ch*2; % index cold regenerator inlet (after regeneration + heat_reject + expansion + heating)
     gas.state(iL,iReg2).T = T0;
     gas.state(iL,iReg2).p = pbot;
     gas.state(iL,iReg2).mdot = gas.state(iL,1).mdot;
     [gas] = update(gas,[iL,iReg2],1);
+elseif Nrcp == 2
+    iReg1 = Nhot + Nc_ch*2;             % index hot regenerator inlet (after compression + cooling)
+    iReg2 = iReg1 + 2 + Ncld + Ne_ch*2; % index cold regenerator inlet (after 1xregeneration + heat_reject + expansion + heating)
+    iReg3 = iReg2 + 1 ;                 % index cold regenerator inlet (after 2xregeneration + heat_reject + expansion + heating)
+    gas.state(iL,iReg2).T = T0;         % Update cold inlet to cold temp regenerator
+    gas.state(iL,iReg2).p = pbot;
+    gas.state(iL,iReg2).mdot = gas.state(iL,1).mdot;
+    [gas] = update(gas,[iL,iReg2],1);
+    
+    gas.state(iL,iReg3).T = TthreshC;         % Update cold inlet to hot temp regenerator
+    gas.state(iL,iReg3).p = pbot;
+    gas.state(iL,iReg3).mdot = gas.state(iL,3).mdot;
+    [gas] = update(gas,[iL,iReg3],1);
 else
     error('Not implemented')
 end
@@ -50,13 +63,13 @@ while 1
         fluidH(iH).state(iL,1).T = HT.A(iL).T; fluidH(iH).state(iL,1).p = HT.A(iL).p; %#ok<*SAGROW>
         [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
         [gas,fluidH(iH),i,~] = hex_TQ_cond(gas,[iL,i],fluidH(iH),[iL,1],eff,1.0,ploss,'hex',0,0);
-        plot_hex(gas,[iL,i-1],fluidH(iH),[iL,1],100,10); % Hot storage
+        %plot_hex(gas,[iL,i-1],fluidH(iH),[iL,1],100,10); % Hot storage
         
         if Nhot == 2
             fluidH2(iH).state(iL,1).T = HT2.A(iL).T; fluidH2(iH).state(iL,1).p = HT2.A(iL).p;
             [fluidH2(iH)] = update(fluidH2(iH),[iL,1],1);
             [gas,fluidH2(iH),i,~] = hex_TQ_cond(gas,[iL,i],fluidH2(iH),[iL,1],eff,1.0,ploss,'hex',0,0);
-            plot_hex(gas,[iL,i-1],fluidH2(iH),[iL,1],100,11); % Cold storage
+            %plot_hex(gas,[iL,i-1],fluidH2(iH),[iL,1],100,11); % Cold storage
         end
                 
         iH=iH+1;
@@ -65,8 +78,10 @@ while 1
     
     % REGENERATE (gas-gas)
     if Nrcp == 1
-        iIN = i;
         [gas,~,i,~] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0);
+    elseif Nrcp == 2
+        [gas,~,i,~] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg3],eff,0,ploss,'regen',0,0); % High-temp regenerator
+        [gas,~,i,~] = hex_TQ_cond(gas,[iL,i],gas,[iL,iReg2],eff,0,ploss,'regen',0,0); % Low-temp regenerator
     end
     
     % May wish to make cold store as cold as possible, or avoid rejecting
@@ -89,13 +104,13 @@ while 1
         fluidC(iC).state(iL,1).T = CT.A(iL).T; fluidC(iC).state(iL,1).p = CT.A(iL).p;
         [fluidC(iC)] = update(fluidC(iC),[iL,1],1);
         [fluidC(iC),gas,~,i] = hex_TQ_cond(fluidC(iC),[iL,1],gas,[iL,i],eff,1.6,ploss,'hex', 0, 0);
-        plot_hex(gas,[iL,i-1],fluidC(iC),[iL,1],100,12); % Cold storage
+        %plot_hex(gas,[iL,i-1],fluidC(iC),[iL,1],100,12); % Cold storage
         
         if Ncld == 2
             fluidC2(iC).state(iL,1).T = CT2.A(iL).T; fluidC2(iC).state(iL,1).p = CT2.A(iL).p;
             [fluidC2(iC)] = update(fluidC2(iC),[iL,1],1);
             [fluidC2(iC),gas,~,i] = hex_TQ_cond(fluidC2(iC),[iL,1],gas,[iL,i],eff,1.0,ploss,'hex', 0, 0);
-            plot_hex(gas,[iL,i-1],fluidC2(iC),[iL,1],100,13); % Cold storage
+            %plot_hex(gas,[iL,i-1],fluidC2(iC),[iL,1],100,13); % Cold storage
         end
         
         iC=iC+1;
@@ -104,7 +119,9 @@ while 1
     % REGENERATE (gas-gas)
     if Nrcp == 1
         [~,gas,~,i] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0); 
-        plot_hex(gas,[iL,i-1],gas,[iL,iIN],100,14); % Recuperator
+    elseif Nrcp == 2
+        [~,gas,~,~] = hex_TQ_cond(gas,[iL,iReg1+1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0); % Low-temp regenerator
+        [~,gas,~,i] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg3],eff,0,ploss,'regen',0,0); 
     end
     
     % Close cycle

@@ -18,11 +18,11 @@ Nc_ch = 1; % number of compressions during charge
 Ne_ch = 1; % number of expansions during charge
 
 % Number of hot and cold stores IN SERIES
-Ncld = 2; % number of cold stores. Not implemented for >1
-Nhot = 2; % number of hot stores. Not implemented for >2
+Ncld = 1; % number of cold stores. Not implemented for >1
+Nhot = 1; % number of hot stores. Not implemented for >2
 
 % Number of recuperators
-Nrcp = 0 ; % Can be 0,1,2. If 0 may need two hot stores. If 2 may require a recompression. 
+Nrcp = 2 ; % Can be 0,1,2. If 0 may need two hot stores. If 2 may require a recompression. 
 switch Nrcp
     case 0
         % Hot storage tanks
@@ -53,6 +53,21 @@ switch Nrcp
         TC_chg0 = T0-5;        % initial temperature of charged cold fluid, K
         MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
     case 2
+        % Hot storage tanks
+        fHname  = 'SolarSalt';  % fluid name
+        TH_dis0 = T0 + 273.15;  % initial temperature of discharged hot fluid, K
+        MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
+        TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
+        MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
+        % Cold storage tanks
+        fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
+        TC_dis0 = T0 + 0;           % initial temperature of discharged cold fluid, K
+        MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
+        TC_chg0 = T0-5;        % initial temperature of charged cold fluid, K
+        MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
+        % Choose a threshold temperature between the tanks
+        TthreshC = 38. + 273.15 ; % Charge - threshold is on low-pressure side
+        TthreshD = 78. + 273.15 ; % Discharge - threshold is on high-pressure side
 end
 
 % The Load structure stores information about the duration, type of cycle

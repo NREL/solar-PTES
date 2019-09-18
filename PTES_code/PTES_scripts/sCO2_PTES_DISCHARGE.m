@@ -39,6 +39,27 @@ elseif Nrcp == 1
     gas.state(iL,iReg2).p = gas.state(iL,1).p*PRdis;
     gas.state(iL,iReg2).mdot = gas.state(iL,1).mdot;
     [gas] = update(gas,[iL,iReg2],1);
+      
+elseif Nrcp == 2
+    % Regenerator cold inlet
+    iReg1 = 1; % index regenerator hot inlet
+    switch Load.mode
+        case 0 % PTES
+            iReg2 = iReg1 + 3 + 3*Nc_dis; % index regenerator cold inlet (after regeneration + heat rejection + cooling + compression)    
+            iReg3 = iReg2 - 1 ;
+        case 2 % Heat engine only
+            error('Not implemented')
+    end
+    gas.state(iL,iReg2).T = TthreshD;
+    gas.state(iL,iReg2).p = gas.state(iL,1).p*PRdis;
+    gas.state(iL,iReg2).mdot = gas.state(iL,1).mdot;
+    [gas] = update(gas,[iL,iReg2],1);
+    
+    gas.state(iL,iReg3).T = T0;
+    gas.state(iL,iReg3).p = gas.state(iL,1).p*PRdis;
+    gas.state(iL,iReg3).mdot = gas.state(iL,1).mdot;
+    [gas] = update(gas,[iL,iReg3],1);
+    
 else
     error('Not implemented')
 end
@@ -51,8 +72,10 @@ while 1
     
     % REGENERATE (gas-gas)
     if Nrcp == 1
-        iIN = i ;
         [gas,~,i,~] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0); %#ok<*SAGROW>
+    elseif Nrcp == 2
+        [gas,~,i,~] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0);   % High-temp regenerator
+        [gas,~,i,~] = hex_TQ_cond(gas,[iL,i],gas,[iL,iReg3],eff,0,ploss,'regen',0,0);       % Low-temp regenerator
     end
     
     PRc_dis = (PRdis)^(1/Nc_dis)/(1-ploss)^2; % expansion pressure ratio
@@ -70,17 +93,17 @@ while 1
                     fluidC(iC).state(iL,1).T = CT.B(iL).T; fluidC(iC).state(iL,1).p = CT.B(iL).p;
                     [fluidC(iC)] = update(fluidC(iC),[iL,1],1);
                     [gas,fluidC(iC),i,~] = hex_TQ_cond(gas,[iL,i],fluidC(iC),[iL,1],eff,1.3,ploss,'hex',0,0);
-                    plot_hex(gas,[iL,i-1],fluidC(iC),[iL,1],100,15); % Cold storage
+                    %plot_hex(gas,[iL,i-1],fluidC(iC),[iL,1],100,15); % Cold storage
                 elseif Ncld == 2
                     fluidC2(iC).state(iL,1).T = CT2.B(iL).T; fluidC2(iC).state(iL,1).p = CT2.B(iL).p;
                     [fluidC2(iC)] = update(fluidC2(iC),[iL,1],1);
                     [gas,fluidC2(iC),i,~] = hex_TQ_cond(gas,[iL,i],fluidC2(iC),[iL,1],eff,1.05,ploss,'hex',0,0);
-                    plot_hex(gas,[iL,i-1],fluidC2(iC),[iL,1],100,15); % Cold storage                    
+                    %plot_hex(gas,[iL,i-1],fluidC2(iC),[iL,1],100,15); % Cold storage                    
                     
                     fluidC(iC).state(iL,1).T = CT.B(iL).T; fluidC(iC).state(iL,1).p = CT.B(iL).p;
                     [fluidC(iC)] = update(fluidC(iC),[iL,1],1);
                     [fluidC(iC),gas,~,i] = hex_TQ_cond(fluidC(iC),[iL,1],gas,[iL,i],eff,1.1,ploss,'hex', 0, 0);
-                    plot_hex(gas,[iL,i-1],fluidC(iC),[iL,1],100,16); % Cold storage
+                    %plot_hex(gas,[iL,i-1],fluidC(iC),[iL,1],100,16); % Cold storage
                 end
                 
                 % If cold store outlet is above ambient then reject heat
@@ -103,7 +126,9 @@ while 1
     % REGENERATE (gas-gas)
     if Nrcp == 1
         [~,gas,~,i] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0); %#ok<*SAGROW>
-        plot_hex(gas,[iL,i-1],gas,[iL,iIN],100,17); % Recuperator
+    elseif Nrcp == 2
+        [~,gas,~,~] = hex_TQ_cond(gas,[iL,iReg1+1],gas,[iL,iReg3],eff,0,ploss,'regen',0,0); 
+        [~,gas,~,i] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0); 
     end
     
     for iN = 1:Ne_dis
@@ -112,17 +137,17 @@ while 1
             fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p; THmin = HT.A(1).T;
             [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
             [fluidH(iH),gas,~,i] = hex_TQ_cond(fluidH(iH),[iL,1],gas,[iL,i],eff,1.0,ploss,'hex',2, THmin);
-            plot_hex(gas,[iL,i-1],fluidH(iH),[iL,1],100,17); % Hot storage        
+            %plot_hex(gas,[iL,i-1],fluidH(iH),[iL,1],100,17); % Hot storage        
         elseif Ncld == 2
             fluidH2(iH).state(iL,1).T = HT2.B(iL).T; fluidH2(iH).state(iL,1).p = HT2.B(iL).p; THmin = HT2.A(1).T;
             [fluidH2(iH)] = update(fluidH2(iH),[iL,1],1);
             [fluidH2(iH),gas,~,i] = hex_TQ_cond(fluidH2(iH),[iL,1],gas,[iL,i],eff,1.0,ploss,'hex',2, THmin);
-            plot_hex(gas,[iL,i-1],fluidH2(iH),[iL,1],100,17); % Hot storage    
+            %plot_hex(gas,[iL,i-1],fluidH2(iH),[iL,1],100,17); % Hot storage    
             
             fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p; THmin = HT.A(1).T;
             [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
             [fluidH(iH),gas,~,i] = hex_TQ_cond(fluidH(iH),[iL,1],gas,[iL,i],eff,1.0,ploss,'hex',2, THmin);
-            plot_hex(gas,[iL,i-1],fluidH(iH),[iL,1],100,18); % Hot storage 
+            %plot_hex(gas,[iL,i-1],fluidH(iH),[iL,1],100,18); % Hot storage 
         end
         
         iH=iH+1;
