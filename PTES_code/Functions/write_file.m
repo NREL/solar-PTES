@@ -14,7 +14,7 @@ elseif any(strcmp(stage.type,{'comp','exp'}))
     phi   = log(fluid_out.p/fluid_in.p)/log(fluid_out.h/fluid_in.h);
     p_vect = fluid_in.p*(h_vect./fluid_in.h).^phi;
 else
-    error('not implemented');
+    warning('not implemented');
 end
 
 % Obtain critical pressure

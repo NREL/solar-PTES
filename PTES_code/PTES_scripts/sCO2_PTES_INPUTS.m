@@ -6,12 +6,12 @@ T0      = 27 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 250e5;        % top pressure, Pa
 PRch    = 3.0;          % charge pressure ratio
-PRr     = 0.80;          % discharge pressure ratio: PRdis = PRch*PRr
+PRr     = 1.2;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 0;            % set Tmax? (this option substitutes PRch)
 Tmax    = 500 + 273.15; % maximum temp at compressor outlet, K
-Lcld    = false ;       % Make cold store as cold as possible?
+Lcld    = true ;       % Make cold store as cold as possible?
 
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
@@ -55,7 +55,7 @@ switch Nrcp
     case 2
         % Hot storage tanks
         fHname  = 'SolarSalt';  % fluid name
-        TH_dis0 = T0 + 273.15;  % initial temperature of discharged hot fluid, K
+        TH_dis0 = 400. + 273.15;  % initial temperature of discharged hot fluid, K
         MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
         TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
         MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
@@ -67,7 +67,8 @@ switch Nrcp
         MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
         % Choose a threshold temperature between the tanks
         TthreshC = 38. + 273.15 ; % Charge - threshold is on low-pressure side
-        TthreshD = 78. + 273.15 ; % Discharge - threshold is on high-pressure side
+        TthreshD = 200. + 273.15 ; % Discharge - threshold is on high-pressure side
+        Lrcmp    = true ;         % Is there a recompression
 end
 
 % The Load structure stores information about the duration, type of cycle

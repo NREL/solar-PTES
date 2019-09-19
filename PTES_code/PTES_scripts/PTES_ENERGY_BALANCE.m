@@ -85,7 +85,7 @@ for iL=1:Load.num
                     i1 = 1;
                 case 'exp'
                     i1 = 2;
-                case {'hex','regen'}
+                case {'hex','regen','mixing'}
                     i1 = 3;
                 case 'hex_reject'
                     i1 = 4;

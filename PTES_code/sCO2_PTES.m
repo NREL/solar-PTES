@@ -130,9 +130,19 @@ if Nrcp == 1
 elseif Nrcp == 2
     plot_hex(gas,[1,9],gas,[1,3],100,20);
     plot_hex(gas,[1,8],gas,[1,4],100,21);
-    plot_hex(gas,[3,7],gas,[3,1],100,22); % Recuperator
+    plot_hex(gas,[3,8],gas,[3,1],100,22); % Recuperator
     plot_hex(gas,[3,6],gas,[3,2],100,23); % Recuperator
 end
+
+% Plot hot storage - currently set up for sCO2-recomp cycle
+plot_hex(gas,[1,2],fluidH,[1,1],100,30);
+plot_hex(gas,[3,9],fluidH,[3,1],100,31);
+
+% Plot coldhot storage - currently set up for sCO2-recomp cycle
+plot_hex(gas,[1,7],fluidC,[1,1],100,40);
+plot_hex(gas,[3,4],fluidC,[3,1],100,41);
+
+
 %%% FINISH PROGRAM %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Close files, save plots and release CoolProp AbstractStates

@@ -75,7 +75,14 @@ TC2 = rtab1(hvC,TvC,hC2,1);
 hH1 = hH2 - QT/mH;
 TH1 = rtab1(hvH,TvH,hH1,1);
 
-if cond==0
+% -1 chosen since default value seems to be 0
+if cond==-1 % var is minimum allowed TC2
+    if TC2 < var && var < TH2
+        TC2 = var;
+        hC2 = rtab1(TvC,hvC,TC2,0);
+        mC  = QT/(hC2 - hC1);
+        stateC.mdot = mC;
+    end
 elseif cond==1 % var is maximum allowed TC2
     if TC2 > var
         TC2 = var;
