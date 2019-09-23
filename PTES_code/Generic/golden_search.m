@@ -3,8 +3,9 @@ function [ x, y, xv, yv, iter ] = golden_search( f, a, b, tol, MinOrMax, ne)
 %   Uses the Golden Ratio to find the *absolute* maximum or minimum of
 %   function f between limits a and b. tol is the tolerance, x the result
 %   and y=f(x). iter returns the number of iterations. MinOrMax describes
-%   the objective of the search. ne is the number of elements of the arrays
-%   xv and yv, which keep track of the convergence procedure.
+%   the objective of the search. ne is the maximum number of iterations and
+%   the number of elements of the arrays xv and yv, which keep track of the
+%   convergence procedure.
 %   
 %   Example call:
 %   f = @(x1) my_function(x1,x2,x3);
@@ -34,6 +35,11 @@ iter = 2;
 err  = D;
 while err>tol
     iter = iter + 1;
+    
+    if iter == ne
+        warning('gold_search exiting at the maximum number of iterations')
+        break
+    end
     
     if fx1*sign > fx2*sign
         x   = x1;
