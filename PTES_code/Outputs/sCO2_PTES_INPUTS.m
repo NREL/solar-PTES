@@ -12,33 +12,35 @@ PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 0;            % set Tmax? (this option substitutes PRch)
 Tmax    = 500 + 273.15; % maximum temp at compressor outlet, K
 Lcld    = true ;       % Make cold store as cold as possible?
+Lrcmp   = false ;
 
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
 Ne_ch = 1; % number of expansions during charge
 
 % Number of hot and cold stores IN SERIES
-Ncld = 1; % number of cold stores. Not implemented for >1
-Nhot = 1; % number of hot stores. Not implemented for >2
+Ncld = 2; % number of cold stores. Not implemented for >1
+Nhot = 2; % number of hot stores. Not implemented for >2
 
 % Number of recuperators
-Nrcp = 2 ; % Can be 0,1,2. If 0 may need two hot stores. If 2 may require a recompression. 
+Nrcp = 0 ; % Can be 0,1,2. If 0 may need two hot stores. If 2 may require a recompression. 
 switch Nrcp
     case 0
         % Hot storage tanks
-        fHname  = 'MineralOil'; % fluid name
+        fHname  = 'SolarSalt'; % fluid name
+        fHname2 = 'MineralOil'; % fluid name
         TH_dis0 = T0;           % initial temperature of discharged hot fluid, K
         MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
         TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
         MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
-        TH_int  = 250 + 273.15 ;% Intermediate temperature between two hot stores
+        TH_int  = 300 + 273.15 ;% Intermediate temperature between two hot stores
         % Cold storage tanks
         fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
         TC_dis0 = 400 + 273.15; % initial temperature of discharged cold fluid, K
         MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
         TC_chg0 = T0-5;         % initial temperature of charged cold fluid, K
         MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
-        TC_int  = 50 + 273.15 ; % Intermediate temperature between two cold stores
+        TC_int  = 60 + 273.15 ; % Intermediate temperature between two cold stores
     case 1
         % Hot storage tanks
         fHname  = 'SolarSalt';  % fluid name
@@ -56,15 +58,15 @@ switch Nrcp
         % Hot storage tanks
         fHname  = 'SolarSalt';  % fluid name
         TH_dis0 = 400. + 273.15;  % initial temperature of discharged hot fluid, K
-        MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
+        MH_dis0 = 0.0*1e6;          % initial mass of discharged hot fluid, kg
         TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
-        MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
+        MH_chg0 = 1.e6; % initial mass of charged hot fluid, kg
         % Cold storage tanks
         fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
         TC_dis0 = T0 + 0;           % initial temperature of discharged cold fluid, K
-        MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
+        MC_dis0 = 0.0*1e6;          % initial mass of discharged cold fluid, kg
         TC_chg0 = T0-5;        % initial temperature of charged cold fluid, K
-        MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
+        MC_chg0 = 1.e6; % initial mass of charged cold fluid, kg
         % Choose a threshold temperature between the tanks
         TthreshC = 38. + 273.15 ; % Charge - threshold is on low-pressure side
         TthreshD = 200. + 273.15 ; % Discharge - threshold is on high-pressure side
@@ -86,10 +88,10 @@ switch Load.mode
         Load.mdot = 10;                        % working fluid mass flow rate, kg/s
         Load.num  = numel(Load.time);
     case 2 % Heat engine (no cold tanks)
-        error('not implemented')
-        Load.time = [0,10].*3600;                  % time spent in each load period, s
-        Load.type = ["sol","dis"];                 % type of load period
-        Load.mdot = [0,10];                        % working fluid mass flow rate, kg/s
+        %error('not implemented')
+        Load.time = 10.*3600;                  % time spent in each load period, s
+        Load.type = "dis";                 % type of load period
+        Load.mdot = 10;                        % working fluid mass flow rate, kg/s
         Load.num  = numel(Load.time);
 end
 
@@ -117,11 +119,11 @@ end
 % Hot tanks
 switch Nhot
     case 1
-        fluidH(1:Nc_ch) = fluid_class(fHname,'SF','TAB',NaN,Load.num,2*Nhot);
+        fluidH(1:Nc_ch) = fluid_class(fHname,'SF','TAB',NaN,Load.num,2);
         HT  = double_tank_class(fluidH,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,Load.num+1); %hot double tank
     case 2
         fluidH(1:Nc_ch)  = fluid_class(fHname,'SF','TAB',NaN,Load.num,2);
-        fluidH2(1:Nc_ch) = fluid_class(fHname,'SF','TAB',NaN,Load.num,2);
+        fluidH2(1:Nc_ch) = fluid_class(fHname2,'SF','TAB',NaN,Load.num,2);
         HT  = double_tank_class(fluidH,TH_int,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,Load.num+1); %hot double tank
         HT2 = double_tank_class(fluidH2,TH_dis0,p0,MH_dis0,TH_int,p0,MH_chg0,T0,Load.num+1); %hot double tank
     case 3

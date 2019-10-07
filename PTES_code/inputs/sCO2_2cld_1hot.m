@@ -153,5 +153,5 @@ else
 end
 
 % Save copy of input file in "Outputs" folder
-copyfile(['./PTES_scripts/',mfilename,'.m'],'./Outputs/')
+%copyfile(['./PTES_scripts/',mfilename,'.m'],'./Outputs/')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

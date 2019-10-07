@@ -51,7 +51,12 @@ elseif Nrcp == 2
                 iReg2 = iReg2 + 1 ;
             end
         case 2 % Heat engine only
-            error('Not implemented')
+            %error('Not implemented')
+            iReg2 = iReg1 + 2 + 3*Nc_dis; % index regenerator cold inlet (after regeneration + heat rejection + compression)    
+            iReg3 = iReg2 - 1 ;
+            if Lrcmp
+                iReg2 = iReg2 + 1 ;
+            end
     end
     gas.state(iL,iReg2).T = TthreshD;
     gas.state(iL,iReg2).p = gas.state(iL,1).p*PRdis;
@@ -92,7 +97,13 @@ while 1
         gas.state(iL,iRCMP).mdot = gas.state(iL,i).mdot - gas.state(iL,iReg3).mdot ; % Mass flow into recompressor
         gas.state(iL,i).mdot = gas.state(iL,iReg3).mdot ; % Set mass flow that goes on through heat rejection and cold store
         
-        p_aim = gas.state(iL,iRCMP).p*PRdis*(1-ploss)^1;
+        switch Load.mode
+        case 0 % PTES
+            ind = 1.0 ;
+        case 2 % Heat engine only
+            ind = 0.0 ;
+        end
+        p_aim = gas.state(iL,iRCMP).p*PRdis*(1-ploss)^ind;
         [gas,~] = compexp(gas,[iL,iRCMP],eta,p_aim,3);
         gas.stage(iL,iRCMP+1).type = 'comp'; % This seems to be necessary to get recompressor written and plotted
         gas.stage(iL,iRCMP+2).type = 'comp';% This seems to be necessary to get recompressor written and plotted
@@ -216,6 +227,8 @@ if Load.mode == 0
     [MdotC] = total_Mdot(fluidC,[iL,1]);
     tC_dis  = CT.B(3).M/MdotC;
     t_dis   = min([t_dis,tC_dis]);
+elseif Load.mode == 2
+    t_dis = Load.time(iL) ;
 end
 Load.time(iL) = min([Load.time(iL),t_dis])*(1-1e-6);
 

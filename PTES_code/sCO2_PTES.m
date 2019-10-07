@@ -124,23 +124,35 @@ if make_plots
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Have to plot recuperators here ...
-if Nrcp == 1
-    plot_hex(gas,[1,7],gas,[1,3],100,20);
-    plot_hex(gas,[3,5],gas,[3,1],100,22); % Recuperator
-elseif Nrcp == 2
-    plot_hex(gas,[1,9],gas,[1,3],100,20);
-    plot_hex(gas,[1,8],gas,[1,4],100,21);
-    plot_hex(gas,[3,8],gas,[3,1],100,22); % Recuperator
-    plot_hex(gas,[3,6],gas,[3,2],100,23); % Recuperator
+switch Load.mode
+    case 0
+        if Nrcp == 0
+            plot_hex(gas,[1,2],fluidH,[1,1],100,30);
+            if Nhot==2, plot_hex(gas,[1,3],fluidH2,[1,1],100,31); end
+            
+            plot_hex(gas,[1,6],fluidC,[1,1],100,40);
+            if Ncld==2, plot_hex(gas,[1,7],fluidC2,[1,1],100,41); end
+        elseif Nrcp == 2
+            plot_hex(gas,[1,7],gas,[1,3],100,20);
+            plot_hex(gas,[3,5],gas,[3,1],100,22); % Recuperator
+        elseif Nrcp == 2
+            plot_hex(gas,[1,9],gas,[1,3],100,20);
+            plot_hex(gas,[1,8],gas,[1,4],100,21);
+            plot_hex(gas,[3,8],gas,[3,1],100,22); % Recuperator
+            plot_hex(gas,[3,6],gas,[3,2],100,23); % Recuperator
+        end
+
+        if Lrcmp
+            % Plot hot storage - currently set up for sCO2-recomp cycle
+            plot_hex(gas,[1,2],fluidH,[1,1],100,30);
+            plot_hex(gas,[3,9],fluidH,[3,1],100,31);
+
+            % Plot coldhot storage - currently set up for sCO2-recomp cycle
+            plot_hex(gas,[1,7],fluidC,[1,1],100,40);
+            plot_hex(gas,[3,4],fluidC,[3,1],100,41);
+        end
+    case 2
 end
-
-% Plot hot storage - currently set up for sCO2-recomp cycle
-plot_hex(gas,[1,2],fluidH,[1,1],100,30);
-plot_hex(gas,[3,9],fluidH,[3,1],100,31);
-
-% Plot coldhot storage - currently set up for sCO2-recomp cycle
-plot_hex(gas,[1,7],fluidC,[1,1],100,40);
-plot_hex(gas,[3,4],fluidC,[3,1],100,41);
 
 
 %%% FINISH PROGRAM %%%
