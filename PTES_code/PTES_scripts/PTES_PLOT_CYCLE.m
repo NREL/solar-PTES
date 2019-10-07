@@ -99,7 +99,7 @@ switch Load.mode
             end
         end
         lgn = legend([pl1 pl2],'charge','discharge','Location','best');
-        title(strcat('$$\eta$$',sprintf('=%.2f',eta),'  $$\epsilon$$',sprintf('=%.3f',eff),'  $$f_p$$',sprintf('=%.3f',ploss)));
+        %title(strcat('$$\eta$$',sprintf('=%.2f',eta),'  $$\epsilon$$',sprintf('=%.3f',eff),'  $$f_p$$',sprintf('=%.3f',ploss)));
 %         title(strcat('$$\eta$$',sprintf('=%.2f',eta),'  $$\epsilon$$',sprintf('=%.3f',eff),'  $$f_p$$',sprintf('=%.3f',ploss),'  $$\chi$$',sprintf('=%.2f',chi_PTES)));
 %         
 %     case 1 % Heat pump only
@@ -130,4 +130,5 @@ switch Celcius
         ylim([-150 700])
         %yticks(0:100:1000)
 end
+set(gcf,'color','w')
 grid off; hold off;

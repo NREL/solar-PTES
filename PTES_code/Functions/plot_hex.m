@@ -82,6 +82,7 @@ end
 ylabel('Temperature [$^\circ$C]')
 %ylabel('Temperature [K]')
 xlabel('Normalised heat transfer')
+set(gcf,'color','w')
 
 end
 
