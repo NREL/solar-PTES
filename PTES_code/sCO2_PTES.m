@@ -128,10 +128,10 @@ switch Load.mode
     case 0
         if Nrcp == 0
             plot_hex(gas,[1,2],fluidH,[1,1],100,30);
-            if Nhot==2, plot_hex(gas,[1,3],fluidH2,[1,1],100,31); end
+            if Nhot==2, plot_hex(gas,[1,3],fluidH2,[1,1],100,32); end
             
             plot_hex(gas,[1,6],fluidC,[1,1],100,40);
-            if Ncld==2, plot_hex(gas,[1,7],fluidC2,[1,1],100,41); end
+            if Ncld==2, plot_hex(gas,[1,7],fluidC2,[1,1],100,42); end
         elseif Nrcp == 2
             plot_hex(gas,[1,7],gas,[1,3],100,20);
             plot_hex(gas,[3,5],gas,[3,1],100,22); % Recuperator

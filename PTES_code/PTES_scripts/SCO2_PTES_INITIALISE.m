@@ -2,6 +2,7 @@
 gas = reset_fluid(gas);
 for ir = 1:length(fluidH)
     fluidH(ir) = reset_fluid(fluidH(ir)); %#ok<*SAGROW>
+    if Nhot == 2; fluidH2(ir) = reset_fluid(fluidH2(ir)); end
 end
 for ir = 1:length(fluidC)
     fluidC(ir) = reset_fluid(fluidC(ir));
@@ -14,7 +15,7 @@ switch Ncld
         CT = reset_tanks(CT,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0);
     case 2
         CT  = reset_tanks(CT,TC_int,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0);
-        CT2 = reset_tanks(CT,TC_dis0,p0,MC_dis0,TC_int,p0,MC_chg0,T0);
+        CT2 = reset_tanks(CT2,TC_dis0,p0,MC_dis0,TC_int,p0,MC_chg0,T0);
     case 3
         error('Not implemented')
 end
@@ -24,7 +25,7 @@ switch Nhot
         HT = reset_tanks(HT,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0);
     case 2
         HT  = reset_tanks(HT,TH_int,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0);
-        HT2 = reset_tanks(HT,TH_dis0,p0,MH_dis0,TH_int,p0,MH_chg0,T0);
+        HT2 = reset_tanks(HT2,TH_dis0,p0,MH_dis0,TH_int,p0,MH_chg0,T0);
     case 3
         error('Not implemented')
 end

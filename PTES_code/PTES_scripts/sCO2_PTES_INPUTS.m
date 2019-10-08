@@ -2,7 +2,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Set atmospheric conditions and cycle parameters
-T0      = 27 + 273.15;  % ambient temp, K
+T0      = 30 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 250e5;        % top pressure, Pa
 PRch    = 3.0;          % charge pressure ratio
@@ -11,7 +11,7 @@ PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 0;            % set Tmax? (this option substitutes PRch)
 Tmax    = 500 + 273.15; % maximum temp at compressor outlet, K
-Lcld    = true ;       % Make cold store as cold as possible?
+Lcld    = false ;       % Make cold store as cold as possible?
 Lrcmp   = false ;
 
 % Number of intercooled/interheated compressions/expansions
@@ -31,12 +31,12 @@ switch Nrcp
         fHname2 = 'MineralOil'; % fluid name
         TH_dis0 = T0;           % initial temperature of discharged hot fluid, K
         MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
-        TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
+        TH_chg0 = 50 + 273.15; % initial temperature of charged hot fluid, K
         MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
-        TH_int  = 300 + 273.15 ;% Intermediate temperature between two hot stores
+        TH_int  = 100 + 273.15 ;% Intermediate temperature between two hot stores
         % Cold storage tanks
         fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
-        TC_dis0 = 400 + 273.15; % initial temperature of discharged cold fluid, K
+        TC_dis0 = 100 + 273.15; % initial temperature of discharged cold fluid, K
         MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
         TC_chg0 = T0-5;         % initial temperature of charged cold fluid, K
         MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
