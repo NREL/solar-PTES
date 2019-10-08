@@ -13,10 +13,10 @@ setTmax = 1;            % set Tmax? (this option substitutes PRch)
 Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
-Ne_ch = 2; % number of expansions during charge
+Ne_ch = 3; % number of expansions during charge
 % Hot storage tanks
 fHname  = 'SolarSalt';  % fluid name
-TH_dis0 = 250 + 273.15; % initial temperature of discharged hot fluid, K
+TH_dis0 = 230 + 273.15; % initial temperature of discharged hot fluid, K
 MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
 TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
 MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
@@ -35,31 +35,26 @@ nC      = Ne_ch;        % number of cold fluid streams
 Load.mode = 3;
 switch Load.mode
     case 0 % PTES
-        Load.time = [10;4;10].*3600;        % time spent in each load period, s
-        Load.type = ["chg";"str";"dis"];    % type of load period
-        Load.mdot = [10;0;10];              % working fluid mass flow rate, kg/s
-        Load.num  = numel(Load.time);
+        Load.time = [10;10;4;10].*3600;        % time spent in each load period, s
+        Load.type = ["chg";"chg";"str";"dis"];    % type of load period
+        Load.mdot = [6;4;0;10];              % working fluid mass flow rate, kg/s
     case 1 % Heat pump
         Load.time = 10.*3600;                  % time spent in each load period, s
         Load.type = "chg";                     % type of load period
         Load.mdot = 10;                        % working fluid mass flow rate, kg/s
-        Load.num  = numel(Load.time);
     case 2 % Heat engine (no cold tanks)
         error('not implemented')
         Load.time = [0,10].*3600;                  % time spent in each load period, s
         Load.type = ["sol","dis"];                 % type of load period
         Load.mdot = [0,10];                        % working fluid mass flow rate, kg/s
-        Load.num  = numel(Load.time);
     case 3 % JB charge, Rankine discharge
         Load.time = [10;4;10].*3600;        % time spent in each load period, s
         Load.type = ["chg";"str";"ran"];    % type of load period
         Load.mdot = [10;0;10];              % working fluid mass flow rate, kg/s
-        Load.num  = numel(Load.time);
-        steamA = fluid_class('Water','WF','CP','HEOS',Load.num,30);
-        steamB = fluid_class('Water','WF','CP','HEOS',Load.num,30);
-        steamC = fluid_class('Water','WF','CP','HEOS',Load.num,30);
         nH = 2;
 end
+Load.num = numel(Load.time);
+Load.ind = 1:Load.num;
 
 % Set working fluids, storage fluids, and heat rejection streams. 'WF' or
 % 'SF' indicates working fluid or storage fluid. 'CP' or 'TAB' indicate
@@ -68,9 +63,10 @@ end
 % elements in state arrays.
 % Working fluid
 gas = fluid_class('Nitrogen','WF','CP','TTSE',Load.num,30);
+if Load.mode ==3, steam(1:3) = fluid_class('Water','WF','CP','HEOS',Load.num,30); end
 % Storage fluids
-fluidH(1:nH) = fluid_class(fHname,'SF','TAB',NaN,Load.num,2);
-fluidC(1:nC) = fluid_class(fCname,'SF','TAB',NaN,Load.num,2);
+fluidH(1:nH) = fluid_class(fHname,'SF','TAB',NaN,Load.num,10);
+fluidC(1:nC) = fluid_class(fCname,'SF','TAB',NaN,Load.num,10);
 % Set double tanks
 HT = double_tank_class(fluidH,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,Load.num+1); %hot double tank
 CT = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank
@@ -88,7 +84,7 @@ make_plots = 1; % make plots?
 save_figs  = 0; % save figures at the end?
 
 % Set number of points to plot each stage
-num = 10;
+num = 25;
 
 % Variables to run cycle multiple times and plot curves. The variables must
 % have been defined in the PTES_SET_MULTI_RUN script

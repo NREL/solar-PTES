@@ -43,9 +43,15 @@ mH = stateH.mdot;
 mC = stateC.mdot; 
 
 % Obtain temperature arrays as a function of the enthalpy arrays
-[hvH,TvH] = hex_prop(fluidH,TC1,TH2,pH2,n);
-[hvC,TvC] = hex_prop(fluidC,TC1,TH2,pC1,n);
+[hvH,TvH] = hex_prop(fluidH,TC1-1,TH2+1,pH2,n);
+[hvC,TvC] = hex_prop(fluidC,TC1-1,TH2+1,pC1,n);
 
+% Obtain preliminary minimum and maximum enthalpy outlets (hot outlet
+% cannot be colder than cold inlet, and vice-versa)
+hH1_min = rtab1(TvH,hvH,TC1,1);
+hC2_max = rtab1(TvC,hvC,TH2,1);
+
+% Determine mass flow rates
 switch cond
     case 0
         % Both mass flow rates previously specified
@@ -55,9 +61,7 @@ switch cond
         % Only mass flow rate of hot fluid previously specified, compute
         % mass flow rate of cold fluid according to Crat
         Crat = var; %Crat = mH*CpH / (mC*CpC)
-        hH1_min = hvH(1);
         CpHmean = (hH2 - hH1_min)/(TH2-TC1);
-        hC2_max = hvC(end);
         CpCmean = (hC2_max - hC1)/(TH2-TC1);
         
         if mH == 0, error('mH must be known if cond==1'); end
@@ -68,9 +72,7 @@ switch cond
         % Only mass flow rate of cold fluid previously specified, compute
         % mass flow rate of hot fluid according to Crat
         Crat = var; %Crat = mH*CpH / (mC*CpC)
-        hH1_min = hvH(1);
         CpHmean = (hH2 - hH1_min)/(TH2-TC1);
-        hC2_max = hvC(end);
         CpCmean = (hC2_max - hC1)/(TH2-TC1);
         
         if mC == 0, error('mC must be known if cond==2'); end
@@ -78,15 +80,16 @@ switch cond
         stateH.mdot = mH;                    
 end
 
+% Compute preliminary QMAX (hot outlet cannot be colder than cold inlet,
+% and vice-versa) and update hH1_min accordingly
+QMAX = min([mC*(hC2_max - hC1),mH*(hH2 - hH1_min)]);
+hH1_min = hH2 - QMAX/mH;
+
 % Compute hH1 for which DT_min = 0
-n = length(TvH);
-hH1_min = hvH(1);
-
-
 f = @(hH1) DT_area(hH1,mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,n);
 [hH1,~,~,~,~] = golden_search(f,hH1_min,hH2,(hH2-hH1_min)/1e3,'Min',100);
-% To see how the golden_search evolves, comment line above and uncomment
-% lines below:
+% % To see how the golden_search evolves, comment line above and uncomment
+% % lines below:
 % [hH1,~,xv,yv,iter] = golden_search(f,hH1_min,hH2,(hH2-hH1_min)/1e3,'Min',100);
 % figure(4)
 % plot(1:iter,xv(1:iter))
@@ -110,15 +113,15 @@ hH1 = hH2 - QT/mH;
 % To see the temperature distribution after applying the heat exchanger
 % effectiveness, uncomment lines below:
 [~,DT,TC,TH,QS] = DT_area(hH1,mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,n);
-figure(1)
+figure(10)
 plot(QS./QS(end),TH,'r'); hold on;
 plot(QS./QS(end),TC,'b'); hold off;
-xlabel('Cummulative heat transfer')
+xlabel('Cumulative heat transfer')
 ylabel('Temperature')
 legend([fluidH.name,', ',sprintf('%.1f',pH2/1e5),' bar'],[fluidC.name,', ',sprintf('%.1f',pC1/1e5),' bar'],'Location','Best')
-figure(2)
+figure(11)
 plot(QS./QS(end),DT,'r');
-xlabel('Cummulative heat transfer')
+xlabel('Cumulative heat transfer')
 ylabel('Temperature difference')
 
 % Update states
@@ -156,7 +159,7 @@ fluidC.state(indC(1),indC(2)+1) = stateC; % Result goes into next state
 fluidC.stage(indC(1),indC(2))   = stageC; % Result stays in current stage
 
 % Update mass flow rates for inlet state, if necessary
-if cond==1
+if any(cond==[1,2])
     fluidH.state(indH(1),indH(2)).mdot = mH;
     fluidC.state(indC(1),indC(2)).mdot = mC;
 end
@@ -177,13 +180,13 @@ iC = indC(2) + 1;
 
 end
 
-function [ hv, Tv ] = hex_prop( fluid, TC1, TH2, pressure, n )
+function [ hv, Tv ] = hex_prop( fluid, T1, T2, pressure, n )
 % Obtain the hv and Tv arrays of a given fluid for the hex subroutines
 
 if strcmp(fluid.read,'CP') %read from CoolProp
     
-    h1  = CP1('PT_INPUTS',pressure,TC1,'H',fluid.handle);
-    h2  = CP1('PT_INPUTS',pressure,TH2,'H',fluid.handle);
+    h1  = CP1('PT_INPUTS',pressure,T1,'H',fluid.handle);
+    h2  = CP1('PT_INPUTS',pressure,T2,'H',fluid.handle);
     hv  = linspace(h1,h2,n)';       % enthalpy array between TC1 and TH2
     pv  = ones(size(hv)).*pressure; % pressure array
     Tv  = CP1('HmassP_INPUTS',hv,pv,'T',fluid.handle); % temperature array
@@ -192,8 +195,8 @@ elseif strcmp(fluid.read,'TAB') %read from table
     %Tv  = linspace(TC1,TH2,n)'; %temperature array between TC1 and TH2
     Tx  = fluid.TAB(:,1);
     hy  = fluid.TAB(:,2);
-    h1  = rtab1(Tx,hy,TC1,0);
-    h2  = rtab1(Tx,hy,TH2,0);
+    h1  = rtab1(Tx,hy,T1,0);
+    h2  = rtab1(Tx,hy,T2,0);
     hv  = linspace(h1,h2,n)';       % enthalpy array between TC1 and TH2
     Tv  = rtab1(hy,Tx,hv,1);
 else

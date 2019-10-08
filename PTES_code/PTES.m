@@ -99,7 +99,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if make_plots
     switch Load.mode
-        case 0 % PTES
+        case {0,3} % PTES
             PTES_WRITE_CHARGE
             PTES_WRITE_DISCHARGE
             %PTES_PLOT_HEXS
