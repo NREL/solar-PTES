@@ -147,8 +147,7 @@ end
 % Hot tanks
 [HT] = run_tanks(HT,fluidH,iL,Load,T0);
 if Nhot == 2; [HT2] = run_tanks(HT2,fluidH2,iL,Load,T0);end
-HT2.A.T
-HT2.B.T
+
 % Cold tanks
 [CT] = run_tanks(CT,fluidC,iL,Load,T0);
 if Ncld == 2; [CT2] = run_tanks(CT2,fluidC2,iL,Load,T0);end

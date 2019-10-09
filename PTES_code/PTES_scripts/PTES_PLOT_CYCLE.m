@@ -130,4 +130,5 @@ switch Celcius
         ylim([-150 700])
         %yticks(0:100:1000)
 end
+set(gcf,'color','w')
 grid off; hold off;

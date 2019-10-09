@@ -124,6 +124,7 @@ if make_plots
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Have to plot recuperators here ...
+%{
 switch Load.mode
     case 0
         if Nrcp == 0
@@ -153,7 +154,7 @@ switch Load.mode
         end
     case 2
 end
-
+%}
 
 %%% FINISH PROGRAM %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
