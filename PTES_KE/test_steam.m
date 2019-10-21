@@ -15,7 +15,7 @@ switch computer
     case 'GLNXA64' %Linux
         addpath('./Inputs/','./Classes/','./Generic/');
     case 'PCWIN64' %Windows
-        addpath('.\Inputs\','.\Classes\','.\Generic\');   
+        addpath('.\Inputs\','.\Classes\','.\Generic\');
 end
 load_coolprop
 set_graphics

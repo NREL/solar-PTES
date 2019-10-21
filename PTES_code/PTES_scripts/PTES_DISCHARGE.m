@@ -31,7 +31,7 @@ while 1
     fprintf(1,'Hello discharge PTES\n')
     
     % REGENERATE (gas-gas)    
-    [gas,~,i,~] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0); %#ok<*SAGROW>
+    [gas,~,i,~] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0);
     
     PRc_dis = (PRdis)^(1/Nc_dis)/(1-ploss)^2; % expansion pressure ratio
     for iN = 1:Nc_dis
@@ -42,7 +42,7 @@ while 1
         switch Load.mode
             case 0 % PTES
                 % COOL (gas-liquid)
-                fluidC(iC).state(iL,1).T = CT.B(iL).T; fluidC(iC).state(iL,1).p = CT.B(iL).p;
+                fluidC(iC).state(iL,1).T = CT.B(iL).T; fluidC(iC).state(iL,1).p = CT.B(iL).p; %#ok<*SAGROW>
                 [fluidC(iC)] = update(fluidC(iC),[iL,1],1);
                 [gas,fluidC(iC),i,~] = hex_TQ_cond(gas,[iL,i],fluidC(iC),[iL,1],eff,1.0,ploss,'hex',0,0);
                 iC=iC+1;
@@ -51,13 +51,13 @@ while 1
         
         % COMPRESS
         p_aim = gas.state(iL,i).p*PRc_dis;
-        [gas,i] = compexp(gas,[iL,i],eta,p_aim,3); %#ok<*SAGROW>
+        [gas,i] = compexp(gas,[iL,i],eta,p_aim,3);
         
         %for i0=1:i, fprintf(1,'\n %f\t%f\t%10s\t%d',gas.state(iL,i0).T,gas.state(iL,i0).p/1e5,gas.stage(iL,i0).type,i0); end; fprintf(1,'\n');
     end
     
     % REGENERATE (gas-gas)
-    [~,gas,~,i] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0); %#ok<*SAGROW>
+    [~,gas,~,i] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0);
     
     for iN = 1:Ne_dis
         % HEAT (gas-fluid)
@@ -100,7 +100,7 @@ end
 % depletion of (at least) one of the source tanks to stablish
 % discharge time.
 
-% Find t_dis (minimum for both cycles to avoid depletion)
+% Find t_dis
 [MdotH] = total_Mdot(fluidH,[iL,1]);
 t_dis  = HT.B(iL).M/MdotH;
 if Load.mode == 0

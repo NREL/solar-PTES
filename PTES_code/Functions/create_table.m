@@ -1,7 +1,10 @@
 function [A] = create_table(substance)
-%   CREATE_TABLE Create tables with thermophysical properties as a function of temperature.
-%   Tmin and Tmax define the temperature range of the table.
-%   Return the file ID where data has been written
+%   CREATE_TABLE Create table A with thermophysical properties as a
+%   function of temperature. Tbot and Ttop define the bottom and top
+%   temperatures within which data is correct. However, a broader range
+%   between Tmin and Tmax (with constant properties) is allowed for
+%   screening purposes (i.e. program does not crash when reading outside
+%   Tbot and Ttop).
 
 % Set fileName according to the substance's name
 if strncmp(substance,'INCOMP::',8) %skip first part of substance name
@@ -19,167 +22,115 @@ else
     fileID = fopen(fileName,'w');
 end
 
-% Generate thermophysical properties
-if strcmp(substance,'SolarSalt') % Solar salt
-    Tmin  = 10;    % Not correct. Used only for "multy-run" screening
-    Tmax  = 2000;  % Not correct. Used only for "multy-run" screening
+% Is material a liquid available in the CoolProp database?
+cond1 = any(strcmp(substance,{'Methanol','Propane','Isopentane','Ethanol','Hexane','Pentane','Oxygen','Water'}));
+% Is material an incompressible liquid available in the CoolProp database?
+cond2 = any(strcmp(substance,{'INCOMP::MEG2[0.56]'}));
+% Obtain CoolProp handle
+if cond1
+    ierr = 0; buffer_size = 10; herr= char((1:1:buffer_size)); backend = 'HEOS';
+    handle = calllib('coolprop','AbstractState_factory',backend,substance,ierr,herr,buffer_size);
+end
+
+% Set temperature limits
+Tmin = 50;    % Not correct. Used only for screening purposes
+Tmax = 1300;  % Not correct. Used only for screening purposes
+if cond1
+    Tbot  = CP1(0,0,0,'T_triple',handle) + 0.1;
+    Ttop  = CP1('PQ_INPUTS',1e5,0,'T',handle) - 0.1; % Max pressure set to 1 bar
+    
+elseif cond2
+    Tbot = py.CoolProp.CoolProp.PropsSI('Tmin',' ',0,' ',0,substance) + 0.1;
+    Ttop = py.CoolProp.CoolProp.PropsSI('Tmax',' ',0,' ',0,substance) + 0.1;
+    
+elseif strcmp(substance,'SolarSalt') % Solar salt
+    Tbot  = 500;
+    Ttop  = 880;
 
 elseif strcmp(substance,'MineralOil') % Mineral oil
-    Tmin  = 10;   % Not correct. Used only for "multy-run" screening
     Tbot  = 275;
     Ttop  = 600;
-    Tmax  = 2000; % Not correct. Used only for "multy-run" screening
     
-elseif strcmp(substance,'Methanol')
-    Tmin  = 125; % Not correct. Used only for "multy-run" screening
-    Tbot  = py.CoolProp.CoolProp.PropsSI('T_triple',' ',0,' ',0,'Methanol') + 0.1;
-    Ttop  = py.CoolProp.CoolProp.PropsSI('T','P',1e5,'Q',0,'Methanol');
-    Tmax  = 1300; % Not correct. Used only for screening purposes
-    
-elseif strcmp(substance,'Propane')
-    Tmin  = 50; % Not correct. Used only for screening purposes
-    Tbot  = py.CoolProp.CoolProp.PropsSI('T_triple',' ',0,' ',0,'Propane') + 0.1;
-    Ttop  = py.CoolProp.CoolProp.PropsSI('T','P',1e5,'Q',0,'Propane'); 
-    Tmax  = 1300; % Not correct. Used only for screening purposes
-    
-elseif strcmp(substance,'Isopentane')
-    Tmin  = 50; % Not correct. Used only for screening purposes
-    Tbot  = py.CoolProp.CoolProp.PropsSI('T_triple',' ',0,' ',0,'Isopentane') + 0.1;
-    Ttop  = py.CoolProp.CoolProp.PropsSI('T','P',1e5,'Q',0,'Isopentane'); 
-    Tmax  = 1300; % Not correct. Used only for screening purposes 
-    
-elseif strcmp(substance,'Ethanol')
-    Tmin  = 50; % Not correct. Used only for screening purposes
-    Tbot  = py.CoolProp.CoolProp.PropsSI('T_triple',' ',0,' ',0,'Ethanol') + 0.1;
-    Ttop  = py.CoolProp.CoolProp.PropsSI('T','P',1e5,'Q',0,'Ethanol'); 
-    Tmax  = 1300; % Not correct. Used only for screening purposes
-    
-elseif strcmp(substance,'Hexane')
-    Tmin  = 50; % Not correct. Used only for screening purposes
-    Tbot  = py.CoolProp.CoolProp.PropsSI('T_triple',' ',0,' ',0,'Hexane') + 0.1;
-    Ttop  = py.CoolProp.CoolProp.PropsSI('T','P',1e5,'Q',0,'Hexane'); 
-    Tmax  = 1300; % Not correct. Used only for screening purposes
-    
-elseif strcmp(substance,'Pentane')
-    Tmin  = 50; % Not correct. Used only for screening purposes
-    Tbot  = py.CoolProp.CoolProp.PropsSI('T_triple',' ',0,' ',0,'Pentane') + 0.1;
-    Ttop  = py.CoolProp.CoolProp.PropsSI('T','P',1e5,'Q',0,'Pentane'); 
-    Tmax  = 1300; % Not correct. Used only for screening purposes
-    
-elseif strcmp(substance,'EthyleneGlycol')
-    Tmin  = 50; % Not correct. Used only for screening purposes
-    Tbot  = 270;
-    Ttop  = 550; 
-    Tmax  = 1300; % Not correct. Used only for screening purposes
-    
-elseif strcmp(substance,'Oxygen')
-    Tmin  = 20; % Not correct. Used only for screening purposes
-    Tbot  = 55;
-    Ttop  = 120; %10 bar 
-    Tmax  = 300; % Not correct. Used only for screening purposes
-    
-elseif strcmp(substance,'Water')
-    Tmin  = 50; % Not correct. Used only for screening purposes
-    Tbot  = py.CoolProp.CoolProp.PropsSI('T_triple',' ',0,' ',0,'Water') + 0.1;
-    Ttop  = py.CoolProp.CoolProp.PropsSI('T','P',1e5,'Q',0,'Water') - 0.5; 
-    Tmax  = 1300; % Not correct. Used only for screening purposes  
-    
-elseif strcmp(substance,'Generic') %imaginary liquid
-    Tmin  = 10;
-    Tmax  = 1300;
-    
-elseif strcmp(substance,'INCOMP::MEG2[0.56]') % Ethylene Glycol solution
-    Tmin  = 50; % Not correct. Used only for screening purposes
-    Tbot  = py.CoolProp.CoolProp.PropsSI('Tmin',' ',0,' ',0,'INCOMP::MEG2[0.56]')+0.1;
-    Ttop  = py.CoolProp.CoolProp.PropsSI('Tmax',' ',0,' ',0,'INCOMP::MEG2[0.56]')-0.1;
-    Tmax  = 1300; % Not correct. Used only for screening purposes 
+elseif strcmp(substance,'Generic') % Imaginary (constant prop.) liquid
+    Tbot = Tmin;
+    Ttop = Tmax;
     
 else
     fprintf(1,'substance == %s',substance);
     error('Unknown substance')
 end
 
+% Set arrays
 T  = ((Tmin):1:(Tmax))'; % temperature array, K
 n  = length(T);          % get dimensions of T array
-ID = zeros(n,1);         % fluid ID
 Cp = zeros(n,1);         % specific heat capacity, J/kg/K
 h  = zeros(n,1);         % specific enthalpy, J/kg
-v  = zeros(n,1);         % specific volume, m3/kg
+rho= zeros(n,1);         % density, kg/m3
 s  = zeros(n,1);         % specific entropy, J/kg/K
+k  = zeros(n,1);         % conductivity, W/(m.K)
+mu = zeros(n,1);         % viscosity, Pa.s
 
-if any(strcmp(substance,{'Methanol','Propane','Isopentane','Ethanol','Hexane','Pentane','Oxygen','Water','INCOMP::MEG2[0.56]'}))
-    for i=1:n
-        if T(i) > Tbot
-            if T(i) < Ttop
-                Cp(i)  = py.CoolProp.CoolProp.PropsSI('C','T',T(i),'P',1e5,substance);
-                v(i)   = 1/py.CoolProp.CoolProp.PropsSI('D','T',T(i),'P',1e5,substance);
-            else
-                Cp(i)  = py.CoolProp.CoolProp.PropsSI('C','T',Ttop-0.5,'P',1e5,substance);
-                v(i)   = 1/py.CoolProp.CoolProp.PropsSI('D','T',Ttop-0.5,'P',1e5,substance);
-            end
-        else
-            Cp(i)  = py.CoolProp.CoolProp.PropsSI('C','T',Tbot,'P',1e5,substance);
-            v(i)   = 1/py.CoolProp.CoolProp.PropsSI('D','T',Tbot,'P',1e5,substance);
-        end
+% Obtain thermophysical properties
+bot = T<Tbot;
+top = T>Ttop;
+mid = ~bot & ~top;
+if cond1 % Extract data from CoolProp
+    
+    [Cp(mid),rho(mid),k(mid),mu(mid),~]...
+        = CP5('PT_INPUTS',1e5*ones(size(T(mid))),T(mid),'C','D','CONDUCTIVITY','VISCOSITY','T',handle);
+    
+elseif cond2 % Extract data from CoolProp (requires access to  Python interface)
+    
+    for i=find(mid,1,'first'):find(mid,1,'last')
+        Cp(i)  = py.CoolProp.CoolProp.PropsSI('C','T',T(i),'P',1e5,substance);
+        rho(i) = py.CoolProp.CoolProp.PropsSI('D','T',T(i),'P',1e5,substance);
+        k(i)   = py.CoolProp.CoolProp.PropsSI('CONDUCTIVITY','T',T(i),'P',1e5,substance);
+        mu(i)  = py.CoolProp.CoolProp.PropsSI('VISCOSITY','T',T(i),'P',1e5,substance);
     end
-elseif strcmp(substance,'SolarSalt')
-    %Data from Bauer et al. 2013
-    for i=1:n
-        Cp(i)  = 1550;   % It is essentially constant
-        v(i)   = 1/1850; % Density presents only small variation from 2000 to 1750 kg/m3
-    end
+    
+elseif strcmp(substance,'SolarSalt')    
+    % Data from SQM Thermo-solar Salts
+    T_C = T - 273.15;
+    Cp(mid)  = 1443 + 0.172.*T_C(mid);
+    rho(mid) = 2090 - 0.636.*T_C(mid);
+    k(mid)   = 0.443 + 1.9e-4.*T_C(mid);
+    mu(mid)  = 1e-3*( 22.714 - 0.120.*T_C(mid) + 2.281e-4.*T_C(mid).^2 - 1.474e-7.*T_C(mid).^3);
+    
 elseif strcmp(substance,'MineralOil')
     % Data from Shell Heat Transfer Oil S2
-    T_dat   = ([  0,   20,  40,   100,  150,  200,  250,  300,  340] + 273.15);
-    Cp_dat  = [1809, 1882, 1954, 2173, 2355, 2538, 2720, 2902, 3048];        
-    rho_dat = [ 876,  863,  850,  811,  778,  746,  713,  681,  655];
-    for i=1:n
-        if T(i) > Tbot
-            if T(i) < Ttop
-                Cp(i) = interp1(T_dat,Cp_dat,T(i));
-                v(i)  = 1/(interp1(T_dat,rho_dat,T(i)));
-            else
-                Cp(i) = interp1(T_dat,Cp_dat,Ttop);
-                v(i)  = 1/(interp1(T_dat,rho_dat,Ttop));
-            end
-        else
-            Cp(i) = interp1(T_dat,Cp_dat,Tbot);
-            v(i)  = 1/(interp1(T_dat,rho_dat,Tbot));
-        end
-    end
-elseif strcmp(substance,'EthyleneGlycol')
-    % Data from MEGlobal 2008
-    for i=1:n
-        % Specific heat capacity
-        a1  = 0.54467;
-        a2  = 1.1854e-3;
-        % Density
-        T_dat   = ([50, 100, 150, 200, 250, 300, 350] + 459.67)*5/9;
-        rho_dat = [1.12, 1.10, 1.08, 1.06, 1.04, 1.01, 0.99]*1000;
-        % rho = b1*T + b2 = (T 1)(b1; b2),  Y   = X*B
-        Y = rho_dat';
-        X = [T_dat' ones(size(T_dat'))];
-        B = X\Y; % B = (X\) * Y        
-        if T(i) > Tbot
-            if T(i) < Ttop
-                Cp(i) = (a1 + a2*(T(i) - 273.15))*4187;
-                v(i)  = 1/(B(1)*T(i) + B(2));
-            else
-                Cp(i) = (a1 + a2*(Ttop - 273.15))*4187;
-                v(i)  = 1/(B(1)*Ttop + B(2));
-            end
-        else
-            Cp(i) = (a1 + a2*(Tbot - 273.15))*4187;
-            v(i)  = 1/(B(1)*Tbot + B(2));
-        end
-    end
+    T_dat   = [    0,   20,   40,  100,  150,  200,  250,  300,  340] + 273.15;
+    Cp_dat  = [ 1809, 1882, 1954, 2173, 2355, 2538, 2720, 2902, 3048];        
+    rho_dat = [  876,  863,  850,  811,  778,  746,  713,  681,  655];
+    k_dat   = [0.136 0.134 0.133 0.128 0.125 0.121 0.118 0.114 0.111];
+    Pr_dat  = [ 3375,  919,  375,   69,   32,   20,   14,   11,    9];
+    mu_dat  = Pr_dat.*k_dat./Cp_dat;
+    
+    Cp(mid)  = interp1(T_dat,Cp_dat ,T(mid));
+    rho(mid) = interp1(T_dat,rho_dat,T(mid));
+    k(mid)   = interp1(T_dat,k_dat  ,T(mid));
+    mu(mid)  = interp1(T_dat,mu_dat ,T(mid));
+    
 elseif strcmp(substance,'Generic')
-    for i=1:n
-        Cp(i)  = 2000;
-        v(i)   = 1/1000;
-    end   
+    Cp  = 1500.*ones(size(T));
+    rho = 2000.*ones(size(T));
+    k   =  0.5.*ones(size(T));
+    mu  = 2e-3.*ones(size(T));
 end
 
+% Set constant properties outside of normal range
+Cp(bot)  = Cp( find(mid,1,'first')).*ones(size(T(bot)));
+rho(bot) = rho(find(mid,1,'first')).*ones(size(T(bot)));
+k(bot)   = k(  find(mid,1,'first')).*ones(size(T(bot)));
+mu(bot)  = mu( find(mid,1,'first')).*ones(size(T(bot)));
+
+Cp(top)  = Cp( find(mid,1,'last')).*ones(size(T(top)));
+rho(top) = rho(find(mid,1,'last')).*ones(size(T(top)));
+k(top)   = k(  find(mid,1,'last')).*ones(size(T(top)));
+mu(top)  = mu( find(mid,1,'last')).*ones(size(T(top)));
+
+% Compute derived parameters
+v  = 1./rho;    % specific volume, m3/kg
+Pr = Cp.*mu./k; % Prandtl number
 h(1) = 0;
 s(1) = 0;
 for i=1:(n-1)
@@ -188,11 +139,12 @@ for i=1:(n-1)
 end
 
 %Save in a single matrix for printing to file
-A = [ T, h, v, s, Cp];
+A = [ T, h, v, s, Cp, k, mu, Pr];
 
 %Print to file
-fprintf(fileID,'%%%7s %20s %20s %20s %20s\n','T[K]','h[J/kg]','v[m3/kg]','s[J/(kg.K)]','Cp[J/kg/K]');
-fprintf(fileID,' %7.2f %20.12e %20.12e %20.12e %20.12e\n',A');
+fprintf(fileID,'%%%7s %20s %20s %20s %20s %20s %20s %20s\n',...
+    'T[K]','h[J/kg]','v[m3/kg]','s[J/(kg.K)]','Cp[J/kg/K]','k[W/m.K]','mu[Pa.s]','Pr[-]');
+fprintf(fileID,' %7.2f %20.12e %20.12e %20.12e %20.12e %20.12e %20.12e %20.12e\n',A');
 fclose(fileID);
 
 end
