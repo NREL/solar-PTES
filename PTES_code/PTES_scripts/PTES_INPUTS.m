@@ -13,7 +13,7 @@ setTmax = 1;            % set Tmax? (this option substitutes PRch)
 Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
-Ne_ch = 3; % number of expansions during charge
+Ne_ch = 1; % number of expansions during charge
 % Hot storage tanks
 fHname  = 'SolarSalt';  % fluid name
 TH_dis0 = 230 + 273.15; % initial temperature of discharged hot fluid, K
