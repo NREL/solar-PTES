@@ -29,7 +29,6 @@ switch type
     case 3 % straight line (on T-s diagram)
         T_vect = linspace(fluid_in.T,fluid_out.T,num);
         s_vect = linspace(fluid_in.s,fluid_out.s,num);
-        
 end
 
 switch type

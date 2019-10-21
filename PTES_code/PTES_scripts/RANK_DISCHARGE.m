@@ -107,6 +107,24 @@ while 1
     fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p; %#ok<*SAGROW>
     [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
     [steam(1),fluidH(iH),i,~] = hex_TQ_2p(steam(1),[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',2,1.20);
+    
+    
+%     % Define heat exchanger geometry
+%     HX.shape     = 'circular';
+%     HX.sigma     = 1e8;        % Maximum allowable stress, Pa
+%     HX.L         = 1.0;        % Length, m
+%     HX.D_2       = 0.5e-3;     % Hydraulic diameter stream 2, m
+%     HX.Vm        = 0.05;       % Volume of HEX material, m3
+%     HX.VR        = 0.25;       % Ratio between Vm1 and Vm2, -
+%     HX.t_D_min   = 0.05;       % Minimum thickness-to-diameter ratio, -
+%     
+%     % Code settings
+%     HX.NX  = 100;               % Number of sections (grid)
+%     HX.NI  = 1000;              % Maximum number of iterations
+%     HX.TOL = 1e-2;              % Convergence tolerance, in %
+%     
+%     [steam(1),fluidH(iH),i,~] = hex_TQA(steam(1),[iL,i],fluidH(iH),[iL,1],HX,'hex',2,1.00);
+    
     iH = iH + 1;
     
     % Close cycle
