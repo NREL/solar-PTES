@@ -101,15 +101,37 @@ for iL=1:Load.num
 end
 switch Load.mode
     case 0 % PTES
-        WL_PTES_chg(5)  = HT.WL_chg + CT.WL_chg;
+        WL_PTES_chg(5) = HT.WL_chg + CT.WL_chg;
         WL_PTES_dis(5) = HT.WL_dis + CT.WL_dis;
-        WL_PTES_chg(6)  = 0;
+        WL_PTES_chg(6) = 0;
         WL_PTES_dis(6) = HT.A(end).B - HT.A(1).B + HT.B(end).B - HT.B(1).B + CT.A(end).B - CT.A(1).B + CT.B(end).B - CT.B(1).B;
+        
+        if Nhot == 2
+            WL_PTES_chg(5) = WL_PTES_chg(5) + HT2.WL_chg ;
+            WL_PTES_dis(5) = WL_PTES_dis(5) + HT2.WL_dis ;
+            WL_PTES_dis(6) = WL_PTES_dis(6) + HT2.A(end).B - HT2.A(1).B + HT2.B(end).B - HT2.B(1).B ;
+        end
+        
+        if Ncld == 2
+            WL_PTES_chg(5) = WL_PTES_chg(5) + CT2.WL_chg ;
+            WL_PTES_dis(5) = WL_PTES_dis(5) + CT2.WL_dis ;
+            WL_PTES_dis(6) = WL_PTES_dis(6) + CT2.A(end).B - CT2.A(1).B + CT2.B(end).B - CT2.B(1).B ;
+        end
+        
     case 1 % Heat pump only
         WL_PTES_chg(5)  = HT.WL_chg + CT.WL_chg;
         WL_PTES_dis(5) = 0;
         WL_PTES_chg(6)  = 0;
         WL_PTES_dis(6) = 0;
+        
+        if Nhot == 2
+            WL_PTES_chg(5) = WL_PTES_chg(5) + HT2.WL_chg ;
+        end
+        
+        if Ncld == 2
+            WL_PTES_chg(5) = WL_PTES_chg(5) + CT2.WL_chg ;
+        end
+        
     case 2 % Heat engine only
         WL_PTES_chg(5)  = 0;
         WL_PTES_dis(5) = HT.WL_dis;
@@ -184,6 +206,12 @@ Total_loss = sum(WL_matrix(:));
 switch Load.mode
     case 0 % PTES
         Heat_in_tanks   = (HT.A(end).H - HT.A(1).H) + (HT.B(end).H - HT.B(1).H) + (CT.A(end).H - CT.A(1).H) + (CT.B(end).H - CT.B(1).H);
+        if Nhot == 2
+           Heat_in_tanks   = Heat_in_tanks + (HT2.A(end).H - HT2.A(1).H) + (HT2.B(end).H - HT2.B(1).H) ; 
+        end
+        if Ncld == 2
+           Heat_in_tanks   = Heat_in_tanks + (CT2.A(end).H - CT2.A(1).H) + (CT2.B(end).H - CT2.B(1).H) ; 
+        end
         Heat_rejected = QE_chg + QE_dis;
         Total_Work_lost = W_in_chg - W_out_dis;
         First_law_error = (Heat_rejected + Heat_in_tanks - Total_Work_lost)/Total_Work_lost;

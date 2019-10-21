@@ -6,7 +6,7 @@ T0      = 30 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 250e5;        % top pressure, Pa
 PRch    = 3.0;          % charge pressure ratio
-PRr     = 1.3;          % discharge pressure ratio: PRdis = PRch*PRr
+PRr     = 0.8;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 0;            % set Tmax? (this option substitutes PRch)
@@ -19,11 +19,11 @@ Nc_ch = 1; % number of compressions during charge
 Ne_ch = 1; % number of expansions during charge
 
 % Number of hot and cold stores IN SERIES
-Ncld = 1; % number of cold stores. Not implemented for >1
-Nhot = 1; % number of hot stores. Not implemented for >2
+Ncld = 2; % number of cold stores. Not implemented for >1
+Nhot = 2; % number of hot stores. Not implemented for >2
 
 % Number of recuperators
-Nrcp = 2 ; % Can be 0,1,2. If 0 may need two hot stores. If 2 may require a recompression. 
+Nrcp = 1 ; % Can be 0,1,2. If 0 may need two hot stores. If 2 may require a recompression. 
 switch Nrcp
     case 0
         % Hot storage tanks
