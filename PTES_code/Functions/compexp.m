@@ -120,7 +120,13 @@ i = ind(2)+1;
     function h2 = nested_compexp_is(fluid,h1,s1,p2,eta,n)
         % Use isentropic efficiency
         h2_is = CP1('PSmass_INPUTS',p2,s1,'H',fluid.handle);
-        h2 = h1 + eta^n*(h2_is - h1);
+        if n == 1 %compressor
+            h2 = h1 + (h2_is - h1)/eta;
+        elseif n==-1 %expander
+            h2 = h1 - eta*(h1 - h2_is);
+        else
+            error('n must be either 1 or -1')
+        end
     end
 
 end

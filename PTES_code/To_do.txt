@@ -1,8 +1,7 @@
 LIST OF THINGS TO DO
 --------------------
-- Upload Kevin code into Github
+- Eliminate PTES_WRITE subroutine and use plot_states as a method
+- Tidy up heat exchanger function and collapse "Crat" inside "var" parameter. Change hex_core_q (and rest of hex_TQ_cond?) from temperature_based to enthalpy based.
 - State storage duration to compute initial mass of storage tanks.
-- Finish re-implementation of "Heat engine" mode
+- Finish re-implementation of "Heat engine" mode.
 - Think how to have components as Objects rather than functions. They would contain the "stages" information and also size, geometry, cost, etc.
-- Consider whether to move cycle position index inside fluid_class
-- Tidy up heat exchanger function and collapse "Crat" inside "var" parameter
