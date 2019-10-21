@@ -33,11 +33,13 @@ classdef fluid_class
             obj.stage(1:numPeriods,1:numStates-1) = stage_class;
             obj.Nstg(1:numPeriods,1) = 0;
         end
+        
         function obj = reset_fluid(obj)
             obj.state(:,:) = state_class;
             obj.stage(:,:) = stage_class;
             obj.Nstg(:)    = 0;
         end
+        
         function obj = count_Nstg(obj)
             for iL=1:numel(obj.Nstg)
                 a = find(~strcmp({obj.stage(iL,:).type},'0'),1,'last')-1;
@@ -48,10 +50,29 @@ classdef fluid_class
                 end
             end
         end
+        
+        function print_states(obj,iL,v0,varargin)
+            if nargin == 4 % fourth output must be the Load structure
+                Load = varargin{1};
+                fprintf(1,'%11s ','T [K]','p [bar]','h [MJ/kg]','s [kJ/kg/K]','mdot [kg/s]','Q [-]','Inlet of','Position','Cycle'); fprintf(1,'\n');
+                for i0=v0
+                    fprintf(1,'%11.1f %11.1f %11.2f %11.2f %11.1f %11.3f %11s %11d %11s\n',...
+                        obj.state(iL,i0).T, obj.state(iL,i0).p/1e5, obj.state(iL,i0).h/1e6,...
+                        obj.state(iL,i0).s/1e3, obj.state(iL,i0).mdot, obj.state(iL,i0).Q,...
+                        obj.stage(iL,i0).type, i0, Load.type(iL));
+                end
+                fprintf(1,'\n');
+            else
+                fprintf(1,'%11s ','T [K]','p [bar]','h [MJ/kg]','s [kJ/kg/K]','mdot [kg/s]','Q [-]','Inlet of','Position','Cycle'); fprintf(1,'\n');
+                for i0=v0
+                    fprintf(1,'%11.1f %11.1f %11.2f %11.2f %11.1f %11.3f %11s %11d %11d\n',...
+                        obj.state(iL,i0).T, obj.state(iL,i0).p/1e5, obj.state(iL,i0).h/1e6,...
+                        obj.state(iL,i0).s/1e3, obj.state(iL,i0).mdot, obj.state(iL,i0).Q,...
+                        obj.stage(iL,i0).type, i0, iL);
+                end
+                fprintf(1,'\n');
+            end
+        end
+        
     end
 end
-%         function outputArg = method1(obj,inputArg)
-%             %METHOD1 Summary of this method goes here
-%             %   Detailed explanation goes here
-%             outputArg = obj.Property1 + inputArg;
-%         end

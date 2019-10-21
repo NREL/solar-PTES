@@ -85,7 +85,7 @@ classdef double_tank_class
                  SO2   = obj.A(iL+1); %source tank
                  SI1   = obj.B(iL);   %sink tank
                  SI2   = obj.B(iL+1); %sink tank
-             elseif strcmp(Load.type(iL),'dis')
+             elseif any(strcmp(Load.type(iL),{'dis','ran'}))
                  SI1   = obj.A(iL);   %sink tank
                  SI2   = obj.A(iL+1); %sink tank
                  SO1   = obj.B(iL);   %source tank
@@ -115,7 +115,7 @@ classdef double_tank_class
                  obj.A(iL+1) = SO2;
                  obj.B(iL+1) = SI2;
                  obj.WL_chg = obj.WL_chg + T0*S_irr;
-             elseif strcmp(Load.type(iL),'dis')
+             elseif any(strcmp(Load.type(iL),{'dis','ran'}))
                  obj.A(iL+1) = SI2;
                  obj.B(iL+1) = SO2;
                  obj.WL_dis = obj.WL_dis + T0*S_irr;
