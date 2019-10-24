@@ -113,20 +113,20 @@ switch Load.mode
         if Nhot == 2
             WL_PTES_chg(5) = WL_PTES_chg(5) + HT2.WL_chg ;
             WL_PTES_dis(5) = WL_PTES_dis(5) + HT2.WL_dis ;
-            WL_PTES_dis(7) = WL_PTES_dis(7) + HT2.A(end).B - HT2.A(1).B + HT2.B(end).B - HT2.B(1).B ;
+            WL_PTES_dis(7) = WL_PTES_dis(6) + HT2.A(end).B - HT2.A(1).B + HT2.B(end).B - HT2.B(1).B ;
         end
         
         if Ncld == 2
             WL_PTES_chg(5) = WL_PTES_chg(5) + CT2.WL_chg ;
             WL_PTES_dis(5) = WL_PTES_dis(5) + CT2.WL_dis ;
-            WL_PTES_dis(7) = WL_PTES_dis(7) + CT2.A(end).B - CT2.A(1).B + CT2.B(end).B - CT2.B(1).B ;
+            WL_PTES_dis(6) = WL_PTES_dis(6) + CT2.A(end).B - CT2.A(1).B + CT2.B(end).B - CT2.B(1).B ;
         end
         
     case 1 % Heat pump only
         WL_PTES_chg(5)  = HT.WL_chg + CT.WL_chg;
         WL_PTES_dis(5) = 0;
-        WL_PTES_chg(7)  = 0;
-        WL_PTES_dis(7) = 0;
+        WL_PTES_chg(6)  = 0;
+        WL_PTES_dis(6) = 0;
         
         if Nhot == 2
             WL_PTES_chg(5) = WL_PTES_chg(5) + HT2.WL_chg ;
@@ -139,9 +139,9 @@ switch Load.mode
     case 2 % Heat engine only
         WL_PTES_chg(5)  = 0;
         WL_PTES_dis(5) = HT.WL_dis;
-        WL_PTES_chg(7)  = 0;
-        %WL_PTES_dis(7) = 0;
-        WL_PTES_dis(7) = HT.A(end).B - HT.A(1).B + HT.B(end).B - HT.B(1).B;
+        WL_PTES_chg(6)  = 0;
+        %WL_PTES_dis(6) = 0;
+        WL_PTES_dis(6) = HT.A(end).B - HT.A(1).B + HT.B(end).B - HT.B(1).B;
 end
 
 
@@ -271,8 +271,7 @@ WL_exp     = sum(WL_matrix(:,2))/Exergy_in*100;
 WL_hexs    = sum(WL_matrix(:,3))/Exergy_in*100;
 WL_reject  = sum(WL_matrix(:,4))/Exergy_in*100;
 WL_mix_liq = sum(WL_matrix(:,5))/Exergy_in*100;
-WL_mix_gas = sum(WL_matrix(:,6))/Exergy_in*100;
-WL_tanks   = sum(WL_matrix(:,7))/Exergy_in*100;
+WL_tanks   = sum(WL_matrix(:,6))/Exergy_in*100;
 
 %[WR,WR_dis]   = work_ratio(gas.stage,stages_ch,stages_dis);
 

@@ -6,7 +6,7 @@ T0      = 30 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 250e5;        % top pressure, Pa
 PRch    = 3.0;          % charge pressure ratio
-PRr     = 0.8;          % discharge pressure ratio: PRdis = PRch*PRr
+PRr     = 1.3;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 0;            % set Tmax? (this option substitutes PRch)
@@ -58,15 +58,15 @@ switch Nrcp
         % Hot storage tanks
         fHname  = 'SolarSalt';  % fluid name
         TH_dis0 = 410. + 273.15;  % initial temperature of discharged hot fluid, K
-        MH_dis0 = 0.0*1e6;          % initial mass of discharged hot fluid, kg
-        TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
-        MH_chg0 = 1.e6; % initial mass of charged hot fluid, kg
+        MH_dis0 = 1e6;              % initial mass of discharged hot fluid, kg
+        TH_chg0 = 570 + 273.15;     % initial temperature of charged hot fluid, K
+        MH_chg0 = 0.0*1.e6;         % initial mass of charged hot fluid, kg
         % Cold storage tanks
         fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
         TC_dis0 = T0 + 0;           % initial temperature of discharged cold fluid, K
-        MC_dis0 = 0.0*1e6;          % initial mass of discharged cold fluid, kg
+        MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
         TC_chg0 = T0-5;        % initial temperature of charged cold fluid, K
-        MC_chg0 = 1.e6; % initial mass of charged cold fluid, kg
+        MC_chg0 = 0.0*1.e6; % initial mass of charged cold fluid, kg
         % Choose a threshold temperature between the tanks
         TthreshC = 38. + 273.15 ; % Charge - threshold is on low-pressure side
         TthreshD = 200. + 273.15 ; % Discharge - threshold is on high-pressure side
