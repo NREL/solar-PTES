@@ -1,4 +1,4 @@
-function [fluidH, fluidC, iH, iC] = hex_TQA(fluidH, indH, fluidC, indC, HX, stage_type, cond, var)
+function [fluidH, fluidC, iH, iC] = hex_TQA(fluidH, indH, fluidC, indC, HX, stage_type, mode, var)
 % RESOLVE HEX T-Q DIAGRAM FOR A GIVEN EFFECTIVENESS
 
 % Set number of sections for hex_core algorithm
@@ -52,7 +52,7 @@ hH1_min = rtab1(TvH,hvH,TC1,1);
 hC2_max = rtab1(TvC,hvC,TH2,1);
 
 % Determine mass flow rates
-switch cond
+switch mode
     case 0
         % Both mass flow rates previously specified
         if any([mH,mC] == 0), error('mH and mC must be known if cond==0'); end
@@ -112,6 +112,7 @@ H.p = ones(NX+1,1)*pH2;
 C.p = ones(NX+1,1)*pC1;
 
 warning('pressure variation not implemented')
+warning('printed_circuit_geom function requires upgrade')
 warning('developed flow function requires upgrade')
 warning('consider finding QMAX using separate, previous iteration loop? (Cp system?)')
 % In golden_search routine, the objective function should have only one
@@ -201,7 +202,7 @@ fluidC.state(indC(1),indC(2)+1) = stateC; % Result goes into next state
 fluidC.stage(indC(1),indC(2))   = stageC; % Result stays in current stage
 
 % Update mass flow rates for inlet state, if necessary
-if any(cond==[1,2])
+if any(mode==[1,2])
     fluidH.state(indH(1),indH(2)).mdot = mH;
     fluidC.state(indC(1),indC(2)).mdot = mC;
 end
@@ -293,16 +294,6 @@ AC  = sum(dAC);
 % (2) Update properties using new pressure array (perhaps in the following
 % loop?)
 
-% % Negative dA values (corresponding to negative DT values, for
-% % non-physically possible hH1 values) are turned into positive and
-% % artificially increased, to avoid finding incorrect solutions when
-% % minimising the objective value.
-% dAC_abs = dAC;
-% neg = dAC_abs<0;
-% dAC_abs(neg) = abs(dAC_abs(neg))*1e6;
-% AC  = sum(dAC_abs);
-
-
 solution = C.A - AC;
 % Control physically impossible solutions
 if any([DT_AV <= 0; abs(solution) > 1.5*C.A; isnan(solution)])
@@ -343,43 +334,5 @@ else
     %     ylabel('Temperature difference')
 end
 
-
-% % Compute the temperature difference between the two streams inside the
-% % heat exchanger, for a given hH1 (enthalpy at hot stream outlet)
-% 
-% % Compute temperature distribution of hot stream
-% hH  = linspace(hH1,hH2,n)';
-% TH  = rtab1(hvH,TvH,hH,0);
-% 
-% % Compute temperature distribution of cold stream
-% QS  = (hH - hH1)*mH; % cummulative heat transfer
-% hC  = hC1 + QS/mC;
-% TC  = rtab1(hvC,TvC,hC,0);
-% 
-% % Compute temperature difference between the two streams
-% DT  = TH - TC;
-% 
-% % Integrate DT to find objective value (the DT 'area' on the T-Q diagram).
-% % Negative DT values (for non-physically possible hH1 values) are turned
-% % into positive and artificially increased, to avoid finding incorrect
-% % solutions when minimising the objective value.
-% DT_abs = DT;
-% neg    = DT_abs<0;
-% DT_abs(neg) = abs(DT_abs(neg))*1e6;
-% 
-% solution = sum(DT_abs);
-% 
-% % fprintf(1,'\nhH1 = %f, sol = %f',hH1,solution)
-% % figure(1)
-% % plot(QS./QS(end),TH,'r'); hold on;
-% % plot(QS./QS(end),TC,'b'); hold off;
-% % 
-% % figure(2)
-% % plot(QS./QS(end),DT,'r'); hold off;
-% % 
-% % figure(3)
-% % plot(QS./QS(end),DT_abs,'r'); hold off;
-% % 
-% % keyboard
 
 end

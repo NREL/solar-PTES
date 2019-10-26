@@ -106,7 +106,9 @@ while 1
     % HEAT (2-phase-liquid) (13-->1)
     fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p; %#ok<*SAGROW>
     [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
-    [steam(1),fluidH(iH),i,~] = hex_TQ_2p(steam(1),[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',2,1.20);
+    %[steam(1),fluidH(iH),i,~] = hex_TQ_2p(steam(1),[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',2,1.20);
+    Taim = HT.A(iL).T;
+    [steam(1),fluidH(iH),i,~] = hex_TQ_2p(steam(1),[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',4,Taim);
     
     
 %     % Define heat exchanger geometry

@@ -13,7 +13,7 @@ setTmax = 1;            % set Tmax? (this option substitutes PRch)
 Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
-Ne_ch = 1; % number of expansions during charge
+Ne_ch = 2; % number of expansions during charge
 % Hot storage tanks
 fHname  = 'SolarSalt';  % fluid name
 TH_dis0 = 230 + 273.15; % initial temperature of discharged hot fluid, K
@@ -63,7 +63,7 @@ Load.ind = 1:Load.num;
 % elements in state arrays.
 % Working fluid
 gas = fluid_class('Nitrogen','WF','CP','TTSE',Load.num,30);
-if Load.mode ==3, steam(1:3) = fluid_class('Water','WF','CP','HEOS',Load.num,30); end
+if Load.mode ==3, steam(1:3) = fluid_class('Water','WF','CP','TTSE',Load.num,30); end
 % Storage fluids
 fluidH(1:nH) = fluid_class(fHname,'SF','TAB',NaN,Load.num,10);
 fluidC(1:nC) = fluid_class(fCname,'SF','TAB',NaN,Load.num,10);
