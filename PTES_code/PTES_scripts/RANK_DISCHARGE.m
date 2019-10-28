@@ -68,7 +68,11 @@ while 1
     % REHEAT (gas-liquid) (3-->4)
     fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p;
     [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
-    [steam(1),fluidH(iH),i,~] = hex_TQ_cond(steam(1),[iL,i],fluidH(iH),[iL,1],eff,1.0,ploss,'hex',0,0);
+    if newhex
+        [steam(1),fluidH(iH),i,~] = hex_TQ(steam(1),[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',2,1.0);
+    else
+        [steam(1),fluidH(iH),i,~] = hex_TQ_cond(steam(1),[iL,i],fluidH(iH),[iL,1],eff,1.0,ploss,'hex',0,0);
+    end
     iH = iH + 1;
     
     % EXPAND (4-->5)
@@ -106,9 +110,8 @@ while 1
     % HEAT (2-phase-liquid) (13-->1)
     fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p; %#ok<*SAGROW>
     [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
-    %[steam(1),fluidH(iH),i,~] = hex_TQ_2p(steam(1),[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',2,1.20);
     Taim = HT.A(iL).T;
-    [steam(1),fluidH(iH),i,~] = hex_TQ_2p(steam(1),[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',4,Taim);
+    [steam(1),fluidH(iH),i,~] = hex_TQ(steam(1),[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',4,Taim);
     
     
 %     % Define heat exchanger geometry

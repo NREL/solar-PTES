@@ -1,9 +1,10 @@
-function [fluidH, fluidC, iH, iC] = hex_TQ_2p(fluidH, indH, fluidC, indC, eff, ploss, stage_type, mode, par)
+function [fluidH, fluidC, iH, iC] = hex_TQ(fluidH, indH, fluidC, indC, eff, ploss, stage_type, mode, par)
 % RESOLVE HEX T-Q DIAGRAM FOR A GIVEN EFFECTIVENESS
 
 % DESCRIPTION
 % TC1 and TH2 are the cold and hot temperature inlets (known)
 % TC2 and TH1 are the cold and hot temperature outlets (unknown)
+%
 % There is five modes of operation:
 % In mode == 0, the two mass flow rates (mH and mC) must be known, and the
 % parameter "par" is unused
@@ -11,6 +12,18 @@ function [fluidH, fluidC, iH, iC] = hex_TQ_2p(fluidH, indH, fluidC, indC, eff, p
 % In mode == 2, mH (unknown) is computed from par = Crat = mH*CpH/(mC*CpC)
 % In mode == 3, TC2 is specified (TC2=par) and mC (unknown) is computed
 % In mode == 4, TH1 is specified (TH1=par) and mH (unknown) is computed
+%
+% There is two possible algorithms available for modes 0, 1 and 2. Both
+% algorithms start by finding the conditions under which DT_pinch = 0;
+% 'DT_min' does so by iterating over TH1, while 'Equal_Cp' solves
+% mH*CpH=mC*CpC (at the pinch point temperature). Both algorithms produce
+% essentially equal outputs, although the latter can be slightly faster.
+
+switch mode
+    case {0,1,2}
+        % Select solution algorithm (either 'DT_min' or 'Equal_Cp')
+        algorithm = 'Equal_Cp';
+end
 
 % Set number of sections to solve algorithm
 n = 100;
@@ -105,9 +118,6 @@ end
 
 switch mode
     case {0,1,2}
-        
-        % Select solution algorithm (either 'DT_min' or 'Equal_Cp')
-        algorithm = 'DT_min';
         
         % Compute preliminary QMAX (hot outlet cannot be colder than cold inlet,
         % and vice-versa) and update hH1_min accordingly

@@ -30,8 +30,12 @@ A_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
 while 1
     fprintf(1,'Hello discharge PTES\n')
     
-    % REGENERATE (gas-gas)    
-    [gas,~,i,~] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0);
+    % REGENERATE (gas-gas)
+    if newhex
+        [gas,~,i,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
+    else
+        [gas,~,i,~] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0);
+    end
     
     PRc_dis = (PRdis)^(1/Nc_dis)/(1-ploss)^2; % expansion pressure ratio
     for iN = 1:Nc_dis
@@ -44,7 +48,11 @@ while 1
                 % COOL (gas-liquid)
                 fluidC(iC).state(iL,1).T = CT.B(iL).T; fluidC(iC).state(iL,1).p = CT.B(iL).p; %#ok<*SAGROW>
                 [fluidC(iC)] = update(fluidC(iC),[iL,1],1);
-                [gas,fluidC(iC),i,~] = hex_TQ_cond(gas,[iL,i],fluidC(iC),[iL,1],eff,1.0,ploss,'hex',0,0);
+                if newhex
+                    [gas,fluidC(iC),i,~] = hex_TQ(gas,[iL,i],fluidC(iC),[iL,1],eff,ploss,'hex',1,1.0);
+                else
+                    [gas,fluidC(iC),i,~] = hex_TQ_cond(gas,[iL,i],fluidC(iC),[iL,1],eff,1.0,ploss,'hex',0,0);
+                end
                 iC=iC+1;
             case 1 % Heat engine only
         end
@@ -52,18 +60,25 @@ while 1
         % COMPRESS
         p_aim = gas.state(iL,i).p*PRc_dis;
         [gas,i] = compexp(gas,[iL,i],eta,p_aim,3);
-        
-        %for i0=1:i, fprintf(1,'\n %f\t%f\t%10s\t%d',gas.state(iL,i0).T,gas.state(iL,i0).p/1e5,gas.stage(iL,i0).type,i0); end; fprintf(1,'\n');
     end
     
     % REGENERATE (gas-gas)
-    [~,gas,~,i] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0);
+    if newhex
+        [~,gas,~,i] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
+    else
+        [~,gas,~,i] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0);
+    end
     
     for iN = 1:Ne_dis
         % HEAT (gas-fluid)
         fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p; THmin = HT.A(1).T;
         [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
-        [fluidH(iH),gas,~,i] = hex_TQ_cond(fluidH(iH),[iL,1],gas,[iL,i],eff,1.0,ploss,'hex',2, THmin);
+        if newhex
+            Taim = THmin;
+            [fluidH(iH),gas,~,i] = hex_TQ(fluidH(iH),[iL,1],gas,[iL,i],eff,ploss,'hex',2,1.0);
+        else
+            [fluidH(iH),gas,~,i] = hex_TQ_cond(fluidH(iH),[iL,1],gas,[iL,i],eff,1.0,ploss,'hex',2, THmin);
+        end
         iH=iH+1;
         
         % EXPAND
@@ -78,14 +93,10 @@ while 1
     
     % Determine convergence and proceed
     A = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-    %for i0=1:i, fprintf(1,'\n %f\t%f\t%10s\t%d',gas.state(iL,i0).T,gas.state(iL,i0).p/1e5,gas.stage(iL,i0).type,i0); end; fprintf(1,'\n');
     %disp((A(A~=0) - A_0(A~=0))./A(A~=0)*100);
     if all(abs((A(A~=0) - A_0(A~=0))./A(A~=0))*100 < 1e-3) % is discharge cycle converged?
         % Exit discharge cycle
-        %T1d = gas.state(iL,i).T;
-        %pbotd = gas.state(iL,i).p;
         gas_min_rho_dis = gas.state(iL,i); %take data for power density calculation
-        %for i0=1:i, fprintf(1,'\n %f\t%f\t%10s\t%d',gas.state(iL,i0).T,gas.state(iL,i0).p/1e5,gas.stage(iL,i0).type,i0); end; fprintf(1,'\n');
         break
     else
         % Set new initial conditions
