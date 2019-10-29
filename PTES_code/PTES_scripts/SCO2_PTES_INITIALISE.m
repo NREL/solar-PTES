@@ -41,7 +41,7 @@ if setTmax
     pbot = pmax/PR_estim;
 end
 
-% Set number of compressions and expansions simmetrically between charge
+% Set number of compressions and expansions symmetrically between charge
 % and discharge
 Nc_dis = Ne_ch; % compressions during discharge
 Ne_dis = Nc_ch; % expansions during discharge

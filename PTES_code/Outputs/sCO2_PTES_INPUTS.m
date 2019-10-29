@@ -6,7 +6,7 @@ T0      = 30 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 250e5;        % top pressure, Pa
 PRch    = 3.0;          % charge pressure ratio
-PRr     = 1.3;          % discharge pressure ratio: PRdis = PRch*PRr
+PRr     = 0.8;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 0;            % set Tmax? (this option substitutes PRch)
@@ -19,11 +19,11 @@ Nc_ch = 1; % number of compressions during charge
 Ne_ch = 1; % number of expansions during charge
 
 % Number of hot and cold stores IN SERIES
-Ncld = 1; % number of cold stores. Not implemented for >1
-Nhot = 1; % number of hot stores. Not implemented for >2
+Ncld = 2; % number of cold stores. Not implemented for >2
+Nhot = 2; % number of hot stores. Not implemented for >2
 
 % Number of recuperators
-Nrcp = 2 ; % Can be 0,1,2. If 0 may need two hot stores. If 2 may require a recompression. 
+Nrcp = 0 ; % Can be 0,1,2. If 0 may need two hot stores. If 2 may require a recompression. 
 switch Nrcp
     case 0
         % Hot storage tanks
@@ -36,6 +36,7 @@ switch Nrcp
         TH_int  = 100 + 273.15 ;% Intermediate temperature between two hot stores
         % Cold storage tanks
         fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
+        fCname2 = 'INCOMP::MEG2[0.56]'; % fluid name
         TC_dis0 = 100 + 273.15; % initial temperature of discharged cold fluid, K
         MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
         TC_chg0 = T0-5;         % initial temperature of charged cold fluid, K
@@ -110,7 +111,7 @@ switch Ncld
         CT  = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank
     case 2
         fluidC(1:Ne_ch)  = fluid_class(fCname,'SF','TAB',NaN,Load.num,2);
-        fluidC2(1:Ne_ch) = fluid_class(fCname,'SF','TAB',NaN,Load.num,2);
+        fluidC2(1:Ne_ch) = fluid_class(fCname2,'SF','TAB',NaN,Load.num,2);
         CT  = double_tank_class(fluidC,TC_int,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank
         CT2 = double_tank_class(fluidC2,TC_dis0,p0,MC_dis0,TC_int,p0,MC_chg0,T0,Load.num+1); %cold double tank
     case 3

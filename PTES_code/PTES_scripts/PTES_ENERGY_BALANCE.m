@@ -175,6 +175,26 @@ if WM==1
             end
         end
     end
+    
+    if Nhot ==2
+        fprintf(1,'\nHot fluid stream 2:\n');
+        fprintf(1,'-->%s\n',fluidH2(1).name);
+        fprintf(1,'%11s ','Tin[K]','Tout[K]','Δh [MJ/kg]','Δs [kJ/kg/K]','mdot[kg/s]','Stream','Cycle'); fprintf(1,'\n');
+        for iL = 1:Load.num
+            if any(strcmp(Load.type(iL),["chg","dis"]))
+                for i0=1:nH
+                    fprintf(1,'%11.1f %11.1f %11.2f %11.2f %11.2f %11d %11s\n',...
+                        fluidH2(i0).state(iL,1).T, fluidH2(i0).state(iL,2).T,...
+                        (fluidH2(i0).state(iL,2).h - fluidH2(i0).state(iL,1).h)/1e6,...
+                        (fluidH2(i0).state(iL,2).s - fluidH2(i0).state(iL,1).s)/1e3,...
+                        fluidH2(i0).state(iL,1).mdot, i0, Load.type(iL));
+                end
+            end
+        end
+        
+    end
+    
+    
     fprintf(1,'\nCold fluid streams:\n');
     fprintf(1,'-->%s\n',fluidC(1).name);
     fprintf(1,'%11s ','Tin[K]','Tout[K]','Δh [MJ/kg]','Δs [kJ/kg/K]','mdot[kg/s]','Stream','Cycle'); fprintf(1,'\n');
@@ -189,16 +209,52 @@ if WM==1
             end
         end
     end
+    
+    if Ncld ==2
+        fprintf(1,'\nCold fluid stream 2:\n');
+        fprintf(1,'-->%s\n',fluidC2(1).name);
+        fprintf(1,'%11s ','Tin[K]','Tout[K]','Δh [MJ/kg]','Δs [kJ/kg/K]','mdot[kg/s]','Stream','Cycle'); fprintf(1,'\n');
+        for iL = 1:Load.num
+            if any(strcmp(Load.type(iL),["chg","dis"]))
+                for i0=1:nC
+                    fprintf(1,'%11.1f %11.1f %11.2f %11.2f %11.2f %11d %11s\n',...
+                        fluidC2(i0).state(iL,1).T, fluidC2(i0).state(iL,2).T,...
+                        (fluidC2(i0).state(iL,2).h - fluidC2(i0).state(iL,1).h)/1e6,...
+                        (fluidC2(i0).state(iL,2).s - fluidC2(i0).state(iL,1).s)/1e3,...
+                        fluidC2(i0).state(iL,1).mdot, i0, Load.type(iL));
+                end
+            end
+        end 
+    end
+    
     fprintf(1,'\nHot tanks\n');
     fprintf(1,'%10s %10s %13s %13s %13s %13s %8s ','A.T [K]','A.M [kg*1e6]','A.H [MWh]','B.T [K]','B.M [kg*1e6]','B.H [MWh]','state'); fprintf(1,'\n');
     for i0=1:(Load.num+1)
         fprintf(1,'%10.4g %13.3f %13.3f %10.4g %13.3f %13.3f %8d\n', HT.A(i0).T,HT.A(i0).M/1e6,HT.A(i0).H/fact,HT.B(i0).T,HT.B(i0).M/1e6,HT.B(i0).H/fact,i0)
-    end    
+    end
+    
+    if Nhot == 2
+        fprintf(1,'\nHot tank 2\n');
+        fprintf(1,'%10s %10s %13s %13s %13s %13s %8s ','A.T [K]','A.M [kg*1e6]','A.H [MWh]','B.T [K]','B.M [kg*1e6]','B.H [MWh]','state'); fprintf(1,'\n');
+        for i0=1:(Load.num+1)
+            fprintf(1,'%10.4g %13.3f %13.3f %10.4g %13.3f %13.3f %8d\n', HT2.A(i0).T,HT2.A(i0).M/1e6,HT2.A(i0).H/fact,HT2.B(i0).T,HT2.B(i0).M/1e6,HT2.B(i0).H/fact,i0)
+        end
+    end
+    
     fprintf(1,'\nCold tanks\n');
     fprintf(1,'%10s %10s %13s %13s %13s %13s %8s ','A.T [K]','A.M [kg*1e6]','A.H [MWh]','B.T [K]','B.M [kg*1e6]','B.H [MWh]','state'); fprintf(1,'\n');
     for i0=1:(Load.num+1)
         fprintf(1,'%10.4g %13.3f %13.3f %10.4g %13.3f %13.3f %8d\n', CT.A(i0).T,CT.A(i0).M/1e6,CT.A(i0).B/fact,CT.B(i0).T,CT.B(i0).M/1e6,CT.B(i0).B/fact,i0)
-    end    
+    end 
+    
+    if Ncld == 2
+        fprintf(1,'\nCold tank 2\n');
+        fprintf(1,'%10s %10s %13s %13s %13s %13s %8s ','A.T [K]','A.M [kg*1e6]','A.H [MWh]','B.T [K]','B.M [kg*1e6]','B.H [MWh]','state'); fprintf(1,'\n');
+        for i0=1:(Load.num+1)
+            fprintf(1,'%10.4g %13.3f %13.3f %10.4g %13.3f %13.3f %8d\n', CT2.A(i0).T,CT2.A(i0).M/1e6,CT2.A(i0).B/fact,CT2.B(i0).T,CT2.B(i0).M/1e6,CT2.B(i0).B/fact,i0)
+        end
+    end
+    
     fprintf(1,'\n');
 end
 
