@@ -57,21 +57,31 @@ for icrv = 1:Ncrv
         
         % Reinitialise arrays (gas, fluids and tanks) to zero and do other
         % preliminary tasks
-        SCO2_PTES_INITIALISE
+        if Load.mode == 4
+            SCO2_PTES_INITIALISE
+        else
+            PTES_INITIALISE
+        end
         
         for iL = 1:Load.num
             switch Load.type(iL)
                 case 'chg'
-                    sCO2_PTES_CHARGE
+                    PTES_CHARGE
                     
                 case 'str'
                     PTES_TANKS_STORAGE
                     
                 case 'dis'
-                    sCO2_PTES_DISCHARGE
+                    PTES_DISCHARGE
                     
                 case 'sol'
                     PTES_SOLAR_TANKS
+                    
+                case 'chgCO2'
+                    sCO2_PTES_CHARGE
+                    
+                case 'disCO2'
+                    sCO2_PTES_DISCHARGE
             end
         end
         
@@ -101,7 +111,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if make_plots
     switch Load.mode
-        case 0 % PTES
+        case {0,4} % PTES
             PTES_WRITE_CHARGE
             PTES_WRITE_DISCHARGE
             %PTES_PLOT_HEXS

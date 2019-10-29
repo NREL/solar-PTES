@@ -18,7 +18,7 @@ QE_dis     = 0;  % heat rejected to environment
 nH = numel(fluidH);
 nC = numel(fluidC);
 for iL=1:Load.num
-    if strcmp(Load.type(iL),'chg')
+    if any(strcmp(Load.type(iL),{'chg','chgCO2'}))
         W_in_chg   = W_in_chg   -    sum([gas.stage(iL,:).w]   .*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
         W_lost_chg = W_lost_chg + T0*sum([gas.stage(iL,:).sirr].*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
         DH_chg     = DH_chg     +    sum([gas.stage(iL,:).Dh]  .*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
@@ -29,7 +29,7 @@ for iL=1:Load.num
             QC_chg = QC_chg - sum(fluidC(i).state(iL,1).mdot*(fluidC(i).state(iL,2).h-fluidC(i).state(iL,1).h)*Load.time(iL));
         end
         QE_chg = QE_chg + sum([environ.sink(iL,:).DHdot]*Load.time(iL));        
-    elseif strcmp(Load.type(iL),'dis')
+    elseif any(strcmp(Load.type(iL),{'dis','disCO2'}))
         W_out_dis  = W_out_dis  +    sum([gas.stage(iL,:).w]   .*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
         W_lost_dis = W_lost_dis + T0*sum([gas.stage(iL,:).sirr].*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
         DH_dis     = DH_dis     +    sum([gas.stage(iL,:).Dh]  .*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
@@ -46,8 +46,14 @@ end
 fact    = 1e6*3600; % J to MWh
 Net_chg = (+ W_in_chg  + QC_chg  - QH_chg  - DH_chg  - QE_chg);
 Net_dis = (- W_out_dis - QC_dis  + QH_dis  - DH_dis  - QE_dis);
-i_chg = Load.type == 'chg';
-i_dis = Load.type == 'dis';
+
+if Load.mode == 0
+    i_chg = Load.type == 'chg';
+    i_dis = Load.type == 'dis';
+elseif Load.mode == 4
+    i_chg = Load.type == 'chgCO2';
+    i_dis = Load.type == 'disCO2';
+end
 t_chg = sum(Load.time(i_chg));
 t_dis = sum(Load.time(i_dis));
 ip1 = find(i_chg == 1,1,'first'); %index for printing (first charge period)
@@ -58,7 +64,7 @@ ip2 = find(i_dis == 1,1,'first'); %index for printing (first discharge period)
 WL_PTES_chg = zeros(1,6);
 WL_PTES_dis = zeros(1,6);
 for iL=1:Load.num
-    if strcmp(Load.type(iL),'chg')
+    if any(strcmp(Load.type(iL),{'chg','chgCO2'}))
         for i0=1:gas.Nstg(iL)
             switch gas.stage(iL,i0).type
                 case 'comp'
@@ -80,7 +86,7 @@ for iL=1:Load.num
             end
         end
     end
-    if strcmp(Load.type(iL),'dis')
+    if any(strcmp(Load.type(iL),{'dis','disCO2'}))
         for i0=1:gas.Nstg(iL)
             switch gas.stage(iL,i0).type
                 case 'comp'
@@ -104,11 +110,11 @@ for iL=1:Load.num
     end
 end
 switch Load.mode
-    case 0 % PTES
+    case {0,4} % PTES or sCO2-PTES
         WL_PTES_chg(5) = HT.WL_chg + CT.WL_chg;
         WL_PTES_dis(5) = HT.WL_dis + CT.WL_dis;
         WL_PTES_chg(7) = 0;
-        WL_PTES_dis(7) = HT.A(end).B - HT.A(1).B + HT.B(end).B - HT.B(1).B + CT.A(end).B - CT.A(1).B + CT.B(end).B - CT.B(1).B;
+        WL_PTES_dis(7) = (HT.A(end).B - HT.A(1).B + HT.B(end).B - HT.B(1).B + CT.A(end).B - CT.A(1).B + CT.B(end).B - CT.B(1).B);
         
         if Nhot == 2
             WL_PTES_chg(5) = WL_PTES_chg(5) + HT2.WL_chg ;
@@ -159,13 +165,13 @@ if WM==1
                 gas.state(iL,i0).T, gas.state(iL,i0).p/1e5, gas.state(iL,i0).h/1e6,...
                 gas.state(iL,i0).s/1e3, gas.state(iL,i0).mdot, gas.stage(iL,i0).type, Load.type(iL));
         end
-        if any(strcmp(Load.type(iL),["chg","dis"])), fprintf(1,'\n'); end
+        if any(strcmp(Load.type(iL),["chg","dis","chgCO2","disCO2"])), fprintf(1,'\n'); end
     end
     fprintf(1,'\nHot fluid streams:\n');
     fprintf(1,'-->%s\n',fluidH(1).name);
     fprintf(1,'%11s ','Tin[K]','Tout[K]','Δh [MJ/kg]','Δs [kJ/kg/K]','mdot[kg/s]','Stream','Cycle'); fprintf(1,'\n');
     for iL = 1:Load.num
-        if any(strcmp(Load.type(iL),["chg","dis"]))
+        if any(strcmp(Load.type(iL),["chg","dis","chgCO2","disCO2"]))
             for i0=1:nH
                 fprintf(1,'%11.1f %11.1f %11.2f %11.2f %11.2f %11d %11s\n',...
                     fluidH(i0).state(iL,1).T, fluidH(i0).state(iL,2).T,...
@@ -181,7 +187,7 @@ if WM==1
         fprintf(1,'-->%s\n',fluidH2(1).name);
         fprintf(1,'%11s ','Tin[K]','Tout[K]','Δh [MJ/kg]','Δs [kJ/kg/K]','mdot[kg/s]','Stream','Cycle'); fprintf(1,'\n');
         for iL = 1:Load.num
-            if any(strcmp(Load.type(iL),["chg","dis"]))
+            if any(strcmp(Load.type(iL),["chg","dis","chgCO2","disCO2"]))
                 for i0=1:nH
                     fprintf(1,'%11.1f %11.1f %11.2f %11.2f %11.2f %11d %11s\n',...
                         fluidH2(i0).state(iL,1).T, fluidH2(i0).state(iL,2).T,...
@@ -199,7 +205,7 @@ if WM==1
     fprintf(1,'-->%s\n',fluidC(1).name);
     fprintf(1,'%11s ','Tin[K]','Tout[K]','Δh [MJ/kg]','Δs [kJ/kg/K]','mdot[kg/s]','Stream','Cycle'); fprintf(1,'\n');
     for iL = 1:Load.num
-        if any(strcmp(Load.type(iL),["chg","dis"]))
+        if any(strcmp(Load.type(iL),["chg","dis","chgCO2","disCO2"]))
             for i0=1:nC
                 fprintf(1,'%11.1f %11.1f %11.2f %11.2f %11.2f %11d %11s\n',...
                     fluidC(i0).state(iL,1).T, fluidC(i0).state(iL,2).T,...
@@ -215,7 +221,7 @@ if WM==1
         fprintf(1,'-->%s\n',fluidC2(1).name);
         fprintf(1,'%11s ','Tin[K]','Tout[K]','Δh [MJ/kg]','Δs [kJ/kg/K]','mdot[kg/s]','Stream','Cycle'); fprintf(1,'\n');
         for iL = 1:Load.num
-            if any(strcmp(Load.type(iL),["chg","dis"]))
+            if any(strcmp(Load.type(iL),["chg","dis","chgCO2","disCO2"]))
                 for i0=1:nC
                     fprintf(1,'%11.1f %11.1f %11.2f %11.2f %11.2f %11d %11s\n',...
                         fluidC2(i0).state(iL,1).T, fluidC2(i0).state(iL,2).T,...
@@ -264,7 +270,7 @@ Total_loss = sum(WL_matrix(:));
 
 % Compute efficiencies, energy and power densities and errors
 switch Load.mode
-    case 0 % PTES
+    case {0,4} % PTES or sCO2-PTES
         Heat_in_tanks   = (HT.A(end).H - HT.A(1).H) + (HT.B(end).H - HT.B(1).H) + (CT.A(end).H - CT.A(1).H) + (CT.B(end).H - CT.B(1).H);
         if Nhot == 2
            Heat_in_tanks   = Heat_in_tanks + (HT2.A(end).H - HT2.A(1).H) + (HT2.B(end).H - HT2.B(1).H) ; 
@@ -317,7 +323,7 @@ if Load.mode == 1
 end
 
 switch Load.mode
-    case {0,1}
+    case {0,1,4}
         Exergy_in = W_in_chg;
     case 2
         Exergy_in = Exergy_from_tanks;
@@ -338,7 +344,7 @@ if WM == 1
     fprintf(1,'-----------------\n');
     
     switch Load.mode
-        case {0,1}
+        case {0,1,4}
             fprintf(1,'CHARGE\n');
             fprintf(1,'Average power input:     %8.1f MW\n',W_in_chg/t_chg/1e6);
             fprintf(1,'Total charge time:       %8.1f h\n',t_chg/3600);
@@ -351,7 +357,7 @@ if WM == 1
     end
     
     switch Load.mode
-        case {0,2}
+        case {0,2,4}
             fprintf(1,'DISCHARGE\n');
             fprintf(1,'Average power output:    %8.1f MW\n',W_out_dis/t_dis/1e6);
             fprintf(1,'Total discharge time:    %8.1f h\n',t_dis/3600);
@@ -364,7 +370,7 @@ if WM == 1
     end
     
     switch Load.mode
-        case 0 
+        case {0,4} 
             fprintf(1,'Round trip efficiency:   %8.1f %%\n\n',chi_PTES*100);
             fprintf(1,'Exergy density:          %9.2f kWh/m3\n',rhoE);
             %fprintf(1,'Power density (charge):  %9.2f MW/(m3/s)\n',rhoP_ch);
@@ -397,6 +403,6 @@ end
 
 
 % Manage warnings
-if  Load.mode == 0 && ((CT.A(1).T > T0) && (CT.A(4).T < (CT.A(1).T - 1)))
+if  (Load.mode == 0 || Load.mode == 4) && ((CT.A(1).T > T0) && (CT.A(4).T < (CT.A(1).T - 1)))
     warning('Unsustainable discharge of cold reservoir!')
 end

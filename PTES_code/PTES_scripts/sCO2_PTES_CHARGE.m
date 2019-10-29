@@ -44,7 +44,7 @@ end
 A_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
 while 1
     
-    fprintf(1,'Hello charge PTES\n')
+    fprintf(1,'Hello charge sCO2-PTES\n')
     
     for iN = 1:Nc_ch
         % COMPRESS

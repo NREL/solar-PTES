@@ -11,72 +11,22 @@ PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 0;            % set Tmax? (this option substitutes PRch)
 Tmax    = 500 + 273.15; % maximum temp at compressor outlet, K
-Lcld    = false ;       % Make cold store as cold as possible?
-Lrcmp   = false ;
 
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
 Ne_ch = 1; % number of expansions during charge
 
 % Number of hot and cold stores IN SERIES
-Ncld = 2; % number of cold stores. Not implemented for >2
-Nhot = 2; % number of hot stores. Not implemented for >2
+Ncld = 1; % number of cold stores. Not implemented for >2
+Nhot = 1; % number of hot stores. Not implemented for >2
 
-% Number of recuperators
-Nrcp = 0 ; % Can be 0,1,2. If 0 may need two hot stores. If 2 may require a recompression. 
-switch Nrcp
-    case 0
-        % Hot storage tanks
-        fHname  = 'MineralOil'; % fluid name
-        fHname2 = 'MineralOil'; % fluid name
-        TH_dis0 = T0;           % initial temperature of discharged hot fluid, K
-        MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
-        TH_chg0 = 50 + 273.15; % initial temperature of charged hot fluid, K
-        MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
-        TH_int  = 100 + 273.15 ;% Intermediate temperature between two hot stores
-        % Cold storage tanks
-        fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
-        fCname2 = 'INCOMP::MEG2[0.56]'; % fluid name
-        TC_dis0 = 100 + 273.15; % initial temperature of discharged cold fluid, K
-        MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
-        TC_chg0 = T0-5;         % initial temperature of charged cold fluid, K
-        MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
-        TC_int  = 55 + 273.15 ; % Intermediate temperature between two cold stores
-    case 1
-        % Hot storage tanks
-        fHname  = 'SolarSalt';  % fluid name
-        TH_dis0 = T0 + 273.15;  % initial temperature of discharged hot fluid, K
-        MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
-        TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
-        MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
-        % Cold storage tanks
-        fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
-        TC_dis0 = T0 + 0;           % initial temperature of discharged cold fluid, K
-        MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
-        TC_chg0 = T0-5;        % initial temperature of charged cold fluid, K
-        MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
-    case 2
-        % Hot storage tanks
-        fHname  = 'SolarSalt';  % fluid name
-        TH_dis0 = 410. + 273.15;  % initial temperature of discharged hot fluid, K
-        MH_dis0 = 1e6;              % initial mass of discharged hot fluid, kg
-        TH_chg0 = 570 + 273.15;     % initial temperature of charged hot fluid, K
-        MH_chg0 = 0.0*1.e6;         % initial mass of charged hot fluid, kg
-        % Cold storage tanks
-        fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
-        TC_dis0 = T0 + 0;           % initial temperature of discharged cold fluid, K
-        MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
-        TC_chg0 = T0-5;        % initial temperature of charged cold fluid, K
-        MC_chg0 = 0.0*1.e6; % initial mass of charged cold fluid, kg
-        % Choose a threshold temperature between the tanks
-        TthreshC = 38. + 273.15 ; % Charge - threshold is on low-pressure side
-        TthreshD = 200. + 273.15 ; % Discharge - threshold is on high-pressure side
-        Lrcmp    = true ;         % Is there a recompression
+if (Nc_ch > 1 || Ne_ch > 1) && (Ncld > 1 || Nhot > 1)
+    error('Have not implemented multiple compressions/expansions AND multiple storage tanks in series')
 end
 
 % The Load structure stores information about the duration, type of cycle
 % (charge, storage or discharge) and mass flow rate of each time period.
-Load.mode = 0;
+Load.mode = 4;
 switch Load.mode
     case 0 % PTES
         Load.time = [10;4;10].*3600;          % time spent in each load period, s
@@ -94,6 +44,75 @@ switch Load.mode
         Load.type = "dis";                 % type of load period
         Load.mdot = 10;                        % working fluid mass flow rate, kg/s
         Load.num  = numel(Load.time);
+    case 4 % sCO2-PTES type cycles
+        Load.time = [10;4;10].*3600;          % time spent in each load period, s
+        Load.type = ["chgCO2";"str";"disCO2"]; % type of load period
+        Load.mdot = [10;0;10];              % working fluid mass flow rate, kg/s
+        Load.num  = numel(Load.time);
+end
+
+% There are numerous design options for an sCO2-PTES cycle and several of them
+% may be investigated here
+if Load.mode == 4
+    Lcld    = false ;       % Make cold store as cold as possible?
+    Lrcmp   = false ;       % Is there a recompressor?
+    
+    % Number of recuperators
+    Nrcp = 2 ; % Can be 0,1,2. 
+    switch Nrcp
+        % If the sCO2-PTES cycle is not recuperator, then efficiency is
+        % increased by having several stores in series
+        case 0
+            % Hot storage tanks
+            fHname  = 'MineralOil'; % fluid name
+            fHname2 = 'MineralOil'; % fluid name
+            TH_dis0 = T0;           % initial temperature of discharged hot fluid, K
+            MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
+            TH_chg0 = 50 + 273.15; % initial temperature of charged hot fluid, K
+            MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
+            TH_int  = 100 + 273.15 ;% Intermediate temperature between two hot stores
+            % Cold storage tanks
+            fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
+            fCname2 = 'INCOMP::MEG2[0.56]'; % fluid name
+            TC_dis0 = 100 + 273.15; % initial temperature of discharged cold fluid, K
+            MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
+            TC_chg0 = T0-5;         % initial temperature of charged cold fluid, K
+            MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
+            TC_int  = 55 + 273.15 ; % Intermediate temperature between two cold stores
+        case 1
+            % Hot storage tanks
+            fHname  = 'SolarSalt';  % fluid name
+            TH_dis0 = T0 + 273.15;  % initial temperature of discharged hot fluid, K
+            MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
+            TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
+            MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
+            % Cold storage tanks
+            fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
+            TC_dis0 = T0 + 0;           % initial temperature of discharged cold fluid, K
+            MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
+            TC_chg0 = T0-5;        % initial temperature of charged cold fluid, K
+            MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
+        
+        % If there are two recuperators, also use a recompressor during
+        % discharge
+        case 2
+            % Hot storage tanks
+            fHname  = 'SolarSalt';  % fluid name
+            TH_dis0 = 410. + 273.15;  % initial temperature of discharged hot fluid, K
+            MH_dis0 = 1e6;              % initial mass of discharged hot fluid, kg
+            TH_chg0 = 570 + 273.15;     % initial temperature of charged hot fluid, K
+            MH_chg0 = 0.0*1.e6;         % initial mass of charged hot fluid, kg
+            % Cold storage tanks
+            fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
+            TC_dis0 = T0 + 0;           % initial temperature of discharged cold fluid, K
+            MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
+            TC_chg0 = T0-5;        % initial temperature of charged cold fluid, K
+            MC_chg0 = 0.0*1.e6; % initial mass of charged cold fluid, kg
+            % Choose a threshold temperature between the tanks
+            TthreshC = 38. + 273.15 ; % Charge - threshold is on low-pressure side
+            TthreshD = 200. + 273.15 ; % Discharge - threshold is on high-pressure side
+            Lrcmp    = true ;         % Is there a recompression
+    end
 end
 
 % Set working fluids, storage fluids, and heat rejection streams. 'WF' or
@@ -102,7 +121,11 @@ end
 % 'HEOS', 'TTSE' or 'BICUBIC&HEOS'). 'num' indicates number of preallocated
 % elements in state arrays.
 % Working fluid
-gas = fluid_class('CarbonDioxide','WF','CP','TTSE',Load.num,30);
+if Load.mode == 4
+    gas = fluid_class('CarbonDioxide','WF','CP','TTSE',Load.num,30);
+else
+    gas = fluid_class('Nitrogen','WF','CP','TTSE',Load.num,30);
+end
 
 % Set double tanks
 switch Ncld

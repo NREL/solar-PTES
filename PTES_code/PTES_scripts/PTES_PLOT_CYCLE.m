@@ -11,7 +11,7 @@ switch Celcius
 end
 
 switch Load.mode
-    case 0 % PTES
+    case {0,4} % PTES
         n1 = stages_ch*num;
         n2 = (stages_ch + stages_dis)*num;
         
@@ -80,10 +80,10 @@ switch Load.mode
 end
 
 switch Load.mode
-    case 0 % PTES
+    case {0,4} % PTES
         % Plot points
         for iL=1:Load.num
-            if strcmp(Load.type(iL),'chg')
+            if any(strcmp(Load.type(iL),{'chg','chgCO2'}))
                 for int = 1:stages_ch
                     pl1 = plot([gas.state(iL,int).s]/1000,[gas.state(iL,int).T]+K_C,'k-o','MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',5); hold on;
                 end
@@ -91,7 +91,7 @@ switch Load.mode
             end
         end
         for iL=1:Load.num
-            if strcmp(Load.type(iL),'dis')
+            if any(strcmp(Load.type(iL),{'dis','disCO2'}))
                 for int = 1:stages_dis
                     pl2 = plot([gas.state(iL,int).s]/1000,[gas.state(iL,int).T]+K_C,'k:s','MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',5); hold on;
                 end
