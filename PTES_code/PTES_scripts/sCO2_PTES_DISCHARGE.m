@@ -160,7 +160,7 @@ while 1
             [~,gas,~,i] = hex_TQ_cond(gas,[iL,iReg1+1],gas,[iL,iReg3],eff,0,ploss,'regen',-1,TthreshD); 
             gas.state(iL,iRCMP).mdot   = gas.state(iL,iReg1).mdot - gas.state(iL,iReg3).mdot ;
             gas.state(iL,iRCMP+1).mdot = gas.state(iL,iRCMP).mdot ;
-            [gas,~,i,~] = mix_streams(gas,[iL,i],gas,[iL,iRCMP+1]) ;
+            [gas,i,~] = mix_streams(gas,[iL,i],[iL,iRCMP+1]) ;
         else
             [~,gas,~,~] = hex_TQ_cond(gas,[iL,iReg1+1],gas,[iL,iReg3],eff,0,ploss,'regen',0,0); 
         end
