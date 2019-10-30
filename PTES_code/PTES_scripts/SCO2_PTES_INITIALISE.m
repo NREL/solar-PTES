@@ -2,38 +2,24 @@
 gas = reset_fluid(gas);
 for ir = 1:length(fluidH)
     fluidH(ir) = reset_fluid(fluidH(ir)); %#ok<*SAGROW>
-    if Nhot == 2; fluidH2(ir) = reset_fluid(fluidH2(ir)); end
 end
 for ir = 1:length(fluidC)
     fluidC(ir) = reset_fluid(fluidC(ir));
-    if Ncld == 2; fluidC2(ir) = reset_fluid(fluidC2(ir)); end
 end
 
-% Reset tanks
-switch Ncld
-    case 1
-        CT = reset_tanks(CT,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0);
-    case 2
-        CT  = reset_tanks(CT,TC_int,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0);
-        CT2 = reset_tanks(CT2,TC_dis0,p0,MC_dis0,TC_int,p0,MC_chg0,T0);
-    case 3
-        error('Not implemented')
-end
-% Hot tanks
-switch Nhot
-    case 1
-        HT = reset_tanks(HT,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0);
-    case 2
-        HT  = reset_tanks(HT,TH_int,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0);
-        HT2 = reset_tanks(HT2,TH_dis0,p0,MH_dis0,TH_int,p0,MH_chg0,T0);
-    case 3
-        error('Not implemented')
+% Reset cold tanks
+for ir = 1 : Ncld
+    CT(ir) = reset_tanks(CT(ir),TC_dis0(ir),p0,MC_dis0(ir),TC_chg0(ir),p0,MC_chg0(ir),T0);
 end
 
+% Reset hot tanks
+for ir = 1 : Nhot
+    HT(ir) = reset_tanks(HT(ir),TH_dis0(ir),p0,MH_dis0(ir),TH_chg0(ir),p0,MH_chg0(ir),T0);
+end
 
 % Set bottom pressure line based on maximum pressure and pressure ratio
 pbot = pmax/PRch;
-T1   = TH_dis0; % compressor inlet temperature estimate
+T1   = TH_dis0(Nhot); % compressor inlet temperature estimate
 if setTmax
     % Obtain PRch from maximum temperature and estimated temperature ratio
     Gama = CP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CPMASS',gas.handle)/CP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CVMASS',gas.handle);

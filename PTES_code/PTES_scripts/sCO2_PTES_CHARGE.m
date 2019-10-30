@@ -60,17 +60,13 @@ while 1
         ptop  = gas.state(iL,i).p;
         
         % COOL (gas-liquid)
-        fluidH(iH).state(iL,1).T = HT.A(iL).T; fluidH(iH).state(iL,1).p = HT.A(iL).p; %#ok<*SAGROW>
-        [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
-        [gas,fluidH(iH),i,~] = hex_TQ_cond(gas,[iL,i],fluidH(iH),[iL,1],eff,1.0,ploss,'hex',0,0);
-        
-        if Nhot == 2
-            fluidH2(iH).state(iL,1).T = HT2.A(iL).T; fluidH2(iH).state(iL,1).p = HT2.A(iL).p;
-            [fluidH2(iH)] = update(fluidH2(iH),[iL,1],1);
-            [gas,fluidH2(iH),i,~] = hex_TQ_cond(gas,[iL,i],fluidH2(iH),[iL,1],eff,1.0,ploss,'hex',0,0);
+        for ii = 1 : Nhot
+            fluidH(ii).state(iL,1).T = HT(ii).A(iL).T; fluidH(ii).state(iL,1).p = HT(ii).A(iL).p; %#ok<*SAGROW>
+            [fluidH(ii)] = update(fluidH(ii),[iL,1],1);
+            [gas,fluidH(ii),i,~] = hex_TQ_cond(gas,[iL,i],fluidH(ii),[iL,1],eff,1.0,ploss,'hex',0,0);
+            iH = ii ;
         end
-                
-        iH=iH+1;
+        iH = iH + 1 ;        
     end    
     if setTmax, PRch = ptop/pbot; end
     
@@ -99,16 +95,12 @@ while 1
         [gas,i] = compexp(gas,[iL,i],eta,p_aim,1);        
         
         % HEAT (gas-liquid)
-        fluidC(iC).state(iL,1).T = CT.A(iL).T; fluidC(iC).state(iL,1).p = CT.A(iL).p;
-        [fluidC(iC)] = update(fluidC(iC),[iL,1],1);
-        [fluidC(iC),gas,~,i] = hex_TQ_cond(fluidC(iC),[iL,1],gas,[iL,i],eff,1.6,ploss,'hex', 0, 0);
-        
-        if Ncld == 2
-            fluidC2(iC).state(iL,1).T = CT2.A(iL).T; fluidC2(iC).state(iL,1).p = CT2.A(iL).p;
-            [fluidC2(iC)] = update(fluidC2(iC),[iL,1],1);
-            [fluidC2(iC),gas,~,i] = hex_TQ_cond(fluidC2(iC),[iL,1],gas,[iL,i],eff,1.0,ploss,'hex', 0, 0);
-        end
-        
+        for ii = 1 : Ncld
+            fluidC(ii).state(iL,1).T = CT(ii).A(iL).T; fluidC(ii).state(iL,1).p = CT(ii).A(iL).p;
+            [fluidC(ii)] = update(fluidC(ii),[iL,1],1);
+            [fluidC(ii),gas,~,i] = hex_TQ_cond(fluidC(ii),[iL,1],gas,[iL,i],eff,1.6,ploss,'hex', 0, 0);
+            iC = ii ;
+        end        
         iC=iC+1;
     end
     
@@ -145,9 +137,11 @@ end
 
 % Compute effect of fluid streams entering/leaving the sink/source tanks
 % Hot tanks
-[HT] = run_tanks(HT,fluidH,iL,Load,T0);
-if Nhot == 2; [HT2] = run_tanks(HT2,fluidH2,iL,Load,T0);end
+for ii = 1 : Nhot
+    [HT(ii)] = run_tanks(HT(ii),fluidH(ii),iL,Load,T0);
+end
 
 % Cold tanks
-[CT] = run_tanks(CT,fluidC,iL,Load,T0);
-if Ncld == 2; [CT2] = run_tanks(CT2,fluidC2,iL,Load,T0);end
+for ii = 1 : Ncld
+    [CT(ii)] = run_tanks(CT(ii),fluidC(ii),iL,Load,T0);
+end

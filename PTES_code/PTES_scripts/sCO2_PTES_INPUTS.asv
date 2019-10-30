@@ -6,13 +6,11 @@ T0      = 30 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 250e5;        % top pressure, Pa
 PRch    = 3.0;          % charge pressure ratio
-PRr     = 0.8;          % discharge pressure ratio: PRdis = PRch*PRr
+PRr     = 0.95;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 0;            % set Tmax? (this option substitutes PRch)
 Tmax    = 500 + 273.15; % maximum temp at compressor outlet, K
-Lcld    = false ;       % Make cold store as cold as possible?
-Lrcmp   = false ;
 
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
@@ -26,61 +24,9 @@ if (Nc_ch > 1 || Ne_ch > 1) && (Ncld > 1 || Nhot > 1)
     error('Have not implemented multiple compressions/expansions AND multiple storage tanks in series')
 end
 
-% Number of recuperators
-Nrcp = 0 ; % Can be 0,1,2. If 0 may need two hot stores. If 2 may require a recompression. 
-switch Nrcp
-    case 0
-        % Hot storage tanks
-        fHname  = 'MineralOil'; % fluid name
-        fHname2 = 'MineralOil'; % fluid name
-        TH_dis0 = T0;           % initial temperature of discharged hot fluid, K
-        MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
-        TH_chg0 = 50 + 273.15; % initial temperature of charged hot fluid, K
-        MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
-        TH_int  = 100 + 273.15 ;% Intermediate temperature between two hot stores
-        % Cold storage tanks
-        fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
-        fCname2 = 'INCOMP::MEG2[0.56]'; % fluid name
-        TC_dis0 = 100 + 273.15; % initial temperature of discharged cold fluid, K
-        MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
-        TC_chg0 = T0-5;         % initial temperature of charged cold fluid, K
-        MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
-        TC_int  = 55 + 273.15 ; % Intermediate temperature between two cold stores
-    case 1
-        % Hot storage tanks
-        fHname  = 'SolarSalt';  % fluid name
-        TH_dis0 = T0 + 273.15;  % initial temperature of discharged hot fluid, K
-        MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
-        TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
-        MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
-        % Cold storage tanks
-        fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
-        TC_dis0 = T0 + 0;           % initial temperature of discharged cold fluid, K
-        MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
-        TC_chg0 = T0-5;        % initial temperature of charged cold fluid, K
-        MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
-    case 2
-        % Hot storage tanks
-        fHname  = 'SolarSalt';  % fluid name
-        TH_dis0 = 410. + 273.15;  % initial temperature of discharged hot fluid, K
-        MH_dis0 = 1e6;              % initial mass of discharged hot fluid, kg
-        TH_chg0 = 570 + 273.15;     % initial temperature of charged hot fluid, K
-        MH_chg0 = 0.0*1.e6;         % initial mass of charged hot fluid, kg
-        % Cold storage tanks
-        fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
-        TC_dis0 = T0 + 0;           % initial temperature of discharged cold fluid, K
-        MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
-        TC_chg0 = T0-5;        % initial temperature of charged cold fluid, K
-        MC_chg0 = 0.0*1.e6; % initial mass of charged cold fluid, kg
-        % Choose a threshold temperature between the tanks
-        TthreshC = 38. + 273.15 ; % Charge - threshold is on low-pressure side
-        TthreshD = 200. + 273.15 ; % Discharge - threshold is on high-pressure side
-        Lrcmp    = true ;         % Is there a recompression
-end
-
 % The Load structure stores information about the duration, type of cycle
 % (charge, storage or discharge) and mass flow rate of each time period.
-Load.mode = 0;
+Load.mode = 4;
 switch Load.mode
     case 0 % PTES
         Load.time = [10;4;10].*3600;          % time spent in each load period, s
@@ -105,6 +51,116 @@ switch Load.mode
         Load.num  = numel(Load.time);
 end
 
+% There are numerous design options for an sCO2-PTES cycle and several of them
+% may be investigated here
+if Load.mode == 4
+    Lcld    = false ;       % Make cold store as cold as possible?
+    Lrcmp   = false ;       % Is there a recompressor?
+    
+    % Number of recuperators
+    Nrcp = 0 ; % Can be 0,1,2. 
+    if (Nrcp > 0) && (Nhot > 1 || Ncld > 1)
+        error('Have not implemented recuperators and multiple storage tanks in series')
+    end
+    switch Nrcp
+        % If the sCO2-PTES cycle is not recuperator, then efficiency is
+        % increased by having several stores in series
+        case 0
+            % Hot storage tanks
+            %fHname  = ["SolarSalt";"MineralOil"]; % fluid name
+            fHname  = 'SolarSalt'; % fluid name
+            MH_dis0(1:Nhot) = 1e6;          % initial mass of discharged hot fluid, kg
+            MH_chg0(1:Nhot) = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
+            
+            Td = T0; % Temperature of the coldest 'hot' tank when it is discharged
+            Tc = 560 + 273.15; % Temperature of the hottest 'hot' tank when it is charged
+            Tint = [100 + 273.15] ; % intermediate temperature between tanks. This array should be size = Nhot - 1
+            TH_chg0 = zeros(1,Nhot);
+            TH_dis0 = zeros(1,Nhot);
+            % Allocate temperatures to the correct tanks
+            if Nhot == 1
+                TH_chg0(1) = Tc ;
+                TH_dis0(1) = Td ;
+            else
+                for ii = 1 : Nhot
+                    if ii == 1
+                        TH_chg0(ii) = Tc ;
+                        TH_dis0(ii) = Tint(ii) ;
+                    elseif ii == Nhot
+                        TH_chg0(ii) = Tint(ii-1) ;
+                        TH_dis0(ii) = Td ;
+                    else
+                        TH_chg0(ii) = Tint(ii-1) ;
+                        TH_dis0(ii) = Tint(ii) ;
+                    end
+                end
+            end
+            % Cold storage tanks
+            %fCname  = ["INCOMP::MEG2[0.56]";"INCOMP::MEG2[0.56]"]; % fluid name
+            fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
+            MC_dis0(1:Ncld) = 1e6;          % initial mass of discharged cold fluid, kg
+            MC_chg0(1:Ncld) = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
+            
+            % Cold store temperatures
+            Td = 425 + 273.15; % Temperature of the hottest 'cold' tank when it is discharged
+            Tc = T0-5; % Temperature of the coldest 'cold' tank when it is charged
+            Tint = [75 + 273.15] ; % intermediate temperature between tanks. This array should be size = Nhot - 1
+            TC_chg0 = zeros(1,Ncld);
+            TC_dis0 = zeros(1,Ncld);
+            % Allocate temperatures to the correct tanks
+            if Ncld == 1
+                TC_chg0(1) = Tc ;
+                TC_dis0(1) = Td ;
+            else
+                for ii = 1 : Ncld
+                    if ii == 1
+                        TC_chg0(ii) = Tc ;
+                        TC_dis0(ii) = Tint(ii) ;
+                    elseif ii == Ncld
+                        TC_chg0(ii) = Tint(ii-1) ;
+                        TC_dis0(ii) = Td ;
+                    else
+                        TC_chg0(ii) = Tint(ii-1) ;
+                        TC_dis0(ii) = Tint(ii) ;
+                    end
+                end
+            end
+        case 1
+            % Hot storage tanks
+            fHname  = 'SolarSalt';  % fluid name
+            TH_dis0 = T0 + 273.15;  % initial temperature of discharged hot fluid, K
+            MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
+            TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
+            MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
+            % Cold storage tanks
+            fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
+            TC_dis0 = T0 + 0;           % initial temperature of discharged cold fluid, K
+            MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
+            TC_chg0 = T0-5;        % initial temperature of charged cold fluid, K
+            MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
+        
+        % If there are two recuperators, also use a recompressor during
+        % discharge
+        case 2
+            % Hot storage tanks
+            fHname  = 'SolarSalt';  % fluid name
+            TH_dis0 = 410. + 273.15;  % initial temperature of discharged hot fluid, K
+            MH_dis0 = 1e6;              % initial mass of discharged hot fluid, kg
+            TH_chg0 = 570 + 273.15;     % initial temperature of charged hot fluid, K
+            MH_chg0 = 0.0*1.e6;         % initial mass of charged hot fluid, kg
+            % Cold storage tanks
+            fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
+            TC_dis0 = T0 + 0;           % initial temperature of discharged cold fluid, K
+            MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
+            TC_chg0 = T0-5;        % initial temperature of charged cold fluid, K
+            MC_chg0 = 0.0*1.e6; % initial mass of charged cold fluid, kg
+            % Choose a threshold temperature between the tanks
+            TthreshC = 38. + 273.15 ; % Charge - threshold is on low-pressure side
+            TthreshD = 200. + 273.15 ; % Discharge - threshold is on high-pressure side
+            Lrcmp    = true ;         % Is there a recompression
+    end
+end
+
 % Set working fluids, storage fluids, and heat rejection streams. 'WF' or
 % 'SF' indicates working fluid or storage fluid. 'CP' or 'TAB' indicate
 % CoolProp or Tabular reading modes. 'backend' is used by CoolProp (either
@@ -112,35 +168,32 @@ end
 % elements in state arrays.
 % Working fluid
 if Load.mode == 4
-gas = fluid_class('CarbonDioxide','WF','CP','TTSE',Load.num,30);
+    gas = fluid_class('CarbonDioxide','WF','CP','TTSE',Load.num,30);
+else
+    gas = fluid_class('Nitrogen','WF','CP','TTSE',Load.num,30);
+end
 
 % Set double tanks
-switch Ncld
-    case 1
-        fluidC(1:Ne_ch) = fluid_class(fCname,'SF','TAB',NaN,Load.num,2); % Storage fluid
-        CT  = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank
-    case 2
-        fluidC(1:Ne_ch)  = fluid_class(fCname,'SF','TAB',NaN,Load.num,2);
-        fluidC2(1:Ne_ch) = fluid_class(fCname2,'SF','TAB',NaN,Load.num,2);
-        CT  = double_tank_class(fluidC,TC_int,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank
-        CT2 = double_tank_class(fluidC2,TC_dis0,p0,MC_dis0,TC_int,p0,MC_chg0,T0,Load.num+1); %cold double tank
-    case 3
-        error('Not implemented')
-end
-% Hot tanks
-switch Nhot
-    case 1
-        fluidH(1:Nc_ch) = fluid_class(fHname,'SF','TAB',NaN,Load.num,2);
-        HT  = double_tank_class(fluidH,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,Load.num+1); %hot double tank
-    case 2
-        fluidH(1:Nc_ch)  = fluid_class(fHname,'SF','TAB',NaN,Load.num,2);
-        fluidH2(1:Nc_ch) = fluid_class(fHname2,'SF','TAB',NaN,Load.num,2);
-        HT  = double_tank_class(fluidH,TH_int,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,Load.num+1); %hot double tank
-        HT2 = double_tank_class(fluidH2,TH_dis0,p0,MH_dis0,TH_int,p0,MH_chg0,T0,Load.num+1); %hot double tank
-    case 3
-        error('Not implemented')
+if Ncld == 1
+    fluidC(1:Ne_ch) = fluid_class(fCname,'SF','TAB',NaN,Load.num,2); % Storage fluid
+    CT  = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank
+else
+    for ii = 1 : Ncld
+        fluidC(ii)  = fluid_class(char(fCname(ii,:)),'SF','TAB',NaN,Load.num,2);
+        CT(ii)      = double_tank_class(fluidC(ii),TC_dis0(ii),p0,MC_dis0(ii),TC_chg0(ii),p0,MC_chg0(ii),T0,Load.num+1); %cold double tank
+    end
 end
 
+% Hot tanks
+if Nhot == 1
+    fluidH(1:Nc_ch) = fluid_class(fHname,'SF','TAB',NaN,Load.num,2); % Storage fluid
+    HT  = double_tank_class(fluidH,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,Load.num+1); %hot double tank
+else
+    for ii = 1 : Nhot
+        fluidH(ii)  = fluid_class(char(fHname(ii,:)),'SF','TAB',NaN,Load.num,2);
+        HT(ii)  = double_tank_class(fluidH(ii),TH_dis0(ii),p0,MH_dis0(ii),TH_chg0(ii),p0,MH_chg0(ii),T0,Load.num+1); %hot double tank
+    end
+end
 
 % Heat rejection streams
 environ = environment_class(T0,p0,10);

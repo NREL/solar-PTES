@@ -123,19 +123,13 @@ while 1
         switch Load.mode
             case 4 % sCO2-PTES
                 % COOL (gas-liquid)
-                if Ncld == 1
-                    fluidC(iC).state(iL,1).T = CT.B(iL).T; fluidC(iC).state(iL,1).p = CT.B(iL).p;
-                    [fluidC(iC)] = update(fluidC(iC),[iL,1],1);
-                    [gas,fluidC(iC),i,~] = hex_TQ_cond(gas,[iL,i],fluidC(iC),[iL,1],eff,1.3,ploss,'hex',0,0);
-                elseif Ncld == 2
-                    fluidC2(iC).state(iL,1).T = CT2.B(iL).T; fluidC2(iC).state(iL,1).p = CT2.B(iL).p;
-                    [fluidC2(iC)] = update(fluidC2(iC),[iL,1],1);
-                    [gas,fluidC2(iC),i,~] = hex_TQ_cond(gas,[iL,i],fluidC2(iC),[iL,1],eff,1.05,ploss,'hex',0,0);              
-                    
-                    fluidC(iC).state(iL,1).T = CT.B(iL).T; fluidC(iC).state(iL,1).p = CT.B(iL).p;
-                    [fluidC(iC)] = update(fluidC(iC),[iL,1],1);
-                    [fluidC(iC),gas,~,i] = hex_TQ_cond(fluidC(iC),[iL,1],gas,[iL,i],eff,1.1,ploss,'hex', 0, 0);
+                for ii = Ncld : -1 : 1
+                    fluidC(ii).state(iL,1).T = CT(ii).B(iL).T; fluidC(ii).state(iL,1).p = CT(ii).B(iL).p;
+                    [fluidC(ii)] = update(fluidC(ii),[iL,1],1);
+                    [gas,fluidC(ii),i,~] = hex_TQ_cond(gas,[iL,i],fluidC(ii),[iL,1],eff,1.3,ploss,'hex',0,0);
+                    iC = ii ;
                 end
+                iC = iC + 1 ;
                 
                 % If cold store outlet is above ambient then reject heat
                 if gas.state(iL,i).T > T0
@@ -143,7 +137,6 @@ while 1
                     [gas,environ,i,iE] = hex_set(gas,[iL,i],environ,[iL,iE],T_aim,eff,ploss);
                 end 
                 
-                iC=iC+1;
             case 5 % Heat engine only
         end
                 
@@ -173,22 +166,14 @@ while 1
     
     for iN = 1:Ne_dis
         % HEAT (gas-fluid)
-        if Nhot == 1
-            fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p; THmin = HT.A(1).T;
-            [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
-            [fluidH(iH),gas,~,i] = hex_TQ_cond(fluidH(iH),[iL,1],gas,[iL,i],eff,1.0,ploss,'hex',2, THmin);       
-        elseif Nhot == 2
-            fluidH2(iH).state(iL,1).T = HT2.B(iL).T; fluidH2(iH).state(iL,1).p = HT2.B(iL).p; THmin = HT2.A(1).T;
-            [fluidH2(iH)] = update(fluidH2(iH),[iL,1],1);
-            [fluidH2(iH),gas,~,i] = hex_TQ_cond(fluidH2(iH),[iL,1],gas,[iL,i],eff,1.0,ploss,'hex',2, THmin);
-            
-            fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p; THmin = HT.A(1).T;
-            [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
-            [fluidH(iH),gas,~,i] = hex_TQ_cond(fluidH(iH),[iL,1],gas,[iL,i],eff,1.0,ploss,'hex',2, THmin);
+        for ii = Nhot : -1 : 1
+            fluidH(ii).state(iL,1).T = HT(ii).B(iL).T; fluidH(ii).state(iL,1).p = HT(ii).B(iL).p; THmin = HT(ii).A(1).T;
+            [fluidH(ii)] = update(fluidH(ii),[iL,1],1);
+            [fluidH(ii),gas,~,i] = hex_TQ_cond(fluidH(ii),[iL,1],gas,[iL,i],eff,1.0,ploss,'hex',2, THmin);       
+            iH = ii ;
         end
-        
-        iH=iH+1;
-        
+        iH = iH + 1 ;
+               
         % EXPAND
         PRe_dis = (gas.state(iL,i).p/pbot)^(1/(Ne_dis+1-iN));  % expansion pressure ratio
         p_aim = gas.state(iL,i).p/PRe_dis;
@@ -224,23 +209,45 @@ end
 % discharge time.
 
 % Find t_dis (minimum for both cycles to avoid depletion)
-[MdotH] = total_Mdot(fluidH,[iL,1]);
-t_dis  = HT.B(iL).M/MdotH;
-if Load.mode == 4
-    [MdotC] = total_Mdot(fluidC,[iL,1]);
-    tC_dis  = CT.B(3).M/MdotC;
-    t_dis   = min([t_dis,tC_dis]);
-elseif Load.mode == 5
-    t_dis = Load.time(iL) ;
-end
-Load.time(iL) = min([Load.time(iL),t_dis])*(1-1e-6);
+% Think this needs to be modified to account for numerous tanks
 
+if Nhot > 1 || Ncld > 1
+    % Hot tanks
+    tH_dis = 1.e11;
+    for ii = 1:Nhot
+       tH_dis = min(tH_dis, HT(ii).B(iL).M / fluidH(ii).state(iL,1).mdot);
+    end
+    
+    % Cold tanks
+    tC_dis = 1.e11;
+    for ii = 1:Ncld
+       tC_dis = min(tC_dis, CT(ii).B(iL).M / fluidC(ii).state(iL,1).mdot);
+    end
+    t_dis   = min([tH_dis,tC_dis]);
+    Load.time(iL) = min([Load.time(iL),t_dis])*(1-1e-6);
+else
+    % This was the original method, which works for multiple
+    % compressions/expansions
+    [MdotH] = total_Mdot(fluidH,[iL,1]);
+    t_dis  = HT(1).B(iL).M/MdotH;
+    if Load.mode == 4
+        [MdotC] = total_Mdot(fluidC,[iL,1]);
+        tC_dis  = CT(1).B(3).M/MdotC;
+        t_dis   = min([t_dis,tC_dis]);
+    elseif Load.mode == 5
+        t_dis = Load.time(iL) ;
+    end
+    Load.time(iL) = min([Load.time(iL),t_dis])*(1-1e-6);
+end
 % Compute effect of fluid streams entering/leaving the sink/source tanks
 % Hot tanks
-[HT] = run_tanks(HT,fluidH,iL,Load,T0);
-if Nhot == 2; [HT2] = run_tanks(HT2,fluidH2,iL,Load,T0);end
+for ii = 1 : Nhot
+    [HT(ii)] = run_tanks(HT(ii),fluidH(ii),iL,Load,T0);
+end
+
 if Load.mode == 4
     % Cold tanks
-    [CT] = run_tanks(CT,fluidC,iL,Load,T0);
-    if Ncld == 2; [CT2] = run_tanks(CT2,fluidC2,iL,Load,T0);end
+    for ii = 1 : Ncld
+        [CT(ii)] = run_tanks(CT(ii),fluidC(ii),iL,Load,T0);
+    end
 end
