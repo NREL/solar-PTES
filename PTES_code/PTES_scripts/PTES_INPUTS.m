@@ -29,11 +29,9 @@ TC_chg0 = T0-50;        % initial temperature of charged cold fluid, K
 MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
 nC      = Ne_ch;        % number of cold fluid streams
 
-newhex = 1;
-
 % The Load structure stores information about the duration, type of cycle
 % (charge, storage or discharge) and mass flow rate of each time period.
-Load.mode = 0;
+Load.mode = 3;
 switch Load.mode
     case 0 % PTES
         Load.time = [10;10;4;10].*3600;        % time spent in each load period, s

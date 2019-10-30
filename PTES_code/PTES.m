@@ -40,7 +40,7 @@ PTES_MANAGE_FILES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 tic % start timer
-for ix = 1:40
+for ix = 1:1
     %%% RUN CYCLE LOOP %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     for icrv = 1:Ncrv
@@ -84,7 +84,7 @@ for ix = 1:40
             end
             
             % Compute energy balance
-            %PTES_ENERGY_BALANCE
+            PTES_ENERGY_BALANCE
             
             if multi_run
                 PTES_PRINT_MULTI_RUN
@@ -102,7 +102,7 @@ if make_plots
         case {0,3} % PTES
             PTES_WRITE_CHARGE
             PTES_WRITE_DISCHARGE
-            PTES_PLOT_HEXS
+            %PTES_PLOT_HEXS
             if optimise
                 PTES_PLOT_GOLDEN_SEARCH
             end

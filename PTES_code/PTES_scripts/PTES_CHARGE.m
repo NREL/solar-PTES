@@ -39,23 +39,14 @@ while 1
         % COOL (gas-liquid)
         fluidH(iH).state(iL,1).T = HT.A(iL).T; fluidH(iH).state(iL,1).p = HT.A(iL).p; %#ok<*SAGROW>
         [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
-        if newhex
-            [gas,fluidH(iH),i,~] = hex_TQ(gas,[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',1,1.0);
-        else
-            [gas,fluidH(iH),i,~] = hex_TQ_cond(gas,[iL,i],fluidH(iH),[iL,1],eff,1.0,ploss,'hex',0,0);
-        end
-        
+        [gas,fluidH(iH),i,~] = hex_TQ(gas,[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',1,1.0);
         iH=iH+1;
     end    
     if setTmax, PRch = ptop/pbot; end
     
     % REGENERATE (gas-gas)
-    if newhex
-        [gas,~,i,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
-    else
-        [gas,~,i,~] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0);
-    end
-    
+    [gas,~,i,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
+        
     % REJECT HEAT (external HEX)
     T_aim = environ.T0;
     [gas,environ,i,iE] = hex_set(gas,[iL,i],environ,[iL,iE],T_aim,eff,ploss);
@@ -69,21 +60,13 @@ while 1
         % HEAT (gas-liquid)
         fluidC(iC).state(iL,1).T = CT.A(iL).T; fluidC(iC).state(iL,1).p = CT.A(iL).p;
         [fluidC(iC)] = update(fluidC(iC),[iL,1],1);
-        if newhex
-            [fluidC(iC),gas,~,i] = hex_TQ(fluidC(iC),[iL,1],gas,[iL,i],eff,ploss,'hex',2,1.0);
-        else
-            [fluidC(iC),gas,~,i] = hex_TQ_cond(fluidC(iC),[iL,1],gas,[iL,i],eff,1.0,ploss,'hex', 0, 0);
-        end
+        [fluidC(iC),gas,~,i] = hex_TQ(fluidC(iC),[iL,1],gas,[iL,i],eff,ploss,'hex',2,1.0);
         iC=iC+1;
     end
     
     % REGENERATE (gas-gas)
-    if newhex
-        [~,gas,~,i] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
-    else
-        [~,gas,~,i] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0);
-    end
-    
+    [~,gas,~,i] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
+        
     % Close cycle
     gas.stage(iL,i).type = gas.stage(iL,1).type;
     gas = count_Nstg(gas);

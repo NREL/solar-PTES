@@ -31,12 +31,8 @@ while 1
     fprintf(1,'Hello discharge PTES\n')
     
     % REGENERATE (gas-gas)
-    if newhex
-        [gas,~,i,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
-    else
-        [gas,~,i,~] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0);
-    end
-    
+    [gas,~,i,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
+        
     PRc_dis = (PRdis)^(1/Nc_dis)/(1-ploss)^2; % expansion pressure ratio
     for iN = 1:Nc_dis
         % REJECT HEAT (external HEX)
@@ -48,11 +44,7 @@ while 1
                 % COOL (gas-liquid)
                 fluidC(iC).state(iL,1).T = CT.B(iL).T; fluidC(iC).state(iL,1).p = CT.B(iL).p; %#ok<*SAGROW>
                 [fluidC(iC)] = update(fluidC(iC),[iL,1],1);
-                if newhex
-                    [gas,fluidC(iC),i,~] = hex_TQ(gas,[iL,i],fluidC(iC),[iL,1],eff,ploss,'hex',1,1.0);
-                else
-                    [gas,fluidC(iC),i,~] = hex_TQ_cond(gas,[iL,i],fluidC(iC),[iL,1],eff,1.0,ploss,'hex',0,0);
-                end
+                [gas,fluidC(iC),i,~] = hex_TQ(gas,[iL,i],fluidC(iC),[iL,1],eff,ploss,'hex',1,1.0);
                 iC=iC+1;
             case 1 % Heat engine only
         end
@@ -63,22 +55,14 @@ while 1
     end
     
     % REGENERATE (gas-gas)
-    if newhex
-        [~,gas,~,i] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
-    else
-        [~,gas,~,i] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0);
-    end
-    
+    [~,gas,~,i] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
+        
     for iN = 1:Ne_dis
         % HEAT (gas-fluid)
         fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p; THmin = HT.A(1).T;
         [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
-        if newhex
-            Taim = THmin;
-            [fluidH(iH),gas,~,i] = hex_TQ(fluidH(iH),[iL,1],gas,[iL,i],eff,ploss,'hex',2,1.0);
-        else
-            [fluidH(iH),gas,~,i] = hex_TQ_cond(fluidH(iH),[iL,1],gas,[iL,i],eff,1.0,ploss,'hex',2, THmin);
-        end
+        Taim = THmin;
+        [fluidH(iH),gas,~,i] = hex_TQ(fluidH(iH),[iL,1],gas,[iL,i],eff,ploss,'hex',2,1.0);
         iH=iH+1;
         
         % EXPAND
