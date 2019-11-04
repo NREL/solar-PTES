@@ -4,8 +4,7 @@ classdef stream
     
     properties
         % General variables
-        subs
-        model
+        name
         handle
         Tin
         Tout

@@ -1,8 +1,8 @@
-function [fluidH, fluidC, iH, iC] = hex_TQA(fluidH, indH, fluidC, indC, HX, stage_type, mode, var)
+function [fluidH, fluidC, iH, iC, HX] = hex_TQA(fluidH, indH, fluidC, indC, HX, stage_type, mode, var)
 % RESOLVE HEX T-Q DIAGRAM FOR A GIVEN EFFECTIVENESS
 
 % Set number of sections for hex_core algorithm
-n = 100;
+NX = HX.NX;
 
 % Set inlet temperatures (nomenclature: cold inlet is position 1, hot inlet
 % is position 2)
@@ -45,8 +45,8 @@ mH = stateH.mdot;
 mC = stateC.mdot;
 
 % Obtain temperature arrays as a function of the enthalpy arrays
-[hvH,TvH] = get_h_T(fluidH,TC1-1,TH2+1,pH2,n);
-[hvC,TvC] = get_h_T(fluidC,TC1-1,TH2+1,pC1,n);
+[hvH,TvH] = get_h_T(fluidH,TC1-1,TH2+1,pH2,NX);
+[hvC,TvC] = get_h_T(fluidC,TC1-1,TH2+1,pC1,NX);
 
 % Obtain preliminary minimum and maximum enthalpy outlets (hot outlet
 % cannot be colder than cold inlet, and vice-versa)
@@ -83,11 +83,8 @@ switch mode
 end
 
 % Declare the two fluid streams
-H  = stream; H.mdot = mH;
-C  = stream; C.mdot = mC;
-
-% Extract parameters
-NX = HX.NX;
+H = stream; H.mdot = mH; H.name = fluidH.name;
+C = stream; C.mdot = mC; C.name = fluidC.name;
 
 % Compute derived geometric parameters and mass fluxes
 [C, H, HX] = shell_and_tube_geom(C, H, HX);
@@ -97,7 +94,6 @@ NX = HX.NX;
 QMAX = min([mC*(hC2_max - hC1),mH*(hH2 - hH1_min)]);
 hH1_min = hH2 - QMAX/mH;
 
-% INITIAL GUESS
 % Set initial conditions for iteration procedure
 % Pressures
 H.pin = pH2; C.pin = pC1;
@@ -113,22 +109,6 @@ hH1  = fminbnd(f1,hH1_min,hH2,options);
 
 % Obtain output parameters for converged solution
 [~,C,H,~,~] = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
-
-% To see the temperature distribution after convergence, uncomment lines
-% below:
-[~,C,H,QS,AS] = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
-figure(10)
-plot(QS./QS(end),H.T,'r'); hold on;
-plot(QS./QS(end),C.T,'b'); hold off;
-xlabel('Cumulative heat transfer')
-ylabel('Temperature, K')
-legend([fluidH.name,', ',sprintf('%.1f',pH2/1e5),' bar'],[fluidC.name,', ',sprintf('%.1f',pC1/1e5),' bar'],'Location','Best')
-figure(11)
-plot(AS./AS(end),H.T,'r'); hold on;
-plot(AS./AS(end),C.T,'b'); hold off;
-xlabel('Cumulative heat transfer area')
-ylabel('Temperature, K')
-legend([fluidH.name,', ',sprintf('%.1f',pH2/1e5),' bar'],[fluidC.name,', ',sprintf('%.1f',pC1/1e5),' bar'],'Location','Best')
 
 % Update states
 stateH.h = H.h(1);    
@@ -158,6 +138,13 @@ if strcmp(stage_type,'regen')
     stageH.sirr=0; %to avoid counting the lost work twice
 end
 
+% Save data for plots (use with plot_hex_TQA function)
+[~,C,H,QS,AS] = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
+HX.C  = C;
+HX.H  = H;
+HX.QS = QS;
+HX.AS = AS;
+
 % Export computed states and stages back into fluids
 fluidH.state(indH(1),indH(2)+1) = stateH; % Result goes into next state
 fluidH.stage(indH(1),indH(2))   = stageH; % Result stays in current stage
@@ -184,7 +171,14 @@ end
 iH = indH(2) + 1;
 iC = indC(2) + 1;
 
+
+
 end
+
+
+
+%%% SUPPORT FUNCTIONS %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function [ hv, Tv ] = get_h_T( fluid, T1, T2, pressure, n )
 % Obtain the hv and Tv arrays of a given fluid for the hex subroutines.
@@ -211,6 +205,8 @@ else
 end
 
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function varargout = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX)
 % For a given hot fluit outlet enthalpy (hH1), compute the TQ diagram, the
@@ -349,5 +345,5 @@ else
     varargout{5} = AS;
 end
 
-
 end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
