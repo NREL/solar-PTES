@@ -8,12 +8,12 @@ function [output1,output2,output3,output4,output5] = CP5(input_pair,input1,input
 % For enthalpy and pressure use: 'HmassP_INPUTS'
 
 % Declaring error variables
-ierr = 0; buffer_size = 10;
+n   = length(input1);
+ierr= 0; buffer_size = n;
 herr= char((1:1:buffer_size));
 % Obtain input pair index
 INPUTS = calllib('coolprop','get_input_pair_index',input_pair);
 
-n = length(input1);
 input1Ptr = libpointer('doublePtr',input1);
 input2Ptr = libpointer('doublePtr',input2);
 
@@ -40,5 +40,30 @@ output2=get(out2Ptr,'Value');
 output3=get(out3Ptr,'Value');
 output4=get(out4Ptr,'Value');
 output5=get(out5Ptr,'Value');
+
+%Fill missing points by interpolation
+interp_method  = 'spline';
+x = (1:length(output1))';
+a0 = output1 == 0;
+if any(a0)
+    output1(a0) = interp1(x(~a0),output1(~a0),x(a0),interp_method);
+end
+a0 = output2 == 0;
+if any(a0)
+    output2(a0) = interp1(x(~a0),output2(~a0),x(a0),interp_method);
+end
+a0 = output3 == 0;
+if any(a0)
+    output3(a0) = interp1(x(~a0),output3(~a0),x(a0),interp_method);
+end
+a0 = output4 == 0;
+if any(a0)
+    output4(a0) = interp1(x(~a0),output4(~a0),x(a0),interp_method);
+end
+a0 = output5 == 0;
+if any(a0)
+    output5(a0) = interp1(x(~a0),output5(~a0),x(a0),interp_method);
+end
+
 end
 
