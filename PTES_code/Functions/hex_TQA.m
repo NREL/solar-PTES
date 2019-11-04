@@ -4,9 +4,11 @@ function [fluidH, fluidC, iH, iC] = hex_TQA(fluidH, indH, fluidC, indC, HX, stag
 % Set number of sections for hex_core algorithm
 n = 100;
 
-% Set inlet temperatures (nomenclature: cold inlet is position 1, hot inlet is position 2)
+% Set inlet temperatures (nomenclature: cold inlet is position 1, hot inlet
+% is position 2)
 TH2 = fluidH.state(indH(1),indH(2)).T;
 TC1 = fluidC.state(indC(1),indC(2)).T;
+
 % Check which one is fluidH and which is fluidC and swap them if necessary
 if TC1 > TH2 % swap needed
     swap = 1;
@@ -40,11 +42,11 @@ pC1 = stateC.p;
 hC1 = stateC.h;
 sC1 = stateC.s;
 mH = stateH.mdot;
-mC = stateC.mdot; 
+mC = stateC.mdot;
 
 % Obtain temperature arrays as a function of the enthalpy arrays
-[hvH,TvH] = hex_prop(fluidH,TC1-1,TH2+1,pH2,n);
-[hvC,TvC] = hex_prop(fluidC,TC1-1,TH2+1,pC1,n);
+[hvH,TvH] = get_h_T(fluidH,TC1-1,TH2+1,pH2,n);
+[hvC,TvC] = get_h_T(fluidC,TC1-1,TH2+1,pC1,n);
 
 % Obtain preliminary minimum and maximum enthalpy outlets (hot outlet
 % cannot be colder than cold inlet, and vice-versa)
@@ -80,25 +82,15 @@ switch mode
         stateH.mdot = mH;                    
 end
 
-% Declare the two fluid streams and the HEX solid material
-H  = stream;
-C  = stream;
-M  = solid;
+% Declare the two fluid streams
+H  = stream; H.mdot = mH;
+C  = stream; C.mdot = mC;
 
-% Adapt nomenclature of inputs
-M.shape   = HX.shape;
-M.V       = HX.Vm;
-M.L       = HX.L;
-C.D       = HX.D_2;
-M.t_D_min = HX.t_D_min;
-M.sigma   = HX.sigma;
-M.VR      = HX.VR;
-NX        = HX.NX;
-% NI        = HX.NI;
-% TOL       = HX.TOL;
+% Extract parameters
+NX = HX.NX;
 
 % Compute derived geometric parameters and mass fluxes
-[ H.D, C.G, H.G, C.Ax, H.Ax, M.Ax, C.A, H.A] = printed_circuit_geom(M,C.D,C.pin,H.pin,mC,mH);
+[C, H, HX] = shell_and_tube_geom(C, H, HX);
 
 % Compute preliminary QMAX (hot outlet cannot be colder than cold inlet,
 % and vice-versa) and update hH1_min accordingly
@@ -108,71 +100,42 @@ hH1_min = hH2 - QMAX/mH;
 % INITIAL GUESS
 % Set initial conditions for iteration procedure
 % Pressures
-H.p = ones(NX+1,1)*pH2;
-C.p = ones(NX+1,1)*pC1;
-
-warning('pressure variation not implemented')
-warning('printed_circuit_geom function requires upgrade')
-warning('developed flow function requires upgrade')
-warning('consider finding QMAX using separate, previous iteration loop? (Cp system?)')
-% In golden_search routine, the objective function should have only one
-% minimum/maximum, that's why doing abs(AC - C.A) seems necessary. I could
-% also try using a built-in optimiser from Matlab instead, but I am not
-% sure if that would be faster.
-
+H.pin = pH2; C.pin = pC1;
+H.p = ones(NX+1,1)*H.pin;
+C.p = ones(NX+1,1)*C.pin;
 
 % Compute hH1 for computed area equals C.A
-f1 = @(hH1) abs(compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,pH2,pC1,NX));
-% [hH1,~,~,~,~] = golden_search(f,hH1_min,hH2,(hH2-hH1_min)/1e3,'Min',100);
-% To see how the golden_search evolves, comment line above and uncomment
-% lines below:
-[hH1,~,xv,yv,iter] = golden_search(f1,hH1_min,hH2,(hH2-hH1_min)/1e6,'Min',100);
+f1 = @(hH1) compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
+%plot_function(f1,hH1_min,hH2,100,31)
+TolX = (hH2-hH1_min)/1e4; %tolerance
+options = optimset('TolX',TolX,'Display','notify');
+hH1  = fminbnd(f1,hH1_min,hH2,options);
 
-figure(4)
-plot(1:iter,xv(1:iter))
-xlabel('Iterations')
-ylabel('hH1')
-figure(5)
-plot(1:iter,yv(1:iter),'ro')
-xlabel('Iterations')
-ylabel('Objective function')
-figure(6)
-plot(xv(1:iter),yv(1:iter),'o')
-xlabel('hH1')
-ylabel('Objective function')
-% options = optimset('Display','final','PlotFcns','optimplotfval','TolX',(hH2-hH1_min)/1e6);
-% [x,fval,exitflag,output] = fminbnd(f1,hH1_min,hH2,options);
+% Obtain output parameters for converged solution
+[~,C,H,~,~] = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
 
-keyboard
-
-% Compute QT and hC2
-QT  = mH*(hH2 - hH1);
-hC2 = hC1 + QT/mC;
-
-% To see the temperature distribution after applying the heat exchanger
-% effectiveness, uncomment lines below:
-[~,C,H,DT,QS] = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,pH2,pC1,NX);
-
+% To see the temperature distribution after convergence, uncomment lines
+% below:
+[~,C,H,QS,AS] = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
 figure(10)
 plot(QS./QS(end),H.T,'r'); hold on;
 plot(QS./QS(end),C.T,'b'); hold off;
 xlabel('Cumulative heat transfer')
-ylabel('Temperature')
+ylabel('Temperature, K')
 legend([fluidH.name,', ',sprintf('%.1f',pH2/1e5),' bar'],[fluidC.name,', ',sprintf('%.1f',pC1/1e5),' bar'],'Location','Best')
 figure(11)
-plot(QS./QS(end),DT,'r');
-xlabel('Cumulative heat transfer')
-ylabel('Temperature difference')
-
-keyboard
-error('not implemented')
+plot(AS./AS(end),H.T,'r'); hold on;
+plot(AS./AS(end),C.T,'b'); hold off;
+xlabel('Cumulative heat transfer area')
+ylabel('Temperature, K')
+legend([fluidH.name,', ',sprintf('%.1f',pH2/1e5),' bar'],[fluidC.name,', ',sprintf('%.1f',pC1/1e5),' bar'],'Location','Best')
 
 % Update states
-stateH.h = hH1;    
-stateH.p = pH2*(1-ploss);
+stateH.h = H.h(1);    
+stateH.p = H.p(1);
 stateH   = update_state(stateH,fluidH.handle,fluidH.read,fluidH.TAB,2);
-stateC.h = hC2;
-stateC.p = pC1*(1-ploss);
+stateC.h = C.h(NX+1);
+stateC.p = C.p(NX+1);
 stateC   = update_state(stateC,fluidC.handle,fluidC.read,fluidC.TAB,2);
 
 % Compute stages
@@ -223,9 +186,9 @@ iC = indC(2) + 1;
 
 end
 
-function [ hv, Tv ] = hex_prop( fluid, T1, T2, pressure, n )
-% Obtain the hv and Tv arrays of a given fluid for the hex subroutines
-% Data ordered in regular intervals of h.
+function [ hv, Tv ] = get_h_T( fluid, T1, T2, pressure, n )
+% Obtain the hv and Tv arrays of a given fluid for the hex subroutines.
+% Data ordered in regular intervals of h. T as a function of h.
 
 if strcmp(fluid.read,'CP') %read from CoolProp
     
@@ -243,14 +206,20 @@ elseif strcmp(fluid.read,'TAB') %read from table
     h2  = rtab1(Tx,hy,T2,0);
     hv  = linspace(h1,h2,n)'; % enthalpy array between TC1 and TH2
     Tv  = rtab1(hy,Tx,hv,1);  % temperature array between TC1 and TH2
-    
 else
     error('not implemented')
 end
 
 end
 
-function varargout = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,pH2,pC1,NX)
+function varargout = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX)
+% For a given hot fluit outlet enthalpy (hH1), compute the TQ diagram, the
+% properties of the fluids at each point and the corresponding heat
+% transfer area of the heat exchanger. Compare that to the reference heat
+% transfer area and return the difference between the two.
+
+% Extract parameters
+NX = HX.NX;
 
 % Compute enthalpy arrays from hH1 (outlet guess value) and hH2 and hC1
 % (fixed inlet values)
@@ -258,49 +227,99 @@ H.h = linspace(hH1,hH2,NX+1)';
 QS  = mH*(H.h - hH1);
 C.h = hC1 + QS/mC;
 
-% UPDATE PROPERTIES
-% Cold stream
-C = stream_update(fluidC,C,1);
-% Hot stream
-H = stream_update(fluidH,H,1);
+% Create array to check convergence. First element is computed heat
+% transfer area. Later come the pressure points along each stream
+CON_0 = [0; H.p; C.p]; % initial value
+NI    = 10;
+RES   = zeros(1,NI); % residuals
+TOL   = 1e-4;
 
-% COMPUTE HEAT TRANSFER COEFFICIENTS
-% Cold stream
-C.Re = C.D*C.G./C.mu;
-[C.Cf,C.St] = developed_flow(C.Re,C.Pr,'circular');
-C.ht  = C.G*C.Cp.*C.St;
-% Hot stream
-H.Re = H.D*H.G./H.mu;
-[H.Cf,H.St] = developed_flow(H.Re,H.Pr,'circular');
-H.ht  = H.G*H.Cp.*H.St;
-% Overall heat transfer coefficient (based on cold side heat transfer area).
-% Neglects wall thermal resistance and axial conduction.
-UlC  = 1./(C.A./(H.A*H.ht) + 1./C.ht);
-
-%COMPUTE AVERAGED ARRAYS
-H.T_AV = 0.5*(H.T(1:NX) + H.T(2:NX+1));
-C.T_AV = 0.5*(C.T(1:NX) + C.T(2:NX+1));
-UlC_AV = 0.5*(UlC(1:NX) + UlC(2:NX+1));
-DT     = H.T - C.T;
-DT_AV  = H.T_AV - C.T_AV;
-
-% COMPUTE HEAT TRANSFER AREA (cold side)
-dQ  = (H.h(2:NX+1) - H.h(1:NX))*mH;
-dAC = dQ./(UlC_AV.*DT_AV);
-AC  = sum(dAC);
-
-% Next steps:
-% (1) Compute pressure losses along each stream (starting from each inlet)
-% (2) Update properties using new pressure array (perhaps in the following
-% loop?)
-
-solution = C.A - AC;
-% Control physically impossible solutions
-if any([DT_AV <= 0; abs(solution) > 1.5*C.A; isnan(solution)])
-    solution = 1.5*C.A;
+for iI = 1:NI
+    
+    % UPDATE PROPERTIES
+    % Cold stream
+    C = stream_update(fluidC,C,1);
+    % Hot stream
+    H = stream_update(fluidH,H,1);
+    
+    % COMPUTE HEAT TRANSFER COEFFICIENTS
+    % Cold stream
+    C.Re = C.D*C.G./C.mu;
+    [C.Cf,C.St] = developed_flow(C.Re,C.Pr,HX.shape);
+    C.ht  = C.G*C.Cp.*C.St;
+    % Hot stream
+    H.Re = H.D*H.G./H.mu;
+    [H.Cf,H.St] = developed_flow(H.Re,H.Pr,HX.shape);
+    H.ht  = H.G*H.Cp.*H.St;
+    % Overall heat transfer coefficient (based on cold side heat transfer area).
+    % Neglects wall thermal resistance and axial conduction.
+    UlC  = 1./(C.A./(H.A*H.ht) + 1./C.ht);
+    
+    %COMPUTE AVERAGED ARRAYS
+    H.T_AV = 0.5*(H.T(1:NX) + H.T(2:NX+1));
+    C.T_AV = 0.5*(C.T(1:NX) + C.T(2:NX+1));
+    UlC_AV = 0.5*(UlC(1:NX) + UlC(2:NX+1));
+    DT_AV  = H.T_AV - C.T_AV;
+    
+    % COMPUTE HEAT TRANSFER AREA (cold side)
+    dQ  = (H.h(2:NX+1) - H.h(1:NX))*mH;
+    dAC = dQ./(UlC_AV.*DT_AV);
+    AC  = sum(dAC);
+    
+    % COMPUTE PRESSURE PROFILES
+    % Create averaged arrays of Cf and rho
+    Cf_H  = 0.5*(H.Cf(1:NX)  + H.Cf(2:NX+1));
+    rho_H = 0.5*(H.rho(1:NX) + H.rho(2:NX+1));
+    Cf_C  = 0.5*(C.Cf(1:NX)  + C.Cf(2:NX+1));
+    rho_C = 0.5*(C.rho(1:NX) + C.rho(2:NX+1));
+    % Obtain dL from dAC and AC
+    dL = dAC/AC;
+    % Compute arrays of pressure loss
+    Dp_H = - 2*H.G^2*Cf_H.*dL./(rho_H*H.D);
+    Dp_C = - 2*C.G^2*Cf_C.*dL./(rho_C*C.D);
+    % Update pressure profiles
+    for i=NX+1:-1:2
+        H.p(i-1) = H.p(i) + Dp_H(i-1);
+    end
+    for i=1:NX
+        C.p(i+1) = C.p(i) + Dp_C(i);
+    end
+    % Artificially avoid pressures below 20% of p_in and set error flag if
+    % needed
+    cond1 = C.p < 0.2*C.pin;
+    cond2 = H.p < 0.2*H.pin;
+    C.p(cond1) = 0.2*C.pin;
+    H.p(cond2) = 0.2*H.pin;
+    if any(cond1),warning('DpC exceeds 20%!');end
+    if any(cond2),warning('DpH exceeds 20%!');end
+    
+    % Update convergence array
+    CON = [AC; H.p; C.p]; % initial value
+    
+    % Compute residual
+    RES(iI) = max(abs((CON - CON_0)./CON));
+    %fprintf(1,'\n iteration = %d, RES = %.6f',iI,RES(iI));
+    
+    if (RES(iI)>TOL)
+        CON_0 = CON;        
+    else
+        %fprintf(1,'\n\n*** Successful convergence after %d iterations***\n',iI);
+        break
+    end
+    
+end
+if all([iI>=NI,RES(iI)>TOL])
+    error('Convergence not reached after %d iterations***\n',iI);
 end
 
-fprintf(1,'HEX AC = %.1f, computed AC = %.1f\n',C.A,AC);
+solution = C.A - AC;
+limit    = 1.5*C.A;
+% Control physically impossible solutions
+if any([DT_AV <= 0; abs(solution) > limit; solution < 0])
+    solution = limit;
+end
+
+%fprintf(1,'HEX AC = %5.1f, computed AC = %5.1f, solution = %5.1f\n',C.A,AC,solution);
 
 % figure(10)
 % plot(QS./QS(end),H.T,'r'); hold on;
@@ -312,26 +331,22 @@ fprintf(1,'HEX AC = %.1f, computed AC = %.1f\n',C.A,AC);
 % plot(QS./QS(end),DT,'r');
 % xlabel('Cumulative heat transfer')
 % ylabel('Temperature difference')
+% keyboard
 
 
 if nargout == 1
     varargout{1} = solution;
 else
+    % Compute cumulative heat transfer area (cold side)
+    AS = zeros(size(QS));
+    for i=1:(length(AS)-1)
+        AS(i+1) = AS(i) + dAC(i);
+    end
     varargout{1} = solution;
     varargout{2} = C;
     varargout{3} = H;
-    varargout{4} = DT;
-    varargout{5} = QS;
-    %     figure(10)
-    %     plot(QS./QS(end),H.T,'r'); hold on;
-    %     plot(QS./QS(end),C.T,'b'); hold off;
-    %     xlabel('Cumulative heat transfer')
-    %     ylabel('Temperature')
-    %     legend([fluidH.name,', ',sprintf('%.1f',pH2/1e5),' bar'],[fluidC.name,', ',sprintf('%.1f',pC1/1e5),' bar'],'Location','Best')
-    %     figure(11)
-    %     plot(QS./QS(end),DT,'r');
-    %     xlabel('Cumulative heat transfer')
-    %     ylabel('Temperature difference')
+    varargout{4} = QS;
+    varargout{5} = AS;
 end
 
 

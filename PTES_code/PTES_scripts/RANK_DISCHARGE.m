@@ -108,15 +108,15 @@ while 1
     [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
     Taim = HT.A(iL).T;
     [steam(1),fluidH(iH),i,~] = hex_TQ(steam(1),[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',4,Taim);
-    
+    iH = iH + 1;    
     
 %     % Define heat exchanger geometry
 %     HX.shape     = 'circular';
 %     HX.sigma     = 1e8;        % Maximum allowable stress, Pa
-%     HX.L         = 1.0;        % Length, m
-%     HX.D_2       = 0.5e-3;     % Hydraulic diameter stream 2, m
-%     HX.Vm        = 0.05;       % Volume of HEX material, m3
-%     HX.VR        = 0.25;       % Ratio between Vm1 and Vm2, -
+%     HX.L         = 3.0;        % Length, m
+%     HX.D_2       = 2.0e-3;     % Hydraulic diameter stream 2, m
+%     HX.Vm        = 0.20;       % Volume of HEX material, m3
+%     HX.VR        = 1.00;       % Ratio between Vm1 and Vm2, -
 %     HX.t_D_min   = 0.05;       % Minimum thickness-to-diameter ratio, -
 %     
 %     % Code settings
@@ -124,9 +124,8 @@ while 1
 %     HX.NI  = 1000;              % Maximum number of iterations
 %     HX.TOL = 1e-2;              % Convergence tolerance, in %
 %     
-%     [steam(1),fluidH(iH),i,~] = hex_TQA(steam(1),[iL,i],fluidH(iH),[iL,1],HX,'hex',2,1.00);
-    
-    iH = iH + 1;
+%     [steam(1),fluidH(iH),i,~] = hex_TQA(steam(1),[iL,i],fluidH(iH),[iL,1],HX,'hex',2,1.20); 
+%     iH = iH + 1;
     
     % Close cycle
     steam(1).stage(iL,i).type = steam(1).stage(iL,1).type;

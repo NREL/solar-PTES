@@ -69,8 +69,8 @@ mH = stateH.mdot;
 mC = stateC.mdot;
 
 % Obtain temperature arrays as a function of the enthalpy arrays
-[hvH,TvH] = get_hT(fluidH,TC1-1,TH2+1,pH2,n);
-[hvC,TvC] = get_hT(fluidC,TC1-1,TH2+1,pC1,n);
+[hvH,TvH] = get_h_T(fluidH,TC1-1,TH2+1,pH2,n);
+[hvC,TvC] = get_h_T(fluidC,TC1-1,TH2+1,pC1,n);
 
 % Obtain preliminary minimum and maximum enthalpy outlets (hot outlet
 % cannot be colder than cold inlet, and vice-versa)
@@ -303,9 +303,9 @@ iC = indC(2) + 1;
 
 end
 
-function [ hv, Tv ] = get_hT( fluid, T1, T2, pressure, n )
-% Obtain the hv and Tv arrays of a given fluid for the hex subroutines
-% (enthalpy as a function of temperature)
+function [ hv, Tv ] = get_h_T( fluid, T1, T2, pressure, n )
+% Obtain the hv and Tv arrays of a given fluid for the hex subroutines.
+% Data ordered in regular intervals of h. T as a function of h.
 
 if strcmp(fluid.read,'CP') %read from CoolProp
     
@@ -321,8 +321,8 @@ elseif strcmp(fluid.read,'TAB') %read from table
     hy  = fluid.TAB(:,2);
     h1  = rtab1(Tx,hy,T1,0);
     h2  = rtab1(Tx,hy,T2,0);
-    hv  = linspace(h1,h2,n)';       % enthalpy array between TC1 and TH2
-    Tv  = rtab1(hy,Tx,hv,1);
+    hv  = linspace(h1,h2,n)'; % enthalpy array between TC1 and TH2
+    Tv  = rtab1(hy,Tx,hv,1);  % temperature array between TC1 and TH2
 else
     error('not implemented')
 end
@@ -330,8 +330,8 @@ end
 end
 
 function [ Tv, Cpv ] = get_Cp( fluid, T1, T2, pressure, n )
-% Obtain the Tv and Cpv arrays of a given fluid for the hex subroutines
-% (enthalpy as a function of temperature)
+% Obtain the Tv and Cpv arrays of a given fluid for the hex subroutines.
+% Data ordered in regular intervals of T. Cp as a function of T.
 
 if strcmp(fluid.read,'CP') %read from CoolProp
     

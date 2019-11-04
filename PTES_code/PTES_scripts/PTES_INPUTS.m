@@ -79,7 +79,7 @@ ploss = 0.01;  % pressure loss in HEXs
 
 multi_run  = 0; % run cycle several times with different parameters?
 optimise   = 0; % optimise cycle?
-make_plots = 0; % make plots?
+make_plots = 1; % make plots?
 save_figs  = 0; % save figures at the end?
 
 % Set number of points to plot each stage
