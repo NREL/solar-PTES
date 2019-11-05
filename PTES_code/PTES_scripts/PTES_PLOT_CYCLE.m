@@ -11,7 +11,7 @@ switch Celcius
 end
 
 switch Load.mode
-    case 0 % JB-PTES
+    case {0,4} % PTES
         n1 = stages_ch*num;
         n2 = (stages_ch + stages_dis)*num;
         
@@ -24,10 +24,10 @@ switch Load.mode
         Smax = max(plot_file(1:n2,4))/1000;
         Spoints = linspace(Smin-0.00*(Smax-Smin),Smax+0.00*(Smax-Smin),2);
         Tlevels(1,1:2) = T0;
-        Tlevels(2,1:2) = HT.B(2).T;
-        Tlevels(3,1:2) = HT.A(1).T;
-        Tlevels(6,1:2) = CT.B(2).T;
-        Tlevels(7,1:2) = CT.A(1).T;
+        Tlevels(2,1:2) = HT(1).B(2).T;
+        Tlevels(3,1:2) = HT(1).A(1).T;
+        Tlevels(6,1:2) = CT(1).B(2).T;
+        Tlevels(7,1:2) = CT(1).A(1).T;
         
         % Plot levels of storage media temperatures
         plot(Spoints,Tlevels(1,:)+K_C,'k--','LineWidth',1.0);
@@ -117,11 +117,11 @@ switch Load.mode
 end
 
 switch Load.mode
-    case 0 % PTES
+    case {0,4} % PTES
         % Plot points
         figure(1);
         for iL=1:Load.num
-            if strcmp(Load.type(iL),'chg')
+            if any(strcmp(Load.type(iL),{'chg','chgCO2'}))
                 for int = 1:stages_ch
                     pl1 = plot([gas.state(iL,int).s]/1000,[gas.state(iL,int).T]+K_C,'k-o','MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',5); hold on;
                 end
@@ -129,7 +129,7 @@ switch Load.mode
             end
         end
         for iL=1:Load.num
-            if strcmp(Load.type(iL),'dis')
+            if any(strcmp(Load.type(iL),{'dis','disCO2'}))
                 for int = 1:stages_dis
                     pl2 = plot([gas.state(iL,int).s]/1000,[gas.state(iL,int).T]+K_C,'k:s','MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',5); hold on;
                 end
@@ -214,4 +214,5 @@ switch Celcius
         ylim([-150 700])
         %yticks(0:100:1000)
 end
+set(gcf,'color','w')
 grid off; hold off;

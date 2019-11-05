@@ -13,7 +13,7 @@ elseif any(strcmp(stage.type,{'comp','exp'}))
     type = 3;
     
 else
-    error('not implemented');
+    warning('not implemented');
 end
 
 switch type
