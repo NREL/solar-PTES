@@ -124,7 +124,7 @@ switch method
 end
 
 % Hex code settings
-HX.NX = 100;               % Number of sections (grid)
+HX.NX = 1000;               % Number of sections (grid)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 

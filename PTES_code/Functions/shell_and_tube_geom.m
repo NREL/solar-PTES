@@ -6,8 +6,8 @@ function [ C, H, HX] = shell_and_tube_geom( C, H, HX)
 % tube thickness (t1).
 % OUTPUT parameters are the number of tubes (N1), the hydraulic diameter of
 % the shell-side (D2), the flow areas of each side, the mass fluxes (G1 and
-% G2), the heat transfer areas, and the combined volume of metal of the
-% tubes.
+% G2), the heat transfer areas (A1 and A2), and the combined volume of
+% metal of the tubes (Vm).
 % All parameters are extracted from and stored among three structures:
 % C (cold stream), H (hot stream) and HX (heat exchanger).
 

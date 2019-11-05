@@ -43,4 +43,19 @@ xlabel('Cumulative heat transfer area')
 ylabel('Normalised pressure [$\%$]')
 legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
 
+% Plot pA diagram
+figure(23)
+plot(AS./AS(end),H.Re,'r'); hold on;
+plot(AS./AS(end),C.Re,'b'); hold off;
+xlabel('Cumulative heat transfer area')
+ylabel('Reynolds number')
+legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
+
+% Plot pA diagram
+figure(24)
+plot(AS./AS(end),H.G,'r'); hold on;
+plot(AS./AS(end),C.G,'b'); hold off;
+xlabel('Cumulative heat transfer area')
+ylabel('Mass flux, kg/s/m2')
+legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
 end
