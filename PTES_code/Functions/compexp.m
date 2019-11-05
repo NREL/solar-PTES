@@ -91,8 +91,8 @@ i = ind(2)+1;
         h2_is = CP1('PSmass_INPUTS',p2,s1,'H',fluid.handle);
         h2 = h1 + eta^n*(h2_is - h1);
         % Update until convergence
-        err = zeros(1,20);
-        for i1 = 1:20
+        err = zeros(1,50);
+        for i1 = 1:50
             h2_0  = h2;
             rho2  = CP1('HmassP_INPUTS',h2,p2,'D',fluid.handle);
             xi    = log(rho2/rho1)/log(p2/p1); %assumes rho = K*p^xi along polytropic compression/expansion
@@ -101,12 +101,12 @@ i = ind(2)+1;
             Dh    = Dp./(rhoAV*eta^n); %apply polytropic efficiency definition
             h2    = h1 + sum(Dh);
             err(i1) = abs((h2_0-h2)/(h2-h1));
-            if err(i1)<1e-6
+            if err(i1)<1e-3
                 break
             else
             end
         end
-        if err(i1)>1e-6
+        if err(i1)>1e-3
             error('***Convergence not found***')
         end
         %     % Plot convergence

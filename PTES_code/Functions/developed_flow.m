@@ -6,10 +6,6 @@ if strcmp(shape,'circular')
     % Set coefficients for circular pipe
     aL  = 16.0;
     bL  = 4.36;
-elseif strcmp(shape,'squared')
-    % Set coefficients for squared pipe
-    aL  = 14.25;
-    bL  = 3.61;
 else
     error('not implemented')
 end
@@ -17,16 +13,6 @@ end
 % Set laminar to turbulent transition points
 Re_lim1 = 2000; % first limit (laminar to transition)
 Re_lim2 = 3000; % second limit (transition to turbulence)
-
-% Compute Pr at second limit (transition to turbulence)
-try
-Pr_lim2 = interp1(Re,Pr,Re_lim2);
-if isnan(Pr_lim2)
-    Pr_lim2 = mean(Pr);
-end
-catch
-    Pr_lim2 = mean(Pr);
-end
 
 % Obtain array indices for laminar, transition and turbulent regimes
 lam = find(Re<=Re_lim1);
@@ -54,9 +40,14 @@ Cf = f/4;
 Nu(lam) = bL + 0.*Re(lam);
 Nu(tur) = (f(tur)/8).*(Re(tur) - 1000).*Pr(tur)./(1 + 12.7*(f(tur)/8).^(1/2).*(Pr(tur).^(2/3)-1));
 Nu_lim1 = bL + 0.*Re_lim1;
-Nu_lim2 = (f_lim2/8).*(Re_lim2 - 1000).*Pr_lim2./(1 + 12.7*(f_lim2/8).^(1/2).*(Pr_lim2.^(2/3)-1));
-Nu(tra) = (1-W)*Nu_lim1 + W*Nu_lim2;
+Nu_lim2 = (f_lim2/8).*(Re_lim2 - 1000).*Pr(tra)./(1 + 12.7*(f_lim2/8).^(1/2).*(Pr(tra).^(2/3)-1));
+Nu(tra) = (1-W)*Nu_lim1 + W.*Nu_lim2;
 St = Nu./(Re.*Pr);
+
+if any(isnan([Cf;St]))
+    warning('error in developed_flow function')
+    keyboard
+end
 
 % figure(3)
 % plot(Re,f)

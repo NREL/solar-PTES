@@ -68,7 +68,7 @@ while 1
     % REHEAT (gas-liquid) (3-->4)
     fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p;
     [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
-    [steam(1),fluidH(iH),i,~] = hex_TQ_cond(steam(1),[iL,i],fluidH(iH),[iL,1],eff,1.0,ploss,'hex',0,0);
+    [steam(1),fluidH(iH),i,~] = hex_TQ(steam(1),[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',2,1.0);
     iH = iH + 1;
     
     % EXPAND (4-->5)
@@ -106,26 +106,26 @@ while 1
     % HEAT (2-phase-liquid) (13-->1)
     fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p; %#ok<*SAGROW>
     [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
-    [steam(1),fluidH(iH),i,~] = hex_TQ_2p(steam(1),[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',2,1.20);
+    Taim = HT.A(iL).T;
+    [steam(1),fluidH(iH),i,~] = hex_TQ(steam(1),[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',4,Taim);
+    iH = iH + 1;
     
-    
-%     % Define heat exchanger geometry
+%     % Define heat exchanger geometry    
 %     HX.shape     = 'circular';
 %     HX.sigma     = 1e8;        % Maximum allowable stress, Pa
-%     HX.L         = 1.0;        % Length, m
-%     HX.D_2       = 0.5e-3;     % Hydraulic diameter stream 2, m
-%     HX.Vm        = 0.05;       % Volume of HEX material, m3
-%     HX.VR        = 0.25;       % Ratio between Vm1 and Vm2, -
-%     HX.t_D_min   = 0.05;       % Minimum thickness-to-diameter ratio, -
+%     HX.L         = 3.0;        % Tube length, m
+%     HX.D1        = 0.5e-2;     % Tube diameter, m
+%     HX.t1        = 0.1*HX.D1;  % Tube thickness, m
+%     HX.AfT       = 1.0;        % Total flow area, m2
+%     HX.AfR       = 1.00;       % Ratio of flow areas, Af2/Af1, -
 %     
 %     % Code settings
 %     HX.NX  = 100;               % Number of sections (grid)
 %     HX.NI  = 1000;              % Maximum number of iterations
 %     HX.TOL = 1e-2;              % Convergence tolerance, in %
 %     
-%     [steam(1),fluidH(iH),i,~] = hex_TQA(steam(1),[iL,i],fluidH(iH),[iL,1],HX,'hex',2,1.00);
-    
-    iH = iH + 1;
+%     [steam(1),fluidH(iH),i,~] = hex_TQA(steam(1),[iL,i],fluidH(iH),[iL,1],HX,'hex',2,1.20);
+%     iH = iH + 1;
     
     % Close cycle
     steam(1).stage(iL,i).type = steam(1).stage(iL,1).type;

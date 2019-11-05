@@ -12,7 +12,7 @@ CT = reset_tanks(CT,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0);
 
 % Set bottom pressure line based on maximum pressure and pressure ratio
 pbot = pmax/PRch;
-T1   = TH_chg0; % compressor inlet temperature estimate
+T1   = TH_dis0; % compressor inlet temperature estimate
 if setTmax
     % Obtain PRch from maximum temperature and estimated temperature ratio
     Gama = CP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CPMASS',gas.handle)/CP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CVMASS',gas.handle);
