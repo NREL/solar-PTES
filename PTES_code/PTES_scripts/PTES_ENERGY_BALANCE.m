@@ -43,11 +43,9 @@ for iL=1:Load.num
         QE_dis = QE_dis + sum([environ.sink(iL,:).DHdot]*Load.time(iL));
         
     elseif strcmp(Load.type(iL),'ran')
-        for is=1:numel(steam)
-            W_out_dis  = W_out_dis  +    sum([steam(is).stage(iL,:).w]   .*[steam(is).state(iL,1:(end-1)).mdot]*Load.time(iL));
-            W_lost_dis = W_lost_dis + T0*sum([steam(is).stage(iL,:).sirr].*[steam(is).state(iL,1:(end-1)).mdot]*Load.time(iL));
-            DH_dis     = DH_dis     +    sum([steam(is).stage(iL,:).Dh]  .*[steam(is).state(iL,1:(end-1)).mdot]*Load.time(iL));
-        end
+        W_out_dis  = W_out_dis  +    sum([steam.stage(iL,:).w]   .*[steam.state(iL,1:(end-1)).mdot]*Load.time(iL));
+        W_lost_dis = W_lost_dis + T0*sum([steam.stage(iL,:).sirr].*[steam.state(iL,1:(end-1)).mdot]*Load.time(iL));
+        DH_dis     = DH_dis     +    sum([steam.stage(iL,:).Dh]  .*[steam.state(iL,1:(end-1)).mdot]*Load.time(iL));
         for i=1:nH
             QH_dis = QH_dis - sum(fluidH(i).state(iL,1).mdot*(fluidH(i).state(iL,2).h-fluidH(i).state(iL,1).h)*Load.time(iL));
         end
@@ -90,7 +88,7 @@ for iL=1:Load.num
                     i1 = 4;
                 case 'mixing'
                     i1 = 6;
-                case {'0','split'}
+                case {'0','split','end'}
                 otherwise
                     error('unknown stage type');
             end
@@ -112,7 +110,7 @@ for iL=1:Load.num
                     i1 = 4;
                 case 'mixing'
                     i1 = 6;
-                case {'0','split'}
+                case {'0','split','end'}
                 otherwise
                     error('unknown stage type');
             end
@@ -135,7 +133,7 @@ for iL=1:Load.num
                         i1 = 4;
                     case 'mixing'
                         i1 = 6;
-                    case {'0','split'}
+                    case {'0','split','end'}
                     otherwise
                         error('unknown stage type');
                 end
@@ -344,9 +342,7 @@ if WM==1
         print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
     end
     for iL = i_ran
-        for is=1:numel(steam)
-            print_states(steam(is),iL,1:steam(is).Nstg(iL)+1,Load);
-        end
+        print_states(steam,iL,1:steam.Nstg(iL)+1,Load);
     end
     
     fprintf(1,'\nHot fluid streams:\n');

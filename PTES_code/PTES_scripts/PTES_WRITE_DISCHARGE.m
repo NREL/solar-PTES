@@ -8,9 +8,9 @@ for iL=1:Load.num
         break
     end
     if strcmp(Load.type(iL),'ran')
-        stages_dis = steam(1).Nstg(iL);
+        stages_dis = steam.Nstg(iL);
         for ind = 1:stages_dis
-            write_file(steam(1),[iL,ind],plotFile,num);
+            write_file(steam,[iL,ind],plotFile,num);
         end
         break
     end

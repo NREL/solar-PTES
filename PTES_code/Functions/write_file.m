@@ -12,6 +12,9 @@ if any(strcmp(stage.type,{'hex','hex_reject','regen','split','mixing','separate'
 elseif any(strcmp(stage.type,{'comp','exp'}))
     type = 3;
     
+elseif strcmp(stage.type,{'end'})
+    type = 0;
+    
 else
     warning('not implemented');
 end
@@ -72,18 +75,11 @@ switch type
     otherwise
 end
 
-
-% for i0 = 1:num
-%     fprintf(1,'i0 = %3d, h = %5.1f J/kg/K, p = %6.1f bar\n',i0,h_vect(i0),p_vect(i0)/1e5);
-% end
-
-
-
-
-
-% Write the plotting vectors
-for i=1:num
-    fprintf(fileID,' %12.1f %12.1f %12.1f %12.1f  %%%10s\n',T_vect(i), (T_vect(i) -273.15), p_vect(i)/1e5, s_vect(i), stage.type);
+if type ~= 0
+    % Write the plotting vectors
+    for i=1:num
+        fprintf(fileID,' %12.1f %12.1f %12.1f %12.1f  %%%10s\n',T_vect(i), (T_vect(i) -273.15), p_vect(i)/1e5, s_vect(i), stage.type);
+    end
 end
 
 end
