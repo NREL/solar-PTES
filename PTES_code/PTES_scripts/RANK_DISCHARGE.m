@@ -136,9 +136,9 @@ while 1
 %     iH = iH + 1;
     
     % Close cycle
-    steam.stage(iL,i).type = 'comp';
-    steam.stage(iL,iSA+1).type = 'comp';
-    steam.stage(iL,iSB+1).type = 'comp';
+    steam.stage(iL,i).type = 'end';
+    steam.stage(iL,iSA+1).type = 'end';
+    steam.stage(iL,iSB+1).type = 'end';
     steam = count_Nstg(steam);
     
     % Determine convergence and proceed

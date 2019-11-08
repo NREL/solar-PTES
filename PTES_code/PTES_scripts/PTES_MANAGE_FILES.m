@@ -12,7 +12,3 @@ else
     ID0 = NaN;
     ID1 = NaN;
 end
-
-plotFile = fopen('./Outputs/Plot_file.txt','w+');
-fprintf(plotFile,'%%Things to plot\n');
-fprintf(plotFile,'%%T(K)\t   T(°C)\t p(bar)\t s(kJ/kg/K)\t Stage\n');
