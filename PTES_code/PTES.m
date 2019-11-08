@@ -100,16 +100,11 @@ toc %stop timer
 if make_plots
     switch Load.mode
         case {0,3} % PTES
-            PTES_WRITE_CHARGE
-            PTES_WRITE_DISCHARGE
             %PTES_PLOT_HEXS
             if optimise
                 PTES_PLOT_GOLDEN_SEARCH
             end
-        case 1 % Heat pump only
-            PTES_WRITE_CHARGE
         case 2 % Heat engine only
-            PTES_WRITE_DISCHARGE
             if optimise
                 PTES_PLOT_GOLDEN_SEARCH
             end

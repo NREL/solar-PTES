@@ -34,7 +34,7 @@ Ncld = 1;               % number of cold tanks
 
 % The Load structure stores information about the duration, type of cycle
 % (charge, storage or discharge) and mass flow rate of each time period.
-Load.mode = 3;
+Load.mode = 0;
 switch Load.mode
     case 0 % PTES
         Load.time = [10;10;4;10].*3600;        % time spent in each load period, s
