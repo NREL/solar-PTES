@@ -33,7 +33,7 @@ set_graphics
 load_coolprop
 
 % SET INPUTS
-PTES_INPUTS
+PTES_INPUTS_test
 
 % Open the output files and print the headers
 PTES_MANAGE_FILES
@@ -71,6 +71,12 @@ for ix = 1:1
                         
                     case 'sol'
                         PTES_SOLAR_TANKS
+                        
+                    case 'chgCO2'
+                        sCO2_PTES_CHARGE
+                    
+                    case 'disCO2'
+                        sCO2_PTES_DISCHARGE
                 end
             end
             

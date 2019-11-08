@@ -7,8 +7,20 @@ for ir = 1:length(fluidC)
     fluidC(ir) = reset_fluid(fluidC(ir));
 end
 % Reset tanks
-HT = reset_tanks(HT,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0);
-CT = reset_tanks(CT,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0);
+%HT = reset_tanks(HT,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0);
+%CT = reset_tanks(CT,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0);
+
+% NEW CODE JDM 8 Nov. Reset tanks when there are multiple hot/cold tanks in
+% series. Pau to double check this works.
+% Reset cold tanks
+for ir = 1 : Ncld
+    CT(ir) = reset_tanks(CT(ir),TC_dis0(ir),p0,MC_dis0(ir),TC_chg0(ir),p0,MC_chg0(ir),T0);
+end
+
+% Reset hot tanks
+for ir = 1 : Nhot
+    HT(ir) = reset_tanks(HT(ir),TH_dis0(ir),p0,MH_dis0(ir),TH_chg0(ir),p0,MH_chg0(ir),T0);
+end
 
 % Set bottom pressure line based on maximum pressure and pressure ratio
 pbot = pmax/PRch;
