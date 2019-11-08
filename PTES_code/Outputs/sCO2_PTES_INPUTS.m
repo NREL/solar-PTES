@@ -17,8 +17,8 @@ Nc_ch = 1; % number of compressions during charge
 Ne_ch = 1; % number of expansions during charge
 
 % Number of hot and cold stores IN SERIES
-Ncld = 2; % number of cold stores. Not implemented for >2
-Nhot = 2; % number of hot stores. Not implemented for >2
+Ncld = 1; % number of cold stores. Not implemented for >2
+Nhot = 1; % number of hot stores. Not implemented for >2
 
 if (Nc_ch > 1 || Ne_ch > 1) && (Ncld > 1 || Nhot > 1)
     error('Have not implemented multiple compressions/expansions AND multiple storage tanks in series')
@@ -32,24 +32,23 @@ switch Load.mode
         Load.time = [10;4;10].*3600;          % time spent in each load period, s
         Load.type = ["chg";"str";"dis"]; % type of load period
         Load.mdot = [10;0;10];              % working fluid mass flow rate, kg/s
-        Load.num  = numel(Load.time);
     case 1 % Heat pump
         Load.time = 10.*3600;                  % time spent in each load period, s
         Load.type = "chg";                     % type of load period
         Load.mdot = 10;                        % working fluid mass flow rate, kg/s
-        Load.num  = numel(Load.time);
     case 2 % Heat engine (no cold tanks)
         %error('not implemented')
         Load.time = 10.*3600;                  % time spent in each load period, s
         Load.type = "dis";                 % type of load period
         Load.mdot = 10;                        % working fluid mass flow rate, kg/s
-        Load.num  = numel(Load.time);
     case 4 % sCO2-PTES type cycles
         Load.time = [10;4;10].*3600;          % time spent in each load period, s
         Load.type = ["chgCO2";"str";"disCO2"]; % type of load period
         Load.mdot = [10;0;10];              % working fluid mass flow rate, kg/s
-        Load.num  = numel(Load.time);
 end
+
+Load.num  = numel(Load.time);
+Load.ind = 1:Load.num;
 
 % There are numerous design options for an sCO2-PTES cycle and several of them
 % may be investigated here
@@ -67,8 +66,8 @@ if Load.mode == 4
         % increased by having several stores in series
         case 0
             % Hot storage tanks
-            fHname  = ["SolarSalt";"MineralOil"]; % fluid name
-            %fHname  = 'SolarSalt'; % fluid name
+            %fHname  = ["SolarSalt";"MineralOil"]; % fluid name
+            fHname  = 'SolarSalt'; % fluid name
             MH_dis0(1:Nhot) = 1e6;          % initial mass of discharged hot fluid, kg
             MH_chg0(1:Nhot) = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
             
@@ -96,8 +95,8 @@ if Load.mode == 4
                 end
             end
             % Cold storage tanks
-            fCname  = ["INCOMP::MEG2[0.56]";"INCOMP::MEG2[0.56]"]; % fluid name
-            %fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
+            %fCname  = ["INCOMP::MEG2[0.56]";"INCOMP::MEG2[0.56]"]; % fluid name
+            fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
             MC_dis0(1:Ncld) = 1e6;          % initial mass of discharged cold fluid, kg
             MC_chg0(1:Ncld) = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
             

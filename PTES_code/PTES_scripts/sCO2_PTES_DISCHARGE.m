@@ -9,7 +9,7 @@ PRdis = PRr*PRch;
 
 % Initial guess of discharge conditions
 % Expander outlet (regenerator hot inlet)
-gas.state(iL,1).p    = pbot; gas.state(iL,1).T = T1;
+gas.state(iL,1).p    = pbot; gas.state(iL,1).T = fluidC(1).state(1,2).T+1. ;
 gas.state(iL,1).mdot = Load.mdot(iL);
 [gas] = update(gas,[iL,1],1);
 
@@ -81,13 +81,13 @@ while 1
     fprintf(1,'Hello discharge sCO2-PTES\n')
     % REGENERATE (gas-gas)
     if Nrcp == 1
-        [gas,~,i,~] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0); %#ok<*SAGROW>
+        [gas,~,i,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0); %#ok<*SAGROW>
     elseif Nrcp == 2
-        [gas,~,i,~] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0);   % High-temp regenerator
+        [gas,~,i,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);   % High-temp regenerator
         if Lrcmp
-            [gas,~,i,~] = hex_TQ_cond(gas,[iL,i],gas,[iL,iReg3],eff,0,ploss,'regen',-1,TthreshD);% Low-temp regenerator
+            [gas,~,i,~] = hex_TQ(gas,[iL,i],gas,[iL,iReg3],eff,ploss,'regen',-1,TthreshD);% Low-temp regenerator
         else
-            [gas,~,i,~] = hex_TQ_cond(gas,[iL,i],gas,[iL,iReg3],eff,0,ploss,'regen',0,0);       % Low-temp regenerator
+            [gas,~,i,~] = hex_TQ(gas,[iL,i],gas,[iL,iReg3],eff,ploss,'regen',0,0);       % Low-temp regenerator
         end
     end
     
@@ -126,7 +126,7 @@ while 1
                 for ii = Ncld : -1 : 1
                     fluidC(ii).state(iL,1).T = CT(ii).B(iL).T; fluidC(ii).state(iL,1).p = CT(ii).B(iL).p;
                     [fluidC(ii)] = update(fluidC(ii),[iL,1],1);
-                    [gas,fluidC(ii),i,~] = hex_TQ_cond(gas,[iL,i],fluidC(ii),[iL,1],eff,1.3,ploss,'hex',0,0);
+                    [gas,fluidC(ii),i,~] = hex_TQ(gas,[iL,i],fluidC(ii),[iL,1],eff,ploss,'hex',1,1.3); %Mode 1. Hot gas mdot known, cold fluid mdot not known
                     iC = ii ;
                 end
                 iC = iC + 1 ;
@@ -149,18 +149,18 @@ while 1
     
     % REGENERATE (gas-gas)
     if Nrcp == 1
-        [~,gas,~,i] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0); %#ok<*SAGROW>
+        [~,gas,~,i] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0); %#ok<*SAGROW>
     elseif Nrcp == 2
         if Lrcmp
             % If there is a recompression, adjust mass flows and add a mixer between the recomp. outlet and LTR cold outlet
-            [~,gas,~,i] = hex_TQ_cond(gas,[iL,iReg1+1],gas,[iL,iReg3],eff,0,ploss,'regen',-1,TthreshD); 
+            [~,gas,~,i] = hex_TQ(gas,[iL,iReg1+1],gas,[iL,iReg3],eff,ploss,'regen',-1,TthreshD); %% THINK THIS MAY CAUSE PROBLEMS %%
             gas.state(iL,iRCMP).mdot   = gas.state(iL,iReg1).mdot - gas.state(iL,iReg3).mdot ;
             gas.state(iL,iRCMP+1).mdot = gas.state(iL,iRCMP).mdot ;
             [gas,i,~] = mix_streams(gas,[iL,i],[iL,iRCMP+1]) ;
         else
-            [~,gas,~,~] = hex_TQ_cond(gas,[iL,iReg1+1],gas,[iL,iReg3],eff,0,ploss,'regen',0,0); 
+            [~,gas,~,~] = hex_TQ(gas,[iL,iReg1+1],gas,[iL,iReg3],eff,ploss,'regen',0,0); 
         end
-        [~,gas,~,i] = hex_TQ_cond(gas,[iL,iReg1],gas,[iL,iReg2],eff,0,ploss,'regen',0,0); 
+        [~,gas,~,i] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0); 
     end
     
     
@@ -169,7 +169,7 @@ while 1
         for ii = Nhot : -1 : 1
             fluidH(ii).state(iL,1).T = HT(ii).B(iL).T; fluidH(ii).state(iL,1).p = HT(ii).B(iL).p; THmin = HT(ii).A(1).T;
             [fluidH(ii)] = update(fluidH(ii),[iL,1],1);
-            [fluidH(ii),gas,~,i] = hex_TQ_cond(fluidH(ii),[iL,1],gas,[iL,i],eff,1.0,ploss,'hex',2, THmin);       
+            [fluidH(ii),gas,~,i] = hex_TQ(fluidH(ii),[iL,1],gas,[iL,i],eff,ploss,'hex',2, 1.0); % Mode 4.       
             iH = ii ;
         end
         iH = iH + 1 ;
