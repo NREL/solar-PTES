@@ -1,6 +1,4 @@
-% Plot T-s diagram
-plot_file = load ('./Outputs/Plot_file.txt');
-figure(1);
+% Plot T-s diagrams
 
 % Set properties of storage temperature lines;
 NameArray  = {'LineWidth','LineStyle'};
