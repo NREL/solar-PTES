@@ -69,8 +69,8 @@ mH = stateH.mdot;
 mC = stateC.mdot;
 
 % Obtain temperature arrays as a function of the enthalpy arrays
-[hvH,TvH] = get_h_T(fluidH,TC1-1,TH2+1,pH2,n);
-[hvC,TvC] = get_h_T(fluidC,TC1-1,TH2+1,pC1,n);
+[hvH,TvH] = get_h_T(fluidH,TC1-5,TH2+5,pH2,n);
+[hvC,TvC] = get_h_T(fluidC,TC1-5,TH2+5,pC1,n);
 
 % Obtain preliminary minimum and maximum enthalpy outlets (hot outlet
 % cannot be colder than cold inlet, and vice-versa)

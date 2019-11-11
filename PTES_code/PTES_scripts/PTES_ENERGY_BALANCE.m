@@ -332,6 +332,8 @@ WL_tanks   = sum(WL_matrix(:,7))/Exergy_in*100;
 
 %[WR,WR_dis]   = work_ratio(gas.stage,stages_ch,stages_dis);
 
+%% THIS SEEMS TO BE A DUPLICATE?
+%{
 % PRINT MAIN RESULTS ON SCREEN
 if WM==1
     fprintf(1,'\n\n');
@@ -371,7 +373,8 @@ if WM==1
     end    
     fprintf(1,'\n');
 end
-
+%}
+%%
 if WM == 1
     fprintf(1,'\n\n');
     fprintf(1,'FIRST LAW BALANCE\n');

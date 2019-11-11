@@ -4,12 +4,12 @@
 % Set atmospheric conditions and cycle parameters
 T0      = 30 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
-pmax    = 80e5;        % top pressure, Pa
-PRch    = 3.5;          % charge pressure ratio
+pmax    = 250e5;         % top pressure, Pa
+PRch    = 3.0;          % charge pressure ratio
 PRr     = 1.05;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
-setTmax = 1;            % set Tmax? (this option substitutes PRch)
+setTmax = 0;            % set Tmax? (this option substitutes PRch)
 Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 
 % Number of intercooled/interheated compressions/expansions
@@ -19,8 +19,8 @@ nH    = Nc_ch;        % number of hot fluid streams
 nC    = Ne_ch;        % number of cold fluid streams
 
 % Number of hot and cold stores IN SERIES
-Ncld = 1; % number of cold stores. Not implemented for >2
-Nhot = 1; % number of hot stores. Not implemented for >2
+Ncld = 2; % number of cold stores. Not implemented for >2
+Nhot = 2; % number of hot stores. Not implemented for >2
 
 if (Nc_ch > 1 || Ne_ch > 1) && (Ncld > 1 || Nhot > 1)
     error('Have not implemented multiple compressions/expansions AND multiple storage tanks in series')
@@ -28,7 +28,7 @@ end
 
 % The Load structure stores information about the duration, type of cycle
 % (charge, storage or discharge) and mass flow rate of each time period.
-Load.mode = 0;
+Load.mode = 4;
 switch Load.mode
     case 0 % PTES
         Load.time = [10;10;4;10].*3600;        % time spent in each load period, s
@@ -88,8 +88,8 @@ elseif Load.mode == 4
         % increased by having several stores in series
         case 0
             % Hot storage tanks
-            %fHname  = ["SolarSalt";"MineralOil"]; % fluid name
-            fHname  = 'SolarSalt'; % fluid name
+            fHname  = ["SolarSalt";"MineralOil"]; % fluid name
+            %fHname  = 'SolarSalt'; % fluid name
             MH_dis0(1:Nhot) = 1e6;          % initial mass of discharged hot fluid, kg
             MH_chg0(1:Nhot) = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
             
@@ -117,8 +117,8 @@ elseif Load.mode == 4
                 end
             end
             % Cold storage tanks
-            %fCname  = ["INCOMP::MEG2[0.56]";"INCOMP::MEG2[0.56]"]; % fluid name
-            fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
+            fCname  = ["INCOMP::MEG2[0.56]";"INCOMP::MEG2[0.56]"]; % fluid name
+            %fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
             MC_dis0(1:Ncld) = 1e6;          % initial mass of discharged cold fluid, kg
             MC_chg0(1:Ncld) = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
             

@@ -9,7 +9,7 @@ PRdis = PRr*PRch;
 
 % Initial guess of discharge conditions
 % Expander outlet (regenerator hot inlet)
-gas.state(iL,1).p    = pbot; gas.state(iL,1).T = fluidC(1).state(1,2).T+1. ;
+gas.state(iL,1).p    = pbot; gas.state(iL,1).T = fluidC(Ncld).state(1,1).T+1. ;
 gas.state(iL,1).mdot = Load.mdot(iL);
 [gas] = update(gas,[iL,1],1);
 
