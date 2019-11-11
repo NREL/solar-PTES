@@ -189,7 +189,7 @@ switch mode
         % Find value of mC for which DTmin = 0, using golden search method
         f2    = @(mC) DTmin(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,n,'hC2',hC2);
         TolX  = (mCmax - mCmin)/1e4; %tolerance
-        options = optimset('TolX',TolX,'Display','iter');
+        options = optimset('TolX',TolX);%,'Display','iter');
         mC   = fminbnd(f2,mCmin,mCmax,options);
         
         % Compute QMAX and QT (actual heat transfer based on heat exchanger
@@ -201,7 +201,7 @@ switch mode
         mC = QT/(hC2 - hC1);
         stateC.mdot = mC;
         hH1 = hH2 - QT/mH;
-        keyboard
+        %keyboard % Ok to ignore this?
         
     case 4
         
