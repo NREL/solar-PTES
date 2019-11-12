@@ -98,7 +98,7 @@ switch scenario
 end
 
 % Specify HEX geometry
-method = 'automatic';
+method = 'manual';
 switch method
     case 'manual'
         % Define heat exchanger geometry (shell-and-tube)
@@ -140,6 +140,9 @@ HX.NX = 100;               % Number of sections (grid)
 %%% MAKE PLOTS AND PRINT RESULTS %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 plot_hex_TQA(HX,'C');
+
+% Compare with analytical results
+[F1,F2,~,~,HX] = hex_analytic(F1,[iL,i1],F2,[iL,i2],HX);
 % eff_res = HX.QS(HX.NX+1)/HX.QMAX
 % DppH    = (HX.H.pin-HX.H.p(1))./HX.H.pin
 % DppC    = (HX.C.p(HX.NX+1)-HX.C.pin)./HX.C.pin
