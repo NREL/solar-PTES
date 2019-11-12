@@ -102,7 +102,7 @@ C.p = ones(NX+1,1)*C.pin;
 
 % Compute hH1 for computed area equals C.A
 f1 = @(hH1) compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
-%plot_function(f1,hH1_min,hH2,100,31)
+%plot_function(f1,hH1_min,hH2,100,31); keyboard;
 TolX = (hH2-hH1_min)/1e4; %tolerance
 options = optimset('TolX',TolX,'Display','notify');
 hH1  = fminbnd(f1,hH1_min,hH2,options);
@@ -144,6 +144,7 @@ HX.C  = C;
 HX.H  = H;
 HX.QS = QS;
 HX.AS = AS;
+HX.QMAX = QMAX;
 
 % Export computed states and stages back into fluids
 fluidH.state(indH(1),indH(2)+1) = stateH; % Result goes into next state
@@ -229,7 +230,7 @@ CON_0 = [0; H.p; C.p]; % initial value
 NI    = 10;
 RES   = zeros(1,NI); % residuals
 TOL   = 1e-4;
-
+impossible = false; %indicades impossible situation
 for iI = 1:NI
     
     % UPDATE PROPERTIES
@@ -237,6 +238,18 @@ for iI = 1:NI
     C = stream_update(fluidC,C,1);
     % Hot stream
     H = stream_update(fluidH,H,1);
+    
+    % COMPUTE AVERAGED TEMPERATURE ARRAYS
+    H.T_AV = 0.5*(H.T(1:NX) + H.T(2:NX+1));
+    C.T_AV = 0.5*(C.T(1:NX) + C.T(2:NX+1));
+    DT_AV  = H.T_AV - C.T_AV;
+    
+    % Break loop if H.T < C.T at any point
+    if any(H.T <= C.T)
+        impossible = true;
+        AC = Inf;
+        break
+    end
     
     % COMPUTE HEAT TRANSFER COEFFICIENTS
     % Cold stream
@@ -250,12 +263,7 @@ for iI = 1:NI
     % Overall heat transfer coefficient (based on cold side heat transfer area).
     % Neglects wall thermal resistance and axial conduction.
     UlC  = 1./(C.A./(H.A*H.ht) + 1./C.ht);
-    
-    %COMPUTE AVERAGED ARRAYS
-    H.T_AV = 0.5*(H.T(1:NX) + H.T(2:NX+1));
-    C.T_AV = 0.5*(C.T(1:NX) + C.T(2:NX+1));
     UlC_AV = 0.5*(UlC(1:NX) + UlC(2:NX+1));
-    DT_AV  = H.T_AV - C.T_AV;
     
     % COMPUTE HEAT TRANSFER AREA (cold side)
     dQ  = (H.h(2:NX+1) - H.h(1:NX))*mH;
@@ -292,6 +300,22 @@ for iI = 1:NI
     % Update convergence array
     CON = [AC; H.p; C.p]; % initial value
     
+    %     % Make plots (uncomment to manually check iteration procedure)
+    %     figure(10)
+    %     plot(QS./QS(end),H.T,'r'); hold on;
+    %     plot(QS./QS(end),C.T,'b'); hold off;
+    %     xlabel('Cumulative heat transfer')
+    %     ylabel('Temperature')
+    %     legend([fluidH.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[fluidC.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
+    %     figure(11)
+    %     plot(QS./QS(end),H.p/H.pin,'r-'); hold on
+    %     plot(QS./QS(end),C.p/C.pin,'b-'); hold off
+    %     ylim([0.99 1])
+    %     xlabel('Cummulative heat transfer')
+    %     ylabel('Relative pressure, p/p0')
+    %     legend([fluidH.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[fluidC.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
+    %     keyboard
+    
     % Compute residual
     RES(iI) = max(abs((CON - CON_0)./CON));
     %fprintf(1,'\n iteration = %d, RES = %.6f',iI,RES(iI));
@@ -304,30 +328,18 @@ for iI = 1:NI
     end
     
 end
-if all([iI>=NI,RES(iI)>TOL])
+if all([iI>=NI,RES(iI)>TOL,~impossible])
     error('Convergence not reached after %d iterations***\n',iI);
 end
 
 solution = C.A - AC;
 limit    = 1.5*C.A;
 % Control physically impossible solutions
-if any([DT_AV <= 0; abs(solution) > limit; solution < 0])
+if any([DT_AV <= 0; abs(solution) >= limit; solution < 0])
     solution = limit;
 end
 
 %fprintf(1,'HEX AC = %5.1f, computed AC = %5.1f, solution = %5.1f\n',C.A,AC,solution);
-
-% figure(10)
-% plot(QS./QS(end),H.T,'r'); hold on;
-% plot(QS./QS(end),C.T,'b'); hold off;
-% xlabel('Cumulative heat transfer')
-% ylabel('Temperature')
-% legend([fluidH.name,', ',sprintf('%.1f',pH2/1e5),' bar'],[fluidC.name,', ',sprintf('%.1f',pC1/1e5),' bar'],'Location','Best')
-% figure(11)
-% plot(QS./QS(end),DT,'r');
-% xlabel('Cumulative heat transfer')
-% ylabel('Temperature difference')
-% keyboard
 
 
 if nargout == 1

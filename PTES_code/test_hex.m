@@ -33,10 +33,10 @@ load_coolprop
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Choose scenario
-% 1 = Air and air
+% 1 = Helium and Helium
 % 2 = SolarSalt and Water
 % 3 = CO2 and Water
-scenario = 3;
+scenario = 1;
 
 % Set indices
 iL = 1; i1 = 1; i2 = 1;
@@ -44,14 +44,14 @@ iL = 1; i1 = 1; i2 = 1;
 % Declare fluids and specify initial conditions
 switch scenario
     case 1
-        % Air (hot, high pressure)
-        F1 = fluid_class('Air','WF','CP','HEOS',1,5);
+        % Helium (hot, high pressure)
+        F1 = fluid_class('Helium','WF','CP','TTSE',1,5);
         F1.state(iL,i1).p = 100e5;
         F1.state(iL,i1).T = 600;
         F1.state(iL,i1).mdot = 10;
         
-        % Air (cold, low pressure)
-        F2 = fluid_class('Air','WF','CP','HEOS',1,5);
+        % Helium (cold, low pressure)
+        F2 = fluid_class('Helium','WF','CP','TTSE',1,5);
         F2.state(iL,i2).p = 20e5;
         F2.state(iL,i2).T = 300;
         F2.state(iL,i2).mdot = 10;
@@ -98,7 +98,7 @@ switch scenario
 end
 
 % Specify HEX geometry
-method = 'manual';
+method = 'automatic';
 switch method
     case 'manual'
         % Define heat exchanger geometry (shell-and-tube)
@@ -119,12 +119,11 @@ switch method
         eff   = 0.97;
         ploss = 0.01;
         warning('under development')
-        keyboard
-        [HX]  = set_hex_geom(F1,[iL,i1],F2,[iL,i2],eff,ploss,hex_mode,var);
+        [HX]  = set_hex_geom(F1,[iL,i1],F2,[iL,i2],eff,ploss,5e-3,0.5e-3,1e8,hex_mode,var);
 end
 
 % Hex code settings
-HX.NX = 1000;               % Number of sections (grid)
+HX.NX = 100;               % Number of sections (grid)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -138,10 +137,12 @@ HX.NX = 1000;               % Number of sections (grid)
 [F1,F2,~,~,HX] = hex_TQA(F1,[iL,i1],F2,[iL,i2],HX,'hex',hex_mode,var);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-%%% MAKE PLOTS %%%
+%%% MAKE PLOTS AND PRINT RESULTS %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 plot_hex_TQA(HX,'C');
+% eff_res = HX.QS(HX.NX+1)/HX.QMAX
+% DppH    = (HX.H.pin-HX.H.p(1))./HX.H.pin
+% DppC    = (HX.C.p(HX.NX+1)-HX.C.pin)./HX.C.pin
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 

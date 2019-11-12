@@ -42,6 +42,7 @@ classdef stream
         Cp_AV
         % Geometry
         A
+        Af
         Ax
         D
         G
