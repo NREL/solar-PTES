@@ -63,7 +63,12 @@ while 1
         for ii = 1 : Nhot
             fluidH(ii).state(iL,1).T = HT(ii).A(iL).T; fluidH(ii).state(iL,1).p = HT(ii).A(iL).p; %#ok<*SAGROW>
             [fluidH(ii)] = update(fluidH(ii),[iL,1],1);
-            [gas,fluidH(ii),i,~] = hex_TQ(gas,[iL,i],fluidH(ii),[iL,1],eff,ploss,'hex',1,1); % Mode 1: don't know hot fluid mdot. Crat = 1
+            if ii == 1
+                [gas,fluidH(ii),i,~] = hex_TQ(gas,[iL,i],fluidH(ii),[iL,1],eff,ploss,'hex',1,1); % Mode 1: don't know hot fluid mdot. Crat = 1
+            else
+                TCoutMIN = fluidH(ii-1).state(iL,1).T ;
+                [gas,fluidH(ii),i,~] = hex_TQ(gas,[iL,i],fluidH(ii),[iL,1],eff,ploss,'hex',3,TCoutMIN); % Mode 3. 
+            end
             iH = ii ;
         end
         iH = iH + 1 ;        
@@ -74,6 +79,7 @@ while 1
     if Nrcp == 1
         [gas,~,i,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
     elseif Nrcp == 2
+        gas.state(iL,iReg3).mdot = gas.state(iL,iReg1).mdot ;
         [gas,~,i,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg3],eff,ploss,'regen',0,0); % High-temp regenerator
         [gas,~,i,~] = hex_TQ(gas,[iL,i],gas,[iL,iReg2],eff,ploss,'regen',0,0); % Low-temp regenerator
     end
@@ -98,7 +104,12 @@ while 1
         for ii = 1 : Ncld
             fluidC(ii).state(iL,1).T = CT(ii).A(iL).T; fluidC(ii).state(iL,1).p = CT(ii).A(iL).p;
             [fluidC(ii)] = update(fluidC(ii),[iL,1],1);
-            [fluidC(ii),gas,~,i] = hex_TQ(fluidC(ii),[iL,1],gas,[iL,i],eff,ploss,'hex', 2, 1.0); % Mode 2: sCO2 mdot is known, cold fluid mdot is not
+            if ii == 1
+                [fluidC(ii),gas,~,i] = hex_TQ(fluidC(ii),[iL,1],gas,[iL,i],eff,ploss,'hex', 2, 1.0); % Mode 2: sCO2 mdot is known, cold fluid mdot is not
+            else
+                THoutMAX = fluidC(ii-1).state(iL,1).T ;
+                [fluidC(ii),gas,~,i] = hex_TQ(fluidC(ii),[iL,1],gas,[iL,i],eff,ploss,'hex', 4, THoutMAX); % Mode 
+            end
             iC = ii ;
         end        
         iC=iC+1;

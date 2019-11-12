@@ -9,7 +9,7 @@ PRdis = PRr*PRch;
 
 % Initial guess of discharge conditions
 % Expander outlet (regenerator hot inlet)
-gas.state(iL,1).p    = pbot; gas.state(iL,1).T = fluidC(1).state(1,2).T+1. ;
+gas.state(iL,1).p    = pbot; gas.state(iL,1).T = fluidC(Ncld).state(1,1).T+1. ;
 gas.state(iL,1).mdot = Load.mdot(iL);
 [gas] = update(gas,[iL,1],1);
 
@@ -85,7 +85,7 @@ while 1
     elseif Nrcp == 2
         [gas,~,i,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);   % High-temp regenerator
         if Lrcmp
-            [gas,~,i,~] = hex_TQ(gas,[iL,i],gas,[iL,iReg3],eff,ploss,'regen',-1,TthreshD);% Low-temp regenerator
+            [gas,~,i,~] = hex_TQ(gas,[iL,i],gas,[iL,iReg3],eff,ploss,'regen',3,min(TthreshD,gas.state(iL,i).T-5));% Low-temp regenerator
         else
             [gas,~,i,~] = hex_TQ(gas,[iL,i],gas,[iL,iReg3],eff,ploss,'regen',0,0);       % Low-temp regenerator
         end
@@ -125,8 +125,9 @@ while 1
                 % COOL (gas-liquid)
                 for ii = Ncld : -1 : 1
                     fluidC(ii).state(iL,1).T = CT(ii).B(iL).T; fluidC(ii).state(iL,1).p = CT(ii).B(iL).p;
+                    TCoutMIN = min(gas.state(iL,i).T-5,CT(ii).A(1).T) ;
                     [fluidC(ii)] = update(fluidC(ii),[iL,1],1);
-                    [gas,fluidC(ii),i,~] = hex_TQ(gas,[iL,i],fluidC(ii),[iL,1],eff,ploss,'hex',1,1.3); %Mode 1. Hot gas mdot known, cold fluid mdot not known
+                    [gas,fluidC(ii),i,~] = hex_TQ(gas,[iL,i],fluidC(ii),[iL,1],eff,ploss,'hex',3,TCoutMIN); %Mode 1. Hot gas mdot known, cold fluid mdot not known
                     iC = ii ;
                 end
                 iC = iC + 1 ;
@@ -153,7 +154,7 @@ while 1
     elseif Nrcp == 2
         if Lrcmp
             % If there is a recompression, adjust mass flows and add a mixer between the recomp. outlet and LTR cold outlet
-            [~,gas,~,i] = hex_TQ(gas,[iL,iReg1+1],gas,[iL,iReg3],eff,ploss,'regen',-1,TthreshD); %% THINK THIS MAY CAUSE PROBLEMS %%
+            [~,gas,~,i] = hex_TQ(gas,[iL,iReg1+1],gas,[iL,iReg3],eff,ploss,'regen',3,min(TthreshD,gas.state(iL,iReg1+1).T-5)); %% Require cold side to reach a certain temp
             gas.state(iL,iRCMP).mdot   = gas.state(iL,iReg1).mdot - gas.state(iL,iReg3).mdot ;
             gas.state(iL,iRCMP+1).mdot = gas.state(iL,iRCMP).mdot ;
             [gas,i,~] = mix_streams(gas,[iL,i],[iL,iRCMP+1]) ;
@@ -167,9 +168,10 @@ while 1
     for iN = 1:Ne_dis
         % HEAT (gas-fluid)
         for ii = Nhot : -1 : 1
-            fluidH(ii).state(iL,1).T = HT(ii).B(iL).T; fluidH(ii).state(iL,1).p = HT(ii).B(iL).p; THmin = HT(ii).A(1).T;
+            fluidH(ii).state(iL,1).T = HT(ii).B(iL).T; fluidH(ii).state(iL,1).p = HT(ii).B(iL).p; 
+            THoutMAX = max(gas.state(iL,i).T+1,HT(ii).A(1).T);
             [fluidH(ii)] = update(fluidH(ii),[iL,1],1);
-            [fluidH(ii),gas,~,i] = hex_TQ(fluidH(ii),[iL,1],gas,[iL,i],eff,ploss,'hex',2, 1.0); % Mode 4.       
+            [fluidH(ii),gas,~,i] = hex_TQ(fluidH(ii),[iL,1],gas,[iL,i],eff,ploss,'hex',4, THoutMAX); % Mode 4.       
             iH = ii ;
         end
         iH = iH + 1 ;
