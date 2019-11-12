@@ -1,4 +1,4 @@
-function [fluidH, fluidC, iH, iC] = hex_TQ(fluidH, indH, fluidC, indC, eff, ploss, stage_type, mode, par)
+function [fluidH, fluidC, iH, iC, varargout] = hex_TQ(fluidH, indH, fluidC, indC, eff, ploss, stage_type, mode, par)
 % RESOLVE HEX T-Q DIAGRAM FOR A GIVEN EFFECTIVENESS
 
 % DESCRIPTION
@@ -301,7 +301,28 @@ end
 iH = indH(2) + 1;
 iC = indC(2) + 1;
 
+% Set variable argument outputs
+if nargout == 4
+elseif nargout == 5
+    [~,~,TC,TH,QS] = DTmin(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,n,'hH1',hH1);
+    HX.C.name = fluidC.name;
+    HX.H.name = fluidH.name;
+    HX.C.pin  = pC1;
+    HX.H.pin  = pH2;
+    HX.C.T = TC;
+    HX.H.T = TH;
+    HX.QS  = QS;
+    HX.AS  = [];
+    varargout{1} = HX;
+else
+    error('not implemented')
 end
+
+end
+
+
+%%% SUPPORT FUNCTIONS %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function [ hv, Tv ] = get_h_T( fluid, T1, T2, pressure, n )
 % Obtain the hv and Tv arrays of a given fluid for the hex subroutines.
@@ -412,7 +433,7 @@ end
 
 if nargout == 1
     varargout{1} = solution;
-else
+elseif nargout == 5
     varargout{1} = solution;
     varargout{2} = DT;
     varargout{3} = TC;

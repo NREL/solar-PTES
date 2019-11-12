@@ -105,8 +105,8 @@ toc %stop timer
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if make_plots
     switch Load.mode
-        case {0,3} % PTES
-            %PTES_PLOT_HEXS
+        case {0,3,4} % PTES
+            PTES_PLOT_HEXS
             if optimise
                 PTES_PLOT_GOLDEN_SEARCH
             end
