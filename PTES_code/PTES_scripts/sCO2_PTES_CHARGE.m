@@ -64,7 +64,8 @@ while 1
             fluidH(ii).state(iL,1).T = HT(ii).A(iL).T; fluidH(ii).state(iL,1).p = HT(ii).A(iL).p; %#ok<*SAGROW>
             [fluidH(ii)] = update(fluidH(ii),[iL,1],1);
             if ii == 1
-                [gas,fluidH(ii),i,~] = hex_TQ(gas,[iL,i],fluidH(ii),[iL,1],eff,ploss,'hex',1,1); % Mode 1: don't know hot fluid mdot. Crat = 1
+                %[gas,fluidH(ii),i,~] = hex_TQ(gas,[iL,i],fluidH(ii),[iL,1],eff,ploss,'hex',1,1); % Mode 1: don't know hot fluid mdot. Crat = 1
+                [gas,fluidH(ii),i,zzz,HX1] = hex_TQ(gas,[iL,i],fluidH(ii),[iL,1],eff,ploss,'hex',1,1);
             else
                 TCoutMIN = fluidH(ii-1).state(iL,1).T ;
                 [gas,fluidH(ii),i,~] = hex_TQ(gas,[iL,i],fluidH(ii),[iL,1],eff,ploss,'hex',3,TCoutMIN); % Mode 3. 
