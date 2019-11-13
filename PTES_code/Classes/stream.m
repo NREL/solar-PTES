@@ -29,6 +29,7 @@ classdef stream
         h
         s
         rho
+        v
         mu
         k
         Pr

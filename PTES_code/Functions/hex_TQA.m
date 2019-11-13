@@ -172,8 +172,6 @@ end
 iH = indH(2) + 1;
 iC = indC(2) + 1;
 
-
-
 end
 
 
@@ -271,16 +269,16 @@ for iI = 1:NI
     AC  = sum(dAC);
     
     % COMPUTE PRESSURE PROFILES
-    % Create averaged arrays of Cf and rho
-    Cf_H  = 0.5*(H.Cf(1:NX)  + H.Cf(2:NX+1));
-    rho_H = 0.5*(H.rho(1:NX) + H.rho(2:NX+1));
-    Cf_C  = 0.5*(C.Cf(1:NX)  + C.Cf(2:NX+1));
-    rho_C = 0.5*(C.rho(1:NX) + C.rho(2:NX+1));
+    % Create averaged arrays of Cf and v
+    Cf_H = 0.5*(H.Cf(1:NX) + H.Cf(2:NX+1));
+    v_H  = 0.5*(H.v(1:NX)  + H.v(2:NX+1));
+    Cf_C = 0.5*(C.Cf(1:NX) + C.Cf(2:NX+1));
+    v_C  = 0.5*(C.v(1:NX)  + C.v(2:NX+1));
     % Obtain dL from dAC and AC
-    dL = dAC/AC;
+    dL = dAC/AC*HX.L;
     % Compute arrays of pressure loss
-    Dp_H = - 2*H.G^2*Cf_H.*dL./(rho_H*H.D);
-    Dp_C = - 2*C.G^2*Cf_C.*dL./(rho_C*C.D);
+    Dp_H = - 2*H.G^2*Cf_H.*v_H.*dL./H.D;
+    Dp_C = - 2*C.G^2*Cf_C.*v_C.*dL./C.D;
     % Update pressure profiles
     for i=NX+1:-1:2
         H.p(i-1) = H.p(i) + Dp_H(i-1);
