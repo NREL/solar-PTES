@@ -2,11 +2,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Set atmospheric conditions and cycle parameters
-T0      = 27 + 273.15;  % ambient temp, K
+T0      = 30 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
-pmax    = 100e5;        % top pressure, Pa
+pmax    = 80e5;        % top pressure, Pa
 PRch    = 3.5;          % charge pressure ratio
-PRr     = 1.3;          % discharge pressure ratio: PRdis = PRch*PRr
+PRr     = 1.05;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 1;            % set Tmax? (this option substitutes PRch)
@@ -14,6 +14,7 @@ Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
 Ne_ch = 2; % number of expansions during charge
+
 % Hot storage tanks
 fHname  = 'SolarSalt';  % fluid name
 TH_dis0 = 230 + 273.15; % initial temperature of discharged hot fluid, K
@@ -21,6 +22,7 @@ MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
 TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
 MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
 nH      = Nc_ch;        % number of hot fluid streams
+Nhot = 1;               % number of hot tanks
 % Cold storage tanks
 fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
 TC_dis0 = T0;           % initial temperature of discharged cold fluid, K
@@ -28,10 +30,11 @@ MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
 TC_chg0 = T0-50;        % initial temperature of charged cold fluid, K
 MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
 nC      = Ne_ch;        % number of cold fluid streams
+Ncld = 1;               % number of cold tanks
 
 % The Load structure stores information about the duration, type of cycle
 % (charge, storage or discharge) and mass flow rate of each time period.
-Load.mode = 3;
+Load.mode = 0;
 switch Load.mode
     case 0 % PTES
         Load.time = [10;10;4;10].*3600;        % time spent in each load period, s
@@ -62,7 +65,9 @@ Load.ind = 1:Load.num;
 % elements in state arrays.
 % Working fluid
 gas = fluid_class('Nitrogen','WF','CP','TTSE',Load.num,30);
-if Load.mode ==3, steam(1:3) = fluid_class('Water','WF','CP','TTSE',Load.num,30); end
+if Load.mode ==3
+    steam = fluid_class('Water','WF','CP','TTSE',Load.num,30);
+end
 % Storage fluids
 fluidH(1:nH) = fluid_class(fHname,'SF','TAB',NaN,Load.num,10);
 fluidC(1:nC) = fluid_class(fCname,'SF','TAB',NaN,Load.num,10);

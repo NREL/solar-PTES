@@ -29,6 +29,7 @@ classdef stream
         h
         s
         rho
+        v
         mu
         k
         Pr
@@ -42,6 +43,7 @@ classdef stream
         Cp_AV
         % Geometry
         A
+        Af
         Ax
         D
         G

@@ -39,7 +39,7 @@ while 1
         % COOL (gas-liquid)
         fluidH(iH).state(iL,1).T = HT.A(iL).T; fluidH(iH).state(iL,1).p = HT.A(iL).p; %#ok<*SAGROW>
         [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
-        [gas,fluidH(iH),i,~] = hex_TQ(gas,[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',1,1.0);
+        [gas,fluidH(iH),i,zzz,HX1] = hex_TQ(gas,[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',1,1.0);
         iH=iH+1;
     end    
     if setTmax, PRch = ptop/pbot; end

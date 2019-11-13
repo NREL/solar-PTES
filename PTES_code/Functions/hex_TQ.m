@@ -1,4 +1,4 @@
-function [fluidH, fluidC, iH, iC] = hex_TQ(fluidH, indH, fluidC, indC, eff, ploss, stage_type, mode, par)
+function [fluidH, fluidC, iH, iC, varargout] = hex_TQ(fluidH, indH, fluidC, indC, eff, ploss, stage_type, mode, par)
 % RESOLVE HEX T-Q DIAGRAM FOR A GIVEN EFFECTIVENESS
 
 % DESCRIPTION
@@ -69,8 +69,8 @@ mH = stateH.mdot;
 mC = stateC.mdot;
 
 % Obtain temperature arrays as a function of the enthalpy arrays
-[hvH,TvH] = get_h_T(fluidH,TC1-1,TH2+1,pH2,n);
-[hvC,TvC] = get_h_T(fluidC,TC1-1,TH2+1,pC1,n);
+[hvH,TvH] = get_h_T(fluidH,TC1-5,TH2+5,pH2,n);
+[hvC,TvC] = get_h_T(fluidC,TC1-5,TH2+5,pC1,n);
 
 % Obtain preliminary minimum and maximum enthalpy outlets (hot outlet
 % cannot be colder than cold inlet, and vice-versa)
@@ -189,7 +189,7 @@ switch mode
         % Find value of mC for which DTmin = 0, using golden search method
         f2    = @(mC) DTmin(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,n,'hC2',hC2);
         TolX  = (mCmax - mCmin)/1e4; %tolerance
-        options = optimset('TolX',TolX,'Display','iter');
+        options = optimset('TolX',TolX);%,'Display','iter');
         mC   = fminbnd(f2,mCmin,mCmax,options);
         
         % Compute QMAX and QT (actual heat transfer based on heat exchanger
@@ -201,7 +201,7 @@ switch mode
         mC = QT/(hC2 - hC1);
         stateC.mdot = mC;
         hH1 = hH2 - QT/mH;
-        keyboard
+        %keyboard % Ok to ignore this?
         
     case 4
         
@@ -301,7 +301,28 @@ end
 iH = indH(2) + 1;
 iC = indC(2) + 1;
 
+% Set variable argument outputs
+if nargout == 4
+elseif nargout == 5
+    [~,~,TC,TH,QS] = DTmin(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,n,'hH1',hH1);
+    HX.C.name = fluidC.name;
+    HX.H.name = fluidH.name;
+    HX.C.pin  = pC1;
+    HX.H.pin  = pH2;
+    HX.C.T = TC;
+    HX.H.T = TH;
+    HX.QS  = QS;
+    HX.AS  = [];
+    varargout{1} = HX;
+else
+    error('not implemented')
 end
+
+end
+
+
+%%% SUPPORT FUNCTIONS %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function [ hv, Tv ] = get_h_T( fluid, T1, T2, pressure, n )
 % Obtain the hv and Tv arrays of a given fluid for the hex subroutines.
@@ -412,7 +433,7 @@ end
 
 if nargout == 1
     varargout{1} = solution;
-else
+elseif nargout == 5
     varargout{1} = solution;
     varargout{2} = DT;
     varargout{3} = TC;

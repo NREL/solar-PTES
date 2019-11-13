@@ -33,7 +33,7 @@ set_graphics
 load_coolprop
 
 % SET INPUTS
-PTES_INPUTS
+PTES_INPUTS_test
 
 % Open the output files and print the headers
 PTES_MANAGE_FILES
@@ -71,6 +71,12 @@ for ix = 1:1
                         
                     case 'sol'
                         PTES_SOLAR_TANKS
+                        
+                    case 'chgCO2'
+                        sCO2_PTES_CHARGE
+                    
+                    case 'disCO2'
+                        sCO2_PTES_DISCHARGE
                 end
             end
             
@@ -99,17 +105,12 @@ toc %stop timer
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if make_plots
     switch Load.mode
-        case {0,3} % PTES
-            PTES_WRITE_CHARGE
-            PTES_WRITE_DISCHARGE
-            %PTES_PLOT_HEXS
+        case {0,3,4} % PTES
+            PTES_PLOT_HEXS
             if optimise
                 PTES_PLOT_GOLDEN_SEARCH
             end
-        case 1 % Heat pump only
-            PTES_WRITE_CHARGE
         case 2 % Heat engine only
-            PTES_WRITE_DISCHARGE
             if optimise
                 PTES_PLOT_GOLDEN_SEARCH
             end

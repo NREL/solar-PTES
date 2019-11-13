@@ -38,7 +38,8 @@ mC  = stateC.mdot;
 % Obtain total heat transfer
 QTH = stageH.Dh*mH;
 QT  = stageC.Dh*mC;
-if abs((QTH+QT)/QT) > 1e-6
+if abs((QTH+QT)/QT) > 1e-4 % What is the decision behind this value? (Was 1e-6 before). Maybe should throw a warning elsewhere if there are energy balance problems rather than crashing the program.
+    abs((QTH+QT)/QT)
     error('incorrect energy balance')
 end
 

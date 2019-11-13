@@ -33,10 +33,10 @@ load_coolprop
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Choose scenario
-% 1 = Air and air
+% 1 = Helium and Helium
 % 2 = SolarSalt and Water
 % 3 = CO2 and Water
-scenario = 3;
+scenario = 1;
 
 % Set indices
 iL = 1; i1 = 1; i2 = 1;
@@ -44,14 +44,14 @@ iL = 1; i1 = 1; i2 = 1;
 % Declare fluids and specify initial conditions
 switch scenario
     case 1
-        % Air (hot, high pressure)
-        F1 = fluid_class('Air','WF','CP','HEOS',1,5);
+        % Helium (hot, high pressure)
+        F1 = fluid_class('Argon','WF','CP','TTSE',1,5);
         F1.state(iL,i1).p = 100e5;
         F1.state(iL,i1).T = 600;
         F1.state(iL,i1).mdot = 10;
         
-        % Air (cold, low pressure)
-        F2 = fluid_class('Air','WF','CP','HEOS',1,5);
+        % Helium (cold, low pressure)
+        F2 = fluid_class('Argon','WF','CP','TTSE',1,5);
         F2.state(iL,i2).p = 20e5;
         F2.state(iL,i2).T = 300;
         F2.state(iL,i2).mdot = 10;
@@ -108,7 +108,7 @@ switch method
         HX.L         = 3.0;        % Tube length, m
         HX.D1        = 0.5e-2;     % Tube diameter, m
         HX.t1        = 0.1*HX.D1;  % Tube thickness, m
-        HX.AfT       = 1.0;        % Total flow area, m2
+        HX.AfT       = 0.25;        % Total flow area, m2
         HX.AfR       = 1.00;       % Ratio of flow areas, Af2/Af1, -
         
     case 'automatic'
@@ -119,12 +119,11 @@ switch method
         eff   = 0.97;
         ploss = 0.01;
         warning('under development')
-        keyboard
-        [HX]  = set_hex_geom(F1,[iL,i1],F2,[iL,i2],eff,ploss,hex_mode,var);
+        [HX]  = set_hex_geom(F1,[iL,i1],F2,[iL,i2],eff,ploss,5e-3,0.5e-3,1e8,hex_mode,var);
 end
 
 % Hex code settings
-HX.NX = 1000;               % Number of sections (grid)
+HX.NX = 100;               % Number of sections (grid)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -134,14 +133,35 @@ HX.NX = 1000;               % Number of sections (grid)
 [F1] = update(F1,[iL,i1],1);
 [F2] = update(F2,[iL,i2],1);
 
-% Run HEX code
-[F1,F2,~,~,HX] = hex_TQA(F1,[iL,i1],F2,[iL,i2],HX,'hex',hex_mode,var);
+mdot = F1.state(iL,i1).mdot*linspace(0.6,1.4,20);
+NU_eff = zeros(size(mdot));
+AN_eff = zeros(size(mdot));
+for im = 1:length(mdot)
+    F1.state(iL,i1).mdot = mdot(im);
+    % Run HEX code
+    [F1,F2,~,~,HX] = hex_TQA(F1,[iL,i1],F2,[iL,i2],HX,'hex',hex_mode,var);
+    
+    % Compare numerical results (NU) with analytical results (AN)
+    NU_eff(im)  = HX.QS(HX.NX+1)/HX.QMAX;
+    NU_DppH = (HX.H.pin-HX.H.p(1))./HX.H.pin;
+    NU_DppC = (HX.C.pin-HX.C.p(HX.NX+1))./HX.C.pin;
+    [AN_eff(im),AN_DppH,AN_DppC] = hex_analytic(F1,[iL,i1],F2,[iL,i2],HX);
+    fprintf(1,'\n      Numerical  Analytical\n')
+    fprintf(1,'Eff  = %8.3f   %9.3f\n',NU_eff(im),AN_eff(im))
+    fprintf(1,'DppH = %8.5f   %9.5f\n',NU_DppH,AN_DppH)
+    fprintf(1,'DppC = %8.5f   %9.5f\n',NU_DppC,AN_DppC)
+end
+figure(25)
+plot(mdot,NU_eff,mdot,AN_eff)
+xlabel('mass flow rate')
+ylabel('effectiveness')
+legend('numerical','analytical')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 %%% MAKE PLOTS %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-plot_hex_TQA(HX,'C');
+% Make plots
+plot_hex_TQA(HX,20,'C');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
