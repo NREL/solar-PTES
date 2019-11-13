@@ -1,14 +1,15 @@
 classdef compexp_class
     properties
-        type     % "CMP" or "EXP"
-        aim_mode % "Paim" or "Taim"
-        eff_mode % "isen" or "poly"
+        type      % "CMP" or "EXP"
+        aim_mode  % "Paim" or "Taim"
+        eff_mode  % "isen" or "poly"
         eta0  = 0 % Design value of isen/polytropic efficiency
         mdot0 = 0 % Design mass flow rate, kg/s
+        pr0   = 0 % Design pressure ratio
                 
         % Following variables are arrays (one for each time period)
         pr      % Pressure ratio
-        eta     % Efficiencies that is used in calculations 
+        eta     % Efficiency that is used in calculations 
         
         w    = 0 % specific work transfer, J/kg
         q    = 0 % specific heat transfer, J/kg
@@ -23,7 +24,8 @@ classdef compexp_class
         Sirr = 0 % entropy generation, W/K
         
         % Economics
-        cost
+        COST    % Cost in USD
+        cost    % 'Specific cost' =  COST / WORK
         cost_mode
         rhoP    % design point power density
         sd      % Standard deviation (for uncertainty analysis)
@@ -60,7 +62,7 @@ classdef compexp_class
 
             % Import fluid.state and fluid.stage
             state = fluid.state(ind(1),ind(2));
-            stage = fluid.stage(ind(1),ind(2));
+            stage = fluid.stage(ind(1),ind(2)); % delete this eventually
             
             % Extract initial conditions
             T1   = state.T;
@@ -68,11 +70,15 @@ classdef compexp_class
             h1   = state.h;
             s1   = state.s;
             rho1 = state.rho;
+            obj.mdot(ind(1)) = state.mdot ;
             
             % Extract eta for this time period
-            obj.eta(ind(1)) = obj.eta0 ; % For time being set all effs to be the design value (call a function in future)
+            obj = compexp_offdesign (obj , ind(1) , 1) ;
             etaI = obj.eta(ind(1)) ;
             
+            
+            % EXPECT ALL OF THIS COULD BE MOVED INTO CLASS CONSTRUCTOR AND
+            % THEREFORE ONLY CALCULATED ONCE >>>>
             if strcmp(obj.type,'CMP') && strcmp(obj.aim_mode,'Taim') && strcmp(obj.eff_mode,'poly') 
                 mode = 0 ;
             elseif strcmp(obj.type,'EXP') && strcmp(obj.aim_mode,'Paim') && strcmp(obj.eff_mode,'poly') 
@@ -88,7 +94,9 @@ classdef compexp_class
             else
                 error('Not implemented')
             end
+            % <<<< MOVE TO CONSTRUCTOR?
             
+            % DELETE THIS EVENTUALLY? >>>
             % Determine whether it is a compression or an expansion process. Legend:
             % mode = 0: compressor. final temperature is specified
             % mode = 1: expander.   final pressure is specified
@@ -105,6 +113,7 @@ classdef compexp_class
             else
                 error('***Mode not implemented***')
             end
+            % <<<< DELETE THIS EVENTUALLY?
             
             % Set number of sections
             num = 100;
@@ -147,6 +156,12 @@ classdef compexp_class
             state.p = p2;
             state   = update_state(state,fluid.handle,fluid.read,fluid.TAB,2);
             
+            obj.Dh   = state.h - h1;
+            obj.q    = 0;
+            obj.w    = -stage.Dh;
+            obj.sirr = state.s - s1;
+            
+            % DELETE THIS EVENTUALLY >>
             % Compute energy flows along stage
             stage.Dh   = state.h - h1;
             stage.q    = 0;
@@ -159,6 +174,8 @@ classdef compexp_class
             
             %Increase stage counter
             i = ind(2)+1;
+            
+            % << DELETE THIS EVENTUALLY 
             
             function h2 = nested_compexp(fluid,p1,h1,s1,rho1,p2,eta,n,num)
                 % Use isentropic efficiency as an initial guess to speed things up
@@ -209,6 +226,61 @@ classdef compexp_class
             
         end
         
+        % Calculate the off-design performance of the compressor given how
+        % the mass flow or pressure ratio deviate from the design point
+        function obj = compexp_offdesign(obj,i,mode)
+            % i is the current timestep
+            % Mode 1: Specify current mass flow rate
+            % Mode 2:
+            if obj.type == "CMP"
+                switch mode
+                    case 1
+                        % Currently do not have an off-design map
+                        obj.eta(i) = obj.eta0 * obj.mdot(i) / obj.mdot0 ;
+                    case 2
+                        error('Not implemented')
+                end
+            elseif obj.type == "EXP"
+                switch mode
+                    case 1
+                        % Currently do not have an off-design map
+                        obj.eta(i) = obj.eta0 * obj.mdot(i) / obj.mdot0 ;
+                    case 2
+                        error('Not implemented')
+                end
+            end
+        end
+        
+        
+        % Calculate energy totals for each load cycle
+        function obj = compexp_energy(obj,T)
+            % T is the duration of the load cycle in seconds
+            obj.W    = obj.w * obj.mdot * T ;
+            obj.Q    = obj.q * obj.mdot * T ;
+            obj.DH   = obj.dh * obj.mdot * T ;
+            obj.Sirr = obj.sirr * obj.mdot * T ;
+        end
+               
+        % Calculate the economic cost of the compressor or expander
+        function obj = compexp_econ(obj)
+            mode = obj.cost_mode ;
+            
+            % Expect many, many correlations may be added to this
+            switch mode
+                case 0
+                    % "1 $/W" approximation
+                    obj.COST = 1 * obj.W ;
+                    obj.cost = obj.COST / obj.W ;   % This looks silly now but will be informative when more detailed correlations are used
+                case 1
+                    % Cost for an sCO2 compressor developed by Carlson et al. 2017
+                    % See equation C6 in Q2 solar-PTES report
+                    obj.COST = 6998 * obj.W ^ 0.7865 ;
+                    obj.cost = obj.COST / obj.W ;
+                case 2
+                    error('Not implemented')
+            end
+            
+        end
         
         
     end
