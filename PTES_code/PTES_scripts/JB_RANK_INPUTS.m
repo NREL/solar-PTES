@@ -9,6 +9,10 @@ PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 1;            % set Tmax? (this option substitutes PRch)
 Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 
+% Set Rankine-specific parameters
+Ran_ptop = 100e5;
+Ran_Tbot = T0+15;
+
 % Set component parameters
 eta   = 0.90;  % polytropic efficiency
 eff   = 0.97;  % heat exchanger effectiveness

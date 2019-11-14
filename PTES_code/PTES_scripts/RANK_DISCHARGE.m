@@ -20,19 +20,18 @@
 % 18: Mixer outlet (end secondary stream B)
 %%%%%%%%%%%%%%%%%%%%
 
-%%% INPUTS %%%
-%%%%%%%%%%%%%%
-Ran_ptop = 120e5;
-Ran_Tbot = T0+15;
+% Set main pressure and temperature levels along the cycle (apart from
+% Ran_ptop and Ran_Tbot, defined in INPUTS file)
 Ran_pbot = CP1('QT_INPUTS',0.0,Ran_Tbot,'P',steam.handle);
 PR_dis   = Ran_ptop/Ran_pbot;
 Ran_pmid1 = Ran_ptop/(PR_dis)^(1/3);  % pressure at HPT outlet
 Ran_pmid2 = Ran_pmid1/(PR_dis)^(1/3); % pressure at IPT outlet
-% Initial guesses
-Ttop = HT.B(iL).T;
-x1   = 0.10; % mass fraction of first steam extraction
-x2   = 0.08; % mass fraction of second steam extraction
-%%%%%%%%%%%%%%
+Ran_Tmid1 = CP1('PQ_INPUTS',Ran_pmid1,0.0,'T',steam.handle); %wet saturated temp1
+Ran_Tmid2 = CP1('PQ_INPUTS',Ran_pmid2,0.0,'T',steam.handle); %wet saturated temp2
+
+% Set indices for first and second pump outlets
+iP2 = 11; % same pressure as HPT outlet
+iP1 = 9;  % same pressure as IPT outlet
 
 % Set indices for secondary streams A and B
 iSA = 15;
@@ -40,18 +39,27 @@ iSB = 17;
 
 % Initial guess of discharge conditions (Point 1)
 i = 1;
-steam.state(iL,i).T = Ttop;
+steam.state(iL,i).T = HT.B(iL).T;
 steam.state(iL,i).p = Ran_ptop;
 steam.state(iL,i).mdot = Load.mdot(iL);
 [steam] = update(steam,[iL,i],1);
 
-% % Initial guess of conditions at points 8 (condenser outlet) and 9 (first
-% % pump outlet) (not implemented yet)
-% i = 8;
-% steam.state(iL,i).T = Ran_Tbot - 2;
-% steam.state(iL,i).p = Ran_pbot*(1 - ploss);
-% steam.state(iL,i).mdot = Load.mdot(iL)*(1-x1)*(1-x2);
-% [steam] = update(steam,[iL,i],1);
+% Initial guess of conditions at point 11 (second pump outlet). This is
+% necessary to predict the x1 fraction to obtain wet saturated steam at
+% point 12.
+i = 11;
+steam.state(iL,i).T = Ran_Tmid2;
+steam.state(iL,i).p = Ran_pmid1;
+[steam] = update(steam,[iL,i],1);
+
+% Initial guess of conditions at point 9 (first pump outlet). This is
+% necessary to predict the x2 fraction to obtain wet saturated steam at
+% point 10.
+i = 9;
+steam.state(iL,i).T = Ran_Tbot;
+steam.state(iL,i).p = Ran_pmid2;
+[steam] = update(steam,[iL,i],1);
+
 
 % Set matrix of temperature and pressure points to test convergence
 A_0 = [[steam.state(iL,:).T];[steam.state(iL,:).p]];
@@ -66,9 +74,18 @@ while 1
     % EXPAND (1-->2)
     [steam,i] = compexp(steam,[iL,i],eta,Ran_pmid1,4);
     
-%     % Predict how much steam should be separated and mixed with water from
-%     % point 11 (second pump outlet) in order to obtain wet saturated
-%     % conditions (not implemented yet)
+    % FIND x1 %
+    %%%%%%%%%%%
+    % x1 is the fraction of steam for the first steam extraction). It is
+    % set to ensure that pump inlet temperature is just below wet saturated
+    % conditions
+    f1 = @(x1) dT_from_mix_obj(x1,steam,iL,i,iSA,iP2,Ran_Tmid1-1);
+    %plot_function(f1,0.0,1.0,100,10)
+    %TolX = 1e-6; %tolerance
+    %options = optimset('TolX',TolX,'Display','iter');
+    x1  = fzero(f1,[0.0,0.5]);%,options);
+    %keyboard
+    %%%%%%%%%%%
     
     % SEPARATE (2-->3)
     [steam,i] = split_stream(steam,iL,i,iSA,x1);
@@ -81,6 +98,19 @@ while 1
     
     % EXPAND (4-->5)
     [steam,i] = compexp(steam,[iL,i],eta,Ran_pmid2,4);
+    
+    % FIND x2 %
+    %%%%%%%%%%%
+    % x2 is the fraction of steam for the second steam extraction). It is
+    % set to ensure that pump inlet temperature is just below wet saturated
+    % conditions
+    f2 = @(x2) dT_from_mix_obj(x2,steam,iL,i,iSB,iP1,Ran_Tmid2-1);
+    %plot_function(f1,0.0,1.0,100,10)
+    %TolX = 1e-6; %tolerance
+    %options = optimset('TolX',TolX,'Display','iter');
+    x2  = fzero(f2,[0.0,0.5]);%,options);
+    %keyboard
+    %%%%%%%%%%%
     
     % SEPARATE (5-->6)
     [steam,i] = split_stream(steam,iL,i,iSB,x2);
@@ -156,9 +186,9 @@ while 1
     end
 end
 
-print_states(steam,iL,1:(steam.Nstg(iL)+1),Load)
-print_states(fluidH(1),iL,1:2,Load)
-print_states(fluidH(2),iL,1:2,Load)
+% print_states(steam,iL,1:(steam.Nstg(iL)+1),Load)
+% print_states(fluidH(1),iL,1:2,Load)
+% print_states(fluidH(2),iL,1:2,Load)
 
 % Compute temperatures and mass of the sink tanks. Assume complete
 % depletion of (at least) one of the source tanks to stablish
@@ -177,3 +207,26 @@ Load.time(iL) = min([Load.time(iL),t_dis])*(1-1e-6);
 % process.
 CT.A(iL+1) = CT.A(iL);
 CT.B(iL+1) = CT.B(iL);
+
+
+%%% SUPPORT FUNCTIONS %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function err = dT_from_mix_obj(x1,steam,iL,i,iS,iP,T_obj)
+% Obtain the difference in temperature between objective and computed
+% values, after steam separation and feed water heating.
+
+% Update mass flow rate at point iP
+steam.state(iL,iP).mdot = steam.state(iL,i).mdot*(1-x1);
+
+% Separate stream at point i, obtain stream at point iS
+[steam,~] = split_stream(steam,iL,i,iS,x1);
+
+% Mix stream at point iP with stream at point iS
+[steam,i,~] = mix_streams(steam,[iL,iP],[iL,iS]);
+
+% Compare temperature with objective temperature
+T = steam.state(iL,i).T;
+err = T - T_obj;
+
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

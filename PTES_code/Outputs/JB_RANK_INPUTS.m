@@ -9,6 +9,10 @@ PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 1;            % set Tmax? (this option substitutes PRch)
 Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 
+% Set Rankine-specific parameters
+Ran_ptop = 100e5;
+Ran_Tbot = T0+15;
+
 % Set component parameters
 eta   = 0.90;  % polytropic efficiency
 eff   = 0.97;  % heat exchanger effectiveness
@@ -16,9 +20,9 @@ ploss = 0.01;  % pressure loss in HEXs
 
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
-Ne_ch = 1; % number of expansions during charge
-nH    = Nc_ch;        % number of hot fluid streams
-nC    = Ne_ch;        % number of cold fluid streams
+Ne_ch = 2; % number of expansions during charge
+nH    = max([2,Nc_ch]); % number of hot fluid streams
+nC    = Ne_ch;          % number of cold fluid streams
 
 % Number of hot and cold stores IN SERIES
 Ncld = 1; % number of cold stores. Not implemented for >2
@@ -51,7 +55,6 @@ MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
 % Working fluid
 gas = fluid_class('Nitrogen','WF','CP','TTSE',Load.num,30);
 steam = fluid_class('Water','WF','CP','TTSE',Load.num,30);
-
 
 % Save copy of input file in "Outputs" folder
 copyfile(['./PTES_scripts/',mfilename,'.m'],'./Outputs/')
