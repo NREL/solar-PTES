@@ -22,7 +22,7 @@
 
 %%% INPUTS %%%
 %%%%%%%%%%%%%%
-Ran_ptop = 100e5;
+Ran_ptop = 120e5;
 Ran_Tbot = T0+15;
 Ran_pbot = CP1('QT_INPUTS',0.0,Ran_Tbot,'P',steam.handle);
 PR_dis   = Ran_ptop/Ran_pbot;
@@ -76,7 +76,7 @@ while 1
     % REHEAT (gas-liquid) (3-->4)
     fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p;
     [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
-    [steam,fluidH(iH),i,~] = hex_TQ(steam,[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',2,1.0);
+    [steam,fluidH(iH),i,~,HX_REHEAT] = hex_TQ(steam,[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',2,1.0);
     iH = iH + 1;
     
     % EXPAND (4-->5)
@@ -115,7 +115,7 @@ while 1
     fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p; %#ok<*SAGROW>
     [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
     Taim = HT.A(iL).T;
-    [steam,fluidH(iH),i,~] = hex_TQ(steam,[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',4,Taim);
+    [steam,fluidH(iH),i,~,HX_BOILER] = hex_TQ(steam,[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',4,Taim);
     iH = iH + 1;
     
 %     % Define heat exchanger geometry    

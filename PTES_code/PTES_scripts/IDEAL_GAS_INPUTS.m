@@ -3,7 +3,7 @@ T0      = 30 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 25e5;         % top pressure, Pa
 PRch    = 3.0;          % charge pressure ratio
-PRr     = 1.0;          % discharge pressure ratio: PRdis = PRch*PRr
+PRr     = 1.2;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 1;            % set Tmax? (this option substitutes PRch)
