@@ -303,6 +303,7 @@ iC = indC(2) + 1;
 
 % Set variable argument outputs
 if nargout == 4
+    varargout = {};
 elseif nargout == 5
     [~,~,TC,TH,QS] = DTmin(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,n,'hH1',hH1);
     HX.C.name = fluidC.name;

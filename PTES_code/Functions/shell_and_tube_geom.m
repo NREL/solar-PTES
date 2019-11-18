@@ -21,12 +21,14 @@ if C.pin >= H.pin
     p1 = C.pin;
     m1 = C.mdot;
     m2 = H.mdot;
-else
+elseif C.pin < H.pin
     % Hot stream is high pressure stream (tube side). Cold stream is low
     % pressure stream (shell side).
     p1 = H.pin;
     m1 = H.mdot;
     m2 = C.mdot;
+else
+    error('C.pin and H.pin must be defined')
 end
 
 % Extract parameters from HX structure
@@ -34,14 +36,12 @@ L     = HX.L;   % Length, m
 AfT   = HX.AfT; % Total flow area = Af1 + Af2, m2
 AfR   = HX.AfR; % Flow area ratio = Af2/Af1
 D1    = HX.D1;  % Tube diameter, m
-t1    = HX.t1;  % Tube thickness, m
 sigma = HX.sigma; % Maximum allowable stress, Pa
+t1_min    = HX.t1_min;    % Minimum tube thickness, m
+t1_D1_min = HX.t1_D1_min; % Minimum tube thickness-to-diameter ratio
 
 % Check that tube thickness is sufficient to withstand internal pressure
-hoop = p1*D1/(2*t1);
-if hoop >= 0.5*sigma
-    warning('Tube thickness might not be enough to withstand pressure!');
-end
+t1 = max([t1_min,t1_D1_min*D1,D1*p1/sigma]);
 
 % Obtain flow areas and number of tubes
 Af1  = AfT/(AfR+1);
@@ -65,6 +65,7 @@ D2 = 4*Af2/(pi*(D1+t1)*N1); %must check if this is independent of lattice config
 Vm = (pi/4*(D1+t1)^2*N1 - Af1)*L;
 
 % Export computed variables for output
+HX.t1  = t1;
 HX.N1  = N1;
 HX.D2  = D2;
 HX.G1  = G1;

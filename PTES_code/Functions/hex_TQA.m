@@ -1,4 +1,4 @@
-function [fluidH, fluidC, iH, iC, HX] = hex_TQA(fluidH, indH, fluidC, indC, HX, stage_type, mode, var)
+function [fluidH, fluidC, iH, iC, HX, varargout] = hex_TQA(fluidH, indH, fluidC, indC, HX, stage_type, mode, var)
 % RESOLVE HEX T-Q DIAGRAM FOR A GIVEN EFFECTIVENESS
 
 % Set number of sections for hex_core algorithm
@@ -83,8 +83,8 @@ switch mode
 end
 
 % Declare the two fluid streams
-H = stream; H.mdot = mH; H.name = fluidH.name;
-C = stream; C.mdot = mC; C.name = fluidC.name;
+H = stream; H.mdot = mH; H.name = fluidH.name; H.pin = pH2;
+C = stream; C.mdot = mC; C.name = fluidC.name; C.pin = pC1;
 
 % Compute derived geometric parameters and mass fluxes
 [C, H, HX] = shell_and_tube_geom(C, H, HX);
@@ -96,7 +96,6 @@ hH1_min = hH2 - QMAX/mH;
 
 % Set initial conditions for iteration procedure
 % Pressures
-H.pin = pH2; C.pin = pC1;
 H.p = ones(NX+1,1)*H.pin;
 C.p = ones(NX+1,1)*C.pin;
 
@@ -108,7 +107,7 @@ options = optimset('TolX',TolX,'Display','notify');
 hH1  = fminbnd(f1,hH1_min,hH2,options);
 
 % Obtain output parameters for converged solution
-[~,C,H,~,~] = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
+[~,C,H,QS,AS] = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
 
 % Update states
 stateH.h = H.h(1);    
@@ -138,8 +137,15 @@ if strcmp(stage_type,'regen')
     stageH.sirr=0; %to avoid counting the lost work twice
 end
 
+% Compute QMAX. Find the value of hH1 for which DTmin = 0, using golden
+% search method
+f1   = @(hH1) DTmin(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,length(hvH),'hH1',hH1);
+TolX = (hH2-hH1_min)/1e4; %tolerance
+options = optimset('TolX',TolX);%,'Display','iter');
+hH1_0  = fminbnd(f1,hH1_min,hH2,options);
+QMAX = mH*(hH2 - hH1_0);
+
 % Save data for plots (use with plot_hex_TQA function)
-[~,C,H,QS,AS] = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
 HX.C  = C;
 HX.H  = H;
 HX.QS = QS;
@@ -171,6 +177,17 @@ end
 % Increase stage counter
 iH = indH(2) + 1;
 iC = indC(2) + 1;
+
+if nargout == 5
+    varargout = {};
+elseif nargout == 6
+    % Additionally return the effectiveness and pressure drops of each
+    % channel
+    eff = QS(NX+1)/QMAX;
+    ploss1 = (C.pin - C.p(NX+1))/C.pin;
+    ploss2 = (H.pin - H.p(1))/H.pin;
+    varargout{1} = [1-eff,ploss1,ploss2];
+end
 
 end
 
@@ -225,9 +242,9 @@ C.h = hC1 + QS/mC;
 % Create array to check convergence. First element is computed heat
 % transfer area. Later come the pressure points along each stream
 CON_0 = [0; H.p; C.p]; % initial value
-NI    = 10;
+NI    = 50;
 RES   = zeros(1,NI); % residuals
-TOL   = 1e-4;
+TOL   = 1e-3;
 impossible = false; %indicades impossible situation
 for iI = 1:NI
     
@@ -292,8 +309,12 @@ for iI = 1:NI
     cond2 = H.p < 0.2*H.pin;
     C.p(cond1) = 0.2*C.pin;
     H.p(cond2) = 0.2*H.pin;
-    if any(cond1),warning('DpC exceeds 20%!');end
-    if any(cond2),warning('DpH exceeds 20%!');end
+    %     if any(cond1)
+    %         warning('DpC exceeds 20%!');
+    %     end
+    %     if any(cond2)
+    %         warning('DpH exceeds 20%!');
+    %     end
     
     % Update convergence array
     CON = [AC; H.p; C.p]; % initial value
@@ -327,6 +348,10 @@ for iI = 1:NI
     
 end
 if all([iI>=NI,RES(iI)>TOL,~impossible])
+    figure()
+    semilogy(1:iI,RES(1:iI))
+    xlabel('Iteration')
+    ylabel('Convergence residual')
     error('Convergence not reached after %d iterations***\n',iI);
 end
 
@@ -356,4 +381,75 @@ else
 end
 
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function varargout = DTmin(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,n,mode,hout)
+% Compute the temperature difference between the two streams inside the
+% heat exchanger. In mode=0, hH1=hout. In mode=1, hC2=hout.
+
+switch mode
+    case 'hH1'
+        
+        % Set outlet enthalpy
+        hH1 = hout;
+        
+        % Compute temperature distribution of hot stream
+        hH  = linspace(hH1,hH2,n)';
+        TH  = rtab1(hvH,TvH,hH,0);
+        
+        % Compute temperature distribution of cold stream
+        QS  = (hH - hH1)*mH; % cummulative heat transfer
+        hC  = hC1 + QS/mC;
+        TC  = rtab1(hvC,TvC,hC,0);
+        
+    case 'hC2'
+        
+        % Set outlet enthalpy
+        hC2 = hout;
+        
+        % Compute temperature distribution of cold stream
+        hC  = linspace(hC1,hC2,n)';
+        TC  = rtab1(hvC,TvC,hC,0);
+        
+        % Compute temperature distribution of hot stream
+        QS  = (hC - hC1)*mC; % cummulative heat transfer
+        hH1 = hH2 - QS(n)/mH;
+        hH  = hH1 + QS/mH;
+        TH  = rtab1(hvH,TvH,hH,0);
+        
+    otherwise
+        error('not implemented')
+end
+
+% Compute temperature difference between the two streams
+DT  = TH - TC;
+
+solution = min(DT);
+if solution < 0.0
+    DTmax    = TH(n) - TC(1);
+    solution = DTmax;
+end
+
+% % To visualise the temperature distribution every time the function is
+% % called, uncomment the lines below
+% figure(10)
+% plot(QS./QS(end),TH,'r'); hold on;
+% plot(QS./QS(end),TC,'b'); hold off;
+% xlabel('Cumulative heat transfer')
+% ylabel('Temperature')
+% keyboard
+
+if nargout == 1
+    varargout{1} = solution;
+elseif nargout == 5
+    varargout{1} = solution;
+    varargout{2} = DT;
+    varargout{3} = TC;
+    varargout{4} = TH;
+    varargout{5} = QS;
+end
+
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

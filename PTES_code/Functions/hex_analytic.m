@@ -46,10 +46,6 @@ C = stream; C.mdot = mC; C.name = fluidC.name;
 hH1_min = rtab1(TvH,hvH,TC1,1);
 hC2_max = rtab1(TvC,hvC,TH2,1);
 
-% Compute average specific heat capacity estimate
-CpHmean = (hH2 - hH1_min)/(TH2-TC1);
-CpCmean = (hC2_max - hC1)/(TH2-TC1);
-
 % Set enthalpy to estimate average value, and pressure to initial value
 H.h = 0.5*(hH2 + hH1_min);
 C.h = 0.5*(hC1 + hC2_max);
@@ -75,45 +71,72 @@ else
     C.A = HX.A1;
 end
 
-% UPDATE PROPERTIES
-% Cold stream
-C = stream_update(fluidC,C,1);
-% Hot stream
-H = stream_update(fluidH,H,1);
+% Initial guess
+hH1 = hH1_min;
+TH1 = TC1;
+hC2 = hC2_max;
+TC2 = TH2;
 
-% COMPUTE HEAT TRANSFER COEFFICIENTS
-% Cold stream
-C.Re = C.D*C.G./C.mu;
-[C.Cf,C.St] = developed_flow(C.Re,C.Pr,HX.shape);
-C.ht  = C.G*C.Cp.*C.St;
-% Hot stream
-H.Re = H.D*H.G./H.mu;
-[H.Cf,H.St] = developed_flow(H.Re,H.Pr,HX.shape);
-H.ht  = H.G*H.Cp.*H.St;
-% Overall heat transfer coefficient (based on cold side heat transfer
-% area). Neglects wall thermal resistance and axial conduction.
-UlC  = 1./(C.A./(H.A*H.ht) + 1./C.ht);
-
-% Compute the global Number of Transfer Units (NTU = UA/Cmin) and
-% effectiveness
-Cmin = min([CpCmean*mC,CpHmean*mH]);
-Cmax = max([CpCmean*mC,CpHmean*mH]);
-Cr   = Cmin/Cmax;
-NTU  = UlC*C.A/Cmin;
-if Cr < 0.999
-    eff = ( 1 - exp(-NTU*(1-Cr)) ) / ( 1 - Cr*exp(-NTU*(1-Cr)) );
-else % assume Cr=1
-    eff = NTU/(1+NTU);
+for i=1:2
+    % UPDATE PROPERTIES
+    % Cold stream
+    C = stream_update(fluidC,C,1);
+    % Hot stream
+    H = stream_update(fluidH,H,1);
+    
+    % COMPUTE HEAT TRANSFER COEFFICIENTS
+    % Cold stream
+    C.Re = C.D*C.G./C.mu;
+    [C.Cf,C.St] = developed_flow(C.Re,C.Pr,HX.shape);
+    C.ht  = C.G*C.Cp.*C.St;
+    % Hot stream
+    H.Re = H.D*H.G./H.mu;
+    [H.Cf,H.St] = developed_flow(H.Re,H.Pr,HX.shape);
+    H.ht  = H.G*H.Cp.*H.St;
+    % Overall heat transfer coefficient (based on cold side heat transfer
+    % area). Neglects wall thermal resistance and axial conduction.
+    UlC  = 1./(C.A./(H.A*H.ht) + 1./C.ht);
+    
+    % Compute the global Number of Transfer Units (NTU = UA/Cmin). Start by
+    % computing the average specific heat capacity and the minimum and maximum
+    % Cp*mdot product.
+    CpHmean = (hH2 - hH1)/(TH2-TH1);
+    CpCmean = (hC2 - hC1)/(TC2-TC1);
+    Cmin = min([CpCmean*mC,CpHmean*mH]);
+    Cmax = max([CpCmean*mC,CpHmean*mH]);
+    Cr   = Cmin/Cmax;
+    NTU  = UlC*C.A/Cmin;
+    
+    % Compute the heat exchanger effectiveness using analytical expressions for
+    % a pure counter-flow heat exchanger.
+    if Cr < 0.999
+        eff = ( 1 - exp(-NTU*(1-Cr)) ) / ( 1 - Cr*exp(-NTU*(1-Cr)) );
+    else % assume Cr=1
+        eff = NTU/(1+NTU);
+    end
+    
+    % Compute fractional pressure losses
+    DppH = 2*H.G^2*H.Cf*H.v*HX.L/(H.D*H.p);
+    DppC = 2*C.G^2*C.Cf*C.v*HX.L/(C.D*C.p);
+    
+    if i==1
+        % Compute QMAX and the actual total heat transfer, QT, based on the
+        % predicted heat exchanger effectiveness. Use QT to obtain the
+        % outlet enthalpies and temperatures
+        QMAX = min([mC*(hC2_max - hC1),mH*(hH2 - hH1_min)]);
+        QT   = eff*QMAX;
+        hC2  = hC1 + QT/mC;
+        hH1  = hH2 - QT/mH;
+        TC2 = interp1(hvC,TvC,hC2);
+        TH1 = interp1(hvH,TvH,hH1);
+        
+        % Update properties
+        H.h = 0.5*(hH2 + hH1);
+        C.h = 0.5*(hC1 + hC2);
+        H.p = pH2 - 0.5*DppH;
+        C.p = pC1 - 0.5*DppC;
+    end
 end
-
-% Compute fractional pressure losses
-DppH = 2*H.G^2*H.Cf*H.v*HX.L/(H.D*H.p);
-DppC = 2*C.G^2*C.Cf*C.v*HX.L/(C.D*C.p);
-
-% % Update outlet conditions and recompute average temperature and
-% % properties!
-% warning('update properties')
-% keyboard
 
 end
 
