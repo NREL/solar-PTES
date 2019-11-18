@@ -27,12 +27,14 @@ while 1
         % COMPRESS
         if setTmax
             T_aim = Tmax;
-            [gas,i] = compexp(gas,[iL,i],eta,T_aim,0);
+            %[gas,i] = compexp(gas,[iL,i],eta,T_aim,0);
+            [CCMP(iN),gas,i] = compexp_func (CCMP(iN),gas,[iL,i],'Taim',T_aim) ; 
         else
             PRc = (pmax/gas.state(iL,i).p)^(1/(Nc_ch+1-iN));
             %PRc = (PRch)^(1/Nc_ch)/(1-ploss) % pressure ratio for each compression stage
             p_aim = gas.state(iL,i).p*PRc;
-            [gas,i] = compexp(gas,[iL,i],eta,p_aim,3);
+            %[gas,i] = compexp(gas,[iL,i],eta,p_aim,3);
+            [CCMP(iN),gas,i] = compexp_func (CCMP(iN),gas,[iL,i],'Paim',p_aim) ; 
         end
         ptop  = gas.state(iL,i).p;
         
@@ -55,7 +57,8 @@ while 1
         % EXPAND
         PRe = (gas.state(iL,i).p/pbot)^(1/(Ne_ch+1-iN)); %expansion pressure ratio
         p_aim = gas.state(iL,i).p/PRe;
-        [gas,i] = compexp(gas,[iL,i],eta,p_aim,1);        
+        %[gas,i] = compexp(gas,[iL,i],eta,p_aim,1);  
+        [CEXP(iN),gas,i] = compexp_func (CEXP(iN),gas,[iL,i],'Paim',p_aim) ; 
         
         % HEAT (gas-liquid)
         fluidC(iC).state(iL,1).T = CT.A(iL).T; fluidC(iC).state(iL,1).p = CT.A(iL).p;

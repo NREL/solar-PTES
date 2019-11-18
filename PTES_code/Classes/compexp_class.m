@@ -1,10 +1,11 @@
 classdef compexp_class
     properties
-        type      % "CMP" or "EXP"
+        type      % "comp" or "exp"
         aim_mode  % "Paim" or "Taim"
         eff_mode  % "isen" or "poly"
         eta0  = 0 % Design value of isen/polytropic efficiency
         mdot0 = 0 % Design mass flow rate, kg/s
+        W0    = 0 % Design point work, W
         pr0   = 0 % Design pressure ratio
                 
         % Following variables are arrays (one for each time period)
@@ -33,11 +34,11 @@ classdef compexp_class
     end
     
     methods
-        function obj = compexp_class(type, aim_mode, eff_mode, eta0, numPeriods)
-            obj.type     = type ;
-            obj.aim_mode = aim_mode ;
-            obj.eff_mode = eff_mode ;
-            obj.eta0     = eta0 ;
+        function obj = compexp_class(type, eff_mode, cost_mode, eta0, numPeriods)
+            obj.type      = type ;
+            obj.eff_mode  = eff_mode ;
+            obj.eta0      = eta0 ;
+            obj.cost_mode = cost_mode ;
             
             obj.eta = zeros(numPeriods,1) ;
             obj.pr  = zeros(numPeriods,1) ;
@@ -56,10 +57,9 @@ classdef compexp_class
             
         end
             
-        function [obj,fluid,i] = compexp_func (obj,fluid,ind,aim)
+        function [obj,fluid,i] = compexp_func (obj,fluid,ind,aim_mode,aim)
             
-            keyboard
-
+            obj.aim_mode = aim_mode ;
             % Import fluid.state and fluid.stage
             state = fluid.state(ind(1),ind(2));
             stage = fluid.stage(ind(1),ind(2)); % delete this eventually
@@ -79,17 +79,17 @@ classdef compexp_class
             
             % EXPECT ALL OF THIS COULD BE MOVED INTO CLASS CONSTRUCTOR AND
             % THEREFORE ONLY CALCULATED ONCE >>>>
-            if strcmp(obj.type,'CMP') && strcmp(obj.aim_mode,'Taim') && strcmp(obj.eff_mode,'poly') 
+            if strcmp(obj.type,'comp') && strcmp(obj.aim_mode,'Taim') && strcmp(obj.eff_mode,'poly') 
                 mode = 0 ;
-            elseif strcmp(obj.type,'EXP') && strcmp(obj.aim_mode,'Paim') && strcmp(obj.eff_mode,'poly') 
+            elseif strcmp(obj.type,'exp') && strcmp(obj.aim_mode,'Paim') && strcmp(obj.eff_mode,'poly') 
                 mode = 1 ;
-            elseif strcmp(obj.type,'EXP') && strcmp(obj.aim_mode,'Taim') && strcmp(obj.eff_mode,'poly')  
+            elseif strcmp(obj.type,'exp') && strcmp(obj.aim_mode,'Taim') && strcmp(obj.eff_mode,'poly')  
                 mode = 2 ;
-            elseif strcmp(obj.type,'CMP') && strcmp(obj.aim_mode,'Paim') && strcmp(obj.eff_mode,'poly') 
+            elseif strcmp(obj.type,'comp') && strcmp(obj.aim_mode,'Paim') && strcmp(obj.eff_mode,'poly') 
                 mode = 3;
-            elseif strcmp(obj.type,'EXP') && strcmp(obj.aim_mode,'Paim') && strcmp(obj.eff_mode,'isen')
+            elseif strcmp(obj.type,'exp') && strcmp(obj.aim_mode,'Paim') && strcmp(obj.eff_mode,'isen')
                 mode = 4 ;
-            elseif strcmp(obj.type,'CMP') && strcmp(obj.aim_mode,'Paim') && strcmp(obj.eff_mode,'isen')
+            elseif strcmp(obj.type,'comp') && strcmp(obj.aim_mode,'Paim') && strcmp(obj.eff_mode,'isen')
                 mode = 5 ;
             else
                 error('Not implemented')
@@ -124,7 +124,7 @@ classdef compexp_class
                 T2   = aim;
                 TAV  = 0.5*(T1 + T2);
                 Gama = CP1('PT_INPUTS',p1,TAV,'CPMASS',fluid.handle)/CP1('PT_INPUTS',p1,TAV,'CVMASS',fluid.handle);
-                phi  = (Gama/(Gama-1))*eff^n;
+                phi  = (Gama/(Gama-1))*etaI^n;
                 p2   = p1*(T2/T1)^phi;
                 
                 % Compute compression/expansion for estimated final pressure
@@ -158,7 +158,7 @@ classdef compexp_class
             
             obj.Dh   = state.h - h1;
             obj.q    = 0;
-            obj.w    = -stage.Dh;
+            obj.w    = -obj.Dh;
             obj.sirr = state.s - s1;
             
             % DELETE THIS EVENTUALLY >>
@@ -232,19 +232,27 @@ classdef compexp_class
             % i is the current timestep
             % Mode 1: Specify current mass flow rate
             % Mode 2:
-            if obj.type == "CMP"
+            if obj.type == "comp"
                 switch mode
                     case 1
                         % Currently do not have an off-design map
-                        obj.eta(i) = obj.eta0 * obj.mdot(i) / obj.mdot0 ;
+                        if obj.mdot0 == 0
+                            obj.eta(i) = obj.eta0 ;
+                        else
+                            obj.eta(i) = obj.eta0 * obj.mdot(i) / obj.mdot0 ;
+                        end
                     case 2
                         error('Not implemented')
                 end
-            elseif obj.type == "EXP"
+            elseif obj.type == "exp"
                 switch mode
                     case 1
                         % Currently do not have an off-design map
-                        obj.eta(i) = obj.eta0 * obj.mdot(i) / obj.mdot0 ;
+                        if obj.mdot0 == 0
+                            obj.eta(i) = obj.eta0 ;
+                        else
+                            obj.eta(i) = obj.eta0 * obj.mdot(i) / obj.mdot0 ;
+                        end
                     case 2
                         error('Not implemented')
                 end
@@ -257,8 +265,16 @@ classdef compexp_class
             % T is the duration of the load cycle in seconds
             obj.W    = obj.w * obj.mdot * T ;
             obj.Q    = obj.q * obj.mdot * T ;
-            obj.DH   = obj.dh * obj.mdot * T ;
+            obj.DH   = obj.Dh * obj.mdot * T ;
             obj.Sirr = obj.sirr * obj.mdot * T ;
+            
+            % What is the design point work? Need a better method in the
+            % long run
+            if strcmp(obj.type,'comp')
+                obj.W0 = -min(obj.w * obj.mdot) ;
+            elseif strcmp(obj.type,'exp')
+                obj.W0 = max(obj.w * obj.mdot) ;
+            end
         end
                
         % Calculate the economic cost of the compressor or expander
@@ -269,13 +285,13 @@ classdef compexp_class
             switch mode
                 case 0
                     % "1 $/W" approximation
-                    obj.COST = 1 * obj.W ;
-                    obj.cost = obj.COST / obj.W ;   % This looks silly now but will be informative when more detailed correlations are used
+                    obj.COST = 1 * obj.W0 ;
+                    obj.cost = obj.COST / obj.W0 ;   % This looks silly now but will be informative when more detailed correlations are used
                 case 1
                     % Cost for an sCO2 compressor developed by Carlson et al. 2017
                     % See equation C6 in Q2 solar-PTES report
-                    obj.COST = 6998 * obj.W ^ 0.7865 ;
-                    obj.cost = obj.COST / obj.W ;
+                    obj.COST = 6998 * (obj.W0/1e3) ^ 0.7865 ;
+                    obj.cost = obj.COST / obj.W0 ;
                 case 2
                     error('Not implemented')
             end

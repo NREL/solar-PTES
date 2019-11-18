@@ -18,6 +18,18 @@ QE_dis     = 0;  % heat rejected to environment
 nH = numel(fluidH);
 nC = numel(fluidC);
 for iL=1:Load.num
+    
+    % Calculate total work/heat/irreversibility terms
+    for ii = 1 : Nc_ch
+       CCMP(ii) = compexp_energy(CCMP(ii),Load.time(iL))  ;
+       DEXP(ii) = compexp_energy(DEXP(ii),Load.time(iL))  ;
+    end
+    
+    for ii = 1 : Ne_ch
+       CEXP(ii) = compexp_energy(CEXP(ii),Load.time(iL))  ;
+       DCMP(ii) = compexp_energy(DCMP(ii),Load.time(iL))  ;
+    end
+    
     if any(strcmp(Load.type(iL),{'chg','chgCO2'}))
         W_in_chg   = W_in_chg   -    sum([gas.stage(iL,:).w]   .*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
         W_lost_chg = W_lost_chg + T0*sum([gas.stage(iL,:).sirr].*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));

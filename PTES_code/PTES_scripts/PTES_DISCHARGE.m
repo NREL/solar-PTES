@@ -51,7 +51,8 @@ while 1
         
         % COMPRESS
         p_aim = gas.state(iL,i).p*PRc_dis;
-        [gas,i] = compexp(gas,[iL,i],eta,p_aim,3);
+        %[gas,i] = compexp(gas,[iL,i],eta,p_aim,3);
+        [DCMP(iN),gas,i] = compexp_func (DCMP(iN),gas,[iL,i],'Paim',p_aim) ; 
     end
     
     % REGENERATE (gas-gas)
@@ -68,7 +69,8 @@ while 1
         % EXPAND
         PRe_dis = (gas.state(iL,i).p/pbot)^(1/(Ne_dis+1-iN));  % expansion pressure ratio
         p_aim = gas.state(iL,i).p/PRe_dis;
-        [gas,i] = compexp(gas,[iL,i],eta,p_aim,1);
+        %[gas,i] = compexp(gas,[iL,i],eta,p_aim,1);
+        [DEXP(iN),gas,i] = compexp_func (DEXP(iN),gas,[iL,i],'Paim',p_aim) ; 
     end
     
     % Close cycle

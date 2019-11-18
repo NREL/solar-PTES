@@ -92,6 +92,9 @@ for ix = 1:1
             % Compute energy balance
             PTES_ENERGY_BALANCE
             
+            % Evaluate the system cost
+            PTES_ECONOMICS
+            
             if multi_run
                 PTES_PRINT_MULTI_RUN
             end

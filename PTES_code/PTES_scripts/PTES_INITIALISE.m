@@ -36,3 +36,14 @@ end
 % and discharge
 Nc_dis = Ne_ch; % compressions during discharge
 Ne_dis = Nc_ch; % expansions during discharge
+
+% Construct compressor and expander classes
+for i = 1 : Nc_ch
+    CCMP(i) = compexp_class('comp', 'poly', 1, eta, Load.num) ; % Charging compressors
+    DEXP(i) = compexp_class('exp', 'poly', 1, eta, Load.num) ; % Discharging expanders
+end
+
+for i = 1 : Ne_ch
+    CEXP(i) = compexp_class('exp', 'poly', 1, eta, Load.num) ; % Charging expanders
+    DCMP(i) = compexp_class('comp', 'poly', 1, eta, Load.num) ; % Discharging compressors
+end
