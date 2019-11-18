@@ -68,12 +68,11 @@ S2 = stream;
 
 % Determine which stream is the high pressure one (which flows inside the
 % tubes - indicated 1) and which is the low pressure one (which flows on
-% the shell side - indicated 2)
+% the shell side - indicated 2). Update the properties of each stream
+% accordingly.
 if pCin >= pHin
     % Cold stream is high pressure stream (tube side). Hot stream is low
     % pressure stream (shell side).
-%     p1 = pCin;
-%     p2 = pHin;
     S1.mdot = mC;
     S1.name = fluidC.name;
     S1.p    = pCin;
@@ -87,8 +86,6 @@ if pCin >= pHin
 else
     % Hot stream is high pressure stream (tube side). Cold stream is low
     % pressure stream (shell side).
-%     p1 = pHin;
-%     p2 = pCin;
     S1.mdot = mH;
     S1.name = fluidH.name;
     S1.p    = pHin;
@@ -106,7 +103,7 @@ S1.D = D1;
 
 S1.Re = 100; %initial guess (assume laminar flow)
 max_iter = 100;
-tol = 1e-3;
+tol = 1e-6;
 for i=1:max_iter
     % Keep track of initial value (or value from previous iteration)
     Re1_0 = S1.Re;
@@ -175,22 +172,41 @@ for i=1:max_iter
         S2.G = 4*L*S2.mdot / (S2.A*S2.D);
     end
     
-    % Compute the Reynolds number
+    % Ensure that Ntu2 and ploss2 satisfy conditions
+    Ntu2   = 4*L/S2.D*S2.St
+    ploss2 = Ntu2*S2.G^2*S2.v*(S2.Cf/S2.St)/(2*S2.p)
+    if any([Ntu2<Ntu_min,ploss2>ploss_max])
+        keyboard
+    end
+    
+    
+    % Update the Reynolds number
     S2.Re = S2.G*S2.D/S2.mu;
     
     % Check convergence
-    condition = abs((S2.Re - Re2_0)/Re2_0*100) < tol;
-    if condition
+    condition1 = abs((S2.Re - Re2_0)/Re2_0*100) < tol;
+    condition2 = i>=2;
+    if all([condition1,condition2])
         % Converged
         break
     end
 end
-if all([i>=max_iter,~condition])
+if all([i>=max_iter,~condition1])
     error('Re2 not converged')
 end
 
+% S2.D = 4*L*S2.St/Ntu_min;    
+%     S2.G = 4*L*S2.mdot / (S2.A*S2.D);
+
 % Find Af2
 S2.Af = S2.mdot/S2.G;
+
+Ntu1   = 4*L/S1.D*S1.St
+Ntu2   = 4*L/S2.D*S2.St
+ploss1 = Ntu1*S1.G^2*S1.v*(S1.Cf/S1.St)/(2*S1.p)
+ploss2 = Ntu2*S2.G^2*S2.v*(S2.Cf/S2.St)/(2*S2.p)
+
+keyboard
 
 % Export results into HX structure
 HX.shape     = 'circular';
