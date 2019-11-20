@@ -33,7 +33,7 @@ set_graphics
 load_coolprop
 
 % SET INPUTS
-PTES_INPUTS_test
+PTES_INPUTS
 
 % Open the output files and print the headers
 PTES_MANAGE_FILES

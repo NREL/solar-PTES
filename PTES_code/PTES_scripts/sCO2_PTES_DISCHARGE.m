@@ -107,7 +107,8 @@ while 1
             %ind = 0.0 ;
         end
         p_aim = gas.state(iL,iRCMP).p*PRdis*(1-ploss)^ind;
-        [gas,~] = compexp(gas,[iL,iRCMP],eta,p_aim,3);
+        %[gas,~] = compexp(gas,[iL,iRCMP],eta,p_aim,3);
+        [RCMP,gas,~] = compexp_func (RCMP,gas,[iL,iRCMP],'Paim',p_aim) ; 
         gas.stage(iL,iRCMP+1).type = 'comp'; % This seems to be necessary to get recompressor written and plotted
         gas.stage(iL,iRCMP+2).type = 'comp';% This seems to be necessary to get recompressor written and plotted
     end
@@ -143,7 +144,8 @@ while 1
                 
         % COMPRESS
         p_aim = gas.state(iL,i).p*PRc_dis;
-        [gas,i] = compexp(gas,[iL,i],eta,p_aim,3); %#ok<*SAGROW>
+        %[gas,i] = compexp(gas,[iL,i],eta,p_aim,3); %#ok<*SAGROW>
+        [DCMP(iN),gas,i] = compexp_func (DCMP(iN),gas,[iL,i],'Paim',p_aim) ; 
         
         %for i0=1:i, fprintf(1,'\n %f\t%f\t%10s\t%d',gas.state(iL,i0).T,gas.state(iL,i0).p/1e5,gas.stage(iL,i0).type,i0); end; fprintf(1,'\n');
     end
@@ -179,7 +181,8 @@ while 1
         % EXPAND
         PRe_dis = (gas.state(iL,i).p/pbot)^(1/(Ne_dis+1-iN));  % expansion pressure ratio
         p_aim = gas.state(iL,i).p/PRe_dis;
-        [gas,i] = compexp(gas,[iL,i],eta,p_aim,1);
+        %[gas,i] = compexp(gas,[iL,i],eta,p_aim,1);
+        [DEXP(iN),gas,i] = compexp_func (DEXP(iN),gas,[iL,i],'Paim',p_aim) ; 
     end
     
     % Close cycle

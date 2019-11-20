@@ -32,7 +32,7 @@ if setTmax
     pbot = pmax/PR_estim;
 end
 
-% Set number of compressions and expansions simmetrically between charge
+% Set number of compressions and expansions symmetrically between charge
 % and discharge
 Nc_dis = Ne_ch; % compressions during discharge
 Ne_dis = Nc_ch; % expansions during discharge
@@ -46,4 +46,11 @@ end
 for i = 1 : Ne_ch
     CEXP(i) = compexp_class('exp', 'poly', 1, eta, Load.num) ; % Charging expanders
     DCMP(i) = compexp_class('comp', 'poly', 1, eta, Load.num) ; % Discharging compressors
+end
+
+% Construct recompressor for sCO2 cycles
+if Load.mode == 4
+    if Lrcmp
+        RCMP = compexp_class('comp', 'poly', 1, eta, Load.num) ; % Re-compressors
+    end
 end

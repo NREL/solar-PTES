@@ -20,14 +20,22 @@ nC = numel(fluidC);
 for iL=1:Load.num
     
     % Calculate total work/heat/irreversibility terms
+    % Charging compressors and discharging expanders
     for ii = 1 : Nc_ch
        CCMP(ii) = compexp_energy(CCMP(ii),Load.time(iL))  ;
        DEXP(ii) = compexp_energy(DEXP(ii),Load.time(iL))  ;
     end
-    
+    % Charging expanders and discharging compressors
     for ii = 1 : Ne_ch
        CEXP(ii) = compexp_energy(CEXP(ii),Load.time(iL))  ;
        DCMP(ii) = compexp_energy(DCMP(ii),Load.time(iL))  ;
+    end
+    
+    % Recompressor if specified for sCO2 cycle
+    if Load.mode == 4
+        if Lrcmp
+            RCMP = compexp_energy(RCMP,Load.time(iL))  ;
+        end
     end
     
     if any(strcmp(Load.type(iL),{'chg','chgCO2'}))

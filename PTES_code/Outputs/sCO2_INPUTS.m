@@ -1,3 +1,4 @@
+% This file should be split up further
 % Set atmospheric conditions and cycle parameters
 T0      = 30 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
@@ -34,7 +35,7 @@ Lcld    = false ;       % Make cold store as cold as possible?
 Lrcmp   = false ;       % Is there a recompressor?
 
 % Number of recuperators
-Nrcp = 0 ; % Can be 0,1,2.
+Nrcp = 2 ; % Can be 0,1,2.
 if (Nrcp > 0) && (Nhot > 1 || Ncld > 1)
     error('Have not implemented recuperators and multiple storage tanks in series')
 end
@@ -43,8 +44,8 @@ switch Nrcp
     % increased by having several stores in series
     case 0
         % Hot storage tanks
-        %fHname  = ["SolarSalt";"MineralOil"]; % fluid name
-        fHname  = 'SolarSalt'; % fluid name
+        fHname  = ["SolarSalt";"MineralOil"]; % fluid name
+        %fHname  = 'SolarSalt'; % fluid name
         MH_dis0(1:Nhot) = 1e6;          % initial mass of discharged hot fluid, kg
         MH_chg0(1:Nhot) = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
         
@@ -72,8 +73,8 @@ switch Nrcp
             end
         end
         % Cold storage tanks
-        %fCname  = ["INCOMP::MEG2[0.56]";"INCOMP::MEG2[0.56]"]; % fluid name
-        fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
+        fCname  = ["INCOMP::MEG2[0.56]";"INCOMP::MEG2[0.56]"]; % fluid name
+        %fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
         MC_dis0(1:Ncld) = 1e6;          % initial mass of discharged cold fluid, kg
         MC_chg0(1:Ncld) = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
         
@@ -142,7 +143,6 @@ end
 % elements in state arrays.
 % Working fluid
 gas = fluid_class('CarbonDioxide','WF','CP','TTSE',Load.num,30);
-
 
 % Save copy of input file in "Outputs" folder
 copyfile(['./PTES_scripts/',mfilename,'.m'],'./Outputs/')
