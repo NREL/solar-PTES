@@ -23,12 +23,26 @@ for iL=1:Load.num
     % Charging compressors and discharging expanders
     for ii = 1 : Nc_ch
        CCMP(ii) = compexp_energy(CCMP(ii),Load.time(iL))  ;
-       DEXP(ii) = compexp_energy(DEXP(ii),Load.time(iL))  ;
     end
     % Charging expanders and discharging compressors
     for ii = 1 : Ne_ch
        CEXP(ii) = compexp_energy(CEXP(ii),Load.time(iL))  ;
-       DCMP(ii) = compexp_energy(DCMP(ii),Load.time(iL))  ;
+    end
+    
+    switch Load.mode
+        case {0,1,2,4}
+            NC = Ne_ch ;
+            NE = Nc_ch ;
+        case 3
+            NC = 3 ;
+            NE = 3 ;
+    end
+    
+    for ii = 1 : NC
+        DCMP(ii) = compexp_energy(DCMP(ii),Load.time(iL))  ;
+    end
+    for ii = 1 : NE
+        DEXP(ii) = compexp_energy(DEXP(ii),Load.time(iL))  ;
     end
     
     % Recompressor if specified for sCO2 cycle

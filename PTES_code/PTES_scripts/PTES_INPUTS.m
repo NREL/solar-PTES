@@ -2,7 +2,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Call the correct input file
-Load.mode = 0;
+Load.mode = 3;
 switch Load.mode
     case {0,1,2} % Ideal gas Joule-Bratyon PTES
         IDEAL_GAS_INPUTS

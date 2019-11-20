@@ -72,7 +72,8 @@ while 1
     iE = 1;  % keeps track of the Environment (heat rejection) stream number
     
     % EXPAND (1-->2)
-    [steam,i] = compexp(steam,[iL,i],eta,Ran_pmid1,4);
+    %[steam,i] = compexp(steam,[iL,i],eta,Ran_pmid1,4);
+    [DEXP(1),steam,i] = compexp_func (DEXP(1),steam,[iL,i],'Paim',Ran_pmid1) ;
     
     % FIND x1 %
     %%%%%%%%%%%
@@ -97,7 +98,8 @@ while 1
     iH = iH + 1;
     
     % EXPAND (4-->5)
-    [steam,i] = compexp(steam,[iL,i],eta,Ran_pmid2,4);
+    %[steam,i] = compexp(steam,[iL,i],eta,Ran_pmid2,4);
+    [DEXP(2),steam,i] = compexp_func (DEXP(2),steam,[iL,i],'Paim',Ran_pmid2) ;
     
     % FIND x2 %
     %%%%%%%%%%%
@@ -117,7 +119,8 @@ while 1
     
     % EXPAND (6-->7)
     p_aim     = steam.state(iL,i).p/(PR_dis)^(1/3);
-    [steam,i] = compexp(steam,[iL,i],eta,p_aim,4);
+    %[steam,i] = compexp(steam,[iL,i],eta,p_aim,4);
+    [DEXP(3),steam,i] = compexp_func (DEXP(3),steam,[iL,i],'Paim',p_aim) ;
     
     % REJECT HEAT (external HEX) (7-->8)
     T_aim = Ran_Tbot - 2;
@@ -125,21 +128,24 @@ while 1
     
     % COMPRESS (8-->9)
     p_aim = steam.state(iL,iSB).p;
-    [steam,i] = compexp(steam,[iL,i],eta,p_aim,5);
+    %[steam,i] = compexp(steam,[iL,i],eta,p_aim,5);
+    [DCMP(1),steam,i] = compexp_func (DCMP(1),steam,[iL,i],'Paim',p_aim) ;
     
     % MIX (9-->10)
     [steam,i,~] = mix_streams(steam,[iL,i],[iL,iSB]);
     
     % COMPRESS (10-->11)
     p_aim = steam.state(iL,iSA).p;
-    [steam,i] = compexp(steam,[iL,i],eta,p_aim,5);
+    %[steam,i] = compexp(steam,[iL,i],eta,p_aim,5);
+    [DCMP(2),steam,i] = compexp_func (DCMP(2),steam,[iL,i],'Paim',p_aim) ;
     
     % MIX (11-->12)
     [steam,i,~] = mix_streams(steam,[iL,i],[iL,iSA]);
     
     % COMPRESS (12-->13)
     p_aim = Ran_ptop;
-    [steam,i] = compexp(steam,[iL,i],eta,p_aim,5);
+    %[steam,i] = compexp(steam,[iL,i],eta,p_aim,5);
+    [DCMP(3),steam,i] = compexp_func (DCMP(3),steam,[iL,i],'Paim',p_aim) ;
     
     % HEAT (2-phase-liquid) (13-->1)
     fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p; %#ok<*SAGROW>
