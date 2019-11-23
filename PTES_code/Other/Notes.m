@@ -304,3 +304,27 @@ PTES_ENERGY_BALANCE
 toc %stop timer
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Update flow area of stream 1 considering discrete number of tubes, and
+% use number of tubes and tube thickness to compute heat transfer area of
+% stream 2 (shell-side)
+
+% Compute flow area
+S1.Af  = S1.mdot/S1.G; % total flow area (stream 1)
+Af1one = pi/4*S1.D^2;    % flow area of one channel
+N1     = round(S1.Af/Af1one); % number of channels
+S1.Af  = N1*Af1one;    % update total flow area
+
+% Update G, Re, Cf and St
+S1.G  = S1.mdot/S1.Af;
+S1.Re = S1.G*S1.D/S1.mu;
+[S1.Cf, S1.St] = developed_flow(S1.Re,S1.Pr,'circular');
+
+% Set t1 (tube thickness)
+t1_hoop = S1.p*S1.D/(2*sigma); %thickness for which sigma = hoop stress.
+t1 = max([t1_min, 2*t1_hoop]);
+
+% Compute A2
+S2.A = L*N1*pi()*(S1.D+t1);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+

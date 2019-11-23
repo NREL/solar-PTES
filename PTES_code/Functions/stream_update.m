@@ -18,7 +18,7 @@ if mode == 1 % Enthalpy and pressure
         Prv = fluid.TAB(:,8);
         vv  = fluid.TAB(:,3);
         [S.T, S.k, S.mu, S.Pr, S.v] = rtab_1D_5out( hv, Tv, kv, muv, Prv, vv, S.h, 1);
-        S.rho = 1./v;
+        S.rho = 1./S.v;
                 
     end
     

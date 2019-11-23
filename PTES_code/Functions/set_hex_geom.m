@@ -1,221 +1,143 @@
-function [HX] = set_hex_geom(fluidH, indH, fluidC, indC, eff_min, ploss_max, D1, t1_min, sigma, mode, var)
-% Obtain geometric parameters based on performance objectives, using
-% analytical solutions. It should be expected that objectives will be met
-% accurately (only) when using fluids with small variations of
-% thermophysical properties.
+function [HX] = set_hex_geom(fluidH, indH, fluidC, indC, eff_min, ploss_max, D, mode, par)
+% Obtain the heat exchanger geometry based on the performance objectives
+% specified by eff_min and ploss_max.
 
-warning('*** further development needed for accurate computation - see notes below ***')
 % Things to be improved:
 % (1) Accurate computation of Nussel number for tube bundle inside
 % developed_flow function, according to square/trilateral lattice
 % configuration.
 % (2) Minimum D2 value according to lattice configuration.
+% (3) Introduction of tube thickness if metal volume is wanted
 
-% Import fluid.state and fluid.stage
-stateH = fluidH.state(indH(1),indH(2));
-stateC = fluidC.state(indC(1),indC(2));
+% Use the hex_TQ function to obtain the thermal profiles for the specified
+% values of effectiveness (assume no pressure loss)
+[~,~,~,~,HX] = hex_TQ(fluidH,indH,fluidC,indC,eff_min,0,'hex',mode,par);
 
-% Set inlet temperatures and pressures
-THin = stateH.T;
-pHin = stateH.p;
-hHin = stateH.h;
-TCin = stateC.T;
-pCin = stateC.p;
-hCin = stateC.h;
-mH  = stateH.mdot;
-mC  = stateC.mdot;
+% plot_hex(HX,1,'C')
+% keyboard
 
-% Obtain temperature arrays as a function of the enthalpy arrays
-[hvH,TvH] = get_h_T(fluidH,TCin-1,THin+1,pHin,100);
-[hvC,TvC] = get_h_T(fluidC,TCin-1,THin+1,pCin,100);
+% Declare the two fluid streams
+SH = stream;
+SC = stream;
 
-% Obtain minimum and maximum enthalpy outlets and determine mean Cp
-hHout_min = rtab1(TvH,hvH,TCin,1);
-hCout_max = rtab1(TvC,hvC,THin,1);
-CpHmean = (hHin - hHout_min)/(THin-TCin);
-CpCmean = (hCout_max - hCin)/(THin-TCin);
+% Import properties from HX structure
+SH.h = HX.H.h;
+SH.p = HX.H.pin*ones(size(SH.h));
+SH.mdot = HX.H.mdot;
+SH = stream_update(fluidH,SH,1);
+SC.h = HX.C.h;
+SC.p = HX.C.pin*ones(size(SC.h));
+SC.mdot = HX.C.mdot;
+SC = stream_update(fluidC,SC,1);
 
-% Determine mass flow rates
-switch mode
-    case 0
-        % Both mass flow rates previously specified
-        if any([mH,mC] == 0)
-            error('mH and mC must be known if cond==0');
-        end
-        
-    case 1
-        % Only mass flow rate of hot fluid previously specified, compute
-        % mass flow rate of cold fluid according to Crat
-        if mH == 0, error('mH must be known if cond==1'); end
-        Crat = var; %Crat = mH*CpH / (mC*CpC)
-        mC = mH*CpHmean/(CpCmean*Crat);
-        
-    case 2
-        % Only mass flow rate of cold fluid previously specified, compute
-        % mass flow rate of hot fluid according to Crat        
-        if mC == 0, error('mC must be known if cond==2'); end
-        Crat = var; %Crat = mH*CpH / (mC*CpC)
-        mH = Crat*mC*CpCmean/CpHmean;      
+% Determine which one is the "weak" stream (the one likely to present
+% higher thermo-hydraulic losses for a given value of G). Sizing will start
+% from that stream. Thermo-hydraulic losses are found to be proportional to
+% the factor v/p. More specifically, (Dp/p)/Ntu = G^2/2 * Cf/St * v/p, with
+% Cf/St ~ 2*Pr^2/3.
+LF_H = mean(SH.v./SH.p.*SH.Pr.^(2/3)); %"loss factor" hot stream
+LF_C = mean(SC.v./SC.p.*SC.Pr.^(2/3)); %"loss factor" cold stream
+if LF_H > LF_C
+    % Hot stream is "weak" stream. Cold stream is "strong" stream
+    SW = SH;
+    SS = SC;
+else
+    % Cold stream is "weak" stream. Hot stream is "strong" stream
+    SW = SC;
+    SS = SH;
 end
 
 % Set the minimum number of transfer units that each stream should have to
 % obtain the specified effectiveness
 Ntu_min = 2/(1-eff_min);
 
-% Declare the two fluid streams
-S1 = stream;
-S2 = stream;
 
-% Determine which stream is the high pressure one (which flows inside the
-% tubes - indicated 1) and which is the low pressure one (which flows on
-% the shell side - indicated 2). Update the properties of each stream
-% accordingly.
-if pCin >= pHin
-    % Cold stream is high pressure stream (tube side). Hot stream is low
-    % pressure stream (shell side).
-    S1.mdot = mC;
-    S1.name = fluidC.name;
-    S1.p    = pCin;
-    S1.h    = 0.5*(hCout_max + hCin);
-    S1 = stream_update(fluidC,S1,1);
-    S2.mdot = mH;
-    S2.name = fluidH.name;
-    S2.p    = pHin;
-    S2.h    = 0.5*(hHout_min + hHin);
-    S2 = stream_update(fluidH,S2,1);
-else
-    % Hot stream is high pressure stream (tube side). Cold stream is low
-    % pressure stream (shell side).
-    S1.mdot = mH;
-    S1.name = fluidH.name;
-    S1.p    = pHin;
-    S1.h    = 0.5*(hCout_max + hCin);
-    S1 = stream_update(fluidH,S1,1);
-    S2.mdot = mC;
-    S2.name = fluidC.name;
-    S2.p    = pCin;
-    S2.h    = 0.5*(hHout_min + hHin);
-    S2      = stream_update(fluidC,S2,1);
-end
-
+%%% DESIGN FIRST STREAM %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Set pre-specified hydraulic diameter
-S1.D = D1;
+SW.D = D;
 
-S1.Re = 100; %initial guess (assume laminar flow)
+% Obtain the maximum mass flux that satisfies the Ntu and ploss
+% requirements. Make an initial guess assuming Cf/St=2*Pr^2/3;
+SW.G = sqrt(mean( 2*SW.p./SW.v * ploss_max/Ntu_min .* 1./(2*SW.Pr.^(2/3)) ));
+
 max_iter = 100;
 tol = 1e-6;
 for i=1:max_iter
     % Keep track of initial value (or value from previous iteration)
-    Re1_0 = S1.Re;
+    G1_0 = SW.G;
     
     % Compute Cf and St
-    [S1.Cf, S1.St] = developed_flow(S1.Re,S1.Pr,'circular');
+    SW.Re = SW.G*SW.D./SW.mu;
+    [SW.Cf, SW.St] = developed_flow(SW.Re,SW.Pr,'circular');
     
-    % Obtain the maximum mass flux that satisfies the Ntu and ploss
-    % requirements
-    S1.G = sqrt( (2*S1.p*S1.rho/Ntu_min) * (S1.St/S1.Cf) * ploss_max );
-    
-    % Compute the Reynolds number
-    S1.Re = S1.G*S1.D/S1.mu;
+    % Update the value of G
+    SW.G = sqrt(mean( 2*SW.p./SW.v * ploss_max/Ntu_min .* SW.St./SW.Cf ));
     
     % Check convergence
-    condition = abs((S1.Re - Re1_0)/Re1_0*100) < tol;
+    condition = abs((SW.G - G1_0)/G1_0*100) < tol;
     if condition
         % Converged
         break
     end
 end
 if all([i>=max_iter,~condition])
-    error('Re1 not converged')
+    error('Convergence not found')
 end
 
-% Compute heat transfer area and tube length
-S1.A  = S1.mdot*Ntu_min/(S1.G*S1.St);
-L     = S1.D*S1.A*S1.G/(4*S1.mdot);
+% Compute heat transfer area, tube length and flow area
+SW.A  = SW.mdot*Ntu_min/(SW.G*mean(SW.St));
+SW.L  = SW.D*SW.A*SW.G/(4*SW.mdot);
+SW.Af = SW.mdot/SW.G;
 
-% Compute flow area and number of tubes
-S1.Af  = S1.mdot/S1.G; % total flow area (stream 1)
-Af1one = pi/4*S1.D^2;    % flow area of one tube
-N1     = round(S1.Af/Af1one); % number of tubes
-S1.Af  = N1*Af1one;    % update
 
-% Update G, Re, Cf and St
-S1.G  = S1.mdot/S1.Af;
-S1.Re = S1.G*S1.D/S1.mu;
-[S1.Cf, S1.St] = developed_flow(S1.Re,S1.Pr,'circular');
+%%% DESIGN SECOND STREAM %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Set L2=L1 (i.e. counter-flow) and A2=A1 (i.e. thin tubes)
+SS.L = SW.L;
+SS.A = SW.A;
 
-% Set t1 (tube thickness)
-t1_hoop = S1.p*S1.D/(2*sigma); %thickness for which sigma = hoop stress.
-t1 = max([t1_min, 2*t1_hoop]);
+% Assume an initial value of D2 and update until it satisfies
+% thermo-hydraulic performance requirements
+SS.D = SW.D;
 
-% Compute A2
-S2.A = L*N1*pi()*(S1.D+t1);
+% Find the optimal hydraulic diameter that minimises losses on the second
+% stream
+fun = @(D) stream_losses(D,SS);
+xmin = SW.D/100;
+xmax = SW.D*100;
+%plot_function(fun,S1.D/100,S1.D*100,100,30,'loglog')
+options = optimset('Display','notify','TolX',0.01*xmin);
+SS.D = fminbnd(fun,xmin,xmax,options);
 
-S2.Re = 100; %initial guess (assume laminar flow)
-for i=1:max_iter
-    % Keep track of initial value (or value from previous iteration)
-    Re2_0 = S2.Re;
-    
-    % Compute Cf and St
-    [S2.Cf, S2.St] = developed_flow(S2.Re,S2.Pr,'circular');
-    
-    % Obtain the maximum mass flux that satisfies the Ntu and ploss
-    % requirements
-    S2.G = sqrt( (2*S2.p*S2.rho/Ntu_min) * (S2.St/S2.Cf) * ploss_max );
-    
-    % Compute the hydraulic diameter
-    S2.D = 4*L*S2.mdot / (S2.A*S2.G);
-    
-    % Ensure D2 is not smaller than D1 (space is needed between pipes)
-    if S2.D < S1.D
-        S2.D = S1.D;
-        S2.G = 4*L*S2.mdot / (S2.A*S2.D);
-    end
-    
-    % Ensure that Ntu2 and ploss2 satisfy conditions
-    Ntu2   = 4*L/S2.D*S2.St
-    ploss2 = Ntu2*S2.G^2*S2.v*(S2.Cf/S2.St)/(2*S2.p)
-    if any([Ntu2<Ntu_min,ploss2>ploss_max])
-        keyboard
-    end
-    
-    
-    % Update the Reynolds number
-    S2.Re = S2.G*S2.D/S2.mu;
-    
-    % Check convergence
-    condition1 = abs((S2.Re - Re2_0)/Re2_0*100) < tol;
-    condition2 = i>=2;
-    if all([condition1,condition2])
-        % Converged
-        break
-    end
-end
-if all([i>=max_iter,~condition1])
-    error('Re2 not converged')
-end
+% Compute mass flux
+SS.G = 4*SS.L*SS.mdot / (SS.A*SS.D);
 
-% S2.D = 4*L*S2.St/Ntu_min;    
-%     S2.G = 4*L*S2.mdot / (S2.A*S2.D);
+% Compute Cf and St
+SS.Re = SS.G*SS.D./SS.mu;
+[SS.Cf, SS.St] = developed_flow(SS.Re,SS.Pr,'circular');
 
-% Find Af2
-S2.Af = S2.mdot/S2.G;
+% Compute flow area
+SS.Af = SS.mdot/SS.G;
 
-Ntu1   = 4*L/S1.D*S1.St
-Ntu2   = 4*L/S2.D*S2.St
-ploss1 = Ntu1*S1.G^2*S1.v*(S1.Cf/S1.St)/(2*S1.p)
-ploss2 = Ntu2*S2.G^2*S2.v*(S2.Cf/S2.St)/(2*S2.p)
-
-keyboard
+% % Check results
+% Ntu1   = 4*SW.L/SW.D*mean(SW.St)
+% Ntu2   = 4*SS.L/SS.D*mean(SS.St)
+% ploss1 = mean(Ntu1*SW.G^2*SW.v.*(SW.Cf./SW.St)./(2*SW.p))
+% ploss2 = mean(Ntu2*SS.G^2*SS.v.*(SS.Cf./SS.St)./(2*SS.p))
+% keyboard
 
 % Export results into HX structure
-HX.shape     = 'circular';
-HX.sigma     = sigma;      % Maximum allowable stress, Pa
-HX.L         = L;          % Tube length, m
-HX.D1        = S1.D;       % Tube diameter, m
-HX.t1        = t1;         % Tube thickness, m
-HX.AfT       = S1.Af + S2.Af; % Total flow area, m2
-HX.AfR       = S2.Af/S1.Af;   % Ratio of flow areas, Af2/Af1, -
+HX.shape = 'circular';
+HX.L     = SW.L;       % Tube length, m
+HX.AfT   = SW.Af + SS.Af; % Total flow area, m2
+if mean(SW.p) > mean(SS.p)
+    HX.D1    = SW.D;        % Tube diameter, m
+    HX.AfR   = SS.Af/SW.Af; % Ratio of flow areas (shell/tube)
+else
+    HX.D1    = SS.D;        % Tube diameter, m
+    HX.AfR   = SW.Af/SS.Af; % Ratio of flow areas (shell/tube)
+end
 
 end
 
@@ -223,29 +145,35 @@ end
 %%% SUPPORT FUNCTIONS %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [ hv, Tv ] = get_h_T( fluid, T1, T2, pressure, n )
-% Obtain the hv and Tv arrays of a given fluid for the hex subroutines.
-% Data ordered in regular intervals of h. T as a function of h.
+function out = stream_losses(D,S)
+% For a given value of hydraulic diameter (D), compute the addition of the
+% non-dimensional thermal loss and non-dimensional pressure loss
+% corresponding to one heat exchanger stream. The S structure must contain
+% the following geometrical parameters: length (L), mass flow rate (mdot)
+% and heat transfer area (A); and the following thermophysical properties:
+% dynamic viscosity (mu), Prandtl number (Pr), specific volume (v) and
+% pressure (p).
 
-if strcmp(fluid.read,'CP') %read from CoolProp
-    
-    h1  = CP1('PT_INPUTS',pressure,T1,'H',fluid.handle);
-    h2  = CP1('PT_INPUTS',pressure,T2,'H',fluid.handle);
-    hv  = linspace(h1,h2,n)';       % enthalpy array between TC1 and TH2
-    pv  = ones(size(hv)).*pressure; % pressure array
-    Tv  = CP1('HmassP_INPUTS',hv,pv,'T',fluid.handle); % temperature array
-    
-elseif strcmp(fluid.read,'TAB') %read from table
-    
-    Tx  = fluid.TAB(:,1);
-    hy  = fluid.TAB(:,2);
-    h1  = rtab1(Tx,hy,T1,0);
-    h2  = rtab1(Tx,hy,T2,0);
-    hv  = linspace(h1,h2,n)'; % enthalpy array between TC1 and TH2
-    Tv  = rtab1(hy,Tx,hv,1);  % temperature array between TC1 and TH2
-else
-    error('not implemented')
-end
+% Compute mass flux
+S.G = 4*S.L*S.mdot / (S.A*D);
+
+% Compute the Reynolds number, friction coefficient and Stanton number
+S.Re = S.G*D./S.mu;
+[S.Cf, S.St] = developed_flow(S.Re,S.Pr,'circular');
+
+% Compute thermal loss factor (TL = 1/Ntu)
+Ntu = 4*S.L/D*mean(S.St);
+TL  = 1/Ntu;
+
+% Compute pressure loss factor (PL = Dp/p)
+PL = 2*S.G^2*mean(S.Cf.*S.v./S.p)*S.L/D;
+
+% Add the thermal and the pressure loss factors
+out = PL + TL;
+
+% if any([TL > 1/Ntu_min, PL > ploss_max])
+%     out = 1000*out;
+% end
 
 end
 

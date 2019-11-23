@@ -47,6 +47,7 @@ classdef stream
         Ax
         D
         G
+        L
     end
     
     methods

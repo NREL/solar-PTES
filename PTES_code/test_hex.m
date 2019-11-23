@@ -96,9 +96,12 @@ switch scenario
     otherwise
         error('not implemented')
 end
+% Update fluid states
+[F1] = update(F1,[iL,i1],1);
+[F2] = update(F2,[iL,i2],1);
 
 % Specify HEX geometry
-method = 'manual';
+method = 'automatic';
 switch method
     case 'manual'
         % Define heat exchanger geometry (shell-and-tube)
@@ -119,52 +122,8 @@ switch method
         % variations of thermophysical properties.
         eff   = 0.97;
         ploss = 0.01;
-        warning('under development')
-        [HX]  = set_hex_geom(F1,[iL,i1],F2,[iL,i2],eff,ploss,5e-3,0.5e-3,1e8,hex_mode,var);
-        
-    case 'optimisation'
-        % Minimise area subject to performance constraints
-        
-        % Set performance constraints
-        eff   = 0.95;
-        ploss = 0.02;
-        
-        % Set constant parameters
-        HX.shape  = 'circular';
-        HX.sigma  = 1e8;
-        HX.t1_min = 0.1e-3;
-        HX.t1_D1_min = 0.05;
-        HX.NX = 100;
-        
-        % Update fluid states
-        [F1] = update(F1,[iL,i1],1);
-        [F2] = update(F2,[iL,i2],1);
-        
-        % Set minimum and maximum geometrical parameters
-        D1_min  = 0.001;
-        D1_max  = 0.02;
-        L_min   = 0.5;
-        L_max   = 50;
-        AfT_min = 0.01;
-        AfT_max = 100;
-        AfR_min = 0.05;
-        AfR_max = 20;
-        lb = [D1_min, L_min, AfT_min, AfR_min];
-        up = [D1_max, L_max, AfT_max, AfR_max];
-        x0 = log_mean([lb;up]);
-        A  = []; b  = []; Aeq  = []; beq  = [];
-        fun = @(x) get_hex_area(F1,[iL,i1],F2,[iL,i2],HX,x);
-        nonlcon = @(x) hex_constraints(F1,[iL,i1],F2,[iL,i2],HX,'hex',hex_mode,var,eff,ploss,x);        
-        % perhaps compute QMAX inside get_hex_performance rather than
-        % inside hex_TQA? Unless QMAX is really needed for plotting, etc.
-        options = optimoptions('fmincon','Display','iter-detailed','Algorithm','sqp','StepTolerance',1e-10);
-        x = fmincon(fun,x0,A,b,Aeq,beq,lb,up,nonlcon,options);
-        %x = patternsearch(fun,x0,A,b,Aeq,beq,lb,up,nonlcon,options)
-        %options = optimset('Display','iter');
-        %x = ga(fun,4,A,b,Aeq,beq,lb,up,nonlcon,options)
-        keyboard
-        error('not implemented')
-        
+        D     = 1e-2;
+        [HX]  = set_hex_geom(F1,[iL,i1],F2,[iL,i2],eff,ploss,D,hex_mode,var);        
 end
 
 % Hex code settings
@@ -173,11 +132,7 @@ HX.NX = 100;               % Number of sections (grid)
 
 %%% COMPUTE %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Update fluid states
-[F1] = update(F1,[iL,i1],1);
-[F2] = update(F2,[iL,i2],1);
-
-n = 20;
+n = 1;
 if n>1
     mdot1 = F1.state(iL,i1).mdot*linspace(0.5,2.0,n);
     mdot2 = F2.state(iL,i1).mdot*linspace(0.5,2.0,n);
@@ -224,7 +179,7 @@ end
 %%% MAKE PLOTS %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Make plots
-plot_hex_TQA(HX,20,'C');
+plot_hex(HX,20,'C');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 

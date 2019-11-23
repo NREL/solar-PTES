@@ -36,12 +36,13 @@ L     = HX.L;   % Length, m
 AfT   = HX.AfT; % Total flow area = Af1 + Af2, m2
 AfR   = HX.AfR; % Flow area ratio = Af2/Af1
 D1    = HX.D1;  % Tube diameter, m
-sigma = HX.sigma; % Maximum allowable stress, Pa
-t1_min    = HX.t1_min;    % Minimum tube thickness, m
-t1_D1_min = HX.t1_D1_min; % Minimum tube thickness-to-diameter ratio
-
-% Check that tube thickness is sufficient to withstand internal pressure
-t1 = max([t1_min,t1_D1_min*D1,D1*p1/sigma]);
+t1    = 0; % negligible thickness assumed at the moment
+% sigma = HX.sigma; % Maximum allowable stress, Pa
+% t1_min    = HX.t1_min;    % Minimum tube thickness, m
+% t1_D1_min = HX.t1_D1_min; % Minimum tube thickness-to-diameter ratio
+% 
+% % Check that tube thickness is sufficient to withstand internal pressure
+% t1 = max([t1_min,t1_D1_min*D1,D1*p1/sigma]);
 
 % Obtain flow areas and number of tubes
 Af1  = AfT/(AfR+1);
