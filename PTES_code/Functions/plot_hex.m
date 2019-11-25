@@ -1,4 +1,4 @@
-function [] = plot_hex_TQA(HX,fignum,C_or_K)
+function [] = plot_hex(HX,fignum,C_or_K)
 % PLOT_HEX_TQA Make T-Q, T-A and p-A diagrams of a heat exchanger.
 % Use data stored in the HX structure.
 % If the AS array (cummulative area) does not exist (i.e. the HX structure
@@ -30,7 +30,7 @@ xlabel('Cumulative heat transfer')
 ylabel(ytext)
 legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
 
-if ~isempty(AS)
+if strcmp(HX.model,'geom')
     % Plot TA diagram
     figure(fignum+1)
     plot(AS./AS(end),H.T-K,'r'); hold on;

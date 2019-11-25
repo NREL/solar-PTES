@@ -1,4 +1,4 @@
-function [HX] = set_hex_geom(fluidH, indH, fluidC, indC, eff_min, ploss_max, D, mode, par)
+function [HX] = set_hex_geom(HX, iL, fluidH, iH, fluidC, iC, mode, par, eff_min, ploss_max, D)
 % Obtain the heat exchanger geometry based on the performance objectives
 % specified by eff_min and ploss_max.
 
@@ -11,10 +11,14 @@ function [HX] = set_hex_geom(fluidH, indH, fluidC, indC, eff_min, ploss_max, D, 
 
 % Use the hex_TQ function to obtain the thermal profiles for the specified
 % values of effectiveness (assume no pressure loss)
-[~,~,~,~,HX] = hex_TQ(fluidH,indH,fluidC,indC,eff_min,0,'hex',mode,par);
+HX.model = 'eff';
+HX.eff   = eff_min;
+HX.ploss = 0;
+[HX,~,~,~,~] = hex_func(HX,iL,fluidH,iH,fluidC,iC,mode,par);
+%plot_hex(HX,1,'C')
+%keyboard
+HX.model = 'geom';
 
-% plot_hex(HX,1,'C')
-% keyboard
 
 % Declare the two fluid streams
 SH = stream;

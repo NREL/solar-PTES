@@ -58,7 +58,7 @@ switch scenario
         
         % Set hex_mode
         hex_mode = 0; % Both mass flow rates specified
-        var = 0;
+        par = 0;
         
     case 2        
         % Solar Salt
@@ -74,7 +74,7 @@ switch scenario
         
         % Set hex_mode
         hex_mode = 2; % Compute mass flow rate of hot fluid with var=mH*CpH/(mC*CpC)
-        var = 1.20;     
+        par = 1.20;     
         
     case 3        
         % CO2
@@ -91,7 +91,7 @@ switch scenario
         
         % Set hex_mode
         hex_mode = 0; % Both mass flow rates specified
-        var = 0;
+        par = 0;
         
     otherwise
         error('not implemented')
@@ -100,126 +100,106 @@ end
 [F1] = update(F1,[iL,i1],1);
 [F2] = update(F2,[iL,i2],1);
 
-% Specify HEX geometry
-method = 'automatic';
-switch method
-    case 'manual'
-        % Define heat exchanger geometry (shell-and-tube)
-        % 1 refers to the tube side, 2 refers to the shell side
-        HX.shape     = 'circular';
-        HX.sigma     = 1e8;        % Maximum allowable stress, Pa
-        HX.t1_min    = 0.1e-3;     % Minimum tube thickness, m
-        HX.t1_D1_min = 0.05;       % Minimum tube thickness-to-diameter ratio
-        HX.L         = 3.0;        % Tube length, m
-        HX.D1        = 5e-3;       % Tube diameter, m
-        HX.AfT       = 0.25;       % Total flow area, m2
-        HX.AfR       = 1.00;       % Ratio of flow areas, Af2/Af1, -
+% Specify HX settings
+HX.NX = 100; % Number of sections (grid)
+HX.model = 'geom'; % either 'eff', 'UA' or 'geom'
+HX.stage_type = 'hex';
+
+switch HX.model
+    case 'eff'
+        HX.eff   = 0.97;
+        HX.ploss = 0.01;
         
-    case 'automatic'
-        % Obtain geometric parameters based on performance objectives,
-        % using analytical solutions. It should be expected that objectives
-        % will be met accurately (only) when using fluids with small
-        % variations of thermophysical properties.
-        eff   = 0.97;
-        ploss = 0.01;
-        D     = 1e-2;
-        [HX]  = set_hex_geom(F1,[iL,i1],F2,[iL,i2],eff,ploss,D,hex_mode,var);        
+    case 'UA'
+        HX.UA    = 1000;
+        HX.ploss = 0.01;        
+        
+    case 'geom'
+        % Specify HEX geometry
+        method = 'automatic';
+        switch method
+            case 'manual'
+                % Define heat exchanger geometry (shell-and-tube)
+                % 1 refers to the tube side, 2 refers to the shell side
+                HX.shape     = 'circular';
+                HX.sigma     = 1e8;        % Maximum allowable stress, Pa
+                HX.t1_min    = 0.1e-3;     % Minimum tube thickness, m
+                HX.t1_D1_min = 0.05;       % Minimum tube thickness-to-diameter ratio
+                HX.L         = 3.0;        % Tube length, m
+                HX.D1        = 5e-3;       % Tube diameter, m
+                HX.AfT       = 0.25;       % Total flow area, m2
+                HX.AfR       = 1.00;       % Ratio of flow areas, Af2/Af1, -
+                
+            case 'automatic'
+                % Obtain geometric parameters based on performance objectives,
+                % using analytical solutions. It should be expected that objectives
+                % will be met accurately (only) when using fluids with small
+                % variations of thermophysical properties.
+                eff   = 0.97;
+                ploss = 0.01;
+                D     = 1e-2;
+                [HX]  = set_hex_geom(HX,iL,F1,i1,F2,i2,hex_mode,par,eff,ploss,D);
+        end
+        
 end
 
-% Hex code settings
-HX.NX = 100;               % Number of sections (grid)
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%% COMPUTE %%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-n = 1;
-if n>1
-    mdot1 = F1.state(iL,i1).mdot*linspace(0.5,2.0,n);
-    mdot2 = F2.state(iL,i1).mdot*linspace(0.5,2.0,n);
-else
-    mdot1 = F1.state(iL,i1).mdot;
-    mdot2 = F2.state(iL,i1).mdot;
-end
-NU_eff  = zeros(size(mdot1));
-AN_eff  = zeros(size(mdot1));
-NU_DppH = zeros(size(mdot1));
-AN_DppH = zeros(size(mdot1));
-NU_DppC = zeros(size(mdot1));
-AN_DppC = zeros(size(mdot1));
-for im = 1:n
-    F1.state(iL,i1).mdot = mdot1(im);
-    F2.state(iL,i1).mdot = mdot2(im);
-    % Run HEX code
-    [F1,F2,~,~,HX] = hex_TQA(F1,[iL,i1],F2,[iL,i2],HX,'hex',hex_mode,var);
-    
-    % Compare numerical results (NU) with analytical results (AN)
-    NU_eff(im)  = HX.QS(HX.NX+1)/HX.QMAX;
-    NU_DppH(im) = (HX.H.pin-HX.H.p(1))./HX.H.pin;
-    NU_DppC(im) = (HX.C.pin-HX.C.p(HX.NX+1))./HX.C.pin;
-    [AN_eff(im),AN_DppH(im),AN_DppC(im)] = hex_analytic(F1,[iL,i1],F2,[iL,i2],HX);
-    fprintf(1,'\n      Numerical  Analytical\n')
-    fprintf(1,'Eff  = %8.3f   %9.3f\n',NU_eff(im),AN_eff(im))
-    fprintf(1,'DppH = %8.5f   %9.5f\n',NU_DppH(im),AN_DppH(im))
-    fprintf(1,'DppC = %8.5f   %9.5f\n',NU_DppC(im),AN_DppC(im))
-end
-if n>1
-    figure(25)
-    plot(mdot1,NU_eff,'o',mdot1,AN_eff)
-    xlabel('Mass flow rate, kg/s')
-    ylabel('Effectiveness')
-    legend('numerical','analytical')
-    figure(26)
-    semilogy(mdot1,NU_DppH,'o',mdot1,AN_DppH,mdot1,NU_DppC,'o',mdot1,AN_DppC)
-    xlabel('Mass flow rate, kg/s')
-    ylabel('$ \Delta p / p $')
-    legend('FH numerical','FH analytical','FC numerical','FC analytical','Location','Best')
-end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%% MAKE PLOTS %%%
+%%% COMPUTE AND MAKE PLOTS %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+[HX,~,~,~,~] = hex_func(HX,iL,F1,i1,F2,i2,hex_mode,par);
+
 % Make plots
 plot_hex(HX,20,'C');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-%%% SUPPORT FUNCTIONS %%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function result = get_hex_area(fluidH, indH, fluidC, indC, HX, xvars)
-
-% Import variable parameters from "xvars" and into "HX" structure
-HX.D1  = xvars(1);
-HX.L   = xvars(2);
-HX.AfT = xvars(3);
-HX.AfR = xvars(4);
-
-% Import fluid.state
-stateH = fluidH.state(indH(1),indH(2));
-stateC = fluidC.state(indC(1),indC(2));
-
-% Declare the two fluid streams
-H = stream; H.pin = stateH.p;
-C = stream; C.pin = stateC.p;
-
-% Compute derived geometric parameters and mass fluxes
-[~, ~, HX] = shell_and_tube_geom(C, H, HX);
-result = HX.A2;
-
-end
-
-function [c,ceq] = hex_constraints(F1, ind1, F2, ind2, HX, stage_type, hex_mode, var, obj_eff, obj_ploss, xvars)
-
-% Import variable parameters from "xvars" and into "HX" structure
-HX.D1  = xvars(1);
-HX.L   = xvars(2);
-HX.AfT = xvars(3);
-HX.AfR = xvars(4);
-
-[~,~,~,~,~,out] = hex_TQA(F1,ind1,F2,ind2,HX,stage_type,hex_mode,var);
-
-c = out - [1-obj_eff, obj_ploss, obj_ploss];
-
-ceq = 0;
-
-end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%% COMPARE GEOMETRICAL MODEL WITH ANALYTICAL SOLUTIONS %%%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% n = 1;
+% if n>1
+%     mdot1 = F1.state(iL,i1).mdot*linspace(0.5,2.0,n);
+%     mdot2 = F2.state(iL,i1).mdot*linspace(0.5,2.0,n);
+% else
+%     mdot1 = F1.state(iL,i1).mdot;
+%     mdot2 = F2.state(iL,i1).mdot;
+% end
+% NU_eff  = zeros(size(mdot1));
+% AN_eff  = zeros(size(mdot1));
+% NU_DppH = zeros(size(mdot1));
+% AN_DppH = zeros(size(mdot1));
+% NU_DppC = zeros(size(mdot1));
+% AN_DppC = zeros(size(mdot1));
+% for im = 1:n
+%     F1.state(iL,i1).mdot = mdot1(im);
+%     F2.state(iL,i1).mdot = mdot2(im);
+%     % Run HEX code
+%     %[F1,F2,~,~,HX] = hex_TQA(F1,[iL,i1],F2,[iL,i2],HX,'hex',hex_mode,var);
+%     [F1,F2,~,~,HX] = hex_func(HX,iL,F1,i1,F2,i2,hex_mode,par);
+%     
+%     % Compare numerical results (NU) with analytical results (AN)
+%     NU_eff(im)  = HX.QS(HX.NX+1)/HX.QMAX;
+%     NU_DppH(im) = (HX.H.pin-HX.H.p(1))./HX.H.pin;
+%     NU_DppC(im) = (HX.C.pin-HX.C.p(HX.NX+1))./HX.C.pin;
+%     [AN_eff(im),AN_DppH(im),AN_DppC(im)] = hex_analytic(HX,iL,F1,i1,F2,i2);
+%     fprintf(1,'\n      Numerical  Analytical\n')
+%     fprintf(1,'Eff  = %8.3f   %9.3f\n',NU_eff(im),AN_eff(im))
+%     fprintf(1,'DppH = %8.5f   %9.5f\n',NU_DppH(im),AN_DppH(im))
+%     fprintf(1,'DppC = %8.5f   %9.5f\n',NU_DppC(im),AN_DppC(im))
+% end
+% if n>1
+%     figure(25)
+%     plot(mdot1,NU_eff,'o',mdot1,AN_eff)
+%     xlabel('Mass flow rate, kg/s')
+%     ylabel('Effectiveness')
+%     legend('numerical','analytical')
+%     figure(26)
+%     semilogy(mdot1,NU_DppH,'o',mdot1,AN_DppH,mdot1,NU_DppC,'o',mdot1,AN_DppC)
+%     xlabel('Mass flow rate, kg/s')
+%     ylabel('$ \Delta p / p $')
+%     legend('FH numerical','FH analytical','FC numerical','FC analytical','Location','Best')
+% end
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -1,4 +1,4 @@
-function [eff,DppH,DppC] = hex_analytic(fluidH, indH, fluidC, indC, HX)
+function [eff,DppH,DppC] = hex_analytic(HX, iL, fluidH, iH, fluidC, iC)
 % RESOLVE HEX T-Q DIAGRAM FOR A GIVEN EFFECTIVENESS
 
 % Set number of sections for hex_core algorithm
@@ -6,22 +6,22 @@ NX = HX.NX;
 
 % Set inlet temperatures (nomenclature: cold inlet is position 1, hot inlet
 % is position 2)
-TH2 = fluidH.state(indH(1),indH(2)).T;
-TC1 = fluidC.state(indC(1),indC(2)).T;
+TH2 = fluidH.state(iL,iH).T;
+TC1 = fluidC.state(iL,iC).T;
 
 % Check which one is fluidH and which is fluidC and swap them if necessary
 if TC1 > TH2 % swap needed
     fluidH0 = fluidH;
     fluidH  = fluidC;
     fluidC  = fluidH0;
-    indH0 = indH;
-    indH  = indC;
-    indC  = indH0;
+    indH0 = iH;
+    iH  = iC;
+    iC  = indH0;
 end
 
 % Import fluid.state and fluid.stage
-stateH = fluidH.state(indH(1),indH(2));
-stateC = fluidC.state(indC(1),indC(2));
+stateH = fluidH.state(iL,iH);
+stateC = fluidC.state(iL,iC);
 
 % Set inlet pressures, enthalpies, entropies and mass flow rates
 TH2 = stateH.T;

@@ -328,3 +328,74 @@ S2.A = L*N1*pi()*(S1.D+t1);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% EQUAL_CP ALGORITHM FOR HEX FUNCTION
+switch algorithm
+    case 'DT_min'
+        
+        % Compute hH1 for which DTmin = 0, using golden search method
+        f1   = @(hH1) DTmin(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,n,'hH1',hH1);
+        TolX = (hH2-hH1_min)/1e4; %tolerance
+        options = optimset('TolX',TolX);%,'Display','iter');
+        hH1  = fminbnd(f1,hH1_min,hH2,options);
+        
+        % Compute QMAX
+        QMAX = mH*(hH2 - hH1);
+        
+    case 'Equal_Cp'
+        
+        % Compute QMAX using the fact that mH*CpH = mC*CpC for any intermediate
+        % pinch point
+        [~, CpH] = get_Cp( fluidH, TC1, TH2, pH2, n );
+        [Tv,CpC] = get_Cp( fluidC, TC1, TH2, pC1, n );
+        CH  = mH*CpH;
+        CC  = mC*CpC;
+        fx  = CH - CC;
+        fx0 = fx(1);
+        np  = 0; %number of pinch points found
+        ip  = zeros(n-1,1); %pinch point index
+        for i0=2:n-1
+            if fx(i0)*fx0<0
+                np = np + 1;
+                ip(np) = i0; %pinch point index
+                fx0 = fx(i0);
+            end
+        end
+        Tp = zeros(np,1);
+        Qp = zeros(size(Tp));
+        for i0=1:np
+            Tp(i0) = Tv(ip(i0));
+            QC = mC*(rtab1(TvC,hvC,Tp(i0),1)-hC1); % mC*DhC from TC1 to Tp
+            QH = mH*(hH2-rtab1(TvH,hvH,Tp(i0),1)); % mH*DhH from Tp to TH2
+            Qp(i0) = QC + QH;
+        end
+        % QMAX has to be the minimum between Qp, QC and QH:
+        QMAX = min([Qp;QMAX0]);
+end
+
+function [ Tv, Cpv ] = get_Cp( fluid, T1, T2, pressure, n )
+% Obtain the Tv and Cpv arrays of a given fluid for the hex subroutines.
+% Data ordered in regular intervals of T. Cp as a function of T.
+
+if strcmp(fluid.read,'CP') %read from CoolProp
+    
+    Tv   = linspace(T1,T2,n)'; % Temperature array between TC1 and TH2
+    pv  = ones(size(Tv)).*pressure; % pressure array
+    dT   = (T2-T1)/(n*2);
+    h_up = CP1('PT_INPUTS',pv,Tv+dT,'H',fluid.handle);
+    h_lo = CP1('PT_INPUTS',pv,Tv-dT,'H',fluid.handle);
+    Cpv  = (h_up - h_lo)/(2*dT);
+    
+elseif strcmp(fluid.read,'TAB') %read from table
+    
+    T   = fluid.TAB(:,1);
+    Cp  = fluid.TAB(:,5);    
+    Tv  = linspace(T1,T2,n)'; % Temperature array between TC1 and TH2
+    Cpv = rtab_1D_1out(T,Cp,Tv,0);
+else
+    error('not implemented')
+end
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
