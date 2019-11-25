@@ -30,7 +30,7 @@ xlabel('Cumulative heat transfer')
 ylabel(ytext)
 legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
 
-if strcmp(HX.model,'geom')
+if ~isempty(AS)
     % Plot TA diagram
     figure(fignum+1)
     plot(AS./AS(end),H.T-K,'r'); hold on;
