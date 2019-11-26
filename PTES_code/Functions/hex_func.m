@@ -1,17 +1,23 @@
 function [HX, fluidH, fluidC, iH, iC] = hex_func(HX, iL, fluidH, iH, fluidC, iC, mode, par)
-% COMPUTE HEAT EXCHANGER OUTLET CONDITIONS FOR GIVEN INLET CONDITIONS
-
-% DESCRIPTION
-% TC1 and TH2 are the cold and hot temperature inlets (known)
-% TC2 and TH1 are the cold and hot temperature outlets (unknown)
-%
-% There is five modes of operation:
-% In mode == 0, the two mass flow rates (mH and mC) must be known, and the
-% parameter "par" is unused
-% In mode == 1, mC (unknown) is computed from par = Crat = mH*CpH/(mC*CpC)
-% In mode == 2, mH (unknown) is computed from par = Crat = mH*CpH/(mC*CpC)
-% In mode == 3, TC2 is specified (TC2=par) and mC (unknown) is computed
-% In mode == 4, TH1 is specified (TH1=par) and mH (unknown) is computed
+% COMPUTE HEAT EXCHANGER OUTLET CONDITIONS
+%   Description
+%   TC1 and TH2 are the cold and hot temperature inlets (known)
+%   TC2 and TH1 are the cold and hot temperature outlets (unknown)
+%   
+%   There is five modes of operation:
+%   In mode == 0, the two mass flow rates (mH and mC) must be known, and
+%   the parameter "par" is unused
+%   In mode == 1, mC (unknown) is computed from par = Crat = mH*CpH/(mC*CpC)
+%   In mode == 2, mH (unknown) is computed from par = Crat = mH*CpH/(mC*CpC)
+%   In mode == 3, TC2 is specified (TC2=par) and mC (unknown) is computed
+%   In mode == 4, TH1 is specified (TH1=par) and mH (unknown) is computed
+%   
+%   The HX object/structure can operate according to three different models
+%   If model = 'eff', the heat exchanger effectiveness and pressure loss
+%   are specified
+%   If model = 'UA', the overall heat transfer coefficient and pressure
+%   loss are specified
+%   If model = 'geom, the heat exchanger geometry is specified
 
 
 % Extract parameters from HX structure according to selected model
@@ -24,7 +30,7 @@ switch model
         NX  = HX.NX;
         
     case 'UA'
-        UA = HX.UA;
+        UA_ref = HX.UA;
         ploss = HX.ploss;
         stage_type = HX.stage_type;
         NX  = HX.NX;
@@ -82,8 +88,8 @@ H = stream; H.name = fluidH.name; H.pin = pH2;
 C = stream; C.name = fluidC.name; C.pin = pC1;
 
 % Obtain temperature arrays as a function of the enthalpy arrays
-[hvH,TvH] = get_h_T(fluidH,TC1-1,TH2+1,pH2,NX);
-[hvC,TvC] = get_h_T(fluidC,TC1-1,TH2+1,pC1,NX);
+[hvH,TvH] = get_h_T(fluidH,TC1-5,TH2+5,pH2,NX);
+[hvC,TvC] = get_h_T(fluidC,TC1-5,TH2+5,pC1,NX);
 
 % Obtain preliminary minimum and maximum enthalpy outlets (hot outlet
 % cannot be colder than cold inlet, and vice-versa)
@@ -134,7 +140,18 @@ end
 
 % Run algorithm according to the different models and operation modes
 switch model
-    case 'eff'
+    case {'eff','UA'}
+        
+        % Set options for matlab root-finders (if needed)
+        options = []; %optimset('Display','iter');
+        
+        if strcmp(model,'eff')
+            compare = 'DTmin';
+            ref = 0;
+        elseif strcmp(model,'UA')
+            compare = 'UA';
+            ref = UA_ref;
+        end
         
         switch mode
             case {0,1,2}
@@ -143,17 +160,19 @@ switch model
                 QMAX0 = min([mC*(hC2_max - hC1),mH*(hH2 - hH1_min)]);
                 hH1_min = hH2 - QMAX0/mH;
                 
-                % Compute hH1 for which DTmin = 0, using golden search method
-                f1   = @(hH1) DTmin(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,NX,'hH1',hH1);
-                TolX = (hH2-hH1_min)/1e4; %tolerance
-                options = optimset('TolX',TolX);%,'Display','iter');
-                hH1  = fminbnd(f1,hH1_min,hH2,options);
+                % Find value of hH1 for which DTmin=ref or UA=ref
+                f1  = @(hH1) compute_TQ(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,NX,'hH1',hH1,compare,ref);
+                %plot_function(f1,hH1_min,hH2,1000,11);
+                %symlog(gca,'y')
+                hH1 = fzero(f1,[hH1_min,hH2],options);
                 
-                % Compute QMAX
-                QMAX = mH*(hH2 - hH1);
-                
-                % Compute actual heat transfer based on heat exchanger effectiveness
-                QT  = QMAX*eff;
+                % Compute total heat transfer
+                if strcmp(model,'eff')
+                    QMAX = mH*(hH2 - hH1);
+                    QT   = QMAX*eff;
+                elseif strcmp(model,'UA')
+                    QT   = mH*(hH2 - hH1);
+                end
                 
                 % Determine outlet enthalpies and pressures
                 hC2 = hC1 + QT/mC;
@@ -170,23 +189,25 @@ switch model
                 % Compute preliminary QMAX (hot outlet cannot be colder than cold
                 % inlet) and set boundaries accordingly
                 QMAX0 = mH*(hH2 - hH1_min);
-                mCmin = 0;
-                mCmax = QMAX0/(hC2 - hC1);
+                mCmin = mH*eps;
+                mCmax = QMAX0/(hC2 - hC1)*(1+1e-3); %necessary to find root
                 
-                % Find value of mC for which DTmin = 0, using golden search method
-                f2    = @(mC) DTmin(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,NX,'hC2',hC2);
-                TolX  = (mCmax - mCmin)/1e4; %tolerance
-                options = optimset('TolX',TolX);%,'Display','iter');
-                mC   = fminbnd(f2,mCmin,mCmax,options);
+                % Find value of mC for which DTmin=ref or UA=ref
+                f1 = @(mC) compute_TQ(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,NX,'hC2',hC2,compare,ref);
+                %plot_function(f1,mCmin,mCmax,100,11);
+                mC = fzero(f1,[mCmin,mCmax],options);
                 
-                % Compute QMAX and QT (actual heat transfer based on heat exchanger
-                % effectiveness)
-                QMAX = mC*(hC2 - hC1);
-                QT   = QMAX*eff;
+                % Compute total heat transfer (and update mC if necessary)
+                if strcmp(model,'eff')
+                    QMAX = mC*(hC2 - hC1);
+                    QT   = QMAX*eff;
+                    mC = QT/(hC2 - hC1);
+                    stateC.mdot = mC;
+                elseif strcmp(model,'UA')
+                    QT   = mC*(hC2 - hC1);
+                end
                 
-                % Update mC and outlet conditions of hot fluid
-                mC = QT/(hC2 - hC1);
-                stateC.mdot = mC;
+                % Update outlet conditions of hot fluid
                 hH1 = hH2 - QT/mH;
                 pH1 = pH2*(1-ploss);
                 
@@ -199,29 +220,29 @@ switch model
                 % Compute preliminary QMAX (cold outlet cannot be hotter than hot
                 % inlet) and set boundaries accordingly
                 QMAX0 = mC*(hC2_max - hC1);
-                mHmin = 0;
-                mHmax = QMAX0/(hH2 - hH1);
+                mHmin = mC*eps;
+                mHmax = QMAX0/(hH2 - hH1)*(1+1e-3); %necessary to find root
                 
                 % Find value of mH for which DTmin = 0, using golden search method
-                f2    = @(mH) DTmin(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,NX,'hH1',hH1);
-                TolX  = (mHmax - mHmin)/1e4; %tolerance
-                options = optimset('TolX',TolX);%,'Display','iter');
-                mH   = fminbnd(f2,mHmin,mHmax,options);
+                f2 = @(mH) compute_TQ(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,NX,'hH1',hH1,compare,ref);
+                mH = fzero(f2,[mHmin,mHmax],options);
                 
-                % Compute QMAX and QT (actual heat transfer based on heat exchanger
-                % effectiveness)
-                QMAX = mH*(hH2 - hH1);
-                QT   = QMAX*eff;
-                
-                % Update mH and outlet conditions of cold fluid
-                mH = QT/(hH2 - hH1);
-                stateH.mdot = mH;
+                % Compute total heat transfer (and update mH if necessary)
+                if strcmp(model,'eff')
+                    QMAX = mH*(hH2 - hH1);
+                    QT   = QMAX*eff;
+                    mH   = QT/(hH2 - hH1);
+                    stateH.mdot = mH;
+                elseif strcmp(model,'UA')
+                    QT   = mH*(hH2 - hH1);
+                end
+                % Update outlet conditions of cold fluid
                 hC2 = hC1 + QT/mC;
                 pC2 = pC1*(1-ploss);
         end
         
         % Save variables into C and H stream objects
-        [~,~,TC,TH,hC,hH,QS] = DTmin(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,NX,'hH1',hH1);
+        [TC,TH,hC,hH,QS] = compute_TQ(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,NX,'hH1',hH1);
         C.mdot = mC;
         H.mdot = mH;
         C.T = TC;
@@ -232,11 +253,6 @@ switch model
         HX.H = H;
         HX.QS  = QS;
         HX.AS  = [];
-        
-        
-    case 'UA'
-        
-        error('not implemented yet')
         
         
     case 'geom'
@@ -257,23 +273,19 @@ switch model
         % Compute derived geometric parameters and mass fluxes
         [C, H, HX] = shell_and_tube_geom(C, H, HX);
         
-        % Compute hH1 for computed area equals C.A
+        % Find value of hH1 for which computed area equals specified area
         f1 = @(hH1) compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
-        %plot_function(f1,hH1_min,hH2,100,31); keyboard;
-        TolX = (hH2-hH1_min)/1e4; %tolerance
-        options = optimset('TolX',TolX,'Display','notify');
-        hH1  = fminbnd(f1,hH1_min,hH2,options);
+        %plot_function(f1,hH1_min,hH2,100,31);
+        opt = optimset('TolX',(hH2-hH1_min)/1e12,'Display','iter');
+        hH1 = fzero(f1,[hH1_min,hH2],opt);
         
         % Obtain output parameters for converged solution
-        [~,C,H,QS,AS] = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
+        [C,H,QS,AS] = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
         
-        % Compute QMAX. Find the value of hH1 for which DTmin = 0, using golden
-        % search method
-        f1   = @(hH1) DTmin(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,length(hvH),'hH1',hH1);
-        TolX = (hH2-hH1_min)/1e4; %tolerance
-        options = optimset('TolX',TolX);%,'Display','iter');
-        hH1_0  = fminbnd(f1,hH1_min,hH2,options);
-        QMAX = mH*(hH2 - hH1_0);
+        % Compute QMAX. Find the value of hH1 for which DTmin = 0
+        f1   = @(hH1) compute_TQ(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,NX,'hH1',hH1,'DTmin',0);
+        hH1  = fzero(f1,[hH1_min,hH2]);
+        QMAX = mH*(hH2 - hH1);
         
         % Save outlet conditions
         hH1 = H.h(1);
@@ -373,10 +385,39 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function varargout = DTmin(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,n,mode,hout)
-% Compute the temperature difference between the two streams inside the
-% heat exchanger. In mode=0, hH1=hout. In mode=1, hC2=hout.
+function varargout = compute_TQ(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,n,mode,hout,varargin)
+% Compute the TQ diagram of a two-stream counter-flow heat exchanger.
+%   The "mode" string controls which enthalpy outlet "hout" is specified,
+%   either mode='hH1' or mode='hC2'.
+%
+%   The optional inputs, "varargin", contain "compare" and "ref".
+%   The "compare" string controls which parameter is to be compared to the
+%   "ref" parameter, either compare='DTmin' (minimum temperature
+%   difference) or compare='UA' (overall heat transfer coefficient).
+%
+%   If the number of optional outputs is 1, varargout contains "solution"
+%   (the difference between the computed value and "ref").
+%
+%   If the number of optional outputs is 5, they contain the following
+%   arrays, in order: TC, TH, hC, hH, QS.
+%
+%   Usage examples:
+%   [TC,TH,hC,hH,QS] = compute_TQ(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,NX,'hH1',hH1);
+%   solution         = compute_TQ(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,NX,'hH1',hH1,'UA',UA_ref);
 
+
+% Check and assign variable inputs
+if isempty(varargin)
+    
+elseif length(varargin)==2
+    compare = varargin{1};
+    ref = varargin{2};
+    
+else
+    error('incorrect number of inputs')
+end
+
+% Compute TQ diagram based on either hH1 or hC2
 switch mode
     case 'hH1'
         
@@ -384,7 +425,7 @@ switch mode
         hH1 = hout;
         
         % Compute temperature distribution of hot stream
-        hH  = linspace(hH1,hH2,n)';
+        hH  = linspace(hH1,hH2,n+1)';
         TH  = rtab1(hvH,TvH,hH,0);
         
         % Compute temperature distribution of cold stream
@@ -398,26 +439,17 @@ switch mode
         hC2 = hout;
         
         % Compute temperature distribution of cold stream
-        hC  = linspace(hC1,hC2,n)';
+        hC  = linspace(hC1,hC2,n+1)';
         TC  = rtab1(hvC,TvC,hC,0);
         
         % Compute temperature distribution of hot stream
         QS  = (hC - hC1)*mC; % cummulative heat transfer
-        hH1 = hH2 - QS(n)/mH;
+        hH1 = hH2 - QS(n+1)/mH;
         hH  = hH1 + QS/mH;
         TH  = rtab1(hvH,TvH,hH,0);
         
     otherwise
         error('not implemented')
-end
-
-% Compute temperature difference between the two streams
-DT  = TH - TC;
-
-solution = min(DT);
-if solution < 0.0
-    DTmax    = TH(n) - TC(1);
-    solution = DTmax;
 end
 
 % % To visualise the temperature distribution every time the function is
@@ -429,16 +461,57 @@ end
 % ylabel('Temperature')
 % keyboard
 
+% Compare computed 'DTmin' or 'UA' to reference values
+if length(varargin) == 2
+    
+    % Compute temperature difference between the two streams
+    DT = TH - TC;
+    
+    if strcmp(compare,'DTmin')
+        
+        solution = min(DT) - ref;
+        
+    elseif strcmp(compare,'UA')
+        
+        % Compute average temperature difference
+        DT_AV = 0.5*(DT(2:n+1)+DT(1:n));
+        
+        % Compute heat transfer at each section
+        dQ = QS(2:n+1)-QS(1:n);
+        
+        % Compute required heat transfer coefficient
+        dUA = dQ./DT_AV;
+        UA = sum(dUA);
+        
+        % Find difference between reference and computed
+        solution = ref - UA;
+        
+        % Control physically impossible solutions
+        if any(DT_AV <= 0)
+            solution = - ref;
+        end
+        
+    else
+        error('not implemented')
+    end
+    
+else
+    
+    solution = NaN;
+    
+end
+
+% Assign output arguments
 if nargout == 1
     varargout{1} = solution;
-elseif nargout == 7
-    varargout{1} = solution;
-    varargout{2} = DT;
-    varargout{3} = TC;
-    varargout{4} = TH;
-    varargout{5} = hC;
-    varargout{6} = hH;
-    varargout{7} = QS;
+elseif nargout == 5
+    varargout{1} = TC;
+    varargout{2} = TH;
+    varargout{3} = hC;
+    varargout{4} = hH;
+    varargout{5} = QS;
+else
+    error('Incorrect number of outputs')
 end
 
 end
@@ -577,14 +650,10 @@ if all([iI>=NI,RES(iI)>TOL,~impossible])
 end
 
 solution = C.A - AC;
-limit    = 1.5*C.A;
 % Control physically impossible solutions
-if any([DT_AV <= 0; abs(solution) >= limit; solution < 0])
-    solution = limit;
+if any(DT_AV <= 0)
+    solution = - C.A;
 end
-
-%fprintf(1,'HEX AC = %5.1f, computed AC = %5.1f, solution = %5.1f\n',C.A,AC,solution);
-
 
 if nargout == 1
     varargout{1} = solution;
@@ -594,11 +663,10 @@ else
     for i=1:(length(AS)-1)
         AS(i+1) = AS(i) + dAC(i);
     end
-    varargout{1} = solution;
-    varargout{2} = C;
-    varargout{3} = H;
-    varargout{4} = QS;
-    varargout{5} = AS;
+    varargout{1} = C;
+    varargout{2} = H;
+    varargout{3} = QS;
+    varargout{4} = AS;
 end
 
 end

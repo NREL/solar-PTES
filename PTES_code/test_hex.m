@@ -36,7 +36,7 @@ load_coolprop
 % 1 = Helium and Helium
 % 2 = SolarSalt and Water
 % 3 = CO2 and Water
-scenario = 1;
+scenario = 2;
 
 % Set indices
 iL = 1; i1 = 1; i2 = 1;
@@ -64,7 +64,8 @@ switch scenario
         % Solar Salt
         F1 = fluid_class('SolarSalt','SF','TAB',NaN,1,5);
         F1.state(iL,i1).p = 1e5;
-        F1.state(iL,i1).T = 830;
+        F1.state(iL,i1).T = 800;
+        F1.state(iL,i2).mdot = 45;
         
         % Water
         F2 = fluid_class('Water','WF','CP','TTSE',1,5);
@@ -73,8 +74,10 @@ switch scenario
         F2.state(iL,i2).mdot = 10;
         
         % Set hex_mode
-        hex_mode = 2; % Compute mass flow rate of hot fluid with var=mH*CpH/(mC*CpC)
-        par = 1.20;     
+        hex_mode = 0; % Compute mass flow rate of hot fluid with var=mH*CpH/(mC*CpC)
+        par = 1.10;
+        %hex_mode = 4;
+        %par = 300+273;
         
     case 3        
         % CO2
@@ -111,7 +114,7 @@ switch HX.model
         HX.ploss = 0.01;
         
     case 'UA'
-        HX.UA    = 1000;
+        HX.UA    = 1e5;
         HX.ploss = 0.01;        
         
     case 'geom'
@@ -135,7 +138,7 @@ switch HX.model
                 % using analytical solutions. It should be expected that objectives
                 % will be met accurately (only) when using fluids with small
                 % variations of thermophysical properties.
-                eff   = 0.97;
+                eff   = 0.90;
                 ploss = 0.01;
                 D     = 1e-2;
                 [HX]  = set_hex_geom(HX,iL,F1,i1,F2,i2,hex_mode,par,eff,ploss,D);
