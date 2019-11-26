@@ -276,16 +276,11 @@ switch model
         % Find value of hH1 for which computed area equals specified area
         f1 = @(hH1) compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
         %plot_function(f1,hH1_min,hH2,100,31);
-        opt = optimset('TolX',(hH2-hH1_min)/1e12,'Display','iter');
+        opt = optimset('TolX',(hH2-hH1_min)/1e12,'Display','notify');
         hH1 = fzero(f1,[hH1_min,hH2],opt);
         
         % Obtain output parameters for converged solution
         [C,H,QS,AS] = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
-        
-        % Compute QMAX. Find the value of hH1 for which DTmin = 0
-        f1   = @(hH1) compute_TQ(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,NX,'hH1',hH1,'DTmin',0);
-        hH1  = fzero(f1,[hH1_min,hH2]);
-        QMAX = mH*(hH2 - hH1);
         
         % Save outlet conditions
         hH1 = H.h(1);
@@ -298,7 +293,6 @@ switch model
         HX.H  = H;
         HX.QS = QS;
         HX.AS = AS;
-        HX.QMAX = QMAX;
         
 end
 
@@ -309,6 +303,26 @@ stateH   = update_state(stateH,fluidH.handle,fluidH.read,fluidH.TAB,2);
 stateC.h = hC2;
 stateC.p = pC2;
 stateC   = update_state(stateC,fluidC.handle,fluidC.read,fluidC.TAB,2);
+
+% Update average specific heat capacities and compute Cmin and NTU. Save
+% into HX structure. Also save DppC nd DppH.
+TH1 = stateH.T;
+TC2 = stateC.T;
+CpHmean = (hH2 - hH1)/(TH2-TH1);
+CpCmean = (hC2 - hC1)/(TC2-TC1);
+Cmin  = min([mC*CpCmean,mH*CpHmean]);
+dQ    = QS(2:NX+1)-QS(1:NX);
+DT_AV = 0.5*(HX.H.T(1:NX)+HX.H.T(2:NX+1)) - 0.5*(HX.C.T(1:NX)+HX.C.T(2:NX+1));
+UA    = sum(dQ./DT_AV);
+NTU   = UA/Cmin;
+DppH  = (pH2-pH1)/pH2;
+DppC  = (pC1-pC2)/pC1;
+HX.H.Cp_mean = CpHmean;
+HX.C.Cp_mean = CpCmean;
+HX.Cmin = Cmin;
+HX.NTU  = NTU;
+HX.DppH = DppH;
+HX.DppC = DppC;
 
 % Compute stages
 % Entropy change

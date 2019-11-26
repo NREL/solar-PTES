@@ -1,23 +1,27 @@
-function [HX] = set_hex_geom(HX, iL, fluidH, iH, fluidC, iC, mode, par, eff_min, ploss_max, D)
+function [HX] = set_hex_geom(HX, iL, fluidH, iH, fluidC, iC, mode, par, NTUmin, ploss_max, D)
 % Obtain the heat exchanger geometry based on the performance objectives
 % specified by eff_min and ploss_max.
 
 % Things to be improved:
-% (1) Accurate computation of Nussel number for tube bundle inside
-% developed_flow function, according to square/trilateral lattice
+% (1) Accurate computation of Nussel number for tube bundle (see
+% developed_flow function) according to square/trilateral lattice
 % configuration.
 % (2) Minimum D2 value according to lattice configuration.
 % (3) Introduction of tube thickness if metal volume is wanted
 
-% Use the hex_TQ function to obtain the thermal profiles for the specified
-% values of effectiveness (assume no pressure loss)
+% Use hex_func to obtain the thermal profiles for the specified NTU.
+% First, run with 'eff'=1.0 to obtain approximate Cmin.
 HX.model = 'eff';
-HX.eff   = eff_min;
-HX.ploss = 0;
+HX.eff   = 1.0;
+HX.ploss = ploss_max;
 [HX,~,~,~,~] = hex_func(HX,iL,fluidH,iH,fluidC,iC,mode,par);
+% Now use Cmin to compute UA and update profiles.
+HX.model = 'UA';
+HX.UA    = HX.Cmin*NTUmin;
+[HX,~,~,~,~] = hex_func(HX,iL,fluidH,iH,fluidC,iC,mode,par);
+% Reset heat exchanger model to 'geom'.
+HX.model = 'geom'; HX.eff=0; HX.UA=0;
 %plot_hex(HX,1,'C')
-%keyboard
-HX.model = 'geom';
 
 
 % Declare the two fluid streams
@@ -52,8 +56,8 @@ else
 end
 
 % Set the minimum number of transfer units that each stream should have to
-% obtain the specified effectiveness
-Ntu_min = 2/(1-eff_min);
+% obtain the specified overall NTU
+Ntu_min = 2*NTUmin;
 
 
 %%% DESIGN FIRST STREAM %%%

@@ -36,7 +36,7 @@ load_coolprop
 % 1 = Helium and Helium
 % 2 = SolarSalt and Water
 % 3 = CO2 and Water
-scenario = 2;
+scenario = 3;
 
 % Set indices
 iL = 1; i1 = 1; i2 = 1;
@@ -135,13 +135,11 @@ switch HX.model
                 
             case 'automatic'
                 % Obtain geometric parameters based on performance objectives,
-                % using analytical solutions. It should be expected that objectives
-                % will be met accurately (only) when using fluids with small
-                % variations of thermophysical properties.
-                eff   = 0.90;
+                % using analytical solutions.
+                NTU   = 50;
                 ploss = 0.01;
                 D     = 1e-2;
-                [HX]  = set_hex_geom(HX,iL,F1,i1,F2,i2,hex_mode,par,eff,ploss,D);
+                [HX]  = set_hex_geom(HX,iL,F1,i1,F2,i2,hex_mode,par,NTU,ploss,D);
         end
         
 end
@@ -159,6 +157,15 @@ end
 plot_hex(HX,20,'C');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Compare specifications from set_hex_geom with numerical results
+if all([strcmp(HX.model,'geom'),strcmp(method,'automatic')])
+    
+    fprintf(1,'\n      Specification  Result\n')
+    fprintf(1,'NTU_min = %8.3f   %9.3f\n',NTU,HX.NTU)
+    fprintf(1,'DppH    = %8.5f   %9.5f\n',ploss,HX.DppH)
+    fprintf(1,'DppC    = %8.5f   %9.5f\n',ploss,HX.DppC)
+    
+end
 
 % %%% COMPARE GEOMETRICAL MODEL WITH ANALYTICAL SOLUTIONS %%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
