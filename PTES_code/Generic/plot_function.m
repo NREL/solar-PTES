@@ -45,7 +45,6 @@ elseif nargin == 6
             plot(x,y)
     end
     
-    keyboard
 end
 
 
