@@ -23,6 +23,10 @@ classdef double_tank_class
         tank_costB = 0;
         
         fluid_cost = 0; % Fluid cost
+        
+        sd      % Standard deviation (for uncertainty analysis) (fraction of mean)
+        ul      % upper cost limit (fraction of mean)
+        ll      % lower cost limit (fraction of mean)
     end
     methods        
          function obj = double_tank_class(fluid,TA,pA,MA,TB,pB,MB,T0,num)
