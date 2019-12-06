@@ -22,6 +22,11 @@
 
 % Set main pressure and temperature levels along the cycle (apart from
 % Ran_ptop and Ran_Tbot, defined in INPUTS file)
+if Load.options.useCold(iL)
+    Ran_Tbot = Ran_TbotC;    
+else
+    Ran_Tbot = Ran_Tbot0;
+end
 Ran_pbot = CP1('QT_INPUTS',0.0,Ran_Tbot,'P',steam.handle);
 PR_dis   = Ran_ptop/Ran_pbot;
 Ran_pmid1 = Ran_ptop/(PR_dis)^(1/3);  % pressure at HPT outlet
@@ -69,6 +74,7 @@ while 1
     % Set stage indices
     i  = 1;  % keeps track of the gas stage number
     iH = 1;  % keeps track of the Hot fluid stream number
+    iC = 1;  % keeps track of the Cold fluid stream number
     iE = 1;  % keeps track of the Environment (heat rejection) stream number
     
     % EXPAND (1-->2)
@@ -122,9 +128,23 @@ while 1
     %[steam,i] = compexp(steam,[iL,i],eta,p_aim,4);
     [DEXP(3),steam,i] = compexp_func (DEXP(3),steam,[iL,i],'Paim',p_aim) ;
     
-    % REJECT HEAT (external HEX) (7-->8)
-    T_aim = Ran_Tbot - 2;
-    [steam,environ,i,iE] = hex_set(steam,[iL,i],environ,[iL,iE],T_aim,eff,ploss);
+    if Load.options.useCold(iL)
+        % COOL (condense using cold tanks)
+        fluidC(iC).state(iL,1).T = CT.B(iL).T; fluidC(iC).state(iL,1).p = CT.B(iL).p; %#ok<*SAGROW>
+        [fluidC(iC)] = update(fluidC(iC),[iL,1],1);
+        T_aim = CP1('PQ_INPUTS',steam.state(iL,i).p,0.0,'T',steam.handle) - 1; %wet saturated
+        HX_CONDEN.model = 'eff';
+        HX_CONDEN.eff = eff;
+        HX_CONDEN.ploss = ploss;
+        HX_CONDEN.stage_type = 'hex';
+        HX_CONDEN.NX = 100;
+        [HX_CONDEN, steam, fluidC(iC), i, ~] = hex_func(HX_CONDEN,iL,steam,i,fluidC(iC),1,6,T_aim);
+        iC=iC+1;
+    else
+        % REJECT HEAT (external HEX) (7-->8)
+        T_aim = Ran_Tbot - 1;
+        [steam,environ,i,iE] = hex_set(steam,[iL,i],environ,[iL,iE],T_aim,eff,ploss);
+    end
     
     % COMPRESS (8-->9)
     p_aim = steam.state(iL,iSB).p;
@@ -153,23 +173,6 @@ while 1
     Taim = HT.A(iL).T;
     [steam,fluidH(iH),i,~,HX_BOILER] = hex_TQ(steam,[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',4,Taim);
     iH = iH + 1;
-    
-%     % Define heat exchanger geometry    
-%     HX.shape     = 'circular';
-%     HX.sigma     = 1e8;        % Maximum allowable stress, Pa
-%     HX.L         = 3.0;        % Tube length, m
-%     HX.D1        = 0.5e-2;     % Tube diameter, m
-%     HX.t1        = 0.1*HX.D1;  % Tube thickness, m
-%     HX.AfT       = 1.0;        % Total flow area, m2
-%     HX.AfR       = 1.00;       % Ratio of flow areas, Af2/Af1, -
-%     
-%     % Code settings
-%     HX.NX  = 100;               % Number of sections (grid)
-%     HX.NI  = 1000;              % Maximum number of iterations
-%     HX.TOL = 1e-2;              % Convergence tolerance, in %
-%     
-%     [steam,fluidH(iH),i,~] = hex_TQA(steam,[iL,i],fluidH(iH),[iL,1],HX,'hex',2,1.20);
-%     iH = iH + 1;
     
     % Close cycle
     steam.stage(iL,i).type = 'end';
@@ -202,17 +205,21 @@ end
 
 % Find t_dis
 [MdotH] = total_Mdot(fluidH,[iL,1]);
-t_dis  = HT.B(iL).M/MdotH;
-Load.time(iL) = min([Load.time(iL),t_dis])*(1-1e-6);
+t_disH  = HT.B(iL).M/MdotH;
+[MdotC] = total_Mdot(fluidC,[iL,1]);
+t_disC  = CT.B(iL).M/MdotC;
+Load.time(iL) = min([Load.time(iL),t_disH,t_disC])*(1-1e-6);
 
 % Compute effect of fluid streams entering/leaving the sink/source tanks
 % Hot tanks
 [HT] = run_tanks(HT,fluidH,iL,Load,T0);
-% Cold tanks. If they are not used (heat rejected to the environment), set
-% the cold tanks to the same state as they were before this discharge
-% process.
-CT.A(iL+1) = CT.A(iL);
-CT.B(iL+1) = CT.B(iL);
+% Cold tanks
+[CT] = run_tanks(CT,fluidC,iL,Load,T0);
+% % Cold tanks. If they are not used (heat rejected to the environment), set
+% % the cold tanks to the same state as they were before this discharge
+% % process.
+% CT.A(iL+1) = CT.A(iL);
+% CT.B(iL+1) = CT.B(iL);
 
 
 %%% SUPPORT FUNCTIONS %%%

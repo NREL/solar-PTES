@@ -10,8 +10,9 @@ setTmax = 1;            % set Tmax? (this option substitutes PRch)
 Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 
 % Set Rankine-specific parameters
-Ran_ptop = 100e5;
-Ran_Tbot = T0+15;
+Ran_ptop  = 100e5;
+Ran_Tbot0 = T0+15; %when discharging against the environment
+Ran_TbotC = 273.15+30; %when discharging against the cold stores
 
 % Set component parameters
 eta   = 0.90;  % polytropic efficiency
@@ -28,11 +29,18 @@ nC    = Ne_ch;          % number of cold fluid streams
 Ncld = 1; % number of cold stores. Not implemented for >2
 Nhot = 1; % number of hot stores. Not implemented for >2
 
-Load.time = [10;4;10].*3600;        % time spent in each load period, s
-Load.type = ["chg";"str";"ran"];    % type of load period
-Load.mdot = [10;0;10];              % working fluid mass flow rate, kg/s
-Load.num = numel(Load.time);
-Load.ind = 1:Load.num;
+% Set parameters of Load structure
+Load.time = [10;4;10;10].*3600;        % time spent in each load period, s
+Load.type = ["chg";"str";"ran";"ran"];    % type of load period
+Load.mdot = [10;0;1;1];              % working fluid mass flow rate, kg/s
+Load.options.useCold = [0,0,1,0]; %Use cold stores during Rankine discharge?
+% Load.time = [10;4;15].*3600;        % time spent in each load period, s
+% Load.type = ["chg";"str";"ran"];    % type of load period
+% Load.mdot = [10;0;1];              % working fluid mass flow rate, kg/s
+% Load.options.useCold = [0,0,0]; %Use cold stores during Rankine discharge?
+
+Load.num  = numel(Load.time);
+Load.ind  = 1:Load.num;
 
 fHname  = 'SolarSalt';  % fluid name
 TH_dis0 = 230 + 273.15; % initial temperature of discharged hot fluid, K
