@@ -11,6 +11,8 @@ function [HX, fluidH, fluidC, iH, iC] = hex_func(HX, iL, fluidH, iH, fluidC, iC,
 %   In mode == 2, mH (unknown) is computed from par = Crat = mH*CpH/(mC*CpC)
 %   In mode == 3, TC2 is specified (TC2=par) and mC (unknown) is computed
 %   In mode == 4, TH1 is specified (TH1=par) and mH (unknown) is computed
+%   In mode == 5, TC2 is specified (TC2=par) and mH (unknown) is computed
+%   In mode == 6, TH1 is specified (TH1=par) and mC (unknown) is computed
 %   
 %   The HX object/structure can operate according to three different models
 %   If model = 'eff', the heat exchanger effectiveness and pressure loss
@@ -87,18 +89,26 @@ mC = stateC.mdot;
 H = stream; H.name = fluidH.name; H.pin = pH2;
 C = stream; C.name = fluidC.name; C.pin = pC1;
 
-% Obtain temperature arrays as a function of the enthalpy arrays
-[hvH,TvH] = get_h_T(fluidH,TC1-5,TH2+5,pH2,NX);
-[hvC,TvC] = get_h_T(fluidC,TC1-5,TH2+5,pC1,NX);
+% Obtain minimum hot fluid temperature, and maximum cold fluid temperature
+if strcmp(fluidH.read,'CP')
+    THmin = max([CP1(0,0,0,'Tmin',fluidH.handle),TC1]);
+else
+    THmin = TC1;
+end
+if strcmp(fluidC.read,'CP')
+    TCmax = min([CP1(0,0,0,'Tmax',fluidC.handle),TH2]);
+else
+    TCmax = TH2;
+end
 
 % Obtain preliminary minimum and maximum enthalpy outlets (hot outlet
 % cannot be colder than cold inlet, and vice-versa)
-hH1_min = rtab1(TvH,hvH,TC1,1);
-hC2_max = rtab1(TvC,hvC,TH2,1);
+hH1_min = RP1('PT_INPUTS',pH2,THmin,'H',fluidH);
+hC2_max = RP1('PT_INPUTS',pC1,TCmax,'H',fluidC);
 
 % Compute average 'overall' specific heat capacities
-CpHmean = (hH2 - hH1_min)/(TH2-TC1);
-CpCmean = (hC2_max - hC1)/(TH2-TC1);
+CpHmean = (hH2 - hH1_min)/(TH2-THmin);
+CpCmean = (hC2_max - hC1)/(TCmax-TC1);
 
 % Determine mass flow rates
 switch mode
@@ -126,13 +136,25 @@ switch mode
         % Set TC2 = par, and compute mC. Mass flow rate of hot fluid must
         % be previously specified
         if mH == 0, error('mH must be known in mode==3'); end
-        if any([par<=TC1,par>=TH2]), error('par must be TC1<par<TH2'); end
+        if any([par<=TC1,par>=TCmax]), error('par must be TC1<par<TCmax'); end
         
     case 4
         % Set TH1 = par, and compute mH. Mass flow rate of cold fluid must
         % be previously specified
         if mC == 0, error('mC must be known in mode==4'); end
-        if any([par<=TC1,par>=TH2]), error('par must be TC1<par<TH2'); end
+        if any([par<=THmin,par>=TH2]), error('par must be THmin<par<TH2'); end
+        
+    case 5
+        % Set TC2 = par, and compute mH. Mass flow rate of cold fluid must
+        % be previously specified
+        if mC == 0, error('mC must be known in mode==5'); end
+        if any([par<=TC1,par>=TCmax]), error('par must be TC1<par<TCmax'); end
+        
+    case 6
+        % Set TH1 = par, and compute mC. Mass flow rate of hot fluid must
+        % be previously specified
+        if mH == 0, error('mH must be known in mode==6'); end
+        if any([par<=THmin,par>=TH2]), error('par must be THmin<par<TH2'); end
         
     otherwise
         error('Invalid operation mode')
@@ -161,7 +183,7 @@ switch model
                 hH1_min = hH2 - QMAX0/mH;
                 
                 % Find value of hH1 for which DTmin=ref or UA=ref
-                f1  = @(hH1) compute_TQ(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,NX,'hH1',hH1,compare,ref);
+                f1  = @(hH1) compute_TQ(fluidH,fluidC,mH,mC,hH2,hC1,pH2,pC1,NX,'hH1',hH1,compare,ref);
                 %plot_function(f1,hH1_min,hH2,1000,11);
                 %symlog(gca,'y')
                 hH1 = fzero(f1,[hH1_min,hH2],options);
@@ -183,7 +205,7 @@ switch model
             case 3
                 % Set outlet conditions of cold fluid
                 TC2 = par;
-                hC2 = rtab1(TvC,hvC,TC2,1);
+                hC2 = RP1('PT_INPUTS',pC1,TC2,'H',fluidC);
                 pC2 = pC1*(1-ploss);
                 
                 % Compute preliminary QMAX (hot outlet cannot be colder than cold
@@ -193,7 +215,7 @@ switch model
                 mCmax = QMAX0/(hC2 - hC1)*(1+1e-3); %necessary to find root
                 
                 % Find value of mC for which DTmin=ref or UA=ref
-                f1 = @(mC) compute_TQ(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,NX,'hC2',hC2,compare,ref);
+                f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,hC1,pH2,pC1,NX,'hC2',hC2,compare,ref);
                 %plot_function(f1,mCmin,mCmax,100,11);
                 mC = fzero(f1,[mCmin,mCmax],options);
                 
@@ -214,7 +236,7 @@ switch model
             case 4
                 % Set outlet conditions of hot fluid
                 TH1 = par;
-                hH1 = rtab1(TvH,hvH,TH1,1);
+                hH1 = RP1('PT_INPUTS',pH2,TH1,'H',fluidH);
                 pH1 = pH2*(1-ploss);
                 
                 % Compute preliminary QMAX (cold outlet cannot be hotter than hot
@@ -223,9 +245,9 @@ switch model
                 mHmin = mC*eps;
                 mHmax = QMAX0/(hH2 - hH1)*(1+1e-3); %necessary to find root
                 
-                % Find value of mH for which DTmin = 0, using golden search method
-                f2 = @(mH) compute_TQ(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,NX,'hH1',hH1,compare,ref);
-                mH = fzero(f2,[mHmin,mHmax],options);
+                % Find value of mC for which DTmin=ref or UA=ref
+                f1 = @(mH) compute_TQ(fluidH,fluidC,mH,mC,hH2,hC1,pH2,pC1,NX,'hH1',hH1,compare,ref);
+                mH = fzero(f1,[mHmin,mHmax],options);
                 
                 % Compute total heat transfer (and update mH if necessary)
                 if strcmp(model,'eff')
@@ -239,10 +261,43 @@ switch model
                 % Update outlet conditions of cold fluid
                 hC2 = hC1 + QT/mC;
                 pC2 = pC1*(1-ploss);
+                
+            case 5
+                error('not implemented yet')
+                
+            case 6
+                % Set outlet conditions of hot fluid
+                TH1 = par;
+                hH1 = RP1('PT_INPUTS',pH2,TH1,'H',fluidH);
+                pH1 = pH2*(1-ploss);
+                
+                % Compute total heat transfer and compute mCmin and mCmax
+                % accordingly
+                QT  = mH*(hH2-hH1);
+                mCmin = QT/(hC2_max - hC1)*(0.99);
+                mCmax = mCmin*1e3; %necessary to find root
+                
+                % Find value of mC for which DTmin=ref or UA=ref
+                f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,hC1,pH2,pC1,NX,'hH1',hH1,compare,ref);
+                %plot_function(f1,mCmin,mCmax,100,11);
+                %symlog(gca,'y')
+                %keyboard
+                mC = fzero(f1,[mCmin,mCmax],options);                
+                
+                % Update value of mC if necessary
+                if strcmp(model,'eff')
+                    mC = mC/eff;
+                    stateC.mdot = mC;
+                elseif strcmp(model,'UA')
+                end
+                
+                % Update outlet conditions of cold fluid
+                hC2 = hC1 + QT/mC;
+                pC2 = pC1*(1-ploss);
         end
         
         % Save variables into C and H stream objects
-        [TC,TH,hC,hH,QS] = compute_TQ(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,NX,'hH1',hH1);
+        [TC,TH,hC,hH,QS] = compute_TQ(fluidH,fluidC,mH,mC,hH2,hC1,pH2,pC1,NX,'hH1',hH1);
         C.mdot = mC;
         H.mdot = mH;
         C.T = TC;
@@ -257,8 +312,8 @@ switch model
         
     case 'geom'
         
-        if any(mode==[3,4])
-            error('Operation modes 3 and 4 not implemented for geometry-based heat exchanger model');
+        if any(mode==[3,4,5,6])
+            error('Operation modes 3, 4, 5 and 6 not implemented yet for geometry-based heat exchanger model');
         end
         
         % Import mH and mC into stream objects
@@ -350,6 +405,12 @@ fluidH.stage(iL,iH)   = stageH; % Result stays in current stage
 fluidC.state(iL,iC+1) = stateC; % Result goes into next state
 fluidC.stage(iL,iC)   = stageC; % Result stays in current stage
 
+% Update mass flow rates for inlet state, if necessary
+if any(mode==[1,2,3,4,5,6])
+    fluidH.state(iL,iH).mdot = mH;
+    fluidC.state(iL,iC).mdot = mC;
+end
+
 % Reverse swap, if necessary
 if swap == 1
     fluidH0 = fluidH;
@@ -371,35 +432,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [ hv, Tv ] = get_h_T( fluid, T1, T2, pressure, n )
-% Obtain the hv and Tv arrays of a given fluid for the hex subroutines.
-% Data ordered in regular intervals of h. T as a function of h.
-
-if strcmp(fluid.read,'CP') %read from CoolProp
-    
-    h1  = CP1('PT_INPUTS',pressure,T1,'H',fluid.handle);
-    h2  = CP1('PT_INPUTS',pressure,T2,'H',fluid.handle);
-    hv  = linspace(h1,h2,n)';       % enthalpy array between TC1 and TH2
-    pv  = ones(size(hv)).*pressure; % pressure array
-    Tv  = CP1('HmassP_INPUTS',hv,pv,'T',fluid.handle); % temperature array
-    
-elseif strcmp(fluid.read,'TAB') %read from table
-    
-    Tx  = fluid.TAB(:,1);
-    hy  = fluid.TAB(:,2);
-    h1  = rtab1(Tx,hy,T1,0);
-    h2  = rtab1(Tx,hy,T2,0);
-    hv  = linspace(h1,h2,n)'; % enthalpy array between TC1 and TH2
-    Tv  = rtab1(hy,Tx,hv,1);  % temperature array between TC1 and TH2
-else
-    error('not implemented')
-end
-
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function varargout = compute_TQ(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,n,mode,hout,varargin)
+function varargout = compute_TQ(fluidH,fluidC,mH,mC,hH2,hC1,pH2,pC1,n,mode,hout,varargin)
 % Compute the TQ diagram of a two-stream counter-flow heat exchanger.
 %   The "mode" string controls which enthalpy outlet "hout" is specified,
 %   either mode='hH1' or mode='hC2'.
@@ -440,12 +473,14 @@ switch mode
         
         % Compute temperature distribution of hot stream
         hH  = linspace(hH1,hH2,n+1)';
-        TH  = rtab1(hvH,TvH,hH,0);
+        pH  = pH2*ones(size(hH));
+        TH  = RP1('HmassP_INPUTS',hH,pH,'T',fluidH);
         
         % Compute temperature distribution of cold stream
         QS  = (hH - hH1)*mH; % cummulative heat transfer
         hC  = hC1 + QS/mC;
-        TC  = rtab1(hvC,TvC,hC,0);
+        pC  = pC1*ones(size(hC));
+        TC  = RP1('HmassP_INPUTS',hC,pC,'T',fluidC);
         
     case 'hC2'
         
@@ -454,20 +489,22 @@ switch mode
         
         % Compute temperature distribution of cold stream
         hC  = linspace(hC1,hC2,n+1)';
-        TC  = rtab1(hvC,TvC,hC,0);
+        pC  = pC1*ones(size(hC));
+        TC  = RP1('HmassP_INPUTS',hC,pC,'T',fluidC);
         
         % Compute temperature distribution of hot stream
         QS  = (hC - hC1)*mC; % cummulative heat transfer
         hH1 = hH2 - QS(n+1)/mH;
         hH  = hH1 + QS/mH;
-        TH  = rtab1(hvH,TvH,hH,0);
+        pH  = pH2*ones(size(hH));
+        TH  = RP1('HmassP_INPUTS',hH,pH,'T',fluidH);
         
     otherwise
         error('not implemented')
 end
 
-% % To visualise the temperature distribution every time the function is
-% % called, uncomment the lines below
+% To visualise the temperature distribution every time the function is
+% called, uncomment the lines below
 % figure(10)
 % plot(QS./QS(end),TH,'r'); hold on;
 % plot(QS./QS(end),TC,'b'); hold off;
