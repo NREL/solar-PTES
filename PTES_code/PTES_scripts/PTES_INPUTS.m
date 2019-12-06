@@ -39,7 +39,7 @@ else
 end
 
 % Heat rejection streams
-environ = environment_class(T0,p0,10);
+environ = environment_class(T0,p0,Load.num,10);
 
 multi_run  = 0; % run cycle several times with different parameters?
 optimise   = 0; % optimise cycle?

@@ -15,7 +15,7 @@ function [output1] = CP1(input_pair,input1,input2,out1,handle)
 
 % Declaring error variables
 ierr = 0; buffer_size = 10;
-herr= char((1:1:buffer_size));
+herr = char((1:1:buffer_size));
 
 % Obtaining index of parameter to compute
 output(1,1) = calllib('coolprop','get_param_index',out1);

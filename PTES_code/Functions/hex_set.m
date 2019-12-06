@@ -24,11 +24,13 @@ if all([T_st >= Tset, Tset >= T0]) || all([T_st <= Tset, Tset <= T0]) %cooling/h
     stage.w    = 0;
     stage.q    = stage.Dh + stage.w;
     stage.sirr = state.s - s_st - stage.Dh/T0;
-else %joule heating
+elseif all([T_st <= Tset, Tset > T0]) %joule heating
     %fprintf(1,'\nJoule heating!\n')
     stage.q    = 0;
     stage.w    = stage.q - stage.Dh;
     stage.sirr = state.s - s_st;
+else
+    error('Selected conditions do not allow cooling/heating versus ambient or Joule heating');
 end
 environ.sink(indE(1),indE(2)).DHdot = - stage.q*state.mdot;
 

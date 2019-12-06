@@ -5,10 +5,10 @@ classdef environment_class
         sink = sink_class
     end
     methods
-        function obj = environment_class(T0,p0,num)
+        function obj = environment_class(T0,p0,numPeriods,numStates)
             obj.T0 = T0;
             obj.p0 = p0;
-            obj.sink(1:2,1:num) = sink_class; % first row for charge, second row for discharge
+            obj.sink(1:numPeriods,1:numStates) = sink_class; % first row for charge, second row for discharge
         end
     end
 end
