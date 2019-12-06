@@ -36,7 +36,8 @@ load_coolprop
 % 1 = Helium and Helium
 % 2 = SolarSalt and Water
 % 3 = CO2 and Water
-scenario = 3;
+% 4 = Steam and MEG
+scenario = 4;
 
 % Set indices
 iL = 1; i1 = 1; i2 = 1;
@@ -96,6 +97,25 @@ switch scenario
         hex_mode = 0; % Both mass flow rates specified
         par = 0;
         
+    case 4        
+        % MEG
+        F1 = fluid_class('INCOMP::MEG2[0.56]','SF','TAB',NaN,1,5);
+        F1.state(iL,i1).p = 1e5;
+        F1.state(iL,i1).T = 245;
+        F1.state(iL,i2).mdot = 200;
+        
+        % Water
+        F2 = fluid_class('Water','WF','CP','TTSE',1,5);
+        F2.state(iL,i2).p = 0.1*1e5;
+        F2.state(iL,i2).T = 322;
+        F2.state(iL,i2).mdot = 10;
+        
+        % Set hex_mode
+        hex_mode = 6;
+        par = 315;
+        %hex_mode = 0;
+        %par = 0;
+        
     otherwise
         error('not implemented')
 end
@@ -105,8 +125,9 @@ end
 
 % Specify HX settings
 HX.NX = 100; % Number of sections (grid)
-HX.model = 'geom'; % either 'eff', 'UA' or 'geom'
+HX.model = 'UA'; % either 'eff', 'UA' or 'geom'
 HX.stage_type = 'hex';
+method = 'automatic';
 
 switch HX.model
     case 'eff'
@@ -114,12 +135,11 @@ switch HX.model
         HX.ploss = 0.01;
         
     case 'UA'
-        HX.UA    = 1e5;
+        HX.UA    = 1e6;
         HX.ploss = 0.01;        
         
     case 'geom'
         % Specify HEX geometry
-        method = 'automatic';
         switch method
             case 'manual'
                 % Define heat exchanger geometry (shell-and-tube)
