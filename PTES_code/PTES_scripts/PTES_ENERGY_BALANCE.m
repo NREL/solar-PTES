@@ -95,13 +95,13 @@ Net_chg = (+ W_in_chg  + QC_chg  - QH_chg  - DH_chg  - QE_chg);
 Net_dis = (- W_out_dis - QC_dis  + QH_dis  - DH_dis  - QE_dis);
 
 i_chg = Load.ind(any(Load.type == {'chg','chgCO2'},2));
-i_dis = Load.ind(any(Load.type == {'dis','disCO2'},2));
+i_dis = Load.ind(any(Load.type == {'dis','disCO2','ran'},2));
 i_ran = Load.ind(Load.type == 'ran');
-i_gas = Load.ind(any(Load.type == {'chg','dis'},2));
-i_act = Load.ind(any(Load.type == {'chg','dis','ran'},2));
+i_gas = Load.ind(any(Load.type == {'chg','dis','chgCO2','disCO2'},2));
+i_act = Load.ind(any(Load.type == {'chg','dis','chgCO2','disCO2','ran'},2));
 
 t_chg = sum(Load.time(i_chg));
-t_dis = sum(Load.time([i_dis,i_ran]));
+t_dis = sum(Load.time(i_dis));
 ip1 = find(i_chg == 1,1,'first'); %index for printing (first charge period)
 ip2 = find(i_dis == 1,1,'first'); %index for printing (first discharge period)
 
@@ -219,6 +219,7 @@ switch Load.mode
         WL_PTES_dis(7) = HT.A(end).B - HT.A(1).B + HT.B(end).B - HT.B(1).B;
 end
 
+%{
 % PRINT MAIN RESULTS ON SCREEN
 if WM==1
     fprintf(1,'\n\n');
@@ -286,7 +287,60 @@ if WM==1
    
     fprintf(1,'\n');
 end
+%}
 
+% PRINT MAIN RESULTS ON SCREEN
+if WM==1
+    fprintf(1,'\n\n');
+    fprintf(1,'PTES CYCLE\n');
+    fprintf(1,'----------\n');
+    
+    % Print working fluid states
+    fprintf(1,'Gas states:\n');
+    for iL = i_gas
+        print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
+    end
+    for iL = i_ran
+        print_states(steam,iL,1:steam.Nstg(iL)+1,Load);
+    end
+    
+    % Print hot streams
+    fprintf(1,'\nHot fluid streams:\n');
+    fprintf(1,'-->%s\n',fluidH(1).name);
+    for iL = i_act
+        for iH=1:numel(fluidH)
+            print_states(fluidH(iH),iL,1:2,Load)
+        end
+    end
+    
+    % Print cold streams
+    fprintf(1,'\nCold fluid streams:\n');
+    fprintf(1,'-->%s\n',fluidC(1).name);
+    for iL = i_act
+        for iC=1:numel(fluidC)
+            print_states(fluidC(iC),iL,1:2,Load)
+        end
+    end
+    % Print hot tanks
+    for ii = 1 : Nhot
+        fprintf(1,'\nHot tank #%2i\n',ii);
+        fprintf(1,'%10s %10s %13s %13s %13s %13s %8s ','A.T [K]','A.M [kg*1e6]','A.H [MWh]','B.T [K]','B.M [kg*1e6]','B.H [MWh]','state'); fprintf(1,'\n');
+        for i0=1:(Load.num+1)
+            fprintf(1,'%10.4g %13.3f %13.3f %10.4g %13.3f %13.3f %8d\n', HT(ii).A(i0).T,HT(ii).A(i0).M/1e6,HT(ii).A(i0).H/fact,HT(ii).B(i0).T,HT(ii).B(i0).M/1e6,HT(ii).B(i0).H/fact,i0)
+        end
+    end
+    % Print cold tanks
+    for ii = 1 : Ncld
+        fprintf(1,'\nCold tank #%2i\n',ii);
+        fprintf(1,'%10s %10s %13s %13s %13s %13s %8s ','A.T [K]','A.M [kg*1e6]','A.H [MWh]','B.T [K]','B.M [kg*1e6]','B.H [MWh]','state'); fprintf(1,'\n');
+        for i0=1:(Load.num+1)
+            fprintf(1,'%10.4g %13.3f %13.3f %10.4g %13.3f %13.3f %8d\n', CT(ii).A(i0).T,CT(ii).A(i0).M/1e6,CT(ii).A(i0).B/fact,CT(ii).B(i0).T,CT(ii).B(i0).M/1e6,CT(ii).B(i0).B/fact,i0)
+        end
+    end
+    fprintf(1,'\n');
+end
+
+% Compute total loss from a second law perspective
 WL_matrix = [ WL_PTES_chg ; WL_PTES_dis ; ];
 Total_loss = sum(WL_matrix(:));
 
@@ -364,51 +418,6 @@ WL_mix_liq = sum(WL_matrix(:,5))/Exergy_in*100;
 WL_mix_gas = sum(WL_matrix(:,6))/Exergy_in*100;
 WL_tanks   = sum(WL_matrix(:,7))/Exergy_in*100;
 
-%[WR,WR_dis]   = work_ratio(gas.stage,stages_ch,stages_dis);
-
-%% THIS SEEMS TO BE A DUPLICATE?
-%{
-% PRINT MAIN RESULTS ON SCREEN
-if WM==1
-    fprintf(1,'\n\n');
-    fprintf(1,'PTES CYCLE\n');
-    fprintf(1,'----------\n');
-    fprintf(1,'Gas states:\n');
-    for iL = i_gas
-        print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
-    end
-    for iL = i_ran
-        print_states(steam,iL,1:steam.Nstg(iL)+1,Load);
-    end
-    
-    fprintf(1,'\nHot fluid streams:\n');
-    fprintf(1,'-->%s\n',fluidH(1).name);
-    for iL = i_act
-        for iH=1:numel(fluidH)
-            print_states(fluidH(iH),iL,1:2,Load)
-        end
-    end
-    fprintf(1,'\nCold fluid streams:\n');
-    fprintf(1,'-->%s\n',fluidC(1).name);
-    for iL = i_act
-        for iC=1:numel(fluidC)
-            print_states(fluidC(iC),iL,1:2,Load)
-        end
-    end
-    fprintf(1,'\nHot tanks\n');
-    fprintf(1,'%10s %10s %13s %13s %13s %13s %8s ','A.T [K]','A.M [kg*1e6]','A.H [MWh]','B.T [K]','B.M [kg*1e6]','B.H [MWh]','state'); fprintf(1,'\n');
-    for i0=1:(Load.num+1)
-        fprintf(1,'%10.4g %13.3f %13.3f %10.4g %13.3f %13.3f %8d\n', HT.A(i0).T,HT.A(i0).M/1e6,HT.A(i0).H/fact,HT.B(i0).T,HT.B(i0).M/1e6,HT.B(i0).H/fact,i0)
-    end    
-    fprintf(1,'\nCold tanks\n');
-    fprintf(1,'%10s %10s %13s %13s %13s %13s %8s ','A.T [K]','A.M [kg*1e6]','A.H [MWh]','B.T [K]','B.M [kg*1e6]','B.H [MWh]','state'); fprintf(1,'\n');
-    for i0=1:(Load.num+1)
-        fprintf(1,'%10.4g %13.3f %13.3f %10.4g %13.3f %13.3f %8d\n', CT.A(i0).T,CT.A(i0).M/1e6,CT.A(i0).B/fact,CT.B(i0).T,CT.B(i0).M/1e6,CT.B(i0).B/fact,i0)
-    end    
-    fprintf(1,'\n');
-end
-%}
-%%
 if WM == 1
     fprintf(1,'\n\n');
     fprintf(1,'FIRST LAW BALANCE\n');
@@ -457,7 +466,6 @@ if WM == 1
                 fprintf(1,'%18s mass:  %8.2f tons/MWh\n\n',fluidC(ii).name,CT(ii).A(1).M/(W_out_dis/fact)/1e3);
             end
             
-            %fprintf(1,'Work Ratios:  %6.3g (charge) %6.3g (discharge)\n\n',WR,WR_dis);
         case 1
             fprintf(1,'Exergetic efficiency:                %8.1f %%\n',chi_tot*100);
             fprintf(1,'Exergetic efficiency (cold reject):  %8.1f %%\n',chi_hot*100);
