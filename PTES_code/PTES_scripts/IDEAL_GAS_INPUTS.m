@@ -26,9 +26,9 @@ Nhot = 1; % number of hot stores. Not implemented for >2
 
 switch Load.mode
     case 0 % PTES
-        Load.time = [10;10;4;10].*3600;         % time spent in each load period, s
-        Load.type = ["chg";"chg";"str";"dis"];  % type of load period
-        Load.mdot = [6;4;0;10];                 % working fluid mass flow rate, kg/s
+        Load.time = [10;10;4;6;10].*3600;         % time spent in each load period, s
+        Load.type = ["chg";"chg";"str";"str";"dis"];  % type of load period
+        Load.mdot = [6;4;0;0;10];                 % working fluid mass flow rate, kg/s
     case 1 % Heat pump
         Load.time = 10.*3600;                  % time spent in each load period, s
         Load.type = "chg";                     % type of load period

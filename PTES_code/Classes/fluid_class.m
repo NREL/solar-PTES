@@ -8,6 +8,7 @@ classdef fluid_class
         state = state_class;
         stage = stage_class;
         Nstg   % number of stages
+        cost   % Cost per kg
     end
     methods
         function obj = fluid_class(name,job,read,backend,numPeriods,numStates)
@@ -32,6 +33,7 @@ classdef fluid_class
             obj.state(1:numPeriods,1:numStates)   = state_class;
             obj.stage(1:numPeriods,1:numStates-1) = stage_class;
             obj.Nstg(1:numPeriods,1) = 0;
+            obj.cost = 0.0; % Should specify this properly in the class constructor call
         end
         
         function obj = reset_fluid(obj)
