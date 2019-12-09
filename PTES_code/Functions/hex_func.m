@@ -142,7 +142,14 @@ switch mode
         % Set TH1 = par, and compute mH. Mass flow rate of cold fluid must
         % be previously specified
         if mC == 0, error('mC must be known in mode==4'); end
-        if any([par<=THmin,par>=TH2]), error('par must be THmin<par<TH2'); end
+        if any([par<=THmin,par>=TH2])
+            warning(strcat('Condition THmin<par<TH2 must be true in mode==4. ',...
+                'Changing to mode==2 with Crat=1'));
+            mode=2;
+            Crat = 1.0; %Crat = mH*CpH / (mC*CpC)
+            mH = Crat*mC*CpCmean/CpHmean;
+            stateH.mdot = mH;
+        end
         
     case 5
         % Set TC2 = par, and compute mH. Mass flow rate of cold fluid must
