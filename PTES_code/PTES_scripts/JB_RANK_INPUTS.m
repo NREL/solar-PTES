@@ -3,7 +3,7 @@ T0      = 30 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 25e5;         % top pressure, Pa
 PRch    = 3.0;          % charge pressure ratio
-PRr     = 1.0;          % discharge pressure ratio: PRdis = PRch*PRr
+PRr     = 1.5;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 1;            % set Tmax? (this option substitutes PRch)
@@ -21,7 +21,7 @@ ploss = 0.01;  % pressure loss in HEXs
 
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
-Ne_ch = 2; % number of expansions during charge
+Ne_ch = 1; % number of expansions during charge
 nH    = max([2,Nc_ch]); % number of hot fluid streams
 nC    = Ne_ch;          % number of cold fluid streams
 
@@ -84,6 +84,19 @@ gas = fluid_class('Nitrogen','WF','CP','TTSE',Load.num,30);
 if Load.mode==3
     steam = fluid_class('Water','WF','CP','TTSE',Load.num,30);
 end
+
+% Set heat exchangers (this is temporary, it will be done properly using a
+% class constructor
+HX_CONDEN.model = 'eff';
+HX_CONDEN.eff = eff;
+HX_CONDEN.ploss = ploss;
+HX_CONDEN.stage_type = 'hex';
+HX_CONDEN.NX = 100;
+HX_REHEAT.model = 'eff';
+HX_REHEAT.eff = eff;
+HX_REHEAT.ploss = ploss;
+HX_REHEAT.stage_type = 'hex';
+HX_REHEAT.NX = 100;
 
 % Save copy of input file in "Outputs" folder
 copyfile(['./PTES_scripts/',mfilename,'.m'],'./Outputs/')

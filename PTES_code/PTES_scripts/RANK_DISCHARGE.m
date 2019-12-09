@@ -1,5 +1,5 @@
-%%% PLANT LAYOUT %%%
-%%%%%%%%%%%%%%%%%%%%
+%%% RANKINE PLANT LAYOUT %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %  1: Boiler outlet
 %  2: HPT outlet
 %  3: Separator outlet (first steam extraction)
@@ -18,7 +18,7 @@
 % 16: Mixer outlet (end secondary stream A)
 % 17: Separator outlet (second steam extraction) - secondary stream B
 % 18: Mixer outlet (end secondary stream B)
-%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Set main pressure and temperature levels along the cycle (apart from
 % Ran_ptop and Ran_Tbot, defined in INPUTS file)
@@ -100,7 +100,8 @@ while 1
     % REHEAT (gas-liquid) (3-->4)
     fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p;
     [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
-    [steam,fluidH(iH),i,~,HX_REHEAT] = hex_TQ(steam,[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',2,1.0);
+    Taim = HT.A(iL).T;
+    [HX_REHEAT,steam,fluidH(iH),i,~] = hex_func(HX_REHEAT,iL,steam,i,fluidH(iH),1,4,Taim);
     iH = iH + 1;
     
     % EXPAND (4-->5)
@@ -133,11 +134,6 @@ while 1
         fluidC(iC).state(iL,1).T = CT.B(iL).T; fluidC(iC).state(iL,1).p = CT.B(iL).p; %#ok<*SAGROW>
         [fluidC(iC)] = update(fluidC(iC),[iL,1],1);
         T_aim = CP1('PQ_INPUTS',steam.state(iL,i).p,0.0,'T',steam.handle) - 1; %wet saturated
-        HX_CONDEN.model = 'eff';
-        HX_CONDEN.eff = eff;
-        HX_CONDEN.ploss = ploss;
-        HX_CONDEN.stage_type = 'hex';
-        HX_CONDEN.NX = 100;
         [HX_CONDEN, steam, fluidC(iC), i, ~] = hex_func(HX_CONDEN,iL,steam,i,fluidC(iC),1,6,T_aim);
         iC=iC+1;
     else
@@ -199,11 +195,8 @@ end
 % print_states(fluidH(1),iL,1:2,Load)
 % print_states(fluidH(2),iL,1:2,Load)
 
-% Compute temperatures and mass of the sink tanks. Assume complete
-% depletion of (at least) one of the source tanks to stablish
-% discharge time.
-
-% Find t_dis
+% Compute total mass flow rates of the hot and cold storage fluids and
+% compute the end of discharge time (stop when one tank becomes empty)
 [MdotH] = total_Mdot(fluidH,[iL,1]);
 t_disH  = HT.B(iL).M/MdotH;
 [MdotC] = total_Mdot(fluidC,[iL,1]);
@@ -214,12 +207,14 @@ Load.time(iL) = min([Load.time(iL),t_disH,t_disC])*(1-1e-6);
 % Hot tanks
 [HT] = run_tanks(HT,fluidH,iL,Load,T0);
 % Cold tanks
-[CT] = run_tanks(CT,fluidC,iL,Load,T0);
-% % Cold tanks. If they are not used (heat rejected to the environment), set
-% % the cold tanks to the same state as they were before this discharge
-% % process.
-% CT.A(iL+1) = CT.A(iL);
-% CT.B(iL+1) = CT.B(iL);
+if Load.options.useCold(iL)
+    [CT] = run_tanks(CT,fluidC,iL,Load,T0);
+else
+    % If they are not used (heat rejected to the environment), set the cold
+    % tanks to the same state as they were before the discharge process.
+    CT.A(iL+1) = CT.A(iL);
+    CT.B(iL+1) = CT.B(iL);
+end
 
 
 %%% SUPPORT FUNCTIONS %%%

@@ -122,7 +122,7 @@ end
 
 % Set x axis
 Dx = xmax-xmin;
-xlim([(xmin-0.1*Dx) (xmax+0.1*Dx)]);
+xlim([(xmin-0.15*Dx) (xmax+0.15*Dx)]);
 xlabel('Specific Entropy [kJ/kg.K]');
 
 % Set y axis
