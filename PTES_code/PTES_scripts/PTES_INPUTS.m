@@ -4,9 +4,7 @@
 % Call the correct input file
 Load.mode = 3;
 switch Load.mode
-    case {0,1,2} % Ideal gas Joule-Bratyon PTES
-        IDEAL_GAS_INPUTS
-    case 3 % JB (charge) + Rankine (discharge)
+    case {0,1,2,3} % Joule-Bratyon PTES / Joule-Brayton + Rankine
         JB_RANK_INPUTS
     case 4 % sCO2-PTES type cycles
         sCO2_INPUTS

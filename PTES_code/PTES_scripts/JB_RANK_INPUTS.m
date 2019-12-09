@@ -30,18 +30,37 @@ Ncld = 1; % number of cold stores. Not implemented for >2
 Nhot = 1; % number of hot stores. Not implemented for >2
 
 % Set parameters of Load structure
-Load.time = [10;4;10;10].*3600;        % time spent in each load period, s
-Load.type = ["chg";"str";"ran";"ran"];    % type of load period
-Load.mdot = [10;0;1;1];              % working fluid mass flow rate, kg/s
-Load.options.useCold = [0,0,1,0]; %Use cold stores during Rankine discharge?
-% Load.time = [10;4;15].*3600;        % time spent in each load period, s
-% Load.type = ["chg";"str";"ran"];    % type of load period
-% Load.mdot = [10;0;1];              % working fluid mass flow rate, kg/s
-% Load.options.useCold = [0,0,0]; %Use cold stores during Rankine discharge?
-
+switch Load.mode
+    case 0 % PTES
+        Load.time = [10;10;4;10].*3600;         % time spent in each load period, s
+        Load.type = ["chg";"chg";"str";"dis"];  % type of load period
+        Load.mdot = [6;4;0;10];                 % working fluid mass flow rate, kg/s
+        
+    case 1 % Heat pump
+        Load.time = 10.*3600;                  % time spent in each load period, s
+        Load.type = "chg";                     % type of load period
+        Load.mdot = 10;                        % working fluid mass flow rate, kg/s
+        
+    case 2 % Heat engine (no cold tanks)
+        error('not implemented')
+        Load.time = [0,10].*3600;                  % time spent in each load period, s
+        Load.type = ["sol","dis"];                 % type of load period
+        Load.mdot = [0,10];                        % working fluid mass flow rate, kg/s
+        
+    case 3 % JB charge, Rankine discharge
+        Load.time = [10;4;10;10].*3600;        % time spent in each load period, s
+        Load.type = ["chg";"str";"ran";"ran"];    % type of load period
+        Load.mdot = [10;0;1;1];              % working fluid mass flow rate, kg/s
+        Load.options.useCold = [0,0,1,0]; %Use cold stores during Rankine discharge?
+        % Load.time = [10;4;15].*3600;        % time spent in each load period, s
+        % Load.type = ["chg";"str";"ran"];    % type of load period
+        % Load.mdot = [10;0;1];              % working fluid mass flow rate, kg/s
+        % Load.options.useCold = [0,0,0]; %Use cold stores during Rankine discharge?
+end
 Load.num  = numel(Load.time);
 Load.ind  = 1:Load.num;
 
+% Hot storage tanks
 fHname  = 'SolarSalt';  % fluid name
 TH_dis0 = 230 + 273.15; % initial temperature of discharged hot fluid, K
 MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
@@ -62,7 +81,9 @@ MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
 % elements in state arrays.
 % Working fluid
 gas = fluid_class('Nitrogen','WF','CP','TTSE',Load.num,30);
-steam = fluid_class('Water','WF','CP','TTSE',Load.num,30);
+if Load.mode==3
+    steam = fluid_class('Water','WF','CP','TTSE',Load.num,30);
+end
 
 % Save copy of input file in "Outputs" folder
 copyfile(['./PTES_scripts/',mfilename,'.m'],'./Outputs/')
