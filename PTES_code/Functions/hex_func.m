@@ -224,10 +224,10 @@ switch model
                     QMAX = mC*(hC2 - hC1);
                     QT   = QMAX*eff;
                     mC = QT/(hC2 - hC1);
-                    stateC.mdot = mC;
                 elseif strcmp(model,'UA')
                     QT   = mC*(hC2 - hC1);
                 end
+                stateC.mdot = mC;
                 
                 % Update outlet conditions of hot fluid
                 hH1 = hH2 - QT/mH;
@@ -245,7 +245,7 @@ switch model
                 mHmin = mC*eps;
                 mHmax = QMAX0/(hH2 - hH1)*(1+1e-3); %necessary to find root
                 
-                % Find value of mC for which DTmin=ref or UA=ref
+                % Find value of mH for which DTmin=ref or UA=ref
                 f1 = @(mH) compute_TQ(fluidH,fluidC,mH,mC,hH2,hC1,pH2,pC1,NX,'hH1',hH1,compare,ref);
                 mH = fzero(f1,[mHmin,mHmax],options);
                 
@@ -253,11 +253,12 @@ switch model
                 if strcmp(model,'eff')
                     QMAX = mH*(hH2 - hH1);
                     QT   = QMAX*eff;
-                    mH   = QT/(hH2 - hH1);
-                    stateH.mdot = mH;
+                    mH   = QT/(hH2 - hH1);                    
                 elseif strcmp(model,'UA')
                     QT   = mH*(hH2 - hH1);
                 end
+                stateH.mdot = mH;
+                
                 % Update outlet conditions of cold fluid
                 hC2 = hC1 + QT/mC;
                 pC2 = pC1*(1-ploss);
@@ -270,6 +271,40 @@ switch model
                 TH1 = par;
                 hH1 = RP1('PT_INPUTS',pH2,TH1,'H',fluidH);
                 pH1 = pH2*(1-ploss);
+                
+%                 % Compute total heat transfer
+%                 QT  = mH*(hH2-hH1);
+% 
+%                 if strcmp(model,'eff')
+%                     % Compute QMAX according to eff and obtain outlet
+%                     % conditions in ideal case (DTmin=0)
+%                     QMAX = QT/eff;
+%                     hH1_id = hH2 - QMAX/mH;
+%                     
+%                     % Compute mCmin and mCmax according to QMAX
+%                     mCmin = QMAX/(hC2_max - hC1)*(0.99);
+%                     mCmax = mCmin*1e3; %necessary to find root
+%                     
+%                     % Using hH1_id, find value of mC for which DTmin=0
+%                     f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,hC1,pH2,pC1,NX,'hH1',hH1_id,'DTmin',0);
+%                     %plot_function(f1,mCmin,mCmax,100,11);
+%                     %symlog(gca,'y')
+%                     %keyboard
+%                     mC = fzero(f1,[mCmin,mCmax],options);
+%                     
+%                 elseif strcmp(model,'UA')
+%                     % Compute mCmin and mCmax according to QT
+%                     mCmin = QT/(hC2_max - hC1)*(0.99);
+%                     mCmax = mCmin*1e3; %necessary to find root
+%                     
+%                     % Find value of mC for which UA=ref
+%                     f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,hC1,pH2,pC1,NX,'hH1',hH1,'UA',ref);
+%                     %plot_function(f1,mCmin,mCmax,100,11);
+%                     %symlog(gca,'y')
+%                     %keyboard
+%                     mC = fzero(f1,[mCmin,mCmax],options);
+%                 end
+%                 stateC.mdot = mC;
                 
                 % Compute total heat transfer and compute mCmin and mCmax
                 % accordingly
@@ -284,13 +319,13 @@ switch model
                 %keyboard
                 mC = fzero(f1,[mCmin,mCmax],options);                
                 
-                % Update value of mC if necessary
+                % Update value of mC according to effectiveness value (this
+                % will also affect the cold enthalpy outlet)
                 if strcmp(model,'eff')
                     mC = mC/eff;
-                    stateC.mdot = mC;
-                elseif strcmp(model,'UA')
                 end
-                
+                stateC.mdot = mC;
+                                
                 % Update outlet conditions of cold fluid
                 hC2 = hC1 + QT/mC;
                 pC2 = pC1*(1-ploss);
@@ -503,8 +538,8 @@ switch mode
         error('not implemented')
 end
 
-% To visualise the temperature distribution every time the function is
-% called, uncomment the lines below
+% % To visualise the temperature distribution every time the function is
+% % called, uncomment the lines below
 % figure(10)
 % plot(QS./QS(end),TH,'r'); hold on;
 % plot(QS./QS(end),TC,'b'); hold off;
