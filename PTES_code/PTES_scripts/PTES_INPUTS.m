@@ -10,6 +10,12 @@ switch Load.mode
         sCO2_INPUTS
 end
 
+% Code options
+multi_run  = 0; % run cycle several times with different parameters?
+optimise   = 0; % optimise cycle?
+make_plots = 1; % make plots?
+save_figs  = 0; % save figures at the end?
+
 if (Nc_ch > 1 || Ne_ch > 1) && (Ncld > 1 || Nhot > 1)
     error('Have not implemented multiple compressions/expansions AND multiple storage tanks in series')
 end
@@ -38,14 +44,6 @@ end
 
 % Heat rejection streams
 environ = environment_class(T0,p0,Load.num,10);
-
-multi_run  = 0; % run cycle several times with different parameters?
-optimise   = 0; % optimise cycle?
-make_plots = 1; % make plots?
-save_figs  = 0; % save figures at the end?
-
-% Set number of points to plot each stage
-num = 25;
 
 % Variables to run cycle multiple times and plot curves. The variables must
 % have been defined in the PTES_SET_MULTI_RUN script
