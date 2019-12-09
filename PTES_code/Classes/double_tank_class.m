@@ -18,15 +18,11 @@ classdef double_tank_class
         tank_volA  = 0;
         tank_volB  = 0;
         
-        % Tank capital costs
-        tank_costA = 0;
-        tank_costB = 0;
+        % Costs
+        tankA_cost = econ_class(0,0,0,0) ;
+        tankB_cost = econ_class(0,0,0,0) ;
+        fluid_cost = econ_class(0,0,0,0) ;
         
-        fluid_cost = 0; % Fluid cost
-        
-        sd      % Standard deviation (for uncertainty analysis) (fraction of mean)
-        ul      % upper cost limit (fraction of mean)
-        ll      % lower cost limit (fraction of mean)
     end
     methods        
          function obj = double_tank_class(fluid,TA,pA,MA,TB,pB,MB,T0,num)
@@ -48,6 +44,11 @@ classdef double_tank_class
              obj.WL_chg = 0;
              obj.WL_str = 0;
              obj.WL_dis = 0;
+             
+             obj.tankA_cost = econ_class(1, 0.2, 5, 0.2) ;
+             obj.tankB_cost = econ_class(1, 0.2, 5, 0.2) ;
+             obj.fluid_cost = econ_class(1, 0.2, 5, 0.2) ;
+             
          end
          
          function obj = reset_tanks(obj,TA,pA,MA,TB,pB,MB,T0)
@@ -190,28 +191,32 @@ classdef double_tank_class
          
          
          % Calculate the cost of the tank
-         function [obj] = tank_cost(obj,mode)
+         function [obj] = tank_cost(obj)
              
+             mode = obj.tankA_cost.cost_mode ;
              % Numerous cost correlations available
              switch mode
                  case 1
                      % Tank cost based upon Peters + Timmerhaus
                      % See solar-PTES Q2 report, equation PV2 - updated
                      % with CEindex for 2019
-                     obj.tank_costA = 6629.4 * obj.tank_volA^0.557 ;
-                     obj.tank_costB = 6629.4 * obj.tank_volB^0.557 ;
+                     Acost = 6629.4 * obj.tank_volA^0.557 ;
+                     Bcost = 6629.4 * obj.tank_volB^0.557 ;
                      
                      % Increase cost if pressurized
                      p = obj.A(1).p / 1e5 ;
                      if p > 7
                          Cfact = 0.922 + 0.0335*p - 0.0003*p^2 +1e-6*p^3 ;
-                         obj.tank_costA = obj.tank_costA * Cfact ;
-                         obj.tank_costB = obj.tank_costB * Cfact ;
+                         Acost = Acost * Cfact ;
+                         Bcost = Bcost * Cfact ;
                      end
                      
                  case 2
                      error('Mode not available for tank costs')
              end
+             
+             obj.tankA_cost.COST = Acost ;
+             obj.tankB_cost.COST = Bcost ;
                 
          end
          
@@ -219,7 +224,7 @@ classdef double_tank_class
          % fluid
          function [obj] = fld_cost(obj,cost_kg)
              
-             obj.fluid_cost = obj.fluid_mass * cost_kg ;
+             obj.fluid_cost.COST = obj.fluid_mass * cost_kg ;
                 
          end
          

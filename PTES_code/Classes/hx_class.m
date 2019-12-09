@@ -48,9 +48,7 @@ classdef hx_class
        dh       % Hydraulic diameter, m - (design)
        
        % Costs
-       cost_mode
-       COST     % Total capital cost, $
-       cost     % Capital cost / Heat transfer, $/kW
+       hx_cost = econ_class(0,0,0,0) ;
        
    end
    
@@ -60,7 +58,6 @@ classdef hx_class
             obj.mode      = mode ;
             obj.eff       = eff ;
             obj.ploss     = ploss ;
-            obj.cost_mode = cost_mode ;
             
             % Loss data          
             obj.w    = zeros(numPeriods,1) ;
@@ -86,30 +83,33 @@ classdef hx_class
             
             obj.QS    = zeros(Nsave,Ngrid) ;
             
+            obj.hx_cost = econ_class(cost_mode, 0.2, 5, 0.2) ;
+            
        end
         
        
        % Calculate the HX cost
        function [obj] = HX_cost(obj)
            
-           switch obj.cost_mode
+           switch obj.hx_cost.cost_mode
                case 0
                    if (obj.UA == 0)
                        error('Have picked an unsuitable HX cost mode')
                    end
-                   obj.COST = 3500 * obj.UA ;
+                   COST = 3500 * obj.UA ;
                case 1
                    if (obj.A == 0)
                        error('Have picked an unsuitable HX cost mode')
                    end
-                   obj.COST = 9583.8 + 251.5 * obj.A ;
+                   COST = 9583.8 + 251.5 * obj.A ;
                case 2
-                   obj.COST = 0 ;
+                   COST = 0 ;
                case 3
                    error('Not implemented')
            end
            
-           obj.cost = obj.COST / obj.Qact ;
+           obj.hx_cost.COST = COST ;
+           obj.hx_cost.cost = COST / obj.Qact ;
                       
        end
    end
