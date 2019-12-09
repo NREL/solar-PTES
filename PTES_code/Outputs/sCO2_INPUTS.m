@@ -22,8 +22,8 @@ nH    = Nc_ch;        % number of hot fluid streams
 nC    = Ne_ch;        % number of cold fluid streams
 
 % Number of hot and cold stores IN SERIES
-Ncld = 1; % number of cold stores. Not implemented for >2
-Nhot = 1; % number of hot stores. Not implemented for >2
+Ncld = 2; % number of cold stores. Not implemented for >2
+Nhot = 2; % number of hot stores. Not implemented for >2
 
 Load.time = [10;4;10].*3600;          % time spent in each load period, s
 Load.type = ["chgCO2";"str";"disCO2"]; % type of load period
@@ -35,7 +35,7 @@ Lcld    = false ;       % Make cold store as cold as possible?
 Lrcmp   = false ;       % Is there a recompressor?
 
 % Number of recuperators
-Nrcp = 2 ; % Can be 0,1,2.
+Nrcp = 0 ; % Can be 0,1,2.
 if (Nrcp > 0) && (Nhot > 1 || Ncld > 1)
     error('Have not implemented recuperators and multiple storage tanks in series')
 end

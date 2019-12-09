@@ -12,24 +12,27 @@ classdef compexp_class
         pr      % Pressure ratio
         eta     % Efficiency that is used in calculations 
         
-        w    = 0 % specific work transfer, J/kg
-        q    = 0 % specific heat transfer, J/kg
-        Dh   = 0 % specific enthalpy change, J/kg
-        sirr = 0 % specific entropy generation, J/kgK
+        w       % specific work transfer, J/kg
+        q       % specific heat transfer, J/kg
+        Dh      % specific enthalpy change, J/kg
+        sirr    % specific entropy generation, J/kgK
         
         mdot  = 0 % Mass flow rate, kg/s
         
-        W    = 0 % work transfer, W
-        Q    = 0 % heat transfer, W
-        DH   = 0 % enthalpy change, W
-        Sirr = 0 % entropy generation, W/K
+        W        % work transfer, W
+        Q        % heat transfer, W
+        DH       % enthalpy change, W
+        Sirr     % entropy generation, W/K
+        
+        rhoP    % design point power density
         
         % Economics
         COST    % Cost in USD
         cost    % 'Specific cost' =  COST / WORK
         cost_mode
-        rhoP    % design point power density
-        sd      % Standard deviation (for uncertainty analysis)
+        sd      % Standard deviation (for uncertainty analysis) (fraction of mean)
+        ul      % upper cost limit (fraction of mean)
+        ll      % lower cost limit (fraction of mean)
         
     end
     

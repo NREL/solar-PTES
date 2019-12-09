@@ -10,6 +10,23 @@ classdef double_tank_class
         WL_chg % exergetic loss during charge
         WL_str % exergetic loss during storage
         WL_dis % exergetic loss during discharge
+        
+        % Tank volumes
+        fluid_mass = 0;
+        fluid_volA = 0;
+        fluid_volB = 0;
+        tank_volA  = 0;
+        tank_volB  = 0;
+        
+        % Tank capital costs
+        tank_costA = 0;
+        tank_costB = 0;
+        
+        fluid_cost = 0; % Fluid cost
+        
+        sd      % Standard deviation (for uncertainty analysis) (fraction of mean)
+        ul      % upper cost limit (fraction of mean)
+        ll      % lower cost limit (fraction of mean)
     end
     methods        
          function obj = double_tank_class(fluid,TA,pA,MA,TB,pB,MB,T0,num)
@@ -121,5 +138,91 @@ classdef double_tank_class
                  obj.WL_dis = obj.WL_dis + T0*S_irr;
              end
          end
+         
+         % Calculate some stats for the tank including max volume of fluid,
+         % max. mass of fluid
+         
+         % This is necessary because if there are consecutive charge cycles
+         % it may not be clear what the total change in fluid mass is
+         function [obj] = tank_stats(obj)
+             
+             min_volA = 1e11;
+             min_masA = 1e11;
+             
+             max_volA = 0;
+             max_masA = 0;
+             
+             min_volB = 1e11;
+             min_masB = 1e11;
+             
+             max_volB = 0;
+             max_masB = 0;
+             
+             N = numel(obj.A) ;
+             
+             for i = 1 : N
+                
+                 min_volA = min(obj.A(i).V,min_volA);
+                 min_volB = min(obj.B(i).V,min_volB);
+                 
+                 min_masA = min(obj.A(i).M,min_masA);
+                 min_masB = min(obj.B(i).M,min_masB);
+                 
+                 max_volA = max(obj.A(i).V,max_volA);
+                 max_volB = max(obj.B(i).V,max_volB);
+                 
+                 max_masA = max(obj.A(i).M,max_masA);
+                 max_masB = max(obj.B(i).M,max_masB);
+                 
+             end
+             
+             
+             obj.fluid_mass = max_masA - min_masA ;
+             obj.fluid_volA = max_volA - min_volA ;
+             obj.fluid_volB = max_volB - min_volB ;
+             
+             % Add on a bit of extra volume to calculate the tank volume
+             fact = 1.1 ;
+             obj.tank_volA = obj.fluid_volA * fact ;
+             obj.tank_volB = obj.fluid_volB * fact ;
+             
+         end
+         
+         
+         % Calculate the cost of the tank
+         function [obj] = tank_cost(obj,mode)
+             
+             % Numerous cost correlations available
+             switch mode
+                 case 1
+                     % Tank cost based upon Peters + Timmerhaus
+                     % See solar-PTES Q2 report, equation PV2 - updated
+                     % with CEindex for 2019
+                     obj.tank_costA = 6629.4 * obj.tank_volA^0.557 ;
+                     obj.tank_costB = 6629.4 * obj.tank_volB^0.557 ;
+                     
+                     % Increase cost if pressurized
+                     p = obj.A(1).p / 1e5 ;
+                     if p > 7
+                         Cfact = 0.922 + 0.0335*p - 0.0003*p^2 +1e-6*p^3 ;
+                         obj.tank_costA = obj.tank_costA * Cfact ;
+                         obj.tank_costB = obj.tank_costB * Cfact ;
+                     end
+                     
+                 case 2
+                     error('Mode not available for tank costs')
+             end
+                
+         end
+         
+         % Calculate the cost of the fluid. cost_kg is the cost per kg of
+         % fluid
+         function [obj] = fld_cost(obj,cost_kg)
+             
+             obj.fluid_cost = obj.fluid_mass * cost_kg ;
+                
+         end
+         
+         
     end
 end

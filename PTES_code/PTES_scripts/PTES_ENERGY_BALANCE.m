@@ -344,6 +344,13 @@ end
 WL_matrix = [ WL_PTES_chg ; WL_PTES_dis ; ];
 Total_loss = sum(WL_matrix(:));
 
+% Calculate tank stats
+for ii = 1 : Nhot
+    HT(ii) = tank_stats(HT(ii)) ;
+end
+for ii = 1 : Ncld
+    CT(ii) = tank_stats(CT(ii)) ;
+end
 
 % Compute efficiencies, energy and power densities and errors
 switch Load.mode
@@ -361,8 +368,8 @@ switch Load.mode
         Second_law_error = (Total_loss - Total_Work_lost)/Total_Work_lost;
         chi_PTES = W_out_dis/W_in_chg;
         vol = 0.0; % Calculate storage volume
-        for ii = 1:Nhot; vol = vol + HT(ii).A(1).V ; end
-        for ii = 1:Ncld; vol = vol + CT(ii).A(1).V ; end
+        for ii = 1:Nhot; vol = vol + HT(ii).tank_volA + HT(ii).tank_volB ; end
+        for ii = 1:Ncld; vol = vol + CT(ii).tank_volA + CT(ii).tank_volB ; end
         rhoE = W_out_dis/fact/vol*1e3; %kWh/m3
         %rhoP_ch  = (W_in_chg/t_ch/(gas_min_rho_ch.mdot/gas_min_rho_ch.rho)/1e6); %MW/(m3/s)
         %rhoP_dis = (W_out_dis/t_dis/(gas_min_rho_dis.mdot/gas_min_rho_dis.rho)/1e6); %MW/(m3/s)
@@ -379,7 +386,7 @@ switch Load.mode
         chi_hot = Exergy_into_hot_tanks/(W_in_chg);
         COP = QH_chg/W_in_chg;
         vol = 0.0; % Calculate storage volume
-        for ii = 1:Nhot; vol = vol + HT(ii).A(1).V ; end
+        for ii = 1:Nhot; vol = vol + HT(ii).tank_volA + HT(ii).tank_volB ; end
         rhoE = Exergy_into_hot_tanks/fact/vol*1e3; %kWh/m3
         %rhoP_ch  = (W_in_chg/t_ch/(gas_min_rho_ch.mdot/gas_min_rho_ch.rho)/1e6); %MW/(m3/s)
         
@@ -458,12 +465,12 @@ if WM == 1
             
             fprintf(1,'STORAGE MEDIA\n');
             for ii = 1 : Nhot
-                fprintf(1,'%18s volume:%8.2f m3/MWh\n',fluidH(ii).name,HT(ii).A(1).V/(W_out_dis/fact));
-                fprintf(1,'%18s mass:  %8.2f tons/MWh\n\n',fluidH(ii).name,HT(ii).A(1).M/(W_out_dis/fact)/1e3);
+                fprintf(1,'%18s volume:%8.2f m3/MWh\n',fluidH(ii).name,HT(ii).fluid_volB/(W_out_dis/fact));
+                fprintf(1,'%18s mass:  %8.2f tons/MWh\n\n',fluidH(ii).name,HT(ii).fluid_mass/(W_out_dis/fact)/1e3);
             end
             for ii = 1 : Ncld
-                fprintf(1,'%18s volume:%8.2f m3/MWh\n',fluidC(ii).name,CT(ii).A(1).V/(W_out_dis/fact));
-                fprintf(1,'%18s mass:  %8.2f tons/MWh\n\n',fluidC(ii).name,CT(ii).A(1).M/(W_out_dis/fact)/1e3);
+                fprintf(1,'%18s volume:%8.2f m3/MWh\n',fluidC(ii).name,CT(ii).fluid_volB/(W_out_dis/fact));
+                fprintf(1,'%18s mass:  %8.2f tons/MWh\n\n',fluidC(ii).name,CT(ii).fluid_mass/(W_out_dis/fact)/1e3);
             end
             
         case 1
