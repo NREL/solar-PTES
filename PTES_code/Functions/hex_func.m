@@ -182,6 +182,10 @@ switch model
             ref = UA_ref;
         end
         
+        % Set outlet pressures
+        pH1 = pH2*(1-ploss);
+        pC2 = pC1*(1-ploss);
+        
         switch mode
             case {0,1,2}
                 % Compute preliminary QMAX (hot outlet cannot be colder than cold inlet,
@@ -190,7 +194,7 @@ switch model
                 hH1_min = hH2 - QMAX0/mH;
                 
                 % Find value of hH1 for which DTmin=ref or UA=ref
-                f1  = @(hH1) compute_TQ(fluidH,fluidC,mH,mC,hH2,hC1,pH2,pC1,NX,'hH1',hH1,compare,ref);
+                f1  = @(hH1) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,compare,ref);
                 %plot_function(f1,hH1_min,hH2,1000,11);
                 %symlog(gca,'y')
                 hH1 = fzero(f1,[hH1_min,hH2],options);
@@ -203,17 +207,14 @@ switch model
                     QT   = mH*(hH2 - hH1);
                 end
                 
-                % Determine outlet enthalpies and pressures
+                % Determine outlet enthalpies
                 hC2 = hC1 + QT/mC;
-                hH1 = hH2 - QT/mH;
-                pH1 = pH2*(1-ploss);
-                pC2 = pC1*(1-ploss);
+                hH1 = hH2 - QT/mH;                
                 
             case 3
                 % Set outlet conditions of cold fluid
                 TC2 = par;
-                hC2 = RP1('PT_INPUTS',pC1,TC2,'H',fluidC);
-                pC2 = pC1*(1-ploss);
+                hC2 = RP1('PT_INPUTS',pC2,TC2,'H',fluidC);                
                 
                 % Compute preliminary QMAX (hot outlet cannot be colder than cold
                 % inlet) and set boundaries accordingly
@@ -222,7 +223,7 @@ switch model
                 mCmax = QMAX0/(hC2 - hC1)*(1+1e-3); %necessary to find root
                 
                 % Find value of mC for which DTmin=ref or UA=ref
-                f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,hC1,pH2,pC1,NX,'hC2',hC2,compare,ref);
+                f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hC2',hC2,compare,ref);
                 %plot_function(f1,mCmin,mCmax,100,11);
                 mC = fzero(f1,[mCmin,mCmax],options);
                 
@@ -238,13 +239,11 @@ switch model
                 
                 % Update outlet conditions of hot fluid
                 hH1 = hH2 - QT/mH;
-                pH1 = pH2*(1-ploss);
                 
             case 4
                 % Set outlet conditions of hot fluid
                 TH1 = par;
-                hH1 = RP1('PT_INPUTS',pH2,TH1,'H',fluidH);
-                pH1 = pH2*(1-ploss);
+                hH1 = RP1('PT_INPUTS',pH1,TH1,'H',fluidH);
                 
                 % Compute preliminary QMAX (cold outlet cannot be hotter than hot
                 % inlet) and set boundaries accordingly
@@ -253,7 +252,7 @@ switch model
                 mHmax = QMAX0/(hH2 - hH1)*(1+1e-3); %necessary to find root
                 
                 % Find value of mH for which DTmin=ref or UA=ref
-                f1 = @(mH) compute_TQ(fluidH,fluidC,mH,mC,hH2,hC1,pH2,pC1,NX,'hH1',hH1,compare,ref);
+                f1 = @(mH) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,compare,ref);
                 mH = fzero(f1,[mHmin,mHmax],options);
                 
                 % Compute total heat transfer (and update mH if necessary)
@@ -266,9 +265,8 @@ switch model
                 end
                 stateH.mdot = mH;
                 
-                % Update outlet conditions of cold fluid
+                % Update outlet enthalpy of cold fluid
                 hC2 = hC1 + QT/mC;
-                pC2 = pC1*(1-ploss);
                 
             case 5
                 error('not implemented yet')
@@ -276,8 +274,7 @@ switch model
             case 6
                 % Set outlet conditions of hot fluid
                 TH1 = par;
-                hH1 = RP1('PT_INPUTS',pH2,TH1,'H',fluidH);
-                pH1 = pH2*(1-ploss);
+                hH1 = RP1('PT_INPUTS',pH1,TH1,'H',fluidH);                
                 
 %                 % Compute total heat transfer
 %                 QT  = mH*(hH2-hH1);
@@ -293,7 +290,7 @@ switch model
 %                     mCmax = mCmin*1e3; %necessary to find root
 %                     
 %                     % Using hH1_id, find value of mC for which DTmin=0
-%                     f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,hC1,pH2,pC1,NX,'hH1',hH1_id,'DTmin',0);
+%                     f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1_id,'DTmin',0);
 %                     %plot_function(f1,mCmin,mCmax,100,11);
 %                     %symlog(gca,'y')
 %                     %keyboard
@@ -305,7 +302,7 @@ switch model
 %                     mCmax = mCmin*1e3; %necessary to find root
 %                     
 %                     % Find value of mC for which UA=ref
-%                     f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,hC1,pH2,pC1,NX,'hH1',hH1,'UA',ref);
+%                     f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,'UA',ref);
 %                     %plot_function(f1,mCmin,mCmax,100,11);
 %                     %symlog(gca,'y')
 %                     %keyboard
@@ -320,7 +317,7 @@ switch model
                 mCmax = mCmin*1e3; %necessary to find root
                 
                 % Find value of mC for which DTmin=ref or UA=ref
-                f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,hC1,pH2,pC1,NX,'hH1',hH1,compare,ref);
+                f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,compare,ref);
                 %plot_function(f1,mCmin,mCmax,100,11);
                 %symlog(gca,'y')
                 %keyboard
@@ -335,11 +332,11 @@ switch model
                                 
                 % Update outlet conditions of cold fluid
                 hC2 = hC1 + QT/mC;
-                pC2 = pC1*(1-ploss);
+                %keyboard
         end
         
         % Save variables into C and H stream objects
-        [TC,TH,hC,hH,QS] = compute_TQ(fluidH,fluidC,mH,mC,hH2,hC1,pH2,pC1,NX,'hH1',hH1);
+        [TC,TH,hC,hH,QS] = compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1);
         C.mdot = mC;
         H.mdot = mH;
         C.T = TC;
@@ -474,7 +471,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function varargout = compute_TQ(fluidH,fluidC,mH,mC,hH2,hC1,pH2,pC1,n,mode,hout,varargin)
+function varargout = compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,n,mode,hout,varargin)
 % Compute the TQ diagram of a two-stream counter-flow heat exchanger.
 %   The "mode" string controls which enthalpy outlet "hout" is specified,
 %   either mode='hH1' or mode='hC2'.
@@ -506,6 +503,10 @@ else
     error('incorrect number of inputs')
 end
 
+% Set pressure arrays
+pH  = linspace(pH1,pH2,n+1)';
+pC  = linspace(pC1,pC2,n+1)';
+
 % Compute TQ diagram based on either hH1 or hC2
 switch mode
     case 'hH1'
@@ -515,13 +516,11 @@ switch mode
         
         % Compute temperature distribution of hot stream
         hH  = linspace(hH1,hH2,n+1)';
-        pH  = pH2*ones(size(hH));
         TH  = RP1('HmassP_INPUTS',hH,pH,'T',fluidH);
         
         % Compute temperature distribution of cold stream
         QS  = (hH - hH1)*mH; % cummulative heat transfer
         hC  = hC1 + QS/mC;
-        pC  = pC1*ones(size(hC));
         TC  = RP1('HmassP_INPUTS',hC,pC,'T',fluidC);
         
     case 'hC2'
@@ -531,14 +530,12 @@ switch mode
         
         % Compute temperature distribution of cold stream
         hC  = linspace(hC1,hC2,n+1)';
-        pC  = pC1*ones(size(hC));
         TC  = RP1('HmassP_INPUTS',hC,pC,'T',fluidC);
         
         % Compute temperature distribution of hot stream
         QS  = (hC - hC1)*mC; % cummulative heat transfer
         hH1 = hH2 - QS(n+1)/mH;
         hH  = hH1 + QS/mH;
-        pH  = pH2*ones(size(hH));
         TH  = RP1('HmassP_INPUTS',hH,pH,'T',fluidH);
         
     otherwise
