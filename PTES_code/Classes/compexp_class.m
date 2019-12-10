@@ -27,12 +27,7 @@ classdef compexp_class
         rhoP    % design point power density
         
         % Economics
-        COST    % Cost in USD
-        cost    % 'Specific cost' =  COST / WORK
-        cost_mode
-        sd      % Standard deviation (for uncertainty analysis) (fraction of mean)
-        ul      % upper cost limit (fraction of mean)
-        ll      % lower cost limit (fraction of mean)
+        cmpexp_cost = econ_class(0,0,0,0) ;
         
     end
     
@@ -41,8 +36,7 @@ classdef compexp_class
             obj.type      = type ;
             obj.eff_mode  = eff_mode ;
             obj.eta0      = eta0 ;
-            obj.cost_mode = cost_mode ;
-            
+                        
             obj.eta = zeros(numPeriods,1) ;
             obj.pr  = zeros(numPeriods,1) ;
             
@@ -57,6 +51,8 @@ classdef compexp_class
             obj.Q    = zeros(numPeriods,1) ;
             obj.DH   = zeros(numPeriods,1) ;
             obj.Sirr = zeros(numPeriods,1) ;
+            
+            obj.cmpexp_cost = econ_class(cost_mode, 0.2, 5, 0.2) ;
             
         end
             
@@ -282,22 +278,23 @@ classdef compexp_class
                
         % Calculate the economic cost of the compressor or expander
         function obj = compexp_econ(obj)
-            mode = obj.cost_mode ;
+            mode = obj.cmpexp_cost.cost_mode ;
             
             % Expect many, many correlations may be added to this
             switch mode
                 case 0
                     % "1 $/W" approximation
-                    obj.COST = 1 * obj.W0 ;
-                    obj.cost = obj.COST / obj.W0 ;   % This looks silly now but will be informative when more detailed correlations are used
+                    COST = 1 * obj.W0 ;
                 case 1
                     % Cost for an sCO2 compressor developed by Carlson et al. 2017
                     % See equation C6 in Q2 solar-PTES report
-                    obj.COST = 6998 * (obj.W0/1e3) ^ 0.7865 ;
-                    obj.cost = obj.COST / obj.W0 ;
+                    COST = 6998 * (obj.W0/1e3) ^ 0.7865 ;
                 case 2
                     error('Not implemented')
             end
+            
+            obj.cmpexp_cost.COST = COST ;
+            obj.cmpexp_cost.cost = COST / obj.W0 ;
             
         end
         

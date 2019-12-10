@@ -15,6 +15,15 @@ W_lost_dis = 0;
 QC_chg     = 0;  % heat from cold tanks
 QC_dis     = 0;  % heat to cold tanks
 QE_dis     = 0;  % heat rejected to environment
+
+W_out_disRC  = 0;
+QC_disRC     = 0;  
+QH_disRC     = 0; 
+
+W_out_disNC  = 0;
+QC_disNC     = 0;  
+QH_disNC     = 0; 
+
 nH = numel(fluidH);
 nC = numel(fluidC);
 for iL=1:Load.num
@@ -87,8 +96,24 @@ for iL=1:Load.num
             QC_dis = QC_dis + sum(fluidC(i).state(iL,1).mdot*(fluidC(i).state(iL,2).h-fluidC(i).state(iL,1).h)*Load.time(iL));
         end
         QE_dis = QE_dis + sum([environ.sink(iL,:).DHdot]*Load.time(iL));
+        
+        % Also calculate heat and work terms for when there is only cooling from cold store
+        if Load.options.useCold(iL) == 1
+            W_out_disRC  = W_out_disRC  +    sum([steam.stage(iL,:).w]   .*[steam.state(iL,1:(end-1)).mdot]*Load.time(iL));
+            for i=1:nH
+                QH_disRC = QH_disRC - sum(fluidH(i).state(iL,1).mdot*(fluidH(i).state(iL,2).h-fluidH(i).state(iL,1).h)*Load.time(iL));
+            end
+            for i=1:nC
+                QC_disRC = QC_disRC + sum(fluidC(i).state(iL,1).mdot*(fluidC(i).state(iL,2).h-fluidC(i).state(iL,1).h)*Load.time(iL));
+            end
+        end
+        
     end
 end
+
+W_out_disNC = W_out_dis - W_out_disRC ;
+QH_disNC = QH_dis - QH_disRC ;
+QC_disNC = QC_dis - QC_disRC ;
 
 fact    = 1e6*3600; % J to MWh
 Net_chg = (+ W_in_chg  + QC_chg  - QH_chg  - DH_chg  - QE_chg);
@@ -374,6 +399,10 @@ switch Load.mode
         %rhoP_ch  = (W_in_chg/t_ch/(gas_min_rho_ch.mdot/gas_min_rho_ch.rho)/1e6); %MW/(m3/s)
         %rhoP_dis = (W_out_dis/t_dis/(gas_min_rho_dis.mdot/gas_min_rho_dis.rho)/1e6); %MW/(m3/s)
         
+        HEeff = 100. * W_out_dis / QH_dis ; % Heat engine average efficiency
+        HEeffRC = 100. * W_out_disRC / QH_disRC ; % Efficiency for cycles where only cold tanks are used for condensing
+        HEeffNC = 100. * W_out_disNC / QH_disNC ; % Efficiency for cycles where cold tanks are NOT used for condensing
+        
     case 1 % Heat pump only
         Heat_into_tanks   = (HT.A(end).H - HT.A(1).H) + (HT.B(end).H - HT.B(1).H) + (CT.A(end).H - CT.A(1).H) + (CT.B(end).H - CT.B(1).H);
         Exergy_into_tanks = (HT.A(end).B - HT.A(1).B) + (HT.B(end).B - HT.B(1).B) + (CT.A(end).B - CT.A(1).B) + (CT.B(end).B - CT.B(1).B);
@@ -454,6 +483,14 @@ if WM == 1
             fprintf(1,'DH working fluid:        %8.1f MWh\n',DH_dis/fact);
             fprintf(1,'Heat rejected:           %8.1f MWh\n',QE_dis/fact);
             fprintf(1,'NET:                     %8.1f MWh\n\n',Net_dis/fact);
+    end
+    
+    switch Load.mode
+        case 3
+            fprintf(1,'DISCHARGE Efficiencies\n');
+            fprintf(1,'Rankine cycle average efficiency           %8.1f %%\n',HEeff);
+            fprintf(1,'Rankine cycle efficiency NO cold stores    %8.1f %%\n',HEeffNC);
+            fprintf(1,'Rankine cycle efficiency using cold stores %8.1f %%\n\n',HEeffRC);
     end
     
     switch Load.mode

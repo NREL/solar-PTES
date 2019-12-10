@@ -111,6 +111,7 @@ toc %stop timer
 if make_plots    
     PTES_PLOT_CYCLE
     PTES_PLOT_LOSSES
+    PTES_PLOT_COSTS
     if multi_run
         PTES_PLOT_MULTI_RUN %#ok<*UNRCH>
     end
