@@ -47,13 +47,13 @@ Ne_dis = Nc_ch; % expansions during discharge
 switch Load.mode
     case {0,1,2} % Ideal gas Joule-Bratyon PTES
         for i = 1 : Nc_ch
-            CCMP(i) = compexp_class('comp', 'poly', 1, eta, Load.num) ; % Charging compressors
-            DEXP(i) = compexp_class('exp', 'poly', 1, eta, Load.num) ; % Discharging expanders
+            CCMP(i) = compexp_class('comp', 'poly', 2, eta, Load.num) ; % Charging compressors
+            DEXP(i) = compexp_class('exp', 'poly', 3, eta, Load.num) ; % Discharging expanders
         end
         
         for i = 1 : Ne_ch
-            CEXP(i) = compexp_class('exp', 'poly', 1, eta, Load.num) ; % Charging expanders
-            DCMP(i) = compexp_class('comp', 'poly', 1, eta, Load.num) ; % Discharging compressors
+            CEXP(i) = compexp_class('exp', 'poly', 2, eta, Load.num) ; % Charging expanders
+            DCMP(i) = compexp_class('comp', 'poly', 3, eta, Load.num) ; % Discharging compressors
         end
     case 3 % JB (charge) + Rankine (discharge)
         % Charging components

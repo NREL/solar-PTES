@@ -277,22 +277,93 @@ classdef compexp_class
         end
                
         % Calculate the economic cost of the compressor or expander
-        function obj = compexp_econ(obj)
+        function obj = compexp_econ(obj, CEind, Lscale, scale)
             mode = obj.cmpexp_cost.cost_mode ;
+            curr = 2019 ; % Current year
             
-            % Expect many, many correlations may be added to this
+            % Many, many correlations exist
+            % If an equation number is given, then that corresponds to an
+            % equation given in the solar-PTES Q2 report
             switch mode
                 case 0
-                    % "1 $/W" approximation
-                    COST = 1 * obj.W0 ;
+                    % Black and Veatch correlation, eq. C1 and E1
+                    COST = 250. * obj.W0 ;
+                    COST = COST * CEind(curr) / CEind(2018) ;
+                
                 case 1
+                    % Reciprocating compressor cost from Georgiou et al 2019 based on Turton
+                    % ** NOT SURE IF power should be in kW or horsepower?
+                    COST = 10 ^ (2.2897 + 1.3604 * log10(obj.W0/1e3) - 0.1027 * (log10(obj.W0/1e3))^2) ;
+                    COST = COST * 3.3 * CEind(curr) / CEind(2013)  ;    
+                
+                case 2
+                    % Reciprocating compressor cost from Georgiou et al 2019 based on Seider
+                    COST = exp(7.9661 + 0.8 * log(obj.W0 * 0.00134102)) ;
+                    COST = COST * CEind(curr) / CEind(2010)  ;        
+                
+                case 3
+                    % Reciprocating compressor cost from Georgiou et al 2019 based on Couper
+                    COST = 7190 * (obj.W0 * 0.00134102)^0.61 ;
+                    COST = COST * CEind(curr) / CEind(2010)  ; 
+                    
+                case 4
+                    % Compressor cost from Valero et al 1994, but updated by Farres-Antunez, 2019
+                    % Eq. C3.1
+                    COST = 670 * obj.mdot * log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = COST * CEind(curr) / CEind(2019) ;
+                    
+                case 5
                     % Cost for an sCO2 compressor developed by Carlson et al. 2017
                     % See equation C6 in Q2 solar-PTES report
                     COST = 6998 * (obj.W0/1e3) ^ 0.7865 ;
-                case 2
-                    error('Not implemented')
+                    COST = COST * CEind(curr) / CEind(2017) ;
+                    
+                case 6 
+                    % sCO2 compressor from Morandin 2013 - eq. C7
+                    COST = 20e3 + 9e3 * (obj.W0/1e3)^0.6 ;
+                    COST = COST * CEind(curr) / CEind(2013) ;
+                
+                case 10
+                    % Reciprocating Expander cost from Georgiou et al 2019 based on Turton
+                    % ** NOT SURE IF power should be in kW or horsepower?
+                    COST = 10 ^ (2.7051 + 1.4398 * log10(obj.W0/1e3) - 0.1776 * (log10(obj.W0/1e3))^2) ;
+                    COST = COST * 3.5 * CEind(curr) / CEind(2013) ;
+                
+                case 11
+                    % Reciprocating Expander cost from Georgiou et al 2019 based on Sieder
+                    COST = 530 * (obj.W0 * 0.00134102)^0.81 ;
+                    COST = COST * CEind(curr) / CEind(2010)  ;   
+                    
+                case 12 
+                    % Reciprocating expander cost from Georgiou et al 2019 based on Couper
+                    COST = 378 * (obj.W0 * 0.00134102)^0.81 ;
+                    COST = COST * CEind(curr) / CEind(2010)  ; 
+                    
+                case 13
+                    % Expander cost from Valero et al 1994, but updated by Farres-Antunez, 2019
+                    % Eq. E3.1
+                    COST = 1100 * obj.mdot * log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = COST * CEind(curr) / CEind(2019) ;
+                 
+                case 14 
+                    % Cost for an sCO2 expander developed by Carlson et al. 2017
+                    % See equation E4 in Q2 solar-PTES report
+                    COST = 7790 * (obj.W0/1e3) ^ 0.6842 ;
+                    COST = COST * CEind(curr) / CEind(2017) ;
+                    
+                case 15
+                    % sCO2 expander from Morandin 2013 - eq. E5
+                    COST = 40e3 + 9e3 * (obj.W0/1e3)^0.69 ;
+                    COST = COST * CEind(curr) / CEind(2013) ;
+
             end
             
+            % May wish to scale the cost - e.g. by the inlet density
+            % compared to the reference density 
+            if Lscale
+                COST = COST * scale ;
+            end
+                        
             obj.cmpexp_cost.COST = COST ;
             obj.cmpexp_cost.cost = COST / obj.W0 ;
             

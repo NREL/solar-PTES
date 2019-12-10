@@ -191,17 +191,19 @@ classdef double_tank_class
          
          
          % Calculate the cost of the tank
-         function [obj] = tank_cost(obj)
+         function [obj] = tank_cost(obj, CEind)
              
+             curr = 2019 ; % Current year
              mode = obj.tankA_cost.cost_mode ;
+             
              % Numerous cost correlations available
              switch mode
                  case 1
                      % Tank cost based upon Peters + Timmerhaus
                      % See solar-PTES Q2 report, equation PV2 - updated
                      % with CEindex for 2019
-                     Acost = 6629.4 * obj.tank_volA^0.557 ;
-                     Bcost = 6629.4 * obj.tank_volB^0.557 ;
+                     Acost = 3829 * obj.tank_volA^0.557 ;
+                     Bcost = 3829 * obj.tank_volB^0.557 ;
                      
                      % Increase cost if pressurized
                      p = obj.A(1).p / 1e5 ;
@@ -211,7 +213,35 @@ classdef double_tank_class
                          Bcost = Bcost * Cfact ;
                      end
                      
+                     Acost = Acost * CEind(curr) / CEind(1990) ;
+                     Bcost = Bcost * CEind(curr) / CEind(1990) ;
+                     
                  case 2
+                     % NETL, carbon steel fixed roof, eq. PV1.2
+                     Acost = 40288 + 50.9 * obj.tank_volA ;
+                     Bcost = 40288 + 50.9 * obj.tank_volB ;
+                     
+                     Acost = Acost * CEind(curr) / CEind(1998) ;
+                     Bcost = Bcost * CEind(curr) / CEind(1998) ;
+                     
+                 case 3
+                     % FIxed roof storage tank, eq. PV5
+                     Acost = 8e3 + 600 * obj.tank_volA^0.78 ;
+                     Bcost = 8e3 + 600 * obj.tank_volB^0.78 ;
+                     
+                     Acost = Acost * CEind(curr) / CEind(2009) ;
+                     Bcost = Bcost * CEind(curr) / CEind(2009) ;
+                     
+                 case 4 
+                     % Tank up to 10 bar, eq. PV 6
+                     Acost = 10e3 + 4.5e3 * obj.tank_volA^0.6 ;
+                     Bcost = 10e3 + 4.5e3 * obj.tank_volB^0.6 ;
+                     
+                     Acost = Acost * CEind(curr) / CEind(1998) ;
+                     Bcost = Bcost * CEind(curr) / CEind(1998) ;
+                     
+                 case 5
+                     
                      error('Mode not available for tank costs')
              end
              
@@ -222,10 +252,14 @@ classdef double_tank_class
          
          % Calculate the cost of the fluid. cost_kg is the cost per kg of
          % fluid
-         function [obj] = fld_cost(obj,cost_kg)
+         function [obj] = fld_cost(obj,cost_kg, CEind)
              
-             obj.fluid_cost.COST = obj.fluid_mass * cost_kg ;
-                
+             curr = 2019 ;
+             COST = obj.fluid_mass * cost_kg ;
+             COST = COST * CEind(curr) / CEind(2019) ;
+             
+             obj.fluid_cost.COST = COST ;
+             
          end
          
          

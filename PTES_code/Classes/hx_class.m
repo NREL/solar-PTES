@@ -89,7 +89,7 @@ classdef hx_class
         
        
        % Calculate the HX cost
-       function [obj] = HX_cost(obj)
+       function [obj] = HX_cost(obj, CEind)
            
            switch obj.hx_cost.cost_mode
                case 0
