@@ -12,7 +12,7 @@ Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 % Set Rankine-specific parameters
 Ran_ptop  = 100e5;
 Ran_Tbot0 = T0+15; %when discharging against the environment
-Ran_TbotC = 273.15+30; %when discharging against the cold stores
+Ran_TbotC = 273.15+20; %when discharging against the cold stores
 
 % Set component parameters
 eta   = 0.90;  % polytropic efficiency
@@ -42,7 +42,6 @@ switch Load.mode
         Load.mdot = 10;                        % working fluid mass flow rate, kg/s
         
     case 2 % Heat engine (no cold tanks)
-        error('not implemented')
         Load.time = [0,10].*3600;                  % time spent in each load period, s
         Load.type = ["sol","dis"];                 % type of load period
         Load.mdot = [0,10];                        % working fluid mass flow rate, kg/s
@@ -52,10 +51,10 @@ switch Load.mode
         Load.type = ["chg";"str";"ran";"ran"];    % type of load period
         Load.mdot = [10;0;1;1];              % working fluid mass flow rate, kg/s
         Load.options.useCold = [0,0,1,0]; %Use cold stores during Rankine discharge?
-        % Load.time = [10;4;15].*3600;        % time spent in each load period, s
-        % Load.type = ["chg";"str";"ran"];    % type of load period
-        % Load.mdot = [10;0;1];              % working fluid mass flow rate, kg/s
-        % Load.options.useCold = [0,0,0]; %Use cold stores during Rankine discharge?
+%         Load.time = [10;4;15].*3600;        % time spent in each load period, s
+%         Load.type = ["chg";"str";"ran"];    % type of load period
+%         Load.mdot = [10;0;1];              % working fluid mass flow rate, kg/s
+%         Load.options.useCold = [0,0,0]; %Use cold stores during Rankine discharge?
 end
 Load.num  = numel(Load.time);
 Load.ind  = 1:Load.num;
@@ -74,22 +73,24 @@ MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
 TC_chg0 = T0-50;        % initial temperature of charged cold fluid, K
 MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
 
-% Set working fluids, storage fluids, and heat rejection streams. 'WF' or
-% 'SF' indicates working fluid or storage fluid. 'CP' or 'TAB' indicate
-% CoolProp or Tabular reading modes. 'backend' is used by CoolProp (either
-% 'HEOS', 'TTSE' or 'BICUBIC&HEOS'). 'num' indicates number of preallocated
+% Set fluids. 'WF' or 'SF' indicates working fluid or storage fluid. 'CP'
+% or 'TAB' indicate CoolProp or Tabular reading modes. 'backend' is used by
+% CoolProp (either 'HEOS', 'TTSE' or 'BICUBIC&HEOS'). 'HEOS' is the most
+% accurate method but is very slow. 'BICUBIC&HEOS' is recommended over
+% 'TTSE' for speed and accuracy. 'num' indicates number of preallocated
 % elements in state arrays.
-% Working fluid
-gas = fluid_class('Nitrogen','WF','CP','TTSE',Load.num,30);
+gas = fluid_class('Nitrogen','WF','CP','BICUBIC&HEOS',Load.num,30);
 if Load.mode==3
-    steam = fluid_class('Water','WF','CP','TTSE',Load.num,30);
+    % 'TTSE' interpolation is NOT recommended for steam when reading values
+    % close to the saturation curve. Use 'HEOS' or 'BICUBIC&HEOS'
+    steam = fluid_class('Water','WF','CP','HEOS',Load.num,30);
 end
 
 % Set heat exchangers (this is temporary, it will be done properly using a
 % class constructor
 HX_CONDEN.model = 'eff';
 HX_CONDEN.eff = eff;
-HX_CONDEN.ploss = ploss;
+HX_CONDEN.ploss = 0;
 HX_CONDEN.stage_type = 'hex';
 HX_CONDEN.NX = 100;
 HX_REHEAT.model = 'eff';
@@ -97,6 +98,11 @@ HX_REHEAT.eff = eff;
 HX_REHEAT.ploss = ploss;
 HX_REHEAT.stage_type = 'hex';
 HX_REHEAT.NX = 100;
+HX_BOILER.model = 'eff';
+HX_BOILER.eff = eff;
+HX_BOILER.ploss = ploss;
+HX_BOILER.stage_type = 'hex';
+HX_BOILER.NX = 100;
 
 % Save copy of input file in "Outputs" folder
 copyfile(['./PTES_scripts/',mfilename,'.m'],'./Outputs/')

@@ -1,10 +1,12 @@
 switch Vpnt
     case 'PRch'
         PRch  = Apnt(ipnt);
-    case 'TC_0'
-        TC_0 = Apnt(ipnt);
-    case 'TH_0'
-        TH_0 = Apnt(ipnt);
+    case 'TC_dis0'
+        TC_dis0 = Apnt(ipnt);
+    case 'TH_dis0'
+        TH_dis0 = Apnt(ipnt);
+    case 'Ran_TbotC'
+        Ran_TbotC = Apnt(ipnt);
     case 'eff'
         eff = Apnt(ipnt);
     case 'eta'
@@ -20,10 +22,12 @@ end
 switch Vcrv
     case 'PRch'
         PRch = Acrv(icrv);
-    case 'TC_0'
-        TC_0 = Acrv(icrv);
-    case 'TH_0'
-        TH_0 = Acrv(icrv);
+    case 'TC_dis0'
+        TC_dis0 = Acrv(icrv);
+    case 'TH_dis0'
+        TH_dis0 = Acrv(icrv);
+    case 'Ran_TbotC'
+        Ran_TbotC = Acrv(icrv);
     case 'eff'
         eff = Acrv(icrv);
     case 'eta'

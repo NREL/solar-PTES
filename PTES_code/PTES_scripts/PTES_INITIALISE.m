@@ -1,5 +1,11 @@
+% Reset Load structure
+Load = Load0;
+
 % Reset fluid states and stages
 gas = reset_fluid(gas);
+if Load.mode==3
+    steam = reset_fluid(steam);
+end
 for ir = 1:length(fluidH)
     fluidH(ir) = reset_fluid(fluidH(ir)); %#ok<*SAGROW>
 end

@@ -11,10 +11,11 @@ switch Load.mode
 end
 
 % Code options
-multi_run  = 0; % run cycle several times with different parameters?
+multi_run  = 1; % run cycle several times with different parameters?
 optimise   = 0; % optimise cycle?
 make_plots = 1; % make plots?
 save_figs  = 0; % save figures at the end?
+make_hex_plots = 0; % make plots of heat exchangers?
 
 if (Nc_ch > 1 || Ne_ch > 1) && (Ncld > 1 || Nhot > 1)
     error('Have not implemented multiple compressions/expansions AND multiple storage tanks in series')
@@ -48,10 +49,10 @@ environ = environment_class(T0,p0,Load.num,10);
 % Variables to run cycle multiple times and plot curves. The variables must
 % have been defined in the PTES_SET_MULTI_RUN script
 if multi_run==1
-    Vpnt = 'TH_0';   % variable along curve
-    Npnt = 5;       % points on curve
-    pnt1 = 300+273.15;    % min value
-    pnt2 = 400+273.15;    % max value
+    Vpnt = 'Ran_TbotC';  % variable along curve
+    Npnt = 8;            % points on curve
+    pnt1 = 2+273.15;     % min value
+    pnt2 = 40+273.15;    % max value
     Apnt = linspace(pnt1,pnt2,Npnt); % array
     Vcrv = 'Ne_ch';  % variable between curves
     Acrv = 1;%[1,2,3];
@@ -67,5 +68,10 @@ else
     delete ./Outputs/log.txt
     diary  ./Outputs/log.txt
 end
+
+% Save initial values of Load structure (to be reset during the INITIALISE
+% subroutine, in case any values changed during running time, e.g.
+% discharge time)
+Load0 = Load;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

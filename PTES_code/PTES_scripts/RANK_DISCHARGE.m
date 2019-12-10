@@ -167,9 +167,10 @@ while 1
     fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p; %#ok<*SAGROW>
     [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
     Taim = HT.A(iL).T;
-    [steam,fluidH(iH),i,~,HX_BOILER] = hex_TQ(steam,[iL,i],fluidH(iH),[iL,1],eff,ploss,'hex',4,Taim);
+    [HX_BOILER,steam,fluidH(iH),i,~] = hex_func(HX_BOILER,iL,steam,i,fluidH(iH),1,4,Taim);
     iH = iH + 1;
-    
+    %print_states(steam,iL,1:i,Load)
+
     % Close cycle
     steam.stage(iL,i).type = 'end';
     steam.stage(iL,iSA+1).type = 'end';
@@ -179,7 +180,6 @@ while 1
     % Determine convergence and proceed
     A = [[steam.state(iL,:).T];[steam.state(iL,:).p]];
 
-    %disp((A(A~=0) - A_0(A~=0))./A(A~=0)*100);
     if all(abs((A(A~=0) - A_0(A~=0))./A(A~=0))*100 < 1e-3) % is discharge cycle converged?
         % Exit discharge cycle
         gas_min_rho_dis = min([steam.state(iL,1:steam.Nstg(iL)).rho]); %take data for power density calculation

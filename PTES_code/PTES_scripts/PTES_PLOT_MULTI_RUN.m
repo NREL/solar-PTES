@@ -31,11 +31,15 @@ end
 if strcmp(Vpnt,'PRch')
     Lpnt = ' $$ \mathrm{PR_{ch}} $$'; 
     Upnt = ' ';
-elseif strcmp(Vpnt,'TC_0')
+elseif strcmp(Vpnt,'TC_dis0')
     Lpnt = '$$ T_3 $$';
     Upnt = ' [K]';
-elseif strcmp(Vpnt,'TH_0')
+elseif strcmp(Vpnt,'TH_dis0')
     Lpnt = '$$ T_{\mathrm{bot}} $$';
+    Upnt = ' [$$^{\circ}$$C]';
+    Apnt = Apnt - 273.15;
+elseif strcmp(Vpnt,'Ran_TbotC')
+    Lpnt = '$$ T_{\mathrm{condenser}} $$';
     Upnt = ' [$$^{\circ}$$C]';
     Apnt = Apnt - 273.15;
 elseif strcmp(Vpnt,'eff')
@@ -51,11 +55,15 @@ end
 if strcmp(Vcrv,'PRch')
     Lcrv = ' $$ \mathrm{PR_{ch}} $$'; 
     Ucrv = ' ';
-elseif strcmp(Vcrv,'TC_0')
+elseif strcmp(Vcrv,'TC_dis0')
     Lcrv = '$$ T_3 $$';
     Ucrv = ' [K]';
-elseif strcmp(Vcrv,'TH_0')
+elseif strcmp(Vcrv,'TH_dis0')
     Lcrv = '$$ T__{\mathrm{bot}} $$';
+    Ucrv = ' [$$^{\circ}$$C]';
+    Acrv = Acrv - 273.15;
+elseif strcmp(Vcrv,'Ran_TbotC')
+    Lcrv = '$$ T__{\mathrm{condenser}} $$';
     Ucrv = ' [$$^{\circ}$$C]';
     Acrv = Acrv - 273.15;
 elseif strcmp(Vcrv,'eff')
@@ -87,6 +95,7 @@ WL_3_mat  = zeros(Npnt,Ncrv);
 WL_4_mat  = zeros(Npnt,Ncrv);
 WL_5_mat  = zeros(Npnt,Ncrv);
 WL_6_mat  = zeros(Npnt,Ncrv);
+WL_7_mat  = zeros(Npnt,Ncrv);
 L = cell(1,Ncrv);
 for icrv=1:Ncrv
     for ipnt=1:Npnt
@@ -95,12 +104,13 @@ for icrv=1:Ncrv
         EFF_mat(ipnt,icrv)   = param((icrv-1)*Npnt + ipnt,7);
         Tmax_mat(ipnt,icrv)  = param((icrv-1)*Npnt + ipnt,8);
         Tmin_mat(ipnt,icrv)  = param((icrv-1)*Npnt + ipnt,9);
-        WL_1_mat(ipnt,icrv)  = param((icrv-1)*Npnt + ipnt,13);
-        WL_2_mat(ipnt,icrv)  = param((icrv-1)*Npnt + ipnt,14);
-        WL_3_mat(ipnt,icrv)  = param((icrv-1)*Npnt + ipnt,15);
-        WL_4_mat(ipnt,icrv)  = param((icrv-1)*Npnt + ipnt,16);
-        WL_5_mat(ipnt,icrv)  = param((icrv-1)*Npnt + ipnt,17);
-        WL_6_mat(ipnt,icrv)  = param((icrv-1)*Npnt + ipnt,18);
+        WL_1_mat(ipnt,icrv)  = param((icrv-1)*Npnt + ipnt,11);
+        WL_2_mat(ipnt,icrv)  = param((icrv-1)*Npnt + ipnt,12);
+        WL_3_mat(ipnt,icrv)  = param((icrv-1)*Npnt + ipnt,13);
+        WL_4_mat(ipnt,icrv)  = param((icrv-1)*Npnt + ipnt,14);
+        WL_5_mat(ipnt,icrv)  = param((icrv-1)*Npnt + ipnt,15);
+        WL_6_mat(ipnt,icrv)  = param((icrv-1)*Npnt + ipnt,16);
+        WL_7_mat(ipnt,icrv)  = param((icrv-1)*Npnt + ipnt,17);
     end
     L{icrv} = strcat(Lcrv,sprintf(' = %.3g ',Acrv(icrv)),Ucrv);
 end
@@ -120,55 +130,55 @@ ylim([40 70])
 legend(L,'Location','Best')
 grid on;
 
-% COP
-figure(fignum+1);
-set(gcf,'DefaultAxesColorOrder',[0 0 0],...
-     'DefaultAxesLineStyleOrder','-|-.|--')
-for icrv=1:Ncrv
-    plot(Apnt(OKpnts),COP_mat(OKpnts,icrv)); hold on;
-end
-hold off;
-xlabel(strcat(Lpnt,Upnt))
-ylabel('COP')
-ylim([1 1.5])
-legend(L,'Location','Best')
-grid on;
-
-% Exergetic efficiency and COP
-figure(fignum+2);
-L2 = cell(1,2*Ncrv);
-yyaxis left
-for icrv=1:Ncrv
-    plot(Apnt(OKpnts),chi_mat(OKpnts,icrv)*100); hold on;
-    L2{icrv} = strcat(Lcrv,sprintf(' = %.3g ',Acrv(icrv)),Ucrv,' (Tmax)');
-end
-hold off;
-xlabel(strcat(Lpnt,Upnt))
-ylabel('Exergetic efficiency  [$$\%$$]')
-ylim([65 80])
-yyaxis right
-for icrv=1:Ncrv
-    plot(Apnt(OKpnts),COP_mat(OKpnts,icrv)); hold on;
-    L2{icrv+Ncrv} = strcat(Lcrv,sprintf(' = %.3g ',Acrv(icrv)),Ucrv,' (Tmin)');
-end
-hold off;
-ylabel('COP')
-ylim([1.0 1.8])
-legend(L,'Location','Best')
-grid on;
-
-% Engine efficiency
-figure(fignum+3);
-set(gcf,'DefaultAxesColorOrder',[0 0 0],...
-     'DefaultAxesLineStyleOrder','-|-.|--')
-for icrv=1:Ncrv
-    plot(Apnt(OKpnts),EFF_mat(OKpnts,icrv)*100); hold on;
-end
-hold off;
-xlabel(strcat(Lpnt,Upnt))
-ylabel('Engine efficiency [$$\%$$]')
-legend(L,'Location','Best')
-grid on;
+% % COP
+% figure(fignum+1);
+% set(gcf,'DefaultAxesColorOrder',[0 0 0],...
+%      'DefaultAxesLineStyleOrder','-|-.|--')
+% for icrv=1:Ncrv
+%     plot(Apnt(OKpnts),COP_mat(OKpnts,icrv)); hold on;
+% end
+% hold off;
+% xlabel(strcat(Lpnt,Upnt))
+% ylabel('COP')
+% ylim([1 1.5])
+% legend(L,'Location','Best')
+% grid on;
+% 
+% % Exergetic efficiency and COP
+% figure(fignum+2);
+% L2 = cell(1,2*Ncrv);
+% yyaxis left
+% for icrv=1:Ncrv
+%     plot(Apnt(OKpnts),chi_mat(OKpnts,icrv)*100); hold on;
+%     L2{icrv} = strcat(Lcrv,sprintf(' = %.3g ',Acrv(icrv)),Ucrv,' (Tmax)');
+% end
+% hold off;
+% xlabel(strcat(Lpnt,Upnt))
+% ylabel('Exergetic efficiency  [$$\%$$]')
+% %ylim([65 80])
+% yyaxis right
+% for icrv=1:Ncrv
+%     plot(Apnt(OKpnts),COP_mat(OKpnts,icrv)); hold on;
+%     L2{icrv+Ncrv} = strcat(Lcrv,sprintf(' = %.3g ',Acrv(icrv)),Ucrv,' (Tmin)');
+% end
+% hold off;
+% ylabel('COP')
+% ylim([1.0 1.8])
+% legend(L,'Location','Best')
+% grid on;
+% 
+% % Engine efficiency
+% figure(fignum+3);
+% set(gcf,'DefaultAxesColorOrder',[0 0 0],...
+%      'DefaultAxesLineStyleOrder','-|-.|--')
+% for icrv=1:Ncrv
+%     plot(Apnt(OKpnts),EFF_mat(OKpnts,icrv)*100); hold on;
+% end
+% hold off;
+% xlabel(strcat(Lpnt,Upnt))
+% ylabel('Engine efficiency [$$\%$$]')
+% legend(L,'Location','Best')
+% grid on;
 
 
 
@@ -212,34 +222,36 @@ grid on;
 
 
 
-WL_mat = zeros(Npnt,6,Ncrv);
+WL_mat = zeros(Npnt,7,Ncrv);
 for icrv=1:Ncrv
-    WL_mat(:,:,icrv) = [WL_1_mat(:,icrv),WL_2_mat(:,icrv),WL_3_mat(:,icrv),WL_4_mat(:,icrv),WL_5_mat(:,icrv),WL_6_mat(:,icrv)];
+    WL_mat(:,:,icrv) = [WL_1_mat(:,icrv),WL_2_mat(:,icrv),WL_3_mat(:,icrv),WL_4_mat(:,icrv),WL_5_mat(:,icrv),WL_6_mat(:,icrv),WL_7_mat(:,icrv)];
 end
 
 for icrv=1:Ncrv
     figure(fignum+4+icrv);
     a = area(Apnt(OKpnts),WL_mat(OKpnts,:,icrv)); hold on;
+    a(1).FaceColor = c_dark_blue;
     a(2).FaceColor = c_pale_blue;
     a(3).FaceColor = c_pale_green;
-    a(4).FaceColor = 'yellow';
-    a(5).FaceColor = c_dark_orange;
-    a(6).FaceColor = c_grey;
+    a(4).FaceColor = c_yellow;
+    a(5).FaceColor = c_pale_orange;
+    a(6).FaceColor = c_dark_orange;
+    a(7).FaceColor = c_grey;
     hold off;
     xlabel(strcat(Lpnt,Upnt))
     ylabel('Lost Work [$$\%$$]')
     title(L{icrv})
-    ylim([0 40])
-    legend({'Compressors','Expanders','Heat exchangers','Heat rejected/absorbed','Mixing (liquid)','Tanks'},'Location','NorthWest')
+    ylim([0 50])
+    legend({'Compressors','Expanders','Heat exchangers','Heat in/out env.','Mixing (liquid)','Mixing (gas)','Tanks'},'Location','Best')
     grid on;
     
-    % Do not show liquid_mixing loss and tank_loss bars if they are not required
-    if all(all(WL_5_mat==0))
-        delete(a(5))
-    end
-    if all(all(WL_6_mat==0))
-        delete(a(6))
-    end
+    %     % Do not show liquid_mixing loss and tank_loss bars if they are not required
+    %     if all(all(WL_5_mat==0))
+    %         delete(a(5))
+    %     end
+    %     if all(all(WL_6_mat==0))
+    %         delete(a(6))
+    %     end
 end
 
 save_figs = 0;

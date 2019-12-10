@@ -39,6 +39,7 @@ PTES_INPUTS
 PTES_MANAGE_FILES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
 tic % start timer
 for ix = 1:1
     %%% RUN CYCLE LOOP %%%
@@ -104,25 +105,18 @@ for ix = 1:1
 end
 toc %stop timer
 
+
 %%% MAKE PLOTS %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if make_plots
-    switch Load.mode
-        case {0,3,4} % PTES
-            PTES_PLOT_HEXS
-            if optimise
-                PTES_PLOT_GOLDEN_SEARCH
-            end
-        case 2 % Heat engine only
-            if optimise
-                PTES_PLOT_GOLDEN_SEARCH
-            end
-    end
+if make_plots    
     PTES_PLOT_CYCLE
     PTES_PLOT_LOSSES
     if multi_run
         PTES_PLOT_MULTI_RUN %#ok<*UNRCH>
     end
+end
+if make_hex_plots
+    PTES_PLOT_HEXS
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
