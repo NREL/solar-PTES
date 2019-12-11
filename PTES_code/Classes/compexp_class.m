@@ -355,6 +355,23 @@ classdef compexp_class
                     % sCO2 expander from Morandin 2013 - eq. E5
                     COST = 40e3 + 9e3 * (obj.W0/1e3)^0.69 ;
                     COST = COST * CEind(curr) / CEind(2013) ;
+                    
+                case 20
+                    % Pump cost. Centrifugal, carbon steel, includes motor.
+                    % - eq. P1
+                    COST = 2409.6 + 75.9 * obj.W0 / 1e3 ;
+                    COST = COST * CEind(curr) / CEind(1998) ;
+                    
+                case 21
+                    % Pump cost. Centrifugal, includes motor.
+                    % - eq. P2
+                    COST = 1227.5 + 177.8 * obj.W0 / 1e3 ;
+                    COST = COST * CEind(curr) / CEind(1990) ;
+                    
+                case 22
+                    % Pump cost. - eq. P3
+                    COST = 50e3 + 1500 * (obj.W0 / 1e3)^0.8 ;
+                    COST = COST * CEind(curr) / CEind(2009) ;
 
             end
             

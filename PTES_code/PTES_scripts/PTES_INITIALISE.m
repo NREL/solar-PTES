@@ -58,17 +58,17 @@ switch Load.mode
     case 3 % JB (charge) + Rankine (discharge)
         % Charging components
         for i = 1 : Nc_ch
-            CCMP(i) = compexp_class('comp', 'poly', 1, eta, Load.num) ; % Charging compressors
+            CCMP(i) = compexp_class('comp', 'poly', 2, eta, Load.num) ; % Charging compressors
         end
         
         for i = 1 : Ne_ch
-            CEXP(i) = compexp_class('exp', 'poly', 1, eta, Load.num) ; % Charging expanders
+            CEXP(i) = compexp_class('exp', 'poly', 3, eta, Load.num) ; % Charging expanders
         end
         
         % Discharging components
         for i = 1 : 3
-            DCMP(i) = compexp_class('comp', 'isen', 1, eta, Load.num) ; % Discharging compressors
-            DEXP(i) = compexp_class('exp', 'isen', 1, eta, Load.num) ; % Discharging expanders
+            DCMP(i) = compexp_class('comp', 'isen', 22, eta, Load.num) ; % Discharging compressors
+            DEXP(i) = compexp_class('exp', 'isen', 3, eta, Load.num) ; % Discharging expanders
         end
         
     case 4 % sCO2-PTES type cycles
