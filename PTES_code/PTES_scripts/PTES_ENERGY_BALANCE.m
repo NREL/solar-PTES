@@ -1,5 +1,47 @@
 % First and second law balances
 
+% Calculate work/heat/irreversibility terms for each component
+% Charging compressors and discharging expanders
+for ii = 1:length(CCMP)
+    CCMP(ii) = compexp_energy(CCMP(ii),Load.time)  ;
+end
+% Charging expanders and discharging compressors
+for ii = 1:length(CEXP)
+    CEXP(ii) = compexp_energy(CEXP(ii),Load.time)  ;
+end
+
+switch Load.mode
+    case {0,1,2,4}
+        NC = Ne_ch ;
+        NE = Nc_ch ;
+    case 3
+        NC = 3 ;
+        NE = 3 ;
+end
+
+for ii = 1:length(DCMP)
+    DCMP(ii) = compexp_energy(DCMP(ii),Load.time)  ;
+end
+for ii = 1:length(DEXP)
+    DEXP(ii) = compexp_energy(DEXP(ii),Load.time)  ;
+end
+
+% Recompressor if specified for sCO2 cycle
+if Load.mode == 4
+    if Lrcmp
+        RCMP = compexp_energy(RCMP,Load.time)  ;
+    end
+end
+
+% FANS
+for ii = length(CFAN)
+    CFAN(ii) = compexp_energy(CFAN(ii),Load.time)  ;
+end
+for ii = length(DFAN)
+    DFAN(ii) = compexp_energy(DFAN(ii),Load.time)  ;
+end
+
+
 % Adds up the contributions of the several stages to compute an energy
 % balance
 W_in_chg   = 0;
@@ -20,46 +62,9 @@ W_out_disRC  = 0;
 QC_disRC     = 0;  
 QH_disRC     = 0; 
 
-W_out_disNC  = 0;
-QC_disNC     = 0;  
-QH_disNC     = 0; 
-
 nH = numel(fluidH);
 nC = numel(fluidC);
 for iL=1:Load.num
-    
-    % Calculate total work/heat/irreversibility terms
-    % Charging compressors and discharging expanders
-    for ii = 1 : Nc_ch
-       CCMP(ii) = compexp_energy(CCMP(ii),Load.time(iL))  ;
-    end
-    % Charging expanders and discharging compressors
-    for ii = 1 : Ne_ch
-       CEXP(ii) = compexp_energy(CEXP(ii),Load.time(iL))  ;
-    end
-    
-    switch Load.mode
-        case {0,1,2,4}
-            NC = Ne_ch ;
-            NE = Nc_ch ;
-        case 3
-            NC = 3 ;
-            NE = 3 ;
-    end
-    
-    for ii = 1 : NC
-        DCMP(ii) = compexp_energy(DCMP(ii),Load.time(iL))  ;
-    end
-    for ii = 1 : NE
-        DEXP(ii) = compexp_energy(DEXP(ii),Load.time(iL))  ;
-    end
-    
-    % Recompressor if specified for sCO2 cycle
-    if Load.mode == 4
-        if Lrcmp
-            RCMP = compexp_energy(RCMP,Load.time(iL))  ;
-        end
-    end
     
     if any(strcmp(Load.type(iL),{'chg','chgCO2'}))
         W_in_chg   = W_in_chg   -    sum([gas.stage(iL,:).w]   .*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
@@ -106,9 +111,20 @@ for iL=1:Load.num
             for i=1:nC
                 QC_disRC = QC_disRC + sum(fluidC(i).state(iL,1).mdot*(fluidC(i).state(iL,2).h-fluidC(i).state(iL,1).h)*Load.time(iL));
             end
-        end
-        
+        end        
     end
+    
+    % Compute contributions from ambient air streams (heat rejection)
+    if any(strcmp(Load.type(iL),{'chg','chgCO2'}))
+        W_in_chg   = W_in_chg   -    sum([air.stage(iL,:).w]   .*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));
+        W_lost_chg = W_lost_chg + T0*sum([air.stage(iL,:).sirr].*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));
+        QE_chg     = QE_chg     +    sum([air.stage(iL,:).q]  .*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));        
+    elseif any(strcmp(Load.type(iL),{'dis','disCO2','ran'}))
+        W_out_dis  = W_out_dis  +    sum([air.stage(iL,:).w]   .*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));
+        W_lost_dis = W_lost_dis + T0*sum([air.stage(iL,:).sirr].*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));
+        QE_dis     = QE_dis     +    sum([air.stage(iL,:).q]  .*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));      
+    end
+    
 end
 
 W_out_disNC = W_out_dis - W_out_disRC ;
@@ -244,75 +260,6 @@ switch Load.mode
         WL_PTES_dis(7) = HT.A(end).B - HT.A(1).B + HT.B(end).B - HT.B(1).B;
 end
 
-%{
-% PRINT MAIN RESULTS ON SCREEN
-if WM==1
-    fprintf(1,'\n\n');
-    fprintf(1,'PTES CYCLE\n');
-    fprintf(1,'----------\n');
-    fprintf(1,'Gas states:\n');
-    fprintf(1,'%11s ','T [K]','p [bar]','h [MJ/kg]','s [kJ/kg/K]','mdot [kg/s]','Inlet of','Cycle'); fprintf(1,'\n');
-    for iL = 1:Load.num
-        for i0=1:gas.Nstg(iL)
-            fprintf(1,'%11.1f %11.1f %11.2f %11.2f %11.1f %11s %11s\n',...
-                gas.state(iL,i0).T, gas.state(iL,i0).p/1e5, gas.state(iL,i0).h/1e6,...
-                gas.state(iL,i0).s/1e3, gas.state(iL,i0).mdot, gas.stage(iL,i0).type, Load.type(iL));
-        end
-        if any(strcmp(Load.type(iL),["chg","dis","chgCO2","disCO2"])), fprintf(1,'\n'); end
-    end
-    
-    % Print hot streams
-    for i0=1:nH
-        fprintf(1,'\nHot fluid stream #%2i:\n',i0);
-        fprintf(1,'-->%s\n',fluidH(i0).name);
-        fprintf(1,'%11s ','Tin[K]','Tout[K]','Δh [MJ/kg]','Δs [kJ/kg/K]','mdot[kg/s]','Stream','Cycle'); fprintf(1,'\n');
-        for iL = 1:Load.num
-            if any(strcmp(Load.type(iL),["chg","dis","chgCO2","disCO2"]))
-                fprintf(1,'%11.1f %11.1f %11.2f %11.2f %11.2f %11d %11s\n',...
-                    fluidH(i0).state(iL,1).T, fluidH(i0).state(iL,2).T,...
-                    (fluidH(i0).state(iL,2).h - fluidH(i0).state(iL,1).h)/1e6,...
-                    (fluidH(i0).state(iL,2).s - fluidH(i0).state(iL,1).s)/1e3,...
-                    fluidH(i0).state(iL,1).mdot, i0, Load.type(iL));
-            end
-        end
-    end
-    
-    % Print cold streams
-    for i0=1:nC
-        fprintf(1,'\nCold fluid stream #%2i:\n',i0);
-        fprintf(1,'-->%s\n',fluidC(1).name);
-        fprintf(1,'%11s ','Tin[K]','Tout[K]','Δh [MJ/kg]','Δs [kJ/kg/K]','mdot[kg/s]','Stream','Cycle'); fprintf(1,'\n');
-        for iL = 1:Load.num
-            if any(strcmp(Load.type(iL),["chg","dis","chgCO2","disCO2"]))
-                fprintf(1,'%11.1f %11.1f %11.2f %11.2f %11.2f %11d %11s\n',...
-                    fluidC(i0).state(iL,1).T, fluidC(i0).state(iL,2).T,...
-                    (fluidC(i0).state(iL,2).h - fluidC(i0).state(iL,1).h)/1e6,...
-                    (fluidC(i0).state(iL,2).s - fluidC(i0).state(iL,1).s)/1e3,...
-                    fluidC(i0).state(iL,1).mdot, i0, Load.type(iL));
-            end
-        end
-    end
-   
-    % Print hot tanks
-    for ii = 1 : Nhot
-        fprintf(1,'\nHot tank #%2i\n',ii);
-        fprintf(1,'%10s %10s %13s %13s %13s %13s %8s ','A.T [K]','A.M [kg*1e6]','A.H [MWh]','B.T [K]','B.M [kg*1e6]','B.H [MWh]','state'); fprintf(1,'\n');
-        for i0=1:(Load.num+1)
-            fprintf(1,'%10.4g %13.3f %13.3f %10.4g %13.3f %13.3f %8d\n', HT(ii).A(i0).T,HT(ii).A(i0).M/1e6,HT(ii).A(i0).H/fact,HT(ii).B(i0).T,HT(ii).B(i0).M/1e6,HT(ii).B(i0).H/fact,i0)
-        end
-    end
-    % Print cold tanks
-    for ii = 1 : Ncld
-        fprintf(1,'\nCold tank #%2i\n',ii);
-        fprintf(1,'%10s %10s %13s %13s %13s %13s %8s ','A.T [K]','A.M [kg*1e6]','A.H [MWh]','B.T [K]','B.M [kg*1e6]','B.H [MWh]','state'); fprintf(1,'\n');
-        for i0=1:(Load.num+1)
-            fprintf(1,'%10.4g %13.3f %13.3f %10.4g %13.3f %13.3f %8d\n', CT(ii).A(i0).T,CT(ii).A(i0).M/1e6,CT(ii).A(i0).B/fact,CT(ii).B(i0).T,CT(ii).B(i0).M/1e6,CT(ii).B(i0).B/fact,i0)
-        end
-    end
-   
-    fprintf(1,'\n');
-end
-%}
 
 % PRINT MAIN RESULTS ON SCREEN
 if WM==1

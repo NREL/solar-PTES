@@ -155,10 +155,10 @@ classdef compexp_class
             state.p = p2;
             state   = update_state(state,fluid.handle,fluid.read,fluid.TAB,2);
             
-            obj.Dh   = state.h - h1;
-            obj.q    = 0;
-            obj.w    = -obj.Dh;
-            obj.sirr = state.s - s1;
+            obj.Dh(ind(1))   = state.h - h1;
+            obj.q(ind(1))    = 0;
+            obj.w(ind(1))    = -obj.Dh(ind(1));
+            obj.sirr(ind(1)) = state.s - s1;
             
             % DELETE THIS EVENTUALLY >>
             % Compute energy flows along stage
@@ -262,17 +262,17 @@ classdef compexp_class
         % Calculate energy totals for each load cycle
         function obj = compexp_energy(obj,T)
             % T is the duration of the load cycle in seconds
-            obj.W    = obj.w * obj.mdot * T ;
-            obj.Q    = obj.q * obj.mdot * T ;
-            obj.DH   = obj.Dh * obj.mdot * T ;
-            obj.Sirr = obj.sirr * obj.mdot * T ;
+            obj.W    = obj.w    .* obj.mdot .* T ;
+            obj.Q    = obj.q    .* obj.mdot .* T ;
+            obj.DH   = obj.Dh   .* obj.mdot .* T ;
+            obj.Sirr = obj.sirr .* obj.mdot .* T ;
             
             % What is the design point work? Need a better method in the
             % long run
             if strcmp(obj.type,'comp')
-                obj.W0 = -min(obj.w * obj.mdot) ;
+                obj.W0 = -min(obj.w .* obj.mdot) ;
             elseif strcmp(obj.type,'exp')
-                obj.W0 = max(obj.w * obj.mdot) ;
+                obj.W0 = max(obj.w .* obj.mdot) ;
             end
         end
                
