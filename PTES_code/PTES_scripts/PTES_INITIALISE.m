@@ -48,12 +48,12 @@ switch Load.mode
     case {0,1,2} % Ideal gas Joule-Bratyon PTES
         for i = 1 : Nc_ch
             CCMP(i) = compexp_class('comp', 'poly', 2, eta, Load.num) ; % Charging compressors
-            DEXP(i) = compexp_class('exp', 'poly', 3, eta, Load.num) ; % Discharging expanders
+            DEXP(i) = compexp_class('exp', 'poly', 11, eta, Load.num) ; % Discharging expanders
         end
         
         for i = 1 : Ne_ch
             CEXP(i) = compexp_class('exp', 'poly', 2, eta, Load.num) ; % Charging expanders
-            DCMP(i) = compexp_class('comp', 'poly', 3, eta, Load.num) ; % Discharging compressors
+            DCMP(i) = compexp_class('comp', 'poly', 11, eta, Load.num) ; % Discharging compressors
         end
     case 3 % JB (charge) + Rankine (discharge)
         % Charging components
@@ -62,28 +62,28 @@ switch Load.mode
         end
         
         for i = 1 : Ne_ch
-            CEXP(i) = compexp_class('exp', 'poly', 3, eta, Load.num) ; % Charging expanders
+            CEXP(i) = compexp_class('exp', 'poly', 11, eta, Load.num) ; % Charging expanders
         end
         
         % Discharging components
         for i = 1 : 3
             DCMP(i) = compexp_class('comp', 'isen', 22, eta, Load.num) ; % Discharging compressors
-            DEXP(i) = compexp_class('exp', 'isen', 3, eta, Load.num) ; % Discharging expanders
+            DEXP(i) = compexp_class('exp', 'isen', 11, eta, Load.num) ; % Discharging expanders
         end
         
     case 4 % sCO2-PTES type cycles
         for i = 1 : Nc_ch
-            CCMP(i) = compexp_class('comp', 'poly', 1, eta, Load.num) ; % Charging compressors
-            DEXP(i) = compexp_class('exp', 'poly', 1, eta, Load.num) ; % Discharging expanders
+            CCMP(i) = compexp_class('comp', 'poly', 7, eta, Load.num) ; % Charging compressors
+            DEXP(i) = compexp_class('exp', 'poly', 17, eta, Load.num) ; % Discharging expanders
         end
         
         for i = 1 : Ne_ch
-            CEXP(i) = compexp_class('exp', 'poly', 1, eta, Load.num) ; % Charging expanders
-            DCMP(i) = compexp_class('comp', 'poly', 1, eta, Load.num) ; % Discharging compressors
+            CEXP(i) = compexp_class('exp', 'poly', 7, eta, Load.num) ; % Charging expanders
+            DCMP(i) = compexp_class('comp', 'poly', 17, eta, Load.num) ; % Discharging compressors
         end
         
         %Recompressor
         if Lrcmp
-            RCMP = compexp_class('comp', 'poly', 1, eta, Load.num) ; % Re-compressors
+            RCMP = compexp_class('comp', 'poly', 7, eta, Load.num) ; % Re-compressors
         end
 end

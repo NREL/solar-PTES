@@ -103,9 +103,8 @@ switch Load.mode
 end
         
 % Hot tank cost and hot fluid cost
-fluidH(1).cost = 1.0 ; % Specify in input file in class constructor
-fluidC(1).cost = 1.0 ; % Specify in input file in class constructor
 for ii = 1 : Nhot
+    fluidH(ii).cost = 1.0 ; % Specify in input file in class constructor
     if Lretro
         HT(ii).tankA_cost.COST = 0.1 ;
         HT(ii).tankB_cost.COST = 0.1 ;
@@ -120,6 +119,7 @@ end
 
 % Cold tank cost and cold fluid cost
 for ii = 1 : Ncld
+   fluidC(ii).cost = 1.0 ; % Specify in input file in class constructor
    CT(ii) = tank_cost(CT(ii), CEind) ;  
    CT(ii) = fld_cost(CT(ii),fluidC(ii).cost, CEind) ;  
    cap_cost = cap_cost + CT(ii).tankA_cost.COST + CT(ii).tankB_cost.COST + CT(ii).fluid_cost.COST ;
@@ -157,7 +157,7 @@ switch Load.mode
         fprintf(1,'Cost per unit power:           %8.1f $/kW-e\n',Cdata.cap_cost_pow);
         fprintf(1,'Cost per unit energy:          %8.1f $/kWh-e\n\n',Cdata.cap_cost_en);
         fprintf(1,'Levelised cost of storage:     %8.1f $/kWh-e\n',Cdata.lcosM);
-        fprintf(1,'     Standard deviation:        %8.1f $/kWh-e\n\n',Cdata.lcosSD);
+        fprintf(1,'     Standard deviation:       %8.1f $/kWh-e\n\n',Cdata.lcosSD);
 end
 
 % Calculate the fixed charge rate and other economic factors
