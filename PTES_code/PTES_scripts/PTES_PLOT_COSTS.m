@@ -5,13 +5,19 @@ switch Load.mode
         matrix = zeros(8,7) ;
         
         % Assign different types of costs to different places
-        for ii = 1 : Nc_ch
+        for ii = 1 : length(CCMP)
             matrix(1,1) = matrix(1,1) + CCMP(ii).cmpexp_cost.COST ;
+        end
+        
+        for ii = 1 : length(DEXP)
             matrix(2,2) = matrix(2,2) + DEXP(ii).cmpexp_cost.COST ;
         end
         
-        for ii = 1 : Ne_ch
+        for ii = 1 : length(CEXP)
             matrix(1,2) = matrix(1,2) + CEXP(ii).cmpexp_cost.COST ;
+        end
+        
+        for ii = 1 : length(DCMP)
             matrix(2,1) = matrix(2,1) + DCMP(ii).cmpexp_cost.COST ;
         end
                 
