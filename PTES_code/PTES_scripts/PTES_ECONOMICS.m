@@ -26,18 +26,26 @@ Nsens    = 10000 ; % How many points to take from distribution for sensitivity a
 cap_sens = zeros(Nsens,1) ;
 
 % Compressors and expanders
-for ii = 1 : Nc_ch %% THIS DOESN'T WORK FOR RANKINE DISCHARGE
+for ii = 1 : length(CCMP)
     CCMP(ii) = compexp_econ(CCMP(ii), CEind, false, 0)  ;
+    cap_cost = cap_cost + CCMP(ii).cmpexp_cost.COST ;
+    cap_sens = cap_sens + cost_sens(CCMP(ii).cmpexp_cost, Nsens) ;
+end
+for ii = 1 : length(DEXP)
     DEXP(ii) = compexp_econ(DEXP(ii), CEind, false, 0)  ;
-    cap_cost = cap_cost + CCMP(ii).cmpexp_cost.COST + DEXP(ii).cmpexp_cost.COST ;
-    cap_sens = cap_sens + cost_sens(CCMP(ii).cmpexp_cost, Nsens) + cost_sens(DEXP(ii).cmpexp_cost, Nsens) ;
+    cap_cost = cap_cost + DEXP(ii).cmpexp_cost.COST ;
+    cap_sens = cap_sens + cost_sens(DEXP(ii).cmpexp_cost, Nsens) ;
 end
 
-for ii = 1 : Ne_ch
+for ii = 1 : length(CEXP)
     CEXP(ii) = compexp_econ(CEXP(ii), CEind, false, 0)  ;
+    cap_cost = cap_cost + CEXP(ii).cmpexp_cost.COST ;
+    cap_sens = cap_sens + cost_sens(CEXP(ii).cmpexp_cost, Nsens) ;
+end
+for ii = 1 : length(DCMP)
     DCMP(ii) = compexp_econ(DCMP(ii), CEind, false, 0)  ;
-    cap_cost = cap_cost + CEXP(ii).cmpexp_cost.COST + DCMP(ii).cmpexp_cost.COST ;
-    cap_sens = cap_sens + cost_sens(CEXP(ii).cmpexp_cost, Nsens) + cost_sens(DCMP(ii).cmpexp_cost, Nsens) ;
+    cap_cost = cap_cost + DCMP(ii).cmpexp_cost.COST ;
+    cap_sens = cap_sens + cost_sens(DCMP(ii).cmpexp_cost, Nsens) ;
 end
 
 % Hot tank cost and hot fluid cost
