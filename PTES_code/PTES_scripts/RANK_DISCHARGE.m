@@ -101,7 +101,7 @@ while 1
     fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p;
     [fluidH] = update(fluidH,[iL,iH],1);
     Taim = HT.A(iL).T;
-    [HX_REHEAT,steam,fluidH,iG,iH] = hex_func(HX_REHEAT,iL,steam,iG,fluidH,iH,4,Taim);
+    [HX_REHEAT,steam,iG,fluidH,iH] = hex_func(HX_REHEAT,iL,steam,iG,fluidH,iH,4,Taim);
     iH = iH + 1;
     
     % EXPAND (4-->5)
@@ -132,7 +132,7 @@ while 1
         fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p; %#ok<*SAGROW>
         [fluidC] = update(fluidC,[iL,iC],1);
         T_aim = CP1('PQ_INPUTS',steam.state(iL,iG).p,0.0,'T',steam.handle) - 1; %wet saturated
-        [HX_CONDEN, steam, fluidC, iG, iC] = hex_func(HX_CONDEN,iL,steam,iG,fluidC,iC,5,T_aim);
+        [HX_CONDEN,steam,iG,fluidC,iC] = hex_func(HX_CONDEN,iL,steam,iG,fluidC,iC,5,T_aim);
         iC=iC+1;
     else
         % REJECT HEAT (external HEX) (7-->8)
@@ -165,7 +165,7 @@ while 1
     fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p; %#ok<*SAGROW>
     [fluidH] = update(fluidH,[iL,iH],1);
     Taim = HT.A(iL).T;
-    [HX_BOILER,steam,fluidH,iG,iH] = hex_func(HX_BOILER,iL,steam,iG,fluidH,iH,4,Taim);
+    [HX_BOILER,steam,iG,fluidH,iH] = hex_func(HX_BOILER,iL,steam,iG,fluidH,iH,4,Taim);
     iH = iH + 1;
     
     % Determine convergence and proceed

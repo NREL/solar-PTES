@@ -2,7 +2,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Call the correct input file
-Load.mode = 4;
+Load.mode = 3;
 switch Load.mode
     case {0,1,2,3} % Joule-Bratyon PTES / Joule-Brayton + Rankine
         JB_RANK_INPUTS
