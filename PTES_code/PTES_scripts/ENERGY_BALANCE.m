@@ -34,10 +34,10 @@ if Load.mode == 4
 end
 
 % FANS
-for ii = length(CFAN)
+for ii = 1:length(CFAN)
     CFAN(ii) = compexp_energy(CFAN(ii),Load.time)  ;
 end
-for ii = length(DFAN)
+for ii = 1:length(DFAN)
     DFAN(ii) = compexp_energy(DFAN(ii),Load.time)  ;
 end
 

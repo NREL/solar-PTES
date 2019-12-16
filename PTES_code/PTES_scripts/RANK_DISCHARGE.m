@@ -137,10 +137,10 @@ while 1
     else
         % REJECT HEAT (external HEX) (7-->8)
         T_aim = Ran_Tbot - 1;
-        [steam,environ,iG,iE] = hex_set(steam,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
-        %air.state(iL,1).T = T0; air.state(iL,1).p = p0; air = update(air,[iL,1],1);
-        %[HX_ACC, steam, air, i, iA] = hex_func(HX_ACC,iL,steam,i,air,iA,5,T_aim);
-        %[DFAN(1),air,iA] = compexp_func (DFAN(1),iL,air,iA,'Paim',p0) ;
+        %[steam,environ,iG,iE] = hex_set(steam,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
+        air.state(iL,1).T = T0; air.state(iL,1).p = p0; air = update(air,[iL,1],1);
+        [HX_ACC, steam, iG, air, iA] = hex_func(HX_ACC,iL,steam,iG,air,iA,5,T_aim);
+        [DFAN(1),air,iA] = compexp_func (DFAN(1),iL,air,iA,'Paim',p0) ;
     end
     
     % COMPRESS (8-->9)
@@ -179,7 +179,7 @@ while 1
         steam = count_Nstg(steam);
         
         % Close air (heat rejection) streams
-        iA_out = 1:2:(iA-1); iA_in  = iA_out + 1;
+        iA_out = 1:3:(iA-1); iA_in  = iA_out + 2;
         for i=iA_in, air.stage(iL,i).type = 'end'; end
         air = count_Nstg(air);
         
