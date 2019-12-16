@@ -24,7 +24,7 @@ classdef double_tank_class
         fluid_cost = econ_class(0,0,0,0) ;
         
     end
-    methods        
+    methods
          function obj = double_tank_class(fluid,TA,pA,MA,TB,pB,MB,T0,num)
              obj.name   = fluid.name;
              obj.job    = fluid.job;
@@ -75,27 +75,61 @@ classdef double_tank_class
              tank_state.B = tank_state.H - T0*tank_state.S;             
          end
          
-         function [obj] = run_tanks(obj,fluid_streams,iL,Load,T0)
-             % Compute total mass, enthalpy and entropy flows of the fluid_streams
-             Mdot = 0;
-             Hdot_in  = 0; % Enthalpy flow into sink tank
-             Hdot_out = 0; % Enthalpy flow out of source tank
-             Sdot_in  = 0; % Entropy  flow into sink tank
-             n = numel(fluid_streams);
-             for i=1:n
-                 Mdot     = Mdot     + fluid_streams(i).state(iL,2).mdot;
-                 Hdot_in  = Hdot_in  + fluid_streams(i).state(iL,2).h*fluid_streams(i).state(iL,2).mdot;
-                 Hdot_out = Hdot_out + fluid_streams(i).state(iL,1).h*fluid_streams(i).state(iL,1).mdot;
-                 Sdot_in  = Sdot_in  + fluid_streams(i).state(iL,2).s*fluid_streams(i).state(iL,2).mdot;
+         function [obj] = run_tanks(obj,iL,fluid,i_out,i_in,Load,T0)
+             % RUN_TANKS Compute effect of various fluid streams entering
+             % and leaving one double storage tank
+             %
+             %      USAGE: RUN_TANKS(obj, iL, fluid, i_out, i_in, Load, T0)
+             %
+             %      e.g.  run_tanks(HT, iL, fluidH, [1,3], [2,4], Load, T0)
+             %
+             %      OBJ is an instance of the double_tank_class.
+             %
+             %      FLUID is an instance of the fluid_class.
+             %
+             %      IL is the load index. I_OUT and I_IN are arrays
+             %      containing the indices of the streams leaving the
+             %      source tank and entering the sink tank, respectively.
+             %
+             %      This method computes the total mass, enthalpy and
+             %      entropy flows of the fluid streams and adds/substracts
+             %      them to/from the sink/source tanks.
+             
+             
+             if any([i_out==0, i_in==0,isempty(i_in),isempty(i_out)])
+                 warning('run_tanks might be using "empty" fluid streams')
+                 obj.A(iL+1) = obj.A(iL);
+                 obj.B(iL+1) = obj.B(iL);
+                 return
+             end
+             
+             Mdot_in  = 0; % Mass flow rate into sink tank
+             Hdot_in  = 0; % Enthalpy  flow into sink tank
+             Sdot_in  = 0; % Entropy   flow into sink tank (before mixing)
+             Mdot_out = 0; % Mass flow rate out of source tank
+             Hdot_out = 0; % Enthalpy  flow out of source tank
+             for i = i_out
+                 Mdot_out = Mdot_out + fluid.state(iL,i).mdot;
+                 Hdot_out = Hdot_out + fluid.state(iL,i).h.*fluid.state(iL,i).mdot;
+             end
+             for i = i_in
+                 Mdot_in  = Mdot_in  + fluid.state(iL,i).mdot;
+                 Hdot_in  = Hdot_in  + fluid.state(iL,i).h.*fluid.state(iL,i).mdot;
+                 Sdot_in  = Sdot_in  + fluid.state(iL,i).s.*fluid.state(iL,i).mdot;
+             end
+             if abs(Mdot_out/Mdot_in - 1) > 10*eps(Mdot_out)
+                 error('mass flow rates do not match!')
+             else
+                 Mdot = Mdot_out;
              end
              
              % Set conditions of combined stream entering sink tank
-             mix_stream   = fluid_streams(1).state(iL,2);             
-             mix_stream.h = Hdot_in/Mdot;
-             mix_stream.p = fluid_streams(1).state(iL,2).p;
-             mix_stream.mdot = Mdot;
-             mix_stream   = update_state(mix_stream,fluid_streams(1).handle,fluid_streams(1).read,fluid_streams(1).TAB,2);
-             s_mix = mix_stream.s;
+             mix_state   = fluid.state(iL,i_in(1));
+             mix_state.h = Hdot_in/Mdot;
+             mix_state.p = fluid.state(iL,i_in(1)).p;
+             mix_state.mdot = Mdot;
+             mix_state   = update_state(mix_state,fluid.handle,fluid.read,fluid.TAB,2);
+             s_mix = mix_state.s; % entropy flow into sink tank (after mixing)
              
              % Select sink tank and source tank depending on operation mode
              if any(strcmp(Load.type(iL),{'chg','chgCO2'}))
@@ -142,7 +176,6 @@ classdef double_tank_class
          
          % Calculate some stats for the tank including max volume of fluid,
          % max. mass of fluid
-         
          % This is necessary because if there are consecutive charge cycles
          % it may not be clear what the total change in fluid mass is
          function [obj] = tank_stats(obj)

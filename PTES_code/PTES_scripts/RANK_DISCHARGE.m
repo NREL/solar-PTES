@@ -43,27 +43,27 @@ iSA = 15;
 iSB = 17;
 
 % Initial guess of discharge conditions (Point 1)
-i = 1;
-steam.state(iL,i).T = HT.B(iL).T;
-steam.state(iL,i).p = Ran_ptop;
-steam.state(iL,i).mdot = Load.mdot(iL);
-[steam] = update(steam,[iL,i],1);
+iG = 1;
+steam.state(iL,iG).T = HT.B(iL).T;
+steam.state(iL,iG).p = Ran_ptop;
+steam.state(iL,iG).mdot = Load.mdot(iL);
+[steam] = update(steam,[iL,iG],1);
 
 % Initial guess of conditions at point 11 (second pump outlet). This is
 % necessary to predict the x1 fraction to obtain wet saturated steam at
 % point 12.
-i = 11;
-steam.state(iL,i).T = Ran_Tmid2;
-steam.state(iL,i).p = Ran_pmid1;
-[steam] = update(steam,[iL,i],1);
+iG = 11;
+steam.state(iL,iG).T = Ran_Tmid2;
+steam.state(iL,iG).p = Ran_pmid1;
+[steam] = update(steam,[iL,iG],1);
 
 % Initial guess of conditions at point 9 (first pump outlet). This is
 % necessary to predict the x2 fraction to obtain wet saturated steam at
 % point 10.
-i = 9;
-steam.state(iL,i).T = Ran_Tbot;
-steam.state(iL,i).p = Ran_pmid2;
-[steam] = update(steam,[iL,i],1);
+iG = 9;
+steam.state(iL,iG).T = Ran_Tbot;
+steam.state(iL,iG).p = Ran_pmid2;
+[steam] = update(steam,[iL,iG],1);
 
 
 % Set matrix of temperature and pressure points to test convergence
@@ -72,21 +72,22 @@ while 1
     fprintf(1,'Hello Rankine discharge PTES\n')
     
     % Set stage indices
-    i  = 1;  % keeps track of the gas stage number
+    iG = 1;  % keeps track of the gas stage number
     iH = 1;  % keeps track of the Hot fluid stream number
     iC = 1;  % keeps track of the Cold fluid stream number
     iE = 1;  % keeps track of the Environment (heat rejection) stream number
+    iA = 1;  % keeps track of the Air (heat rejection) stream number
     
     % EXPAND (1-->2)
     %[steam,i] = compexp(steam,[iL,i],eta,Ran_pmid1,4);
-    [DEXP(1),steam,i] = compexp_func (DEXP(1),steam,[iL,i],'Paim',Ran_pmid1) ;
+    [DEXP(1),steam,iG] = compexp_func (DEXP(1),steam,[iL,iG],'Paim',Ran_pmid1) ;
     
     % FIND x1 %
     %%%%%%%%%%%
     % x1 is the fraction of steam for the first steam extraction). It is
     % set to ensure that pump inlet temperature is just below wet saturated
     % conditions
-    f1 = @(x1) dT_from_mix_obj(x1,steam,iL,i,iSA,iP2,Ran_Tmid1-1);
+    f1 = @(x1) dT_from_mix_obj(x1,steam,iL,iG,iSA,iP2,Ran_Tmid1-1);
     %plot_function(f1,0.0,1.0,100,10)
     %TolX = 1e-6; %tolerance
     %options = optimset('TolX',TolX,'Display','iter');
@@ -95,25 +96,25 @@ while 1
     %%%%%%%%%%%
     
     % SEPARATE (2-->3)
-    [steam,i] = split_stream(steam,iL,i,iSA,x1);
+    [steam,iG] = split_stream(steam,iL,iG,iSA,x1);
     
     % REHEAT (gas-liquid) (3-->4)
-    fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p;
-    [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
+    fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p;
+    [fluidH] = update(fluidH,[iL,iH],1);
     Taim = HT.A(iL).T;
-    [HX_REHEAT,steam,fluidH(iH),i,~] = hex_func(HX_REHEAT,iL,steam,i,fluidH(iH),1,4,Taim);
+    [HX_REHEAT,steam,fluidH,iG,iH] = hex_func(HX_REHEAT,iL,steam,iG,fluidH,iH,4,Taim);
     iH = iH + 1;
     
     % EXPAND (4-->5)
     %[steam,i] = compexp(steam,[iL,i],eta,Ran_pmid2,4);
-    [DEXP(2),steam,i] = compexp_func (DEXP(2),steam,[iL,i],'Paim',Ran_pmid2) ;
+    [DEXP(2),steam,iG] = compexp_func (DEXP(2),steam,[iL,iG],'Paim',Ran_pmid2) ;
     
     % FIND x2 %
     %%%%%%%%%%%
     % x2 is the fraction of steam for the second steam extraction). It is
     % set to ensure that pump inlet temperature is just below wet saturated
     % conditions
-    f2 = @(x2) dT_from_mix_obj(x2,steam,iL,i,iSB,iP1,Ran_Tmid2-1);
+    f2 = @(x2) dT_from_mix_obj(x2,steam,iL,iG,iSB,iP1,Ran_Tmid2-1);
     %plot_function(f1,0.0,1.0,100,10)
     %TolX = 1e-6; %tolerance
     %options = optimset('TolX',TolX,'Display','iter');
@@ -122,99 +123,117 @@ while 1
     %%%%%%%%%%%
     
     % SEPARATE (5-->6)
-    [steam,i] = split_stream(steam,iL,i,iSB,x2);
+    [steam,iG] = split_stream(steam,iL,iG,iSB,x2);
     
     % EXPAND (6-->7)
-    p_aim     = steam.state(iL,i).p/(PR_dis)^(1/3);
+    p_aim     = steam.state(iL,iG).p/(PR_dis)^(1/3);
     %[steam,i] = compexp(steam,[iL,i],eta,p_aim,4);
-    [DEXP(3),steam,i] = compexp_func (DEXP(3),steam,[iL,i],'Paim',p_aim) ;
+    [DEXP(3),steam,iG] = compexp_func (DEXP(3),steam,[iL,iG],'Paim',p_aim) ;
     
     if Load.options.useCold(iL)
         % COOL (condense using cold tanks)
-        fluidC(iC).state(iL,1).T = CT.B(iL).T; fluidC(iC).state(iL,1).p = CT.B(iL).p; %#ok<*SAGROW>
-        [fluidC(iC)] = update(fluidC(iC),[iL,1],1);
-        T_aim = CP1('PQ_INPUTS',steam.state(iL,i).p,0.0,'T',steam.handle) - 1; %wet saturated
-        [HX_CONDEN, steam, fluidC(iC), i, ~] = hex_func(HX_CONDEN,iL,steam,i,fluidC(iC),1,6,T_aim);
+        fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p; %#ok<*SAGROW>
+        [fluidC] = update(fluidC,[iL,iC],1);
+        T_aim = CP1('PQ_INPUTS',steam.state(iL,iG).p,0.0,'T',steam.handle) - 1; %wet saturated
+        [HX_CONDEN, steam, fluidC, iG, iC] = hex_func(HX_CONDEN,iL,steam,iG,fluidC,iC,6,T_aim);
         iC=iC+1;
     else
         % REJECT HEAT (external HEX) (7-->8)
         T_aim = Ran_Tbot - 1;
-        [steam,environ,i,iE] = hex_set(steam,[iL,i],environ,[iL,iE],T_aim,eff,ploss);
+        [steam,environ,iG,iE] = hex_set(steam,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
+        %air.state(iL,1).T = T0; air.state(iL,1).p = p0; air = update(air,[iL,1],1);
+        %[HX_ACC, steam, air, i, iA] = hex_func(HX_ACC,iL,steam,i,air,iA,6,T_aim);
+        %[DFAN(1),air,iA] = compexp_func (DFAN(1),air,[iL,iA],'Paim',p0) ;
     end
     
     % COMPRESS (8-->9)
     p_aim = steam.state(iL,iSB).p;
     %[steam,i] = compexp(steam,[iL,i],eta,p_aim,5);
-    [DCMP(1),steam,i] = compexp_func (DCMP(1),steam,[iL,i],'Paim',p_aim) ;
+    [DCMP(1),steam,iG] = compexp_func (DCMP(1),steam,[iL,iG],'Paim',p_aim) ;
     
     % MIX (9-->10)
-    [steam,i,~] = mix_streams(steam,[iL,i],[iL,iSB]);
+    [steam,iG,~] = mix_streams(steam,[iL,iG],[iL,iSB]);
     
     % COMPRESS (10-->11)
     p_aim = steam.state(iL,iSA).p;
     %[steam,i] = compexp(steam,[iL,i],eta,p_aim,5);
-    [DCMP(2),steam,i] = compexp_func (DCMP(2),steam,[iL,i],'Paim',p_aim) ;
+    [DCMP(2),steam,iG] = compexp_func (DCMP(2),steam,[iL,iG],'Paim',p_aim) ;
     
     % MIX (11-->12)
-    [steam,i,~] = mix_streams(steam,[iL,i],[iL,iSA]);
+    [steam,iG,~] = mix_streams(steam,[iL,iG],[iL,iSA]);
     
     % COMPRESS (12-->13)
     p_aim = Ran_ptop;
     %[steam,i] = compexp(steam,[iL,i],eta,p_aim,5);
-    [DCMP(3),steam,i] = compexp_func (DCMP(3),steam,[iL,i],'Paim',p_aim) ;
+    [DCMP(3),steam,iG] = compexp_func (DCMP(3),steam,[iL,iG],'Paim',p_aim) ;
     
     % HEAT (2-phase-liquid) (13-->1)
-    fluidH(iH).state(iL,1).T = HT.B(iL).T; fluidH(iH).state(iL,1).p = HT.B(iL).p; %#ok<*SAGROW>
-    [fluidH(iH)] = update(fluidH(iH),[iL,1],1);
+    fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p; %#ok<*SAGROW>
+    [fluidH] = update(fluidH,[iL,iH],1);
     Taim = HT.A(iL).T;
-    [HX_BOILER,steam,fluidH(iH),i,~] = hex_func(HX_BOILER,iL,steam,i,fluidH(iH),1,4,Taim);
+    [HX_BOILER,steam,fluidH,iG,iH] = hex_func(HX_BOILER,iL,steam,iG,fluidH,iH,4,Taim);
     iH = iH + 1;
-    %print_states(steam,iL,1:i,Load)
-
-    % Close cycle
-    steam.stage(iL,i).type = 'end';
-    steam.stage(iL,iSA+1).type = 'end';
-    steam.stage(iL,iSB+1).type = 'end';
-    steam = count_Nstg(steam);
     
     % Determine convergence and proceed
     A = [[steam.state(iL,:).T];[steam.state(iL,:).p]];
 
     if all(abs((A(A~=0) - A_0(A~=0))./A(A~=0))*100 < 1e-3) % is discharge cycle converged?
-        % Exit discharge cycle
-        gas_min_rho_dis = min([steam.state(iL,1:steam.Nstg(iL)).rho]); %take data for power density calculation
+        % Close working fluid streams
+        steam.stage(iL,iG).type = 'end';
+        steam.stage(iL,iSA+1).type = 'end';
+        steam.stage(iL,iSB+1).type = 'end';
+        steam = count_Nstg(steam);
+        
+        % Close air (heat rejection) streams
+        iA_out = 1:2:(iA-1); iA_in  = iA_out + 1;
+        for i=iA_in, air.stage(iL,i).type = 'end'; end
+        air = count_Nstg(air);
+        
+        % Close storage fluid streams
+        iH_out = 1:2:(iH-1); iH_in  = iH_out + 1;
+        iC_out = 1:2:(iC-1); iC_in  = iC_out + 1;
+        for i=iH_in, fluidH.stage(iL,i).type = 'end'; end
+        for i=iC_in, fluidC.stage(iL,i).type = 'end'; end
+        fluidH = count_Nstg(fluidH);
+        fluidC = count_Nstg(fluidC);
+        
+        % Uncomment these lines to print states
+        %print_states(steam,iL,1:steam.Nstg(iL)+1,Load);
+        %print_states(air,iL,1:air.Nstg(iL)+1,Load);
+        %print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
+        %print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);
+        
+        % Exit loop
         break
     else
         % Set new initial conditions
-        steam.state(iL,1) = steam.state(iL,i);
+        steam.state(iL,1) = steam.state(iL,iG);
         A_0 = A;
     end
 end
 
-% print_states(steam,iL,1:(steam.Nstg(iL)+1),Load)
-% print_states(fluidH(1),iL,1:2,Load)
-% print_states(fluidH(2),iL,1:2,Load)
-
 % Compute total mass flow rates of the hot and cold storage fluids and
 % compute the end of discharge time (stop when one tank becomes empty)
-[MdotH] = total_Mdot(fluidH,[iL,1]);
+[MdotH] = total_mdot(fluidH, iL, iH_out);
 t_disH  = HT.B(iL).M/MdotH;
-[MdotC] = total_Mdot(fluidC,[iL,1]);
+[MdotC] = total_mdot(fluidC, iL, iH_out);
 t_disC  = CT.B(iL).M/MdotC;
 Load.time(iL) = min([Load.time(iL),t_disH,t_disC])*(1-1e-6);
 
 % Compute effect of fluid streams entering/leaving the sink/source tanks
 % Hot tanks
-[HT] = run_tanks(HT,fluidH,iL,Load,T0);
+[HT] = run_tanks(HT,iL,fluidH,iH_out,iH_in,Load,T0);
 % Cold tanks
 if Load.options.useCold(iL)
-    [CT] = run_tanks(CT,fluidC,iL,Load,T0);
+    [CT] = run_tanks(CT,iL,fluidC,iC_out,iC_in,Load,T0);
 else
     % If they are not used (heat rejected to the environment), set the cold
     % tanks to the same state as they were before the discharge process.
     CT.A(iL+1) = CT.A(iL);
     CT.B(iL+1) = CT.B(iL);
 end
+% Atmospheric tanks
+AT = run_tanks(AT,iL,air,iA_out,iA_in,Load,T0);
 
 
 %%% SUPPORT FUNCTIONS %%%

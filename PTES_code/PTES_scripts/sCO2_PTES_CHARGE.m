@@ -1,7 +1,7 @@
 % Set stage indices
-i  = 1;  % keeps track of the gas stage number
-iH = 1;  % keeps track of the Hot fluid stream number
-iC = 1;  % keeps track of the Cold fluid stream number
+iG = 1;  % keeps track of the gas stage number
+iH = ones(1,Nhot);  % keeps track of the Hot fluid stream number
+iC = ones(1,Ncld); % keeps track of the Cold fluid stream number
 iE = 1;  % keeps track of the heat rejection stream number
 
 % Initial guess of charge conditions
@@ -50,41 +50,36 @@ while 1
         % COMPRESS
         if setTmax
             T_aim = Tmax;
-            %[gas,i] = compexp(gas,[iL,i],eta,T_aim,0);
-            [CCMP(iN),gas,i] = compexp_func (CCMP(iN),gas,[iL,i],'Taim',T_aim) ; 
+            [CCMP(iN),gas,iG] = compexp_func (CCMP(iN),gas,[iL,iG],'Taim',T_aim) ; 
         else
-            PRc = (pmax/gas.state(iL,i).p)^(1/(Nc_ch+1-iN));
-            %PRc = (PRch)^(1/Nc_ch)/(1-ploss) % pressure ratio for each compression stage
-            p_aim = gas.state(iL,i).p*PRc;
-            %[gas,i] = compexp(gas,[iL,i],eta,p_aim,3);
-            [CCMP(iN),gas,i] = compexp_func (CCMP(iN),gas,[iL,i],'Paim',p_aim) ; 
+            PRc = (pmax/gas.state(iL,iG).p)^(1/(Nc_ch+1-iN));
+            p_aim = gas.state(iL,iG).p*PRc;
+            [CCMP(iN),gas,iG] = compexp_func (CCMP(iN),gas,[iL,iG],'Paim',p_aim) ; 
         end
-        ptop  = gas.state(iL,i).p;
+        ptop  = gas.state(iL,iG).p;
         
         % COOL (gas-liquid)
         for ii = 1 : Nhot
-            fluidH(ii).state(iL,1).T = HT(ii).A(iL).T; fluidH(ii).state(iL,1).p = HT(ii).A(iL).p; %#ok<*SAGROW>
-            [fluidH(ii)] = update(fluidH(ii),[iL,1],1);
+            fluidH(ii).state(iL,iH(ii)).T = HT(ii).A(iL).T; fluidH(ii).state(iL,iH(ii)).p = HT(ii).A(iL).p; %#ok<*SAGROW>
+            [fluidH(ii)] = update(fluidH(ii),[iL,iH(ii)],1);
             if ii == 1
-                %[gas,fluidH(ii),i,~] = hex_TQ(gas,[iL,i],fluidH(ii),[iL,1],eff,ploss,'hex',1,1); % Mode 1: don't know hot fluid mdot. Crat = 1
-                [gas,fluidH(ii),i,zzz,HX1] = hex_TQ(gas,[iL,i],fluidH(ii),[iL,1],eff,ploss,'hex',1,1);
+                [gas,fluidH(ii),iG,iH(ii),HX1] = hex_TQ(gas,[iL,iG],fluidH(ii),[iL,iH(ii)],eff,ploss,'hex',1,1); % Mode 1: don't know hot fluid mdot. Crat = 1                
             else
                 TCoutMIN = fluidH(ii-1).state(iL,1).T ;
-                [gas,fluidH(ii),i,~] = hex_TQ(gas,[iL,i],fluidH(ii),[iL,1],eff,ploss,'hex',3,TCoutMIN); % Mode 3. 
+                [gas,fluidH(ii),iG,iH(ii)] = hex_TQ(gas,[iL,iG],fluidH(ii),[iL,iH(ii)],eff,ploss,'hex',3,TCoutMIN); % Mode 3. 
             end
-            iH = ii ;
+            iH(ii) = iH(ii) + 1;
         end
-        iH = iH + 1 ;        
     end    
     if setTmax, PRch = ptop/pbot; end
     
     % REGENERATE (gas-gas)
     if Nrcp == 1
-        [gas,~,i,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
+        [gas,~,iG,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
     elseif Nrcp == 2
         gas.state(iL,iReg3).mdot = gas.state(iL,iReg1).mdot ;
-        [gas,~,i,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg3],eff,ploss,'regen',0,0); % High-temp regenerator
-        [gas,~,i,~] = hex_TQ(gas,[iL,i],gas,[iL,iReg2],eff,ploss,'regen',0,0); % Low-temp regenerator
+        [gas,~,iG,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg3],eff,ploss,'regen',0,0); % High-temp regenerator
+        [gas,~,iG,~] = hex_TQ(gas,[iL,iG],gas,[iL,iReg2],eff,ploss,'regen',0,0); % Low-temp regenerator
     end
     
     % May wish to make cold store as cold as possible, or avoid rejecting
@@ -92,71 +87,82 @@ while 1
     if Lcld
         T_aim = environ.T0 ;
     else
-        T_aim = gas.state(iL,i).T - 1.0 ;
+        T_aim = gas.state(iL,iG).T - 1.0 ;
     end
-    %     % REJECT HEAT (external HEX)
-    [gas,environ,i,iE] = hex_set(gas,[iL,i],environ,[iL,iE],T_aim,eff,ploss);
+    % REJECT HEAT (external HEX)
+    [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
     
     for iN = 1:Ne_ch
         % EXPAND
-        PRe = (gas.state(iL,i).p/pbot)^(1/(Ne_ch+1-iN)); %expansion pressure ratio
-        p_aim = gas.state(iL,i).p/PRe;
-        %[gas,i] = compexp(gas,[iL,i],eta,p_aim,1);   
-        [CEXP(iN),gas,i] = compexp_func (CEXP(iN),gas,[iL,i],'Paim',p_aim) ; 
+        PRe = (gas.state(iL,iG).p/pbot)^(1/(Ne_ch+1-iN)); %expansion pressure ratio
+        p_aim = gas.state(iL,iG).p/PRe;
+        [CEXP(iN),gas,iG] = compexp_func (CEXP(iN),gas,[iL,iG],'Paim',p_aim) ; 
         
         % HEAT (gas-liquid)
         for ii = 1 : Ncld
-            fluidC(ii).state(iL,1).T = CT(ii).A(iL).T; fluidC(ii).state(iL,1).p = CT(ii).A(iL).p;
-            [fluidC(ii)] = update(fluidC(ii),[iL,1],1);
+            fluidC(ii).state(iL,iC(ii)).T = CT(ii).A(iL).T; fluidC(ii).state(iL,iC(ii)).p = CT(ii).A(iL).p;
+            [fluidC(ii)] = update(fluidC(ii),[iL,iC(ii)],1);
             if ii == 1
-                [fluidC(ii),gas,~,i] = hex_TQ(fluidC(ii),[iL,1],gas,[iL,i],eff,ploss,'hex', 2, 1.0); % Mode 2: sCO2 mdot is known, cold fluid mdot is not
+                [fluidC(ii),gas,iC(ii),iG] = hex_TQ(fluidC(ii),[iL,iC(ii)],gas,[iL,iG],eff,ploss,'hex', 2, 1.0); % Mode 2: sCO2 mdot is known, cold fluid mdot is not
             else
                 THoutMAX = fluidC(ii-1).state(iL,1).T ;
-                [fluidC(ii),gas,~,i] = hex_TQ(fluidC(ii),[iL,1],gas,[iL,i],eff,ploss,'hex', 4, THoutMAX); % Mode 
+                [fluidC(ii),gas,iC(ii),iG] = hex_TQ(fluidC(ii),[iL,iC(ii)],gas,[iL,iG],eff,ploss,'hex', 4, THoutMAX); % Mode 
             end
-            iC = ii ;
-        end        
-        iC=iC+1;
+            iC(ii) = iC(ii) + 1;
+        end
     end
     
     % REGENERATE (gas-gas)
     if Nrcp == 1
-        [~,gas,~,i] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0); 
+        [~,gas,~,iG] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0); 
     elseif Nrcp == 2
         [~,gas,~,~] = hex_TQ(gas,[iL,iReg1+1],gas,[iL,iReg2],eff,ploss,'regen',0,0); % Low-temp regenerator
-        [~,gas,~,i] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg3],eff,ploss,'regen',0,0); 
+        [~,gas,~,iG] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg3],eff,ploss,'regen',0,0); 
     end
-    
-    % Close cycle
-    gas.stage(iL,i).type = gas.stage(iL,1).type;
-    gas = count_Nstg(gas);
     
     % Determine convergence and proceed
     A = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-    %for i0=1:i, fprintf(1,'\n %f\t%f\t%10s\t%d',gas.state(iL,i0).T,gas.state(iL,i0).p/1e5,gas.stage(iL,i0).type,i0); end; fprintf(1,'\n');
-    %disp((A(A~=0) - A_0(A~=0))./A(A~=0)*100);
     if all(abs((A(A~=0) - A_0(A~=0))./A(A~=0))*100 < 1e-3) % is charge cycle converged?
-        % Exit charge cycle
-        %T1 = gas.state(iL,1).T;
-        %pbot = gas.state(iL,1).p;
-        gas_min_rho_ch = gas.state(iL,1); %take data for power density calculation
-        %for i0=1:i, fprintf(1,'\n %f\t%f\t%10s\t%d',gas.state(iL,i0).T,gas.state(iL,i0).p/1e5,gas.stage(iL,i0).type,i0); end; fprintf(1,'\n');
+        % Close working fluid streams
+        gas.stage(iL,iG).type = 'end';
+        gas = count_Nstg(gas);
+        
+        % Close storage fluid streams
+        for ii = 1 : Nhot
+            iH_out = 1:2:(iH(ii)-1); iH_in  = iH_out + 1;
+            for i=iH_in, fluidH(ii).stage(iL,i).type = 'end'; end
+            fluidH(ii) = count_Nstg(fluidH(ii));
+        end
+        for ii = 1 : Ncld
+            iC_out = 1:2:(iC(ii)-1); iC_in  = iC_out + 1;
+            for i=iC_in, fluidC(ii).stage(iL,i).type = 'end'; end
+            fluidC(ii) = count_Nstg(fluidC(ii));
+        end
+        
+        % Uncomment these lines to print states
+        %print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
+        %for ii=1:Nhot, print_states(fluidH(ii),iL,1:fluidH(ii).Nstg(iL)+1,Load); end
+        %for ii=1:Ncld, print_states(fluidC(ii),iL,1:fluidC(ii).Nstg(iL)+1,Load); end
+        
+        % Exit loop
         break
     else
         % Set new initial conditions
-        gas.state(iL,1) = gas.state(iL,i);        
+        gas.state(iL,1) = gas.state(iL,iG);        
         A_0 = A;
-        i=1; iH=1; iC=1; iE=1;
+        iG=1; iH=ones(1,Nhot); iC=ones(1,Ncld); iE=1;
     end
 end
 
 % Compute effect of fluid streams entering/leaving the sink/source tanks
 % Hot tanks
 for ii = 1 : Nhot
-    [HT(ii)] = run_tanks(HT(ii),fluidH(ii),iL,Load,T0);
+    iH_out = 1:2:(iH(ii)-1); iH_in  = iH_out + 1;
+    [HT(ii)] = run_tanks(HT(ii),iL,fluidH(ii),iH_out,iH_in,Load,T0);
 end
 
 % Cold tanks
 for ii = 1 : Ncld
-    [CT(ii)] = run_tanks(CT(ii),fluidC(ii),iL,Load,T0);
+    iC_out = 1:2:(iC(ii)-1); iC_in  = iC_out + 1;
+    [CT(ii)] = run_tanks(CT(ii),iL,fluidC(ii),iC_out,iC_in,Load,T0);
 end

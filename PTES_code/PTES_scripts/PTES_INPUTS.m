@@ -2,7 +2,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Call the correct input file
-Load.mode = 3;
+Load.mode = 0;
 switch Load.mode
     case {0,1,2,3} % Joule-Bratyon PTES / Joule-Brayton + Rankine
         JB_RANK_INPUTS
@@ -11,7 +11,7 @@ switch Load.mode
 end
 
 % Code options
-multi_run  = 1; % run cycle several times with different parameters?
+multi_run  = 0; % run cycle several times with different parameters?
 optimise   = 0; % optimise cycle?
 make_plots = 1; % make plots?
 save_figs  = 0; % save figures at the end?
@@ -23,25 +23,30 @@ end
 
 % Set double tanks
 if Ncld == 1
-    fluidC(1:nC) = fluid_class(fCname,'SF','TAB',NaN,Load.num,10); % Storage fluid
+    fluidC = fluid_class(fCname,'SF','TAB',NaN,Load.num,30); % Storage fluid
     CT  = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank
 else
     for ii = 1 : Ncld
-        fluidC(ii)  = fluid_class(char(fCname(ii,:)),'SF','TAB',NaN,Load.num,10);
+        fluidC(ii)  = fluid_class(char(fCname(ii,:)),'SF','TAB',NaN,Load.num,30);
         CT(ii)      = double_tank_class(fluidC(ii),TC_dis0(ii),p0,MC_dis0(ii),TC_chg0(ii),p0,MC_chg0(ii),T0,Load.num+1); %cold double tank
     end
 end
 
 % Hot tanks
 if Nhot == 1
-    fluidH(1:nH) = fluid_class(fHname,'SF','TAB',NaN,Load.num,10); % Storage fluid
+    fluidH = fluid_class(fHname,'SF','TAB',NaN,Load.num,30); % Storage fluid
     HT  = double_tank_class(fluidH,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,Load.num+1); %hot double tank
 else
     for ii = 1 : Nhot
-        fluidH(ii)  = fluid_class(char(fHname(ii,:)),'SF','TAB',NaN,Load.num,10);
+        fluidH(ii)  = fluid_class(char(fHname(ii,:)),'SF','TAB',NaN,Load.num,30);
         HT(ii)  = double_tank_class(fluidH(ii),TH_dis0(ii),p0,MH_dis0(ii),TH_chg0(ii),p0,MH_chg0(ii),T0,Load.num+1); %hot double tank
     end
 end
+
+% Set 'atmospheric' air tanks
+air  = fluid_class('Air','ENV','CP','HEOS',Load.num,30);
+huge = max(Load.mdot)*3600*1e6; % represents a very large mass
+AT   = double_tank_class(air,T0,p0,huge,T0,p0,huge,T0,Load.num+1);
 
 % Heat rejection streams
 environ = environment_class(T0,p0,Load.num,10);

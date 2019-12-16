@@ -1,7 +1,7 @@
 classdef fluid_class
     properties
         name   % substance (helium, air, argon, etc.)
-        job    % 'WF' (working fluid) or 'SM' (storage media)
+        job    % 'WF' (working fluid), 'SM' (storage media) or 'ENV' (environment)
         read   % 'CP' (CoolProp) or 'TAB' (table)
         handle % integer to identify CoolProp AbstractState
         TAB    % matrix of thermophysical properties
@@ -74,6 +74,23 @@ classdef fluid_class
                 end
                 fprintf(1,'\n');
             end
+        end
+        
+        function [ Mdot ] = total_mdot( fluid, iL, ind )
+            % TOTAL_MDOT Compute total mass flow rate of a number of fluid
+            % streams
+            %
+            %       USAGE:  TOTAL_MDOT( fluid, iL, ind )
+            %
+            %       fluid   is an instance of the fluid_class
+            %       iL      is the index of the Load period
+            %       ind     is an array
+            
+            Mdot  = 0; % Mass flow rate into sink tank
+            for i = ind
+                Mdot  = Mdot  + fluid.state(iL,i).mdot;
+            end
+            
         end
         
     end
