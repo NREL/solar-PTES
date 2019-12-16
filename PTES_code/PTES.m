@@ -1,8 +1,9 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % PTES
-% This a thermodynamic model of a pumped thermal energy storage cycle. It
-% is based on the Joule-Brayton cycle and employs liquid storage media.
-% Author: Pau Farres-Antunez (pf298@cam.ac.uk)
+% This code employs thermodynamic and economic models to predict the
+% performance and cost of different pumped thermal energy storage cycles.
+%
+% Authors: Pau Farres-Antunez and Joshua Dominic McTigue
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
