@@ -17,16 +17,13 @@ elseif strcmp(fluid.read,'TAB')
     switch input_pair
         case 'HmassP_INPUTS'
             % Tabulated data is pressure independent at the moment. Only
-            % input1 (enthalpy) is used. Since enthalpy data is ordered in
-            % regular intervals, the rtab1 function in mode 0 is used
-            % instead of interp1 (which is slower).
+            % input1 (enthalpy) is used.
             x  = fluid.TAB(:,2); %enthalpy
-            output1 = rtab1(x,v,input1,0);
+            output1 = interp1(x,v,input1);
             
         case 'PT_INPUTS'
             % Tabulated data is pressure independent at the moment. Only
-            % input2 (temperature) is used. Since temperature data is NOT ordered in regular
-            % intervals, the interp1 function is used.
+            % input2 (temperature) is used.
             x  = fluid.TAB(:,1); %temperature
             output1 = interp1(x,v,input2);
             

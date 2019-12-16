@@ -1,4 +1,4 @@
-function [HX, fluidH, fluidC, iH, iC] = hex_func(HX, iL, fluidH, iH, fluidC, iC, mode, par)
+function [HX, fluidH, iH, fluidC, iC] = hex_func(HX, iL, fluidH, iH, fluidC, iC, mode, par)
 % COMPUTE HEAT EXCHANGER OUTLET CONDITIONS
 %   Description
 %   TC1 and TH2 are the cold and hot temperature inlets (known)
@@ -11,8 +11,7 @@ function [HX, fluidH, fluidC, iH, iC] = hex_func(HX, iL, fluidH, iH, fluidC, iC,
 %   In mode == 2, mH (unknown) is computed from par = Crat = mH*CpH/(mC*CpC)
 %   In mode == 3, TC2 is specified (TC2=par) and mC (unknown) is computed
 %   In mode == 4, TH1 is specified (TH1=par) and mH (unknown) is computed
-%   In mode == 5, TC2 is specified (TC2=par) and mH (unknown) is computed
-%   In mode == 6, TH1 is specified (TH1=par) and mC (unknown) is computed
+%   In mode == 5, TH1 is specified (TH1=par) and mC (unknown) is computed
 %   
 %   The HX object/structure can operate according to three different models
 %   If model = 'eff', the heat exchanger effectiveness and pressure loss
@@ -136,7 +135,14 @@ switch mode
         % Set TC2 = par, and compute mC. Mass flow rate of hot fluid must
         % be previously specified
         if mH == 0, error('mH must be known in mode==3'); end
-        if any([par<=TC1,par>=TCmax]), error('par must be TC1<par<TCmax'); end
+        if any([par<=TC1,par>=TCmax])
+            warning(strcat('Condition TC1<par<TCmax must be true in mode==3. ',...
+                'Changing to mode==1 with Crat=1'));
+            mode = 1;
+            Crat = 1.0; %Crat = mH*CpH / (mC*CpC)
+            mC = mH*CpHmean/(CpCmean*Crat);
+            stateC.mdot = mC;
+        end
         
     case 4
         % Set TH1 = par, and compute mH. Mass flow rate of cold fluid must
@@ -145,19 +151,13 @@ switch mode
         if any([par<=THmin,par>=TH2])
             warning(strcat('Condition THmin<par<TH2 must be true in mode==4. ',...
                 'Changing to mode==2 with Crat=1'));
-            mode=2;
+            mode = 2;
             Crat = 1.0; %Crat = mH*CpH / (mC*CpC)
             mH = Crat*mC*CpCmean/CpHmean;
             stateH.mdot = mH;
         end
         
     case 5
-        % Set TC2 = par, and compute mH. Mass flow rate of cold fluid must
-        % be previously specified
-        if mC == 0, error('mC must be known in mode==5'); end
-        if any([par<=TC1,par>=TCmax]), error('par must be TC1<par<TCmax'); end
-        
-    case 6
         % Set TH1 = par, and compute mC. Mass flow rate of hot fluid must
         % be previously specified
         if mH == 0, error('mH must be known in mode==6'); end
@@ -190,13 +190,17 @@ switch model
             case {0,1,2}
                 % Compute preliminary QMAX (hot outlet cannot be colder than cold inlet,
                 % and vice-versa) and update hH1_min accordingly
-                QMAX0 = min([mC*(hC2_max - hC1),mH*(hH2 - hH1_min)]);
+                QMAX0 = min([mC*(hC2_max - hC1),mH*(hH2 - hH1_min)])*(1.01); %necessary to find root
                 hH1_min = hH2 - QMAX0/mH;
                 
                 % Find value of hH1 for which DTmin=ref or UA=ref
                 f1  = @(hH1) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,compare,ref);
-                %plot_function(f1,hH1_min,hH2,1000,11);
-                %symlog(gca,'y')
+                %{
+                plot_function(f1,hH1_min,hH2,100,11);
+                symlog(gca,'y')                
+                f2  = @(hH1) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,compare,ref,true);
+                plot_function(f2,hH1_min,hH2,100,11);
+                %}
                 hH1 = fzero(f1,[hH1_min,hH2],options);
                 
                 % Compute total heat transfer
@@ -214,17 +218,21 @@ switch model
             case 3
                 % Set outlet conditions of cold fluid
                 TC2 = par;
-                hC2 = RP1('PT_INPUTS',pC2,TC2,'H',fluidC);                
+                hC2 = RP1('PT_INPUTS',pC2,TC2,'H',fluidC);   
                 
                 % Compute preliminary QMAX (hot outlet cannot be colder than cold
                 % inlet) and set boundaries accordingly
                 QMAX0 = mH*(hH2 - hH1_min);
                 mCmin = mH*eps;
-                mCmax = QMAX0/(hC2 - hC1)*(1+1e-3); %necessary to find root
+                mCmax = QMAX0/(hC2 - hC1)*(1.01); %necessary to find root
                 
                 % Find value of mC for which DTmin=ref or UA=ref
                 f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hC2',hC2,compare,ref);
-                %plot_function(f1,mCmin,mCmax,100,11);
+                %{
+                plot_function(f1,mCmin,mCmax,100,11);
+                f2 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hC2',hC2,compare,ref,true);
+                plot_function(f2,mCmin,mCmax,100,11);
+                %}
                 mC = fzero(f1,[mCmin,mCmax],options);
                 
                 % Compute total heat transfer (and update mC if necessary)
@@ -249,10 +257,15 @@ switch model
                 % inlet) and set boundaries accordingly
                 QMAX0 = mC*(hC2_max - hC1);
                 mHmin = mC*eps;
-                mHmax = QMAX0/(hH2 - hH1)*(1+1e-3); %necessary to find root
+                mHmax = QMAX0/(hH2 - hH1)*(1.01); %necessary to find root
                 
                 % Find value of mH for which DTmin=ref or UA=ref
                 f1 = @(mH) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,compare,ref);
+                %{
+                plot_function(f1,mHmin,mHmax,100,11)
+                f2 = @(mH) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,compare,ref,true);
+                plot_function(f2,mHmin,mHmax,100,11)
+                %}
                 mH = fzero(f1,[mHmin,mHmax],options);
                 
                 % Compute total heat transfer (and update mH if necessary)
@@ -269,9 +282,6 @@ switch model
                 hC2 = hC1 + QT/mC;
                 
             case 5
-                error('not implemented yet')
-                
-            case 6
                 % Set outlet conditions of hot fluid
                 TH1 = par;
                 hH1 = RP1('PT_INPUTS',pH1,TH1,'H',fluidH);                
@@ -351,8 +361,8 @@ switch model
         
     case 'geom'
         
-        if any(mode==[3,4,5,6])
-            error('Operation modes 3, 4, 5 and 6 not implemented yet for geometry-based heat exchanger model');
+        if any(mode==[3,4,5])
+            error('Operation modes 3, 4 and 5 not implemented yet for geometry-based heat exchanger model');
         end
         
         % Import mH and mC into stream objects
@@ -445,7 +455,7 @@ fluidC.state(iL,iC+1) = stateC; % Result goes into next state
 fluidC.stage(iL,iC)   = stageC; % Result stays in current stage
 
 % Update mass flow rates for inlet state, if necessary
-if any(mode==[1,2,3,4,5,6])
+if any(mode==[1,2,3,4,5])
     fluidH.state(iL,iH).mdot = mH;
     fluidC.state(iL,iC).mdot = mC;
 end
@@ -491,13 +501,18 @@ function varargout = compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,n,mo
 %   [TC,TH,hC,hH,QS] = compute_TQ(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,NX,'hH1',hH1);
 %   solution         = compute_TQ(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,NX,'hH1',hH1,'UA',UA_ref);
 
-
+visualise = 0;
 % Check and assign variable inputs
 if isempty(varargin)
     
 elseif length(varargin)==2
     compare = varargin{1};
     ref = varargin{2};
+    
+elseif length(varargin)==3
+    compare = varargin{1};
+    ref = varargin{2};
+    visualise = varargin{3};
     
 else
     error('incorrect number of inputs')
@@ -542,17 +557,8 @@ switch mode
         error('not implemented')
 end
 
-% % To visualise the temperature distribution every time the function is
-% % called, uncomment the lines below
-% figure(10)
-% plot(QS./QS(end),TH,'r'); hold on;
-% plot(QS./QS(end),TC,'b'); hold off;
-% xlabel('Cumulative heat transfer')
-% ylabel('Temperature')
-% keyboard
-
 % Compare computed 'DTmin' or 'UA' to reference values
-if length(varargin) == 2
+if any(length(varargin) == [2,3])
     
     % Compute temperature difference between the two streams
     DT = TH - TC;
@@ -589,6 +595,17 @@ else
     
     solution = NaN;
     
+end
+
+if visualise
+    % Visualise the temperature distribution every time the function is
+    % called
+    figure(10)
+    plot(QS./QS(end),TH,'r'); hold on;
+    plot(QS./QS(end),TC,'b'); hold off;
+    xlabel('Cumulative heat transfer')
+    ylabel('Temperature')
+    keyboard
 end
 
 % Assign output arguments
