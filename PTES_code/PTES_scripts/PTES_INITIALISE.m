@@ -23,6 +23,9 @@ for ir = 1 : Nhot
     HT(ir) = reset_tanks(HT(ir),TH_dis0(ir),p0,MH_dis0(ir),TH_chg0(ir),p0,MH_chg0(ir),T0);
 end
 
+% Reset atmospheric tanks
+AT = reset_tanks(AT,T0,p0,huge,T0,p0,huge,T0);
+
 % Set bottom pressure line based on maximum pressure and pressure ratio
 pbot = pmax/PRch;
 T1   = TH_dis0(1); % compressor inlet temperature estimate
@@ -55,10 +58,6 @@ switch Load.mode
         DCMP(1:3) = compexp_class('comp', 'isen', 1, eta, Load.num) ; % Discharging compressors
         DEXP(1:3) = compexp_class('exp', 'isen', 1, eta, Load.num) ; % Discharging expanders
         
-        % Fans --> NOT SURE WHAT cost_mode should be selected in this case        
-        CFAN(1) = compexp_class('comp', 'isen', 0, 0.5, Load.num) ;
-        DFAN(1) = compexp_class('comp', 'isen', 0, 0.5, Load.num) ;
-        
     case 4 % sCO2-PTES type cycles
         CCMP(1:Nc_ch) = compexp_class('comp', 'poly', 1, eta, Load.num) ; % Charging compressors
         DEXP(1:Nc_ch) = compexp_class('exp', 'poly', 1, eta, Load.num) ; % Discharging expanders
@@ -71,3 +70,7 @@ switch Load.mode
             RCMP = compexp_class('comp', 'poly', 1, eta, Load.num) ; % Re-compressors
         end
 end
+
+% Fans --> NOT SURE WHAT cost_mode should be selected in this case
+CFAN(1:10) = compexp_class('comp', 'isen', 0, 0.5, Load.num) ;
+DFAN(1:10) = compexp_class('comp', 'isen', 0, 0.5, Load.num) ;

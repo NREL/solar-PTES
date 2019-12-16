@@ -2,7 +2,7 @@
 T0      = 30 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 25e5;         % top pressure, Pa
-PRch    = 3.0;          % charge pressure ratio
+PRch    = 6.0;          % charge pressure ratio
 PRr     = 1.5;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
@@ -12,7 +12,7 @@ Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 % Set Rankine-specific parameters
 Ran_ptop  = 100e5;
 Ran_Tbot0 = T0+15; %when discharging against the environment
-Ran_TbotC = 273.15+40; %when discharging against the cold stores
+Ran_TbotC = 273.15+20; %when discharging against the cold stores
 
 % Set component parameters
 eta   = 0.90;  % polytropic efficiency
@@ -21,7 +21,7 @@ ploss = 0.01;  % pressure loss in HEXs
 
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
-Ne_ch = 1; % number of expansions during charge
+Ne_ch = 2; % number of expansions during charge
 nH    = max([2,Nc_ch]); % number of hot fluid streams
 nC    = Ne_ch;          % number of cold fluid streams
 
@@ -103,6 +103,11 @@ HX_BOILER.eff = eff;
 HX_BOILER.ploss = ploss;
 HX_BOILER.stage_type = 'hex';
 HX_BOILER.NX = 100;
+HX_ACC.model = 'eff';
+HX_ACC.eff = eff;
+HX_ACC.ploss = ploss;
+HX_ACC.stage_type = 'regen';
+HX_ACC.NX = 100;
 
 % Save copy of input file in "Outputs" folder
 copyfile(['./PTES_scripts/',mfilename,'.m'],'./Outputs/')

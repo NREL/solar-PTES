@@ -12,3 +12,7 @@ for ii = 1 : Ncld
     CT(ii).B(iL+1) = CT(ii).B(iL); % charge sink
 end
 
+% Atmospheric tanks
+AT.A(iL+1) = AT.A(iL); % charge source
+AT.B(iL+1) = AT.B(iL); % charge sink
+

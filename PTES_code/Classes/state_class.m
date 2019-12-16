@@ -1,11 +1,11 @@
 classdef state_class
     properties
-        p    = 0
-        T    = 0
-        mdot = 0
-        rho  = 0
-        h    = 0
-        s    = 0
-        Q    = 0
+        T    = 0 % temperature, K
+        p    = 0 % pressure, Pa
+        mdot = 0 % mass flow rate, kg/s
+        rho  = 0 % density, kg/m3
+        h = 0 % specific enthalpy, J/kg
+        s = 0 % specific entropy, J/kg/K
+        Q = 0 % vapour quality
     end    
 end
