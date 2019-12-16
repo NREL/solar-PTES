@@ -62,23 +62,23 @@ for ix = 1:1
                     case 'chg'
                         JB_CHARGE
                         
-                    case 'str'
-                        TANKS_STORAGE
-                        
                     case 'dis'
                         JB_DISCHARGE
                         
                     case 'ran'
                         RANK_DISCHARGE
                         
-                    case 'sol'
-                        SOLAR_TANKS
-                        
                     case 'chgCO2'
                         sCO2_CHARGE
-                    
+                        
                     case 'disCO2'
                         sCO2_DISCHARGE
+                        
+                    case 'str'
+                        TANKS_STORAGE
+                        
+                    case 'sol'
+                        SOLAR_TANKS
                 end
             end
             

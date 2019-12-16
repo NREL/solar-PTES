@@ -1,5 +1,5 @@
 % PLOT HEX T-Q's
-plot_hex(HX1,20,'C')
+plot_hex(HX,20,'C')
 
 if Load.mode == 3
     plot_hex(HX_REHEAT,21,'C')

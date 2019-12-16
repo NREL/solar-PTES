@@ -39,13 +39,21 @@ while 1
         % COOL (gas-liquid)
         fluidH.state(iL,iH).T = HT.A(iL).T; fluidH.state(iL,iH).p = HT.A(iL).p;
         [fluidH] = update(fluidH,[iL,iH],1);
-        [gas,fluidH,iG,iH,HX1] = hex_TQ(gas,[iL,iG],fluidH,[iL,iH],eff,ploss,'hex',1,1.0);
+        if new_hex_calls
+            [HX,gas,iG,fluidH,iH] = hex_func(HX,iL,gas,iG,fluidH,iH,1,1.0);
+        else
+            [gas,fluidH,iG,iH,HX] = hex_TQ(gas,[iL,iG],fluidH,[iL,iH],eff,ploss,'hex',1,1.0);
+        end
         iH=iH+1;
     end    
     if setTmax, PRch = ptop/pbot; end
     
     % REGENERATE (gas-gas)
-    [gas,~,iG,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
+    if new_hex_calls
+        [REGEN,gas,iG,~,~] = hex_func(REGEN,iL,gas,iReg1,gas,iReg2,0,0);
+    else
+        [gas,~,iG,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
+    end
         
     % REJECT HEAT (external HEX)
     T_aim = environ.T0;
@@ -60,12 +68,20 @@ while 1
         % HEAT (gas-liquid)
         fluidC.state(iL,iC).T = CT.A(iL).T; fluidC.state(iL,iC).p = CT.A(iL).p;
         [fluidC] = update(fluidC,[iL,iC],1);
-        [fluidC,gas,iC,iG] = hex_TQ(fluidC,[iL,iC],gas,[iL,iG],eff,ploss,'hex',2,1.0);
+        if new_hex_calls
+            [HX,fluidC,iC,gas,iG] = hex_func(HX,iL,fluidC,iC,gas,iG,2,1.0);
+        else
+            [fluidC,gas,iC,iG] = hex_TQ(fluidC,[iL,iC],gas,[iL,iG],eff,ploss,'hex',2,1.0);
+        end
         iC=iC+1;
     end
     
     % REGENERATE (gas-gas)
-    [~,gas,~,iG] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
+    if new_hex_calls
+        [REGEN,~,~,gas,iG] = hex_func(REGEN,iL,gas,iReg1,gas,iReg2,0,0);
+    else
+        [~,gas,~,iG] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
+    end
     
     % Determine convergence and proceed
     A = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
