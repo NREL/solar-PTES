@@ -34,10 +34,10 @@ set_graphics
 load_coolprop
 
 % SET INPUTS
-PTES_INPUTS
+INPUTS
 
 % Open the output files and print the headers
-PTES_MANAGE_FILES
+MANAGE_FILES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -51,34 +51,34 @@ for ix = 1:1
             if all([icrv,ipnt] == 1), WM=1; else, WM=0; end
             
             % Set multi_run variables
-            if multi_run==1, PTES_SET_MULTI_RUN; end            
+            if multi_run==1, SET_MULTI_RUN; end            
             
             % Reinitialise arrays (gas, fluids and tanks) to zero and do other
             % preliminary tasks
-            PTES_INITIALISE
+            INITIALISE
             
             for iL = 1:Load.num
                 switch Load.type(iL)
                     case 'chg'
-                        PTES_CHARGE
+                        JB_CHARGE
                         
                     case 'str'
-                        PTES_TANKS_STORAGE
+                        TANKS_STORAGE
                         
                     case 'dis'
-                        PTES_DISCHARGE
+                        JB_DISCHARGE
                         
                     case 'ran'
                         RANK_DISCHARGE
                         
                     case 'sol'
-                        PTES_SOLAR_TANKS
+                        SOLAR_TANKS
                         
                     case 'chgCO2'
-                        sCO2_PTES_CHARGE
+                        sCO2_CHARGE
                     
                     case 'disCO2'
-                        sCO2_PTES_DISCHARGE
+                        sCO2_DISCHARGE
                 end
             end
             
@@ -92,13 +92,13 @@ for ix = 1:1
             end
             
             % Compute energy balance
-            PTES_ENERGY_BALANCE
+            ENERGY_BALANCE
             
             % Evaluate the system cost
-            PTES_ECONOMICS
+            ECONOMICS
             
             if multi_run
-                PTES_PRINT_MULTI_RUN
+                PRINT_MULTI_RUN
             end
         end
     end
@@ -110,15 +110,15 @@ toc %stop timer
 %%% MAKE PLOTS %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if make_plots    
-    PTES_PLOT_CYCLE
-    PTES_PLOT_LOSSES
-    PTES_PLOT_COSTS
+    PLOT_CYCLE
+    PLOT_LOSSES
+    PLOT_COSTS
     if multi_run
-        PTES_PLOT_MULTI_RUN %#ok<*UNRCH>
+        PLOT_MULTI_RUN %#ok<*UNRCH>
     end
 end
 if make_hex_plots
-    PTES_PLOT_HEXS
+    PLOT_HEXS
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -126,5 +126,5 @@ end
 %%% FINISH PROGRAM %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Close files, save plots and release CoolProp AbstractStates
-PTES_FINISH
+FINISH
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

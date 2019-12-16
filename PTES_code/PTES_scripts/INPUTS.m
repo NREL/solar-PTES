@@ -52,7 +52,7 @@ AT   = double_tank_class(air,T0,p0,huge,T0,p0,huge,T0,Load.num+1);
 environ = environment_class(T0,p0,Load.num,10);
 
 % Variables to run cycle multiple times and plot curves. The variables must
-% have been defined in the PTES_SET_MULTI_RUN script
+% have been defined in the SET_MULTI_RUN script
 if multi_run==1
     Vpnt = 'Ran_TbotC';  % variable along curve
     Npnt = 8;            % points on curve
