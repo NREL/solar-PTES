@@ -28,11 +28,11 @@ while 1
         % COMPRESS
         if setTmax
             T_aim = Tmax;
-            [CCMP(iN),gas,iG] = compexp_func (CCMP(iN),gas,[iL,iG],'Taim',T_aim) ; %#ok<*SAGROW>
+            [CCMP(iN),gas,iG] = compexp_func (CCMP(iN),iL,gas,iG,'Taim',T_aim) ; %#ok<*SAGROW>
         else
             PRc = (pmax/gas.state(iL,iG).p)^(1/(Nc_ch+1-iN)); % stage compression pressure ratio
             p_aim = gas.state(iL,iG).p*PRc;
-            [CCMP(iN),gas,iG] = compexp_func (CCMP(iN),gas,[iL,iG],'Paim',p_aim) ; 
+            [CCMP(iN),gas,iG] = compexp_func (CCMP(iN),iL,gas,iG,'Paim',p_aim) ; 
         end
         ptop  = gas.state(iL,iG).p;
         
@@ -55,7 +55,7 @@ while 1
         % EXPAND
         PRe = (gas.state(iL,iG).p/pbot)^(1/(Ne_ch+1-iN)); % stage expansion pressure ratio
         p_aim = gas.state(iL,iG).p/PRe;
-        [CEXP(iN),gas,iG] = compexp_func (CEXP(iN),gas,[iL,iG],'Paim',p_aim) ; 
+        [CEXP(iN),gas,iG] = compexp_func (CEXP(iN),iL,gas,iG,'Paim',p_aim) ; 
         
         % HEAT (gas-liquid)
         fluidC.state(iL,iC).T = CT.A(iL).T; fluidC.state(iL,iC).p = CT.A(iL).p;

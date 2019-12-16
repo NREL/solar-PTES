@@ -80,7 +80,7 @@ while 1
     
     % EXPAND (1-->2)
     %[steam,i] = compexp(steam,[iL,i],eta,Ran_pmid1,4);
-    [DEXP(1),steam,iG] = compexp_func (DEXP(1),steam,[iL,iG],'Paim',Ran_pmid1) ;
+    [DEXP(1),steam,iG] = compexp_func (DEXP(1),iL,steam,iG,'Paim',Ran_pmid1) ;
     
     % FIND x1 %
     %%%%%%%%%%%
@@ -107,7 +107,7 @@ while 1
     
     % EXPAND (4-->5)
     %[steam,i] = compexp(steam,[iL,i],eta,Ran_pmid2,4);
-    [DEXP(2),steam,iG] = compexp_func (DEXP(2),steam,[iL,iG],'Paim',Ran_pmid2) ;
+    [DEXP(2),steam,iG] = compexp_func (DEXP(2),iL,steam,iG,'Paim',Ran_pmid2) ;
     
     % FIND x2 %
     %%%%%%%%%%%
@@ -128,7 +128,7 @@ while 1
     % EXPAND (6-->7)
     p_aim     = steam.state(iL,iG).p/(PR_dis)^(1/3);
     %[steam,i] = compexp(steam,[iL,i],eta,p_aim,4);
-    [DEXP(3),steam,iG] = compexp_func (DEXP(3),steam,[iL,iG],'Paim',p_aim) ;
+    [DEXP(3),steam,iG] = compexp_func (DEXP(3),iL,steam,iG,'Paim',p_aim) ;
     
     if Load.options.useCold(iL)
         % COOL (condense using cold tanks)
@@ -143,13 +143,13 @@ while 1
         [steam,environ,iG,iE] = hex_set(steam,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
         %air.state(iL,1).T = T0; air.state(iL,1).p = p0; air = update(air,[iL,1],1);
         %[HX_ACC, steam, air, i, iA] = hex_func(HX_ACC,iL,steam,i,air,iA,6,T_aim);
-        %[DFAN(1),air,iA] = compexp_func (DFAN(1),air,[iL,iA],'Paim',p0) ;
+        %[DFAN(1),air,iA] = compexp_func (DFAN(1),iL,air,iA,'Paim',p0) ;
     end
     
     % COMPRESS (8-->9)
     p_aim = steam.state(iL,iSB).p;
     %[steam,i] = compexp(steam,[iL,i],eta,p_aim,5);
-    [DCMP(1),steam,iG] = compexp_func (DCMP(1),steam,[iL,iG],'Paim',p_aim) ;
+    [DCMP(1),steam,iG] = compexp_func (DCMP(1),iL,steam,iG,'Paim',p_aim) ;
     
     % MIX (9-->10)
     [steam,iG,~] = mix_streams(steam,[iL,iG],[iL,iSB]);
@@ -157,7 +157,7 @@ while 1
     % COMPRESS (10-->11)
     p_aim = steam.state(iL,iSA).p;
     %[steam,i] = compexp(steam,[iL,i],eta,p_aim,5);
-    [DCMP(2),steam,iG] = compexp_func (DCMP(2),steam,[iL,iG],'Paim',p_aim) ;
+    [DCMP(2),steam,iG] = compexp_func (DCMP(2),iL,steam,iG,'Paim',p_aim) ;
     
     % MIX (11-->12)
     [steam,iG,~] = mix_streams(steam,[iL,iG],[iL,iSA]);
@@ -165,7 +165,7 @@ while 1
     % COMPRESS (12-->13)
     p_aim = Ran_ptop;
     %[steam,i] = compexp(steam,[iL,i],eta,p_aim,5);
-    [DCMP(3),steam,iG] = compexp_func (DCMP(3),steam,[iL,iG],'Paim',p_aim) ;
+    [DCMP(3),steam,iG] = compexp_func (DCMP(3),iL,steam,iG,'Paim',p_aim) ;
     
     % HEAT (2-phase-liquid) (13-->1)
     fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p; %#ok<*SAGROW>

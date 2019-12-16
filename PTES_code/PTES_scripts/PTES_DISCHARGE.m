@@ -52,7 +52,7 @@ while 1
         % COMPRESS
         PRc_dis = (PRdis)^(1/Nc_dis)/(1-ploss)^2; % stage compression pressure ratio
         p_aim = gas.state(iL,iG).p*PRc_dis;
-        [DCMP(iN),gas,iG] = compexp_func (DCMP(iN),gas,[iL,iG],'Paim',p_aim) ; 
+        [DCMP(iN),gas,iG] = compexp_func (DCMP(iN),iL,gas,iG,'Paim',p_aim) ; 
     end
     
     % REGENERATE (gas-gas)
@@ -69,7 +69,7 @@ while 1
         % EXPAND
         PRe_dis = (gas.state(iL,iG).p/pbot)^(1/(Ne_dis+1-iN));  % stage expansion pressure ratio
         p_aim = gas.state(iL,iG).p/PRe_dis;
-        [DEXP(iN),gas,iG] = compexp_func (DEXP(iN),gas,[iL,iG],'Paim',p_aim) ; 
+        [DEXP(iN),gas,iG] = compexp_func (DEXP(iN),iL,gas,iG,'Paim',p_aim) ; 
     end
     
     % Determine convergence and proceed

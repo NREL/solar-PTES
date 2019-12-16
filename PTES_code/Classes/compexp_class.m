@@ -57,12 +57,14 @@ classdef compexp_class
             
         end
             
-        function [obj,fluid,i] = compexp_func (obj,fluid,ind,aim_mode,aim)
+        function [obj,fluid,i] = compexp_func (obj,iL,fluid,i,aim_mode,aim)
+            % iL is the Load index
+            % i is the index of the state point within the cycle
             
             obj.aim_mode = aim_mode ;
             % Import fluid.state and fluid.stage
-            state = fluid.state(ind(1),ind(2));
-            stage = fluid.stage(ind(1),ind(2)); % delete this eventually
+            state = fluid.state(iL,i);
+            stage = fluid.stage(iL,i); % delete this eventually
             
             % Extract initial conditions
             T1   = state.T;
@@ -70,11 +72,11 @@ classdef compexp_class
             h1   = state.h;
             s1   = state.s;
             rho1 = state.rho;
-            obj.mdot(ind(1)) = state.mdot ;
+            obj.mdot(iL) = state.mdot ;
             
             % Extract eta for this time period
-            obj = compexp_offdesign (obj , ind(1) , 1) ;
-            etaI = obj.eta(ind(1)) ;
+            obj = compexp_offdesign (obj , iL , 1) ;
+            etaI = obj.eta(iL) ;
             
             
             % EXPECT ALL OF THIS COULD BE MOVED INTO CLASS CONSTRUCTOR AND
@@ -156,10 +158,10 @@ classdef compexp_class
             state.p = p2;
             state   = update_state(state,fluid.handle,fluid.read,fluid.TAB,2);
             
-            obj.Dh(ind(1))   = state.h - h1;
-            obj.q(ind(1))    = 0;
-            obj.w(ind(1))    = -obj.Dh(ind(1));
-            obj.sirr(ind(1)) = state.s - s1;
+            obj.Dh(iL)   = state.h - h1;
+            obj.q(iL)    = 0;
+            obj.w(iL)    = -obj.Dh(iL);
+            obj.sirr(iL) = state.s - s1;
             
             % DELETE THIS EVENTUALLY >>
             % Compute energy flows along stage
@@ -169,11 +171,11 @@ classdef compexp_class
             stage.sirr = state.s - s1;
             
             % Export computed state and stage back into fluid
-            fluid.state(ind(1),ind(2)+1) = state; % Result goes into next state
-            fluid.stage(ind(1),ind(2))   = stage; % Result stays in current stage
+            fluid.state(iL,i+1) = state; % Result goes into next state
+            fluid.stage(iL,i)   = stage; % Result stays in current stage
             
             %Increase stage counter
-            i = ind(2)+1;
+            i = i+1;
             
             % << DELETE THIS EVENTUALLY 
             
