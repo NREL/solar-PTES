@@ -18,6 +18,7 @@ classdef compexp_class
         sirr    % specific entropy generation, J/kgK
         
         mdot  = 0 % Mass flow rate, kg/s
+        TIT   = 0 % Turbine inlet temperature, K
         
         W        % work transfer, W
         Q        % heat transfer, W
@@ -322,6 +323,12 @@ classdef compexp_class
                     % sCO2 compressor from Morandin 2013 - eq. C7
                     COST = 20e3 + 9e3 * (obj.W0/1e3)^0.6 ;
                     COST = COST * CEind(curr) / CEind(2013) ;
+                    
+                case 7
+                    % sCO2 compressor by Weiland et al 2019
+                    % Integrally geared, centrifugal, 1.5-200 MW
+                    COST = 1.23e6 * (obj.W0/1e6)^0.3992 ;
+                    COST = COST * CEind(curr) / CEind(2019) ;
                 
                 case 10
                     % Reciprocating Expander cost from Georgiou et al 2019 based on Turton
@@ -355,6 +362,47 @@ classdef compexp_class
                     % sCO2 expander from Morandin 2013 - eq. E5
                     COST = 40e3 + 9e3 * (obj.W0/1e3)^0.69 ;
                     COST = COST * CEind(curr) / CEind(2013) ;
+                    
+                case 16
+                    % sCO2 radial turbine, 8-35 MW
+                    % From Weiland et al 2019
+                    % Valid up to TIT = 700C, and Pin = 200-260 bar
+                    if obj.TIT > 550 + 273.15
+                        fact = 1 + 1.137e-5 * (obj.TIT - 550 - 273.15)^2 ;
+                    else
+                        fact = 1.0 ;
+                    end
+                    COST = fact * 4.062e6 * (obj.W0/1e6)^0.8 ;
+                    COST = COST * CEind(curr) / CEind(2019) ;
+                    
+                case 17
+                    % sCO2 axial turbine, 10-750 MW
+                    % From Weiland et al 2019
+                    % Valid up to TIT = 730C, and Pin = 240-280 bar
+                    if obj.TIT > 550 + 273.15
+                        fact = 1 + 1.106e-4 * (obj.TIT - 550 - 273.15)^2 ;
+                    else
+                        fact = 1.0 ;
+                    end
+                    COST = fact * 1.826e6 * (obj.W0/1e6)^0.5561 ;
+                    COST = COST * CEind(curr) / CEind(2019) ;
+                    
+                case 20
+                    % Pump cost. Centrifugal, carbon steel, includes motor.
+                    % - eq. P1
+                    COST = 2409.6 + 75.9 * obj.W0 / 1e3 ;
+                    COST = COST * CEind(curr) / CEind(1998) ;
+                    
+                case 21
+                    % Pump cost. Centrifugal, includes motor.
+                    % - eq. P2
+                    COST = 1227.5 + 177.8 * obj.W0 / 1e3 ;
+                    COST = COST * CEind(curr) / CEind(1990) ;
+                    
+                case 22
+                    % Pump cost. - eq. P3
+                    COST = 50e3 + 1500 * (obj.W0 / 1e3)^0.8 ;
+                    COST = COST * CEind(curr) / CEind(2009) ;
 
             end
             

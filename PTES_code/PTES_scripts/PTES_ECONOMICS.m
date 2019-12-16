@@ -25,6 +25,9 @@ cap_cost = 0 ;
 Nsens    = 10000 ; % How many points to take from distribution for sensitivity analysis
 cap_sens = zeros(Nsens,1) ;
 
+% Retrofit? Then don't pay for steam turbine or hot storage system        
+Lretro = false  ; 
+
 % Compressors and expanders
 for ii = 1 : length(CCMP)
     CCMP(ii) = compexp_econ(CCMP(ii), CEind, false, 0)  ;
@@ -36,7 +39,6 @@ for ii = 1 : length(DEXP)
     cap_cost = cap_cost + DEXP(ii).cmpexp_cost.COST ;
     cap_sens = cap_sens + cost_sens(DEXP(ii).cmpexp_cost, Nsens) ;
 end
-
 for ii = 1 : length(CEXP)
     CEXP(ii) = compexp_econ(CEXP(ii), CEind, false, 0)  ;
     cap_cost = cap_cost + CEXP(ii).cmpexp_cost.COST ;
@@ -48,18 +50,33 @@ for ii = 1 : length(DCMP)
     cap_sens = cap_sens + cost_sens(DCMP(ii).cmpexp_cost, Nsens) ;
 end
 
+if Load.mode == 4
+    %Recompressor
+    if Lrcmp
+        RCMP     = compexp_econ(RCMP, CEind, false, 0) ;
+        cap_cost = cap_cost + RCMP.cmpexp_cost.COST ;
+        cap_sens = cap_sens + cost_sens(RCMP.cmpexp_cost, Nsens) ;
+    end
+end
+
 % Hot tank cost and hot fluid cost
-fluidH(1).cost = 1.0 ; % Specify in input file in class constructor
-fluidC(1).cost = 1.0 ; % Specify in input file in class constructor
 for ii = 1 : Nhot
-   HT(ii) = tank_cost(HT(ii), CEind) ;  
-   HT(ii) = fld_cost(HT(ii),fluidH(ii).cost, CEind) ; 
-   cap_cost = cap_cost + HT(ii).tankA_cost.COST + HT(ii).tankB_cost.COST + HT(ii).fluid_cost.COST ;
-   cap_sens = cap_sens + cost_sens(HT(ii).tankA_cost, Nsens) + cost_sens(HT(ii).tankB_cost, Nsens) + cost_sens(HT(ii).fluid_cost, Nsens) ;
+    fluidH(ii).cost = 1.0 ; % Specify in input file in class constructor
+    if Lretro
+        HT(ii).tankA_cost.COST = 0.1 ;
+        HT(ii).tankB_cost.COST = 0.1 ;
+        HT(ii).fluid_cost.COST = 0.1 ;
+    else
+        HT(ii) = tank_cost(HT(ii), CEind) ;
+        HT(ii) = fld_cost(HT(ii),fluidH(ii).cost, CEind) ;
+    end
+    cap_cost = cap_cost + HT(ii).tankA_cost.COST + HT(ii).tankB_cost.COST + HT(ii).fluid_cost.COST ;
+    cap_sens = cap_sens + cost_sens(HT(ii).tankA_cost, Nsens) + cost_sens(HT(ii).tankB_cost, Nsens) + cost_sens(HT(ii).fluid_cost, Nsens) ;
 end
 
 % Cold tank cost and cold fluid cost
 for ii = 1 : Ncld
+   fluidC(ii).cost = 1.0 ; % Specify in input file in class constructor
    CT(ii) = tank_cost(CT(ii), CEind) ;  
    CT(ii) = fld_cost(CT(ii),fluidC(ii).cost, CEind) ;  
    cap_cost = cap_cost + CT(ii).tankA_cost.COST + CT(ii).tankB_cost.COST + CT(ii).fluid_cost.COST ;
@@ -97,7 +114,7 @@ switch Load.mode
         fprintf(1,'Cost per unit power:           %8.1f $/kW-e\n',Cdata.cap_cost_pow);
         fprintf(1,'Cost per unit energy:          %8.1f $/kWh-e\n\n',Cdata.cap_cost_en);
         fprintf(1,'Levelised cost of storage:     %8.1f $/kWh-e\n',Cdata.lcosM);
-        fprintf(1,'     Stanard deviation:        %8.1f $/kWh-e\n\n',Cdata.lcosSD);
+        fprintf(1,'     Standard deviation:       %8.1f $/kWh-e\n\n',Cdata.lcosSD);
 end
 
 % Calculate the fixed charge rate and other economic factors
