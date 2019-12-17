@@ -18,7 +18,7 @@ while ~Lend
     
     % Step forward one time step
     for j = 1 : Npb
-        obj(Npb) = PB_TIMESTEP(obj(Npb),'dis') ;
+        obj(Npb) = PB_TIMESTEP(obj(Npb), 'dis') ;
     end
     
     % Check whether to end charging
@@ -54,7 +54,7 @@ for j = 1 : Npb
     obj(Npb).TF = flip(obj(Npb).TF,1) ;
     obj(Npb).P  = flip(obj(Npb).P,1) ;
     obj(Npb).u  = flip(obj(Npb).u,1) ;
-    obj(Npb).D  = flip(obj(Npb).D,1) ;
+    obj(Npb).rho = flip(obj(Npb).rho,1) ;
 end
 
 % Probably also want to flip the order of the modules
