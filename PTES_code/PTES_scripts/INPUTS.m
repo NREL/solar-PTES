@@ -61,6 +61,9 @@ REGEN.eff = eff;
 REGEN.ploss = ploss;
 REGEN.stage_type = 'regen';
 REGEN.NX = 100;
+
+HX1 = HX ;
+
 % Use new heat exchanger calls?
 new_hex_calls = 1;
 

@@ -3,8 +3,13 @@ classdef hx_class
        name
        mode
        
+       model
+       stage_type
+       
        eff      % Effectiveness
        ploss    % Pressure loss
+       
+       UA       % Conductance, W/K - (design)
        Hname    % Hot fluid name
        Cname    % Cold fluid name
        
@@ -12,24 +17,41 @@ classdef hx_class
        Qact     % Actual heat transfer - design point
        
        Nsave    % How many load cycles to save data for. All of them, or just two (first charge and first discharge)?
-       Ngrid    % Number of points along HX
+       NX       % Number of points along HX
+       
+       % These are structures containing T, P, mdot along the HX. 
+       % These structures are arrays of length Nsave
+       H = stream ; % Hot side
+       C = stream ; % Cold side
+       
+       QS       % Cumulative heat transfer
+       AS       % Heat transfer area
+       LMTD     % Why not
+       Cmin 
+       NTU
+       DppH
+       DppC
        
        % **
-       % The following variables are arrays - for each Nsave (which may equal number of time periods)
-       HT       % Hot fluid temp
-       Hh       % Hot fluid enthalpy
-       Hpin     % Hot fluid inlet temp
-       Hmdot    % Hot fluid mass flow
        
-       % These are duplicated for hot and cold rather than have a bazillion
-       % nested structures (currently have a bazillion-1)
-       CT       % Hot fluid temp
-       Ch       % Hot fluid enthalpy
-       Cpin     % Hot fluid inlet temp
-       Cmdot    % Hot fluid mass flow
+       % Geometry
+       shape
+       L        % Tube length, m
+       AfT      % Total flow area, m2
+       D1       % Tube diameter, m
+       AfR      % Ratio of flow areas (shell/tube)
        
-       QS      % Cumulative heat transfer
-       % **
+       % More geometry
+       t1       % Tube wall thickness
+       N1       % Number of tubes
+       D2       % Shell-side hydraulic diameter
+       G1       % Mass flux, tube-side
+       G2       % Mass flux, shell-side
+       Af1      % Flow area
+       Af2      % Flow area
+       A1       % Heat transfer area
+       A2       % Heat transfer area
+       Vm       % Volume of metal
        
        % Loss factors - one for each time period
        w       % specific work transfer, J/kg
@@ -42,46 +64,37 @@ classdef hx_class
        DH       % enthalpy change, W
        Sirr     % entropy generation, W/K
        
-       % Geometry
-       UA       % Conductance, W/K - (design)
-       A        % Heat transfer area, m2 - (design)
-       dh       % Hydraulic diameter, m - (design)
-       
        % Costs
        hx_cost = econ_class(0,0,0,0) ;
        
    end
    
    methods
-       function obj = hx_class(name, mode, eff, ploss, cost_mode, Nsave, Ngrid, numPeriods)
-            obj.name      = name ;
-            obj.mode      = mode ;
-            obj.eff       = eff ;
-            obj.ploss     = ploss ;
+       function obj = hx_class(stage_type, model, eff, ploss, cost_mode, Ngrid, Nsave, numPeriods)
+            obj.stage_type = stage_type ;
+            obj.model      = model ;
+            obj.eff        = eff ;
+            obj.ploss      = ploss ;
+            
+            obj.NX         = Ngrid ;
             
             % Loss data          
-            obj.w    = zeros(numPeriods,1) ;
-            obj.q    = zeros(numPeriods,1) ;
-            obj.Dh   = zeros(numPeriods,1) ;
-            obj.sirr = zeros(numPeriods,1) ;
+            % Two columns. First for hot side. Second for cold side.
+            obj.w    = zeros(numPeriods,2) ;
+            obj.q    = zeros(numPeriods,2) ;
+            obj.Dh   = zeros(numPeriods,2) ;
+            obj.sirr = zeros(numPeriods,2) ;
                         
-            obj.W    = zeros(numPeriods,1) ;
-            obj.Q    = zeros(numPeriods,1) ;
-            obj.DH   = zeros(numPeriods,1) ;
-            obj.Sirr = zeros(numPeriods,1) ;
+            obj.W    = zeros(numPeriods,2) ;
+            obj.Q    = zeros(numPeriods,2) ;
+            obj.DH   = zeros(numPeriods,2) ;
+            obj.Sirr = zeros(numPeriods,2) ;
             
             % Property data
-            obj.HT    = zeros(Nsave,Ngrid) ;
-            obj.Hh    = zeros(Nsave,Ngrid) ;
-            obj.Hpin  = zeros(Nsave,Ngrid) ;
-            obj.Hmdot = zeros(Nsave,Ngrid) ;
-            
-            obj.CT    = zeros(Nsave,Ngrid) ;
-            obj.Ch    = zeros(Nsave,Ngrid) ;
-            obj.Cpin  = zeros(Nsave,Ngrid) ;
-            obj.Cmdot = zeros(Nsave,Ngrid) ;
-            
-            obj.QS    = zeros(Nsave,Ngrid) ;
+            %obj.H    = zeros(Nsave, 1) ;
+            %obj.C    = zeros(Nsave, 1) ;
+                        
+            obj.QS    = zeros(Ngrid+1,Nsave) ;
             
             obj.hx_cost = econ_class(cost_mode, 0.2, 5, 0.2) ;
             

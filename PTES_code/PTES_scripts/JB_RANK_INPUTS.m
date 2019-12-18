@@ -35,7 +35,7 @@ switch Load.mode
         Load.time = [10;10;4;6;10].*3600;               % time spent in each load period, s
         Load.type = ["chg";"chg";"str";"str";"dis"];    % type of load period
         Load.mdot = [6;4;0;0;10];                       % working fluid mass flow rate, kg/s
-        
+                
     case 1 % Heat pump
         Load.time = 10.*3600;                  % time spent in each load period, s
         Load.type = "chg";                     % type of load period
@@ -108,6 +108,29 @@ HX_ACC.eff = eff;
 HX_ACC.ploss = 0.1/100;
 HX_ACC.stage_type = 'regen';
 HX_ACC.NX = 100;
+
+% Make heat exchangers
+switch Load.mode
+    case {0,1,2}
+        % Call HX classes for ideal-gas PTES cycle
+        HXh = hx_class('hex', 'eff', eff, ploss, 2, 100, Load.num, Load.num) ; % Hot heat exchanger
+        HXc = hx_class('hex', 'eff', eff, ploss, 2, 100, Load.num, Load.num) ; % Cold heat exchanger
+        RCP = hx_class('regen', 'eff', eff, ploss, 2, 100, Load.num, Load.num) ; % Recuperator
+        REJ = hx_class('hex', 'eff', eff, ploss, 2, 100, Load.num, Load.num) ; % Heat rejection unit
+    case 3
+        % Call HX classes for ideal-gas PTES heat pump with Rankine cycle discharge
+        HXh = hx_class('hex', 'eff', eff, ploss, 2, 100, Load.num, Load.num) ; % Hot heat exchanger
+        HXc = hx_class('hex', 'eff', eff, ploss, 2, 100, Load.num, Load.num) ; % Cold heat exchanger
+        RCP = hx_class('regen', 'eff', eff, ploss, 2, 100, Load.num, Load.num) ; % Recuperator
+        REJ = hx_class('hex', 'eff', eff, ploss, 2, 100, Load.num, Load.num) ; % Heat rejection unit 
+        
+        HXCONDEN = hx_class('hex', 'eff', eff, 0, 2, 100, Load.num, Load.num) ; % Condenser
+        HXREHEAT = hx_class('hex', 'eff', eff, ploss, 2, 100, Load.num, Load.num) ; % Reheat
+        HXBOILER = hx_class('hex', 'eff', eff, ploss, 2, 100, Load.num, Load.num) ; % Boiler
+        HXACC    = hx_class('regen', 'eff', eff, 0.1/100, 2, 100, Load.num, Load.num) ; % Air-cooled condenser
+end
+
+
 
 % Save copy of input file in "Outputs" folder
 copyfile(['./PTES_scripts/',mfilename,'.m'],'./Outputs/')

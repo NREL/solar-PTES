@@ -353,9 +353,9 @@ switch model
         H.T = TH;
         C.h = hC;
         H.h = hH;
-        HX.C = C;
-        HX.H = H;
-        HX.QS  = QS;
+        HX.C(iL) = C;
+        HX.H(iL) = H;
+        HX.QS(:,iL) = QS;
         HX.AS  = [];
         
         
@@ -393,9 +393,9 @@ switch model
         pC2 = C.p(NX+1);
         
         % Save variables into HX structure
-        HX.C  = C;
-        HX.H  = H;
-        HX.QS = QS;
+        HX.C(iL)  = C;
+        HX.H(iL)  = H;
+        HX.QS(iL,:) = QS;
         HX.AS = AS;
         
 end
@@ -416,18 +416,25 @@ CpHmean = (hH2 - hH1)/(TH2-TH1);
 CpCmean = (hC2 - hC1)/(TC2-TC1);
 Cmin  = min([mC*CpCmean,mH*CpHmean]);
 dQ    = QS(2:NX+1)-QS(1:NX);
-DT_AV = 0.5*(HX.H.T(1:NX)+HX.H.T(2:NX+1)) - 0.5*(HX.C.T(1:NX)+HX.C.T(2:NX+1));
+DT_AV = 0.5*(HX.H(iL).T(1:NX)+HX.H(iL).T(2:NX+1)) - 0.5*(HX.C(iL).T(1:NX)+HX.C(iL).T(2:NX+1));
 UA    = sum(dQ./DT_AV);
 NTU   = UA/Cmin;
 DppH  = (pH2-pH1)/pH2;
 DppC  = (pC1-pC2)/pC1;
-HX.H.Cp_mean = CpHmean;
-HX.C.Cp_mean = CpCmean;
+
+dTa = HX.H(iL).T(1) - HX.C(iL).T(1) ;
+dTb = HX.H(iL).T(end) - HX.C(iL).T(end) ;
+
+HX.H(iL).Cp_mean = CpHmean;
+HX.C(iL).Cp_mean = CpCmean;
 HX.Cmin = Cmin;
 HX.NTU  = NTU;
 HX.DppH = DppH;
 HX.DppC = DppC;
+HX.UA   = UA ;
+HX.LMTD = (dTa - dTb) / log(dTa / dTb) ;
 
+% *** DELETE EVENTUALLY >>>
 % Compute stages
 % Entropy change
 DsH         = stateH.s - sH2;
@@ -444,6 +451,7 @@ stageC.sirr = (stateC.mdot*DsC + stateH.mdot*DsH)/stateC.mdot;
 stageC.q    = stageC.Dh;
 stageC.w    = 0;
 stageC.type = stage_type;
+
 if strcmp(stage_type,'regen')
     stageH.sirr=0; %to avoid counting the lost work twice
 end
@@ -453,6 +461,30 @@ fluidH.state(iL,iH+1) = stateH; % Result goes into next state
 fluidH.stage(iL,iH)   = stageH; % Result stays in current stage
 fluidC.state(iL,iC+1) = stateC; % Result goes into next state
 fluidC.stage(iL,iC)   = stageC; % Result stays in current stage
+
+% <<< DELETE EVENTUALLY ***
+
+% Compute losses, but insert into hx_class
+% Entropy change
+DsH         = stateH.s - sH2;
+DsC         = stateC.s - sC1;
+% Hot stream
+HX.Dh(iL,1)   = stateH.h - hH2;
+HX.sirr(iL,1) = (stateH.mdot*DsH + stateC.mdot*DsC)/stateH.mdot;
+HX.q(iL,1)    = stageH.Dh;
+HX.w(iL,1)    = 0;
+
+% Cold stream
+HX.Dh(iL,2)   = stateC.h - hC1;
+HX.sirr(iL,2) = (stateC.mdot*DsC + stateH.mdot*DsH)/stateC.mdot;
+HX.q(iL,2)    = stageC.Dh;
+HX.w(iL,2)    = 0;
+
+if strcmp(HX.stage_type,'regen')
+    HX.sirr(iL,1) = 0; %to avoid counting the lost work twice
+end
+
+
 
 % Update mass flow rates for inlet state, if necessary
 if any(mode==[1,2,3,4,5])
