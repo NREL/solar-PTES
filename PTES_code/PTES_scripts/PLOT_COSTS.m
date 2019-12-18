@@ -20,18 +20,41 @@ switch Load.mode
         for ii = 1 : length(DCMP)
             matrix(2,1) = matrix(2,1) + DCMP(ii).cmpexp_cost.COST ;
         end
-                
+        
+        % Hot tank cost and hot fluid cost
         for ii = 1 : Nhot
             matrix(3,3) = matrix(3,3) + HT(ii).tankA_cost.COST ;    
-            matrix(3,4) = matrix(4,3) + HT(ii).tankB_cost.COST ;    
-            matrix(3,5) = matrix(5,3) + HT(ii).fluid_cost.COST ;    
+            matrix(3,4) = matrix(3,4) + HT(ii).tankB_cost.COST ;    
+            matrix(3,5) = matrix(3,5) + HT(ii).fluid_cost.COST ;    
         end
         
         % Cold tank cost and cold fluid cost
         for ii = 1 : Ncld
-            matrix(4,3) = matrix(3,4) + CT(ii).tankA_cost.COST ;    
+            matrix(4,3) = matrix(4,3) + CT(ii).tankA_cost.COST ;    
             matrix(4,4) = matrix(4,4) + CT(ii).tankB_cost.COST ;    
-            matrix(4,5) = matrix(5,4) + CT(ii).fluid_cost.COST ;    
+            matrix(4,5) = matrix(4,5) + CT(ii).fluid_cost.COST ;    
+        end
+        
+        % This HX stuff isn't very nice :( 
+        % Hot heat exchangers
+        matrix(5,6) = HX(1).hx_cost.COST ;
+        if Load.mode == 4
+            matrix(5,6) = matrix(5,6) + HX(6).hx_cost.COST + HX(7).hx_cost.COST ;
+        end
+        
+        % Cold heat exchangers
+        matrix(6,6) = HX(2).hx_cost.COST ;
+        if Load.mode == 4
+            matrix(6,6) = matrix(6,6) + HX(5).hx_cost.COST ;
+        end
+        
+        % Recuperators
+        matrix(7,6) = HX(3).hx_cost.COST ;
+        
+        % Other - e.g. heat rejection systems
+        matrix(8,6) = HX(4).hx_cost.COST ;
+        if Load.mode == 4
+            matrix(8,6) = matrix(8,6) + HX(8).hx_cost.COST ;
         end
         
         b = bar(matrix,'stacked');

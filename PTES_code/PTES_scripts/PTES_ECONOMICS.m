@@ -59,6 +59,13 @@ if Load.mode == 4
     end
 end
 
+% Heat exchangers
+for ii = 1 : numel(HX)
+   HX(ii)   = HX_cost(HX(ii), CEind) ;
+   cap_cost = cap_cost + HX(ii).hx_cost.COST ;
+   cap_sens = cap_sens + cost_sens(HX(ii).hx_cost, Nsens) ;
+end
+
 % Hot tank cost and hot fluid cost
 for ii = 1 : Nhot
     fluidH(ii).cost = 1.0 ; % Specify in input file in class constructor

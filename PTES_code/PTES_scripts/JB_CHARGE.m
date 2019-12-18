@@ -42,7 +42,7 @@ while 1
         if new_hex_calls
             %[HX1,gas,iG,fluidH,iH] =
             %hex_func(HX1,iL,gas,iG,fluidH,iH,1,1.0); % Original call
-            [HXh,gas,iG,fluidH,iH] = hex_func(HXh,iL,gas,iG,fluidH,iH,1,1.0); % New call using hx_class
+            [HX(1),gas,iG,fluidH,iH] = hex_func(HX(1),iL,gas,iG,fluidH,iH,1,1.0); % New call using hx_class
         else
             [gas,fluidH,iG,iH,HX] = hex_TQ(gas,[iL,iG],fluidH,[iL,iH],eff,ploss,'hex',1,1.0);
         end
@@ -53,7 +53,7 @@ while 1
     % REGENERATE (gas-gas)
     if new_hex_calls
         %[REGEN,gas,iG,~,~] = hex_func(REGEN,iL,gas,iReg1,gas,iReg2,0,0);
-        [RCP,gas,iG,~,~] = hex_func(RCP,iL,gas,iReg1,gas,iReg2,0,0);% New call using hx_class
+        [HX(3),gas,iG,~,~] = hex_func(HX(3),iL,gas,iReg1,gas,iReg2,0,0);% New call using hx_class
     else
         [gas,~,iG,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
     end
@@ -73,7 +73,7 @@ while 1
         [fluidC] = update(fluidC,[iL,iC],1);
         if new_hex_calls
             %[HX,fluidC,iC,gas,iG] = hex_func(HX,iL,fluidC,iC,gas,iG,2,1.0);
-            [HXc,fluidC,iC,gas,iG] = hex_func(HXc,iL,fluidC,iC,gas,iG,2,1.0); % New call using hx_class
+            [HX(2),fluidC,iC,gas,iG] = hex_func(HX(2),iL,fluidC,iC,gas,iG,2,1.0); % New call using hx_class
         else
             [fluidC,gas,iC,iG] = hex_TQ(fluidC,[iL,iC],gas,[iL,iG],eff,ploss,'hex',2,1.0);
         end
@@ -83,7 +83,7 @@ while 1
     % REGENERATE (gas-gas)
     if new_hex_calls
         %[REGEN,~,~,gas,iG] = hex_func(REGEN,iL,gas,iReg1,gas,iReg2,0,0);
-        [RCP,~,~,gas,iG] = hex_func(RCP,iL,gas,iReg1,gas,iReg2,0,0); % New call using hx_class
+        [HX(3),~,~,gas,iG] = hex_func(HX(3),iL,gas,iReg1,gas,iReg2,0,0); % New call using hx_class
     else
         [~,gas,~,iG] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
     end

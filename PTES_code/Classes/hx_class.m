@@ -104,17 +104,19 @@ classdef hx_class
        % Calculate the HX cost
        function [obj] = HX_cost(obj, CEind)
            
+           curr = 2019 ; % Current year
            switch obj.hx_cost.cost_mode
                case 0
                    if (obj.UA == 0)
                        error('Have picked an unsuitable HX cost mode')
                    end
-                   COST = 3500 * obj.UA ;
+                   COST = 3.500 * obj.UA * CEind(curr) / CEind(2017);
                case 1
                    if (obj.A == 0)
                        error('Have picked an unsuitable HX cost mode')
                    end
                    COST = 9583.8 + 251.5 * obj.A ;
+                   COST = COST * CEind(curr) / CEind(2009) ;
                case 2
                    COST = 0 ;
                case 3
@@ -122,8 +124,14 @@ classdef hx_class
            end
            
            obj.hx_cost.COST = COST ;
+           obj.Qact         = obj.QS(end,1) ; % Temporary
            obj.hx_cost.cost = COST / obj.Qact ;
-                      
+           
+           % Temporary
+           if isempty(obj.hx_cost.COST)
+               obj.hx_cost.COST = 0.001 ;
+           end
+           
        end
    end
 end
