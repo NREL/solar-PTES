@@ -40,8 +40,7 @@ while 1
         fluidH.state(iL,iH).T = HT.A(iL).T; fluidH.state(iL,iH).p = HT.A(iL).p;
         [fluidH] = update(fluidH,[iL,iH],1);
         if new_hex_calls
-            %[HX1,gas,iG,fluidH,iH] =
-            %hex_func(HX1,iL,gas,iG,fluidH,iH,1,1.0); % Original call
+            %[HX1,gas,iG,fluidH,iH] = hex_func(HX1,iL,gas,iG,fluidH,iH,1,1.0); % Original call
             [HX(1),gas,iG,fluidH,iH] = hex_func(HX(1),iL,gas,iG,fluidH,iH,1,1.0); % New call using hx_class
         else
             [gas,fluidH,iG,iH,HX] = hex_TQ(gas,[iL,iG],fluidH,[iL,iH],eff,ploss,'hex',1,1.0);

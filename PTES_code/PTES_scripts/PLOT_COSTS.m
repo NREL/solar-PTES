@@ -1,7 +1,7 @@
 figure(9)
 switch Load.mode
     case {0,3,4}
-        names = {'Charge machine','Discharge machine','Hot tanks','Cold tanks','Hot HX','Cold HX','Recuperators','Other'};
+        names = {'Charge machine','Discharge machine','Hot tanks','Cold tanks','Hot HX','Cold HX','Recuperators','Heat rejection'};
         matrix = zeros(8,7) ;
         
         % Assign different types of costs to different places
@@ -35,27 +35,21 @@ switch Load.mode
             matrix(4,5) = matrix(4,5) + CT(ii).fluid_cost.COST ;    
         end
         
-        % This HX stuff isn't very nice :( 
-        % Hot heat exchangers
-        matrix(5,6) = HX(1).hx_cost.COST ;
-        if Load.mode == 4
-            matrix(5,6) = matrix(5,6) + HX(6).hx_cost.COST + HX(7).hx_cost.COST ;
+        % Run through the heat exchangers and allocate them to columns
+        % depending on their name
+        for ii = 1 : length(HX)
+           switch HX(ii).name
+               case 'hot'
+                   matrix(5,6) = matrix(5,6) + HX(ii).hx_cost.COST ;
+               case 'cold'
+                   matrix(6,6) = matrix(6,6) + HX(ii).hx_cost.COST ;
+               case 'regen'
+                   matrix(7,6) = matrix(7,6) + HX(ii).hx_cost.COST ;
+               case 'rej'
+                   matrix(8,6) = matrix(8,6) + HX(ii).hx_cost.COST ;
+           end
         end
         
-        % Cold heat exchangers
-        matrix(6,6) = HX(2).hx_cost.COST ;
-        if Load.mode == 4
-            matrix(6,6) = matrix(6,6) + HX(5).hx_cost.COST ;
-        end
-        
-        % Recuperators
-        matrix(7,6) = HX(3).hx_cost.COST ;
-        
-        % Other - e.g. heat rejection systems
-        matrix(8,6) = HX(4).hx_cost.COST ;
-        if Load.mode == 4
-            matrix(8,6) = matrix(8,6) + HX(8).hx_cost.COST ;
-        end
         
         b = bar(matrix,'stacked');
         set(gca, 'XTick', 1:8, 'XTickLabel', names, 'TickLabelInterpreter', 'latex')

@@ -9,7 +9,9 @@ classdef hx_class
        eff      % Effectiveness
        ploss    % Pressure loss
        
-       UA       % Conductance, W/K - (design)
+       UA0      % Conductance, W/K - (design)
+       NTU0     % Design NTU
+       LMTD0    % Design LMTD
        Hname    % Hot fluid name
        Cname    % Cold fluid name
        
@@ -28,6 +30,7 @@ classdef hx_class
        AS       % Heat transfer area
        LMTD     % Why not
        Cmin 
+       UA
        NTU
        DppH
        DppC
@@ -65,12 +68,14 @@ classdef hx_class
        Sirr     % entropy generation, W/K
        
        % Costs
+       LestA   % Logical - estimate the area (if using effectivenesss/UA method) to enable cost calculations
        hx_cost = econ_class(0,0,0,0) ;
        
    end
    
    methods
-       function obj = hx_class(stage_type, model, eff, ploss, cost_mode, Ngrid, Nsave, numPeriods)
+       function obj = hx_class(name, stage_type, model, eff, ploss, cost_mode, Ngrid, Nsave, numPeriods)
+            obj.name       = name ;
             obj.stage_type = stage_type ;
             obj.model      = model ;
             obj.eff        = eff ;
@@ -107,15 +112,16 @@ classdef hx_class
            curr = 2019 ; % Current year
            switch obj.hx_cost.cost_mode
                case 0
-                   if (obj.UA == 0)
+                   if (obj.UA0 == 0)
                        error('Have picked an unsuitable HX cost mode')
                    end
-                   COST = 3.500 * obj.UA * CEind(curr) / CEind(2017);
+                   COST = 3.500 * obj.UA0 * CEind(curr) / CEind(2017);
                case 1
-                   if (obj.A == 0)
+                   if (obj.A1 == 0)
                        error('Have picked an unsuitable HX cost mode')
                    end
-                   COST = 9583.8 + 251.5 * obj.A ;
+                   A = 0.5 * (obj.A1 + obj.A2) ;
+                   COST = 9583.8 + 251.5 * A ;
                    COST = COST * CEind(curr) / CEind(2009) ;
                case 2
                    COST = 0 ;
