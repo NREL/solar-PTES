@@ -1,6 +1,6 @@
 function [HX] = set_hex_geom(HX, iL, fluidH, iH, fluidC, iC, mode, par, NTUmin, ploss_max, D)
 % Obtain the heat exchanger geometry based on the performance objectives
-% specified by eff_min and ploss_max.
+% specified by NTUmin and ploss_max.
 
 % Things to be improved:
 % (1) Accurate computation of Nussel number for tube bundle (see
@@ -128,12 +128,12 @@ SS.Re = SS.G*SS.D./SS.mu;
 % Compute flow area
 SS.Af = SS.mdot/SS.G;
 
-% % Check results
-% Ntu1   = 4*SW.L/SW.D*mean(SW.St)
-% Ntu2   = 4*SS.L/SS.D*mean(SS.St)
-% ploss1 = mean(Ntu1*SW.G^2*SW.v.*(SW.Cf./SW.St)./(2*SW.p))
-% ploss2 = mean(Ntu2*SS.G^2*SS.v.*(SS.Cf./SS.St)./(2*SS.p))
-% keyboard
+% Check results
+Ntu1   = 4*SW.L/SW.D*mean(SW.St)
+Ntu2   = 4*SS.L/SS.D*mean(SS.St)
+ploss1 = mean(Ntu1*SW.G^2*SW.v.*(SW.Cf./SW.St)./(2*SW.p))
+ploss2 = mean(Ntu2*SS.G^2*SS.v.*(SS.Cf./SS.St)./(2*SS.p))
+keyboard
 
 % Export results into HX structure
 HX.shape = 'circular';

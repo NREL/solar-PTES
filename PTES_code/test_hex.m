@@ -37,7 +37,7 @@ load_coolprop
 % 2 = SolarSalt and Water
 % 3 = CO2 and Water
 % 4 = Steam and MEG
-scenario = 4;
+scenario = 3;
 
 % Set indices
 iL = 1; i1 = 1; i2 = 1;
@@ -69,7 +69,7 @@ switch scenario
         F1.state(iL,i2).mdot = 45;
         
         % Water
-        F2 = fluid_class('Water','WF','CP','TTSE',1,5);
+        F2 = fluid_class('Water','WF','CP','HEOS',1,5);
         F2.state(iL,i2).p = 100*1e5;
         F2.state(iL,i2).T = 400;
         F2.state(iL,i2).mdot = 10;
@@ -125,13 +125,13 @@ end
 
 % Specify HX settings
 HX.NX = 100; % Number of sections (grid)
-HX.model = 'UA'; % either 'eff', 'UA' or 'geom'
+HX.model = 'geom'; % either 'eff', 'UA' or 'geom'
 HX.stage_type = 'hex';
 method = 'automatic';
 
 switch HX.model
     case 'eff'
-        HX.eff   = 0.97;
+        HX.eff   = 1.00;
         HX.ploss = 0.01;
         
     case 'UA'

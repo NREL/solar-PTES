@@ -1,53 +1,43 @@
 classdef stream
-    %STREAN CLASS Contains all the properties and geometrical details of a
+    %STREAM CLASS Contains all the properties and geometrical details of a
     %fluid stream in the HEX
     
     properties
         % General variables
         name
         handle
-        Tin
-        Tout
-        pin
-        pout
-        mdot
-        Cp_mean        
-        % Lookup table matrices
-        TX
-        pX
-        CpX
-        hX
-        sX
-        rhoX
-        muX
-        kX
-        PrX
+        Tin     {mustBePositive}
+        Tout    {mustBePositive}
+        pin     {mustBePositive}
+        pout    {mustBePositive}
+        mdot    {mustBePositive}
+        Cp_mean {mustBePositive}
         % Arrays in HEX sections (sides)
-        T
-        p
-        Cp
-        h
-        s
-        rho
-        v
-        mu
-        k
-        Pr
-        Re
-        Cf
-        St
+        T       {mustBePositive}
+        p       {mustBePositive}
+        Cp      {mustBePositive}
+        h       {mustBePositive}
+        s       {mustBePositive}
+        rho     {mustBePositive}
+        v       {mustBePositive}
+        mu      {mustBePositive}
+        k       {mustBePositive}
+        Pr      {mustBePositive}
+        Re      {mustBePositive}
+        Cf      {mustBePositive}
+        St      {mustBePositive}
         ht %heat transfer coeff
         % Averaged arrays (in sections centers)
-        T_AV
-        rho_AV
-        Cp_AV
+        T_AV    {mustBePositive}
+        rho_AV  {mustBePositive}
+        Cp_AV   {mustBePositive}
         % Geometry
-        A
-        Af
-        Ax
-        D
-        G
-        L
+        A       {mustBePositive}
+        Af      {mustBePositive}
+        Ax      {mustBePositive}
+        D       {mustBePositive}
+        G       {mustBePositive}
+        L       {mustBePositive}
     end
     
     methods
