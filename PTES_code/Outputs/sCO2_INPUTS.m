@@ -22,8 +22,8 @@ nH    = Nc_ch;        % number of hot fluid streams
 nC    = Ne_ch;        % number of cold fluid streams
 
 % Number of hot and cold stores IN SERIES
-Ncld = 2; % number of cold stores. Not implemented for >2
-Nhot = 2; % number of hot stores. Not implemented for >2
+Ncld = 1; % number of cold stores. Not implemented for >2
+Nhot = 1; % number of hot stores. Not implemented for >2
 
 Load.time = [10;4;10].*3600;          % time spent in each load period, s
 Load.type = ["chgCO2";"str";"disCO2"]; % type of load period
@@ -35,7 +35,7 @@ Lcld    = false ;       % Make cold store as cold as possible?
 Lrcmp   = false ;       % Is there a recompressor?
 
 % Number of recuperators
-Nrcp = 0 ; % Can be 0,1,2.
+Nrcp = 2 ; % Can be 0,1,2.
 if (Nrcp > 0) && (Nhot > 1 || Ncld > 1)
     error('Have not implemented recuperators and multiple storage tanks in series')
 end
@@ -44,8 +44,8 @@ switch Nrcp
     % increased by having several stores in series
     case 0
         % Hot storage tanks
-        fHname  = ["SolarSalt";"MineralOil"]; % fluid name
-        %fHname  = 'SolarSalt'; % fluid name
+        %fHname  = ["SolarSalt";"MineralOil"]; % fluid name
+        fHname  = 'SolarSalt'; % fluid name
         MH_dis0(1:Nhot) = 1e6;          % initial mass of discharged hot fluid, kg
         MH_chg0(1:Nhot) = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
         
@@ -73,8 +73,8 @@ switch Nrcp
             end
         end
         % Cold storage tanks
-        fCname  = ["INCOMP::MEG2[0.56]";"INCOMP::MEG2[0.56]"]; % fluid name
-        %fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
+        %fCname  = ["INCOMP::MEG2[0.56]";"INCOMP::MEG2[0.56]"]; % fluid name
+        fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
         MC_dis0(1:Ncld) = 1e6;          % initial mass of discharged cold fluid, kg
         MC_chg0(1:Ncld) = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
         
@@ -143,6 +143,32 @@ end
 % elements in state arrays.
 % Working fluid
 gas = fluid_class('CarbonDioxide','WF','CP','TTSE',Load.num,30);
+
+% Make heat exchangers
+iHX = 1 ; % Heat exchanger counter
+for ii = 1 : Nhot
+    HX(iHX) = hx_class('hot', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
+    iHX = iHX + 1 ;
+end
+for ii = 1 : Ncld
+    HX(iHX) = hx_class('cold', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
+    iHX = iHX + 1 ;
+end
+if (Nhot < 2) && (Ncld < 2) && (Nrcp > 0)
+    for ii = 1 : Nrcp
+        HX(iHX) = hx_class('regen', 'regen', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
+        iHX = iHX + 1 ;
+    end
+end
+
+% Options for specifying heat exchanger geometry
+% This will probably be expanded over time
+for i = 1 : length(HX)
+   HX(i).LestA = true ;
+   HX(i).D1    = 0.025 ;
+end
+
+
 
 % Save copy of input file in "Outputs" folder
 copyfile(['./PTES_scripts/',mfilename,'.m'],'./Outputs/')

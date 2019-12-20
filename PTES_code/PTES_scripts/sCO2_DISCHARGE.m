@@ -82,13 +82,13 @@ while 1
     % REGENERATE (gas-gas)
     if new_hex_calls
         if Nrcp == 1
-            [REGEN,gas,iG,~,~] = hex_func(REGEN,iL,gas,iReg1,gas,iReg2,0,0);
+            [HX(Nhot+Ncld+1),gas,iG,~,~] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg2,0,0);
         elseif Nrcp == 2
-            [REGEN,gas,iG,~,~] = hex_func(REGEN,iL,gas,iReg1,gas,iReg2,0,0);
+            [HX(Nhot+Ncld+1),gas,iG,~,~] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg2,0,0);
             if Lrcmp
-                [REGEN,gas,iG,~,~] = hex_func(REGEN,iL,gas,iG,gas,iReg3,3,min(TthreshD,gas.state(iL,iG).T-5)); % Low-temp regenerator
+                [HX(Nhot+Ncld+2),gas,iG,~,~] = hex_func(HX(Nhot+Ncld+2),iL,gas,iG,gas,iReg3,3,min(TthreshD,gas.state(iL,iG).T-5)); % Low-temp regenerator
             else
-                [REGEN,gas,iG,~,~] = hex_func(REGEN,iL,gas,iG,gas,iReg3,0,0); % Low-temp regenerator
+                [HX(Nhot+Ncld+2),gas,iG,~,~] = hex_func(HX(Nhot+Ncld+2),iL,gas,iG,gas,iReg3,0,0); % Low-temp regenerator
             end
         end
     else
@@ -141,7 +141,7 @@ while 1
                     TCoutMIN = min(gas.state(iL,iG).T-5,CT(ii).A(1).T) ;
                     [fluidC(ii)] = update(fluidC(ii),[iL,iC(ii)],1);
                     if new_hex_calls
-                        [HX,gas,iG,fluidC(ii),iC(ii)] = hex_func(HX,iL,gas,iG,fluidC(ii),iC(ii),3,TCoutMIN);
+                        [HX(Nhot+ii),gas,iG,fluidC(ii),iC(ii)] = hex_func(HX(Nhot+ii),iL,gas,iG,fluidC(ii),iC(ii),3,TCoutMIN);
                     else
                         [gas,fluidC(ii),iG,iC(ii)] = hex_TQ(gas,[iL,iG],fluidC(ii),[iL,iC(ii)],eff,ploss,'hex',3,TCoutMIN);
                     end
@@ -165,18 +165,18 @@ while 1
     % REGENERATE (gas-gas)
     if new_hex_calls
         if Nrcp == 1
-            [REGEN,~,~,gas,iG] = hex_func(REGEN,iL,gas,iReg1,gas,iReg2,0,0);
+            [HX(Nhot+Ncld+1),~,~,gas,iG] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg2,0,0);
         elseif Nrcp == 2
             if Lrcmp
                 % If there is a recompression, adjust mass flows and add a mixer between the recomp. outlet and LTR cold outlet
-                [REGEN,~,~,gas,iG] = hex_func(REGEN,iL,gas,iReg1+1,gas,iReg3,3,min(TthreshD,gas.state(iL,iReg1+1).T-5)); % Require cold side to reach a certain temp
+                [HX(Nhot+Ncld+2),~,~,gas,iG] = hex_func(HX(Nhot+Ncld+2),iL,gas,iReg1+1,gas,iReg3,3,min(TthreshD,gas.state(iL,iReg1+1).T-5)); % Require cold side to reach a certain temp
                 gas.state(iL,iRCMP).mdot   = gas.state(iL,iReg1).mdot - gas.state(iL,iReg3).mdot ;
                 gas.state(iL,iRCMP+1).mdot = gas.state(iL,iRCMP).mdot ;
                 [gas,~,~] = mix_streams(gas,[iL,iG],[iL,iRCMP+1]) ;
             else
-                [REGEN,~,~,gas,~] = hex_func(REGEN,iL,gas,iReg1+1,gas,iReg3,0,0);
+                [HX(Nhot+Ncld+2),~,~,gas,~] = hex_func(HX(Nhot+Ncld+2),iL,gas,iReg1+1,gas,iReg3,0,0);
             end
-            [REGEN,~,~,gas,iG] = hex_func(REGEN,iL,gas,iReg1,gas,iReg2,0,0);            
+            [HX(Nhot+Ncld+1),~,~,gas,iG] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg2,0,0);            
         end        
     else
         if Nrcp == 1
@@ -202,7 +202,7 @@ while 1
             THoutMAX = max(gas.state(iL,iG).T+1,HT(ii).A(1).T);
             [fluidH(ii)] = update(fluidH(ii),[iL,iH(ii)],1);
             if new_hex_calls
-                [HX,fluidH(ii),iH(ii),gas,iG] = hex_func(HX,iL,fluidH(ii),iH(ii),gas,iG,4,THoutMAX); % Mode 4.
+                [HX(ii),fluidH(ii),iH(ii),gas,iG] = hex_func(HX(ii),iL,fluidH(ii),iH(ii),gas,iG,4,THoutMAX); % Mode 4.
             else
                 [fluidH(ii),gas,iH(ii),iG] = hex_TQ(fluidH(ii),[iL,iH(ii)],gas,[iL,iG],eff,ploss,'hex',4, THoutMAX); % Mode 4.
             end

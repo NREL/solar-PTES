@@ -101,7 +101,8 @@ while 1
     fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p;
     [fluidH] = update(fluidH,[iL,iH],1);
     Taim = HT.A(iL).T;
-    [HX_REHEAT,steam,iG,fluidH,iH] = hex_func(HX_REHEAT,iL,steam,iG,fluidH,iH,4,Taim);
+    %[HX_REHEAT,steam,iG,fluidH,iH] = hex_func(HX_REHEAT,iL,steam,iG,fluidH,iH,4,Taim);
+    [HX(6),steam,iG,fluidH,iH] = hex_func(HX(6),iL,steam,iG,fluidH,iH,4,Taim); % New call with hx_class
     iH = iH + 1;
     
     % EXPAND (4-->5)
@@ -132,14 +133,16 @@ while 1
         fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p; %#ok<*SAGROW>
         [fluidC] = update(fluidC,[iL,iC],1);
         T_aim = CP1('PQ_INPUTS',steam.state(iL,iG).p,0.0,'T',steam.handle) - 1; %wet saturated
-        [HX_CONDEN,steam,iG,fluidC,iC] = hex_func(HX_CONDEN,iL,steam,iG,fluidC,iC,5,T_aim);
+        %[HX_CONDEN,steam,iG,fluidC,iC] = hex_func(HX_CONDEN,iL,steam,iG,fluidC,iC,5,T_aim);
+        [HX(5),steam,iG,fluidC,iC] = hex_func(HX(5),iL,steam,iG,fluidC,iC,5,T_aim);
         iC=iC+1;
     else
         % REJECT HEAT (external HEX) (7-->8)
         T_aim = Ran_Tbot - 1;
         %[steam,environ,iG,iE] = hex_set(steam,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
         air.state(iL,1).T = T0; air.state(iL,1).p = p0; air = update(air,[iL,1],1);
-        [HX_ACC, steam, iG, air, iA] = hex_func(HX_ACC,iL,steam,iG,air,iA,5,T_aim);
+        %[HX_ACC, steam, iG, air, iA] = hex_func(HX_ACC,iL,steam,iG,air,iA,5,T_aim);
+        [HX(8), steam, iG, air, iA] = hex_func(HX(8),iL,steam,iG,air,iA,5,T_aim);
         [DFAN(1),air,iA] = compexp_func (DFAN(1),iL,air,iA,'Paim',p0) ;
     end
     
@@ -165,7 +168,8 @@ while 1
     fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p; %#ok<*SAGROW>
     [fluidH] = update(fluidH,[iL,iH],1);
     Taim = HT.A(iL).T;
-    [HX_BOILER,steam,iG,fluidH,iH] = hex_func(HX_BOILER,iL,steam,iG,fluidH,iH,4,Taim);
+    %[HX_BOILER,steam,iG,fluidH,iH] = hex_func(HX_BOILER,iL,steam,iG,fluidH,iH,4,Taim);
+    [HX(7),steam,iG,fluidH,iH] = hex_func(HX(7),iL,steam,iG,fluidH,iH,4,Taim);
     iH = iH + 1;
     
     % Determine convergence and proceed

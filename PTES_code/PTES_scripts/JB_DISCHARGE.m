@@ -33,13 +33,15 @@ while 1
     
     % REGENERATE (gas-gas)
     if new_hex_calls
-        [REGEN,gas,iG,~,~] = hex_func(REGEN,iL,gas,iReg1,gas,iReg2,0,0);
+        %[REGEN,gas,iG,~,~] = hex_func(REGEN,iL,gas,iReg1,gas,iReg2,0,0);
+        [HX(3),gas,iG,~,~] = hex_func(HX(3),iL,gas,iReg1,gas,iReg2,0,0); % New call using hx_class
     else
         [gas,~,iG,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
     end
         
     for iN = 1:Nc_dis
         % REJECT HEAT (external HEX)
+        % REPLACE THIS WITH hex_func call?
         T_aim = environ.T0;
         [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
         
@@ -49,7 +51,8 @@ while 1
                 fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p; %#ok<*SAGROW>
                 [fluidC] = update(fluidC,[iL,iC],1);
                 if new_hex_calls
-                    [HX,gas,iG,fluidC,iC] = hex_func(HX,iL,gas,iG,fluidC,iC,1,1.0);
+                    %[HX,gas,iG,fluidC,iC] = hex_func(HX,iL,gas,iG,fluidC,iC,1,1.0);
+                    [HX(2),gas,iG,fluidC,iC] = hex_func(HX(2),iL,gas,iG,fluidC,iC,1,1.0);
                 else
                     [gas,fluidC,iG,iC] = hex_TQ(gas,[iL,iG],fluidC,[iL,iC],eff,ploss,'hex',1,1.0);
                 end
@@ -65,7 +68,8 @@ while 1
     
     % REGENERATE (gas-gas)
     if new_hex_calls
-        [REGEN,~,~,gas,iG] = hex_func(REGEN,iL,gas,iReg1,gas,iReg2,0,0);
+        %[REGEN,~,~,gas,iG] = hex_func(REGEN,iL,gas,iReg1,gas,iReg2,0,0);
+        [HX(3),~,~,gas,iG] = hex_func(HX(3),iL,gas,iReg1,gas,iReg2,0,0); % New call using hx_class
     else
         [~,gas,~,iG] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
     end
@@ -76,7 +80,8 @@ while 1
         [fluidH] = update(fluidH,[iL,iH],1);
         Taim = THmin;
         if new_hex_calls
-            [HX,fluidH,iH,gas,iG] = hex_func(HX,iL,fluidH,iH,gas,iG,2,1.0);
+            %[HX,fluidH,iH,gas,iG] = hex_func(HX,iL,fluidH,iH,gas,iG,2,1.0);
+            [HX(1),fluidH,iH,gas,iG] = hex_func(HX(1),iL,fluidH,iH,gas,iG,2,1.0); % New call using hx_class
         else
             [fluidH,gas,iH,iG] = hex_TQ(fluidH,[iL,iH],gas,[iL,iG],eff,ploss,'hex',2,1.0);
         end            

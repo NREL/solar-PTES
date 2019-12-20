@@ -29,13 +29,13 @@ SH = stream;
 SC = stream;
 
 % Import properties from HX structure
-SH.h = HX.H.h;
-SH.p = HX.H.pin*ones(size(SH.h));
-SH.mdot = HX.H.mdot;
+SH.h = HX.H(iL).h;
+SH.p = HX.H(iL).pin*ones(size(SH.h));
+SH.mdot = HX.H(iL).mdot;
 SH = stream_update(fluidH,SH,1);
-SC.h = HX.C.h;
-SC.p = HX.C.pin*ones(size(SC.h));
-SC.mdot = HX.C.mdot;
+SC.h = HX.C(iL).h;
+SC.p = HX.C(iL).pin*ones(size(SC.h));
+SC.mdot = HX.C(iL).mdot;
 SC = stream_update(fluidC,SC,1);
 
 % Determine which one is the "weak" stream (the one likely to present
