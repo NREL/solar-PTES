@@ -7,7 +7,8 @@ if mode == 1 % Enthalpy and pressure
     if strcmp(fluid.read,'CP') %read from CoolProp
         
         [S.T,S.k,S.mu,S.Pr,S.rho] = CP5('HmassP_INPUTS',S.h,S.p,'T','CONDUCTIVITY','VISCOSITY','PRANDTL','DMASS',fluid.handle);
-        S.v = 1./S.rho;
+        S.v  = 1./S.rho;
+        %S.Pr = S.Cp.*S.mu./S.k;
         
     elseif strcmp(fluid.read,'TAB') %read from table
         
@@ -22,7 +23,32 @@ if mode == 1 % Enthalpy and pressure
                 
     end
     
-    S.Cp = S.Pr.*S.k./S.mu;
+    S.Cp  = S.Pr.*S.k./S.mu;
+    
+    Cp_mean = median(S.Cp);
+    Pr_mean = median(S.Pr);
+    cond1 = S.Cp < 0 | S.Cp > 100*Cp_mean | S.Cp < Cp_mean/100;
+    cond2 = S.Pr < 0 | S.Pr > 100*Pr_mean | S.Pr < Pr_mean/100;
+     
+    if any([cond1;cond2])
+%         figure(31)
+%         plot(S.T)
+%         figure(32)
+%         semilogy(S.Pr)
+%         figure(33)
+%         semilogy(S.Cp)
+        
+        Cp_mean = median(S.Cp(~cond1));
+        S.Cp(cond1) = Cp_mean;
+        Pr_mean = median(S.Pr(~cond2));
+        S.Pr(cond2) = Pr_mean;
+        
+%         figure(34)
+%         semilogy(S.Pr)
+%         figure(35)
+%         semilogy(S.Cp)
+%         keyboard
+    end
     
 else
     error('not implemented')
