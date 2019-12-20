@@ -18,7 +18,7 @@ fig.PaperUnits = 'centimeters';
 fig.PaperPosition = [0 0 width height]; %default size
 
 saveas(fig,file_name,'fig')
-%saveas(fig,file_name,'epsc')
+saveas(fig,file_name,'epsc')
 saveas(fig,file_name,'svg')
 
 end

@@ -310,7 +310,7 @@ classdef compexp_class
                     COST = COST * CEind(curr) / CEind(2010)  ; 
                     
                 case 4
-                    % Compressor cost from Valero et al 1994, but updated by Farres-Antunez, 2019
+                    % Turbomachinery compressor cost from Valero et al 1994, but updated by Farres-Antunez, 2019
                     % Eq. C3.1
                     COST = 670 * obj.mdot * log(obj.pr0) / (0.92 - obj.eta0) ;
                     COST = COST * CEind(curr) / CEind(2019) ;
@@ -403,6 +403,11 @@ classdef compexp_class
                     
                 case 22
                     % Pump cost. - eq. P3
+                    COST = 50e3 + 1500 * (obj.W0 / 1e3)^0.8 ;
+                    COST = COST * CEind(curr) / CEind(2009) ;
+                    
+                case 30
+                    % FANS --> NEED UPDATING!
                     COST = 50e3 + 1500 * (obj.W0 / 1e3)^0.8 ;
                     COST = COST * CEind(curr) / CEind(2009) ;
 
