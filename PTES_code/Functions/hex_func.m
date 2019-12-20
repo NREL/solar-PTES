@@ -238,6 +238,7 @@ switch model
                 f1max = f1(mCmax) ;
                 % If they don't change sign, choose mC that has minimum boundary
                 if f1min*f1max >= 0
+                    warning('Cold stream may not be heated to desired temperature');
                     if min(f1min,f1max) == f1min
                         mC = mCmin ;
                     else

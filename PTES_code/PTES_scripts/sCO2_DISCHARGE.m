@@ -129,7 +129,7 @@ while 1
     for iN = 1:Nc_dis
         % REJECT HEAT (external HEX) *IF* cold store is below ambient (plus a bit)
         if fluidC(1).state(1,1).T <= T0+10
-            T_aim = environ.T0;    
+            T_aim = environ.T0 + Trej;    
             [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
         end    
 
