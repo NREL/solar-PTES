@@ -234,7 +234,20 @@ switch model
                 f2 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hC2',hC2,compare,ref,true);
                 plot_function(f2,mCmin,mCmax,100,11);
                 %}
-                mC = fzero(f1,[mCmin,mCmax],options);
+                % Check whether f1 changes sign over interval
+                f1min = f1(mCmin) ;
+                f1max = f1(mCmax) ;
+                % If they don't change sign, choose mC that has minimum boundary
+                if f1min*f1max >= 0
+                    warning('Cold stream may not be heated to desired temperature');
+                    if min(f1min,f1max) == f1min
+                        mC = mCmin ;
+                    else
+                        mC = mCmax ;
+                    end
+                else
+                    mC = fzero(f1,[mCmin,mCmax],options);
+                end
                 
                 % Compute total heat transfer (and update mC if necessary)
                 if strcmp(model,'eff')
