@@ -1,9 +1,9 @@
 % This file should be split up further
 % Set atmospheric conditions and cycle parameters
-T0      = 30 + 273.15;  % ambient temp, K
+T0      = 43 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 250e5;         % top pressure, Pa
-PRch    = 3.0;          % charge pressure ratio
+PRch    = 2.5;          % charge pressure ratio
 PRr     = 1.0;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
@@ -25,9 +25,16 @@ nC    = Ne_ch;        % number of cold fluid streams
 Ncld = 1; % number of cold stores. Not implemented for >2
 Nhot = 1; % number of hot stores. Not implemented for >2
 
-Load.time = [10;4;10].*3600;          % time spent in each load period, s
-Load.type = ["chgCO2";"str";"disCO2"]; % type of load period
-Load.mdot = [10;0;10];              % working fluid mass flow rate, kg/s
+switch Load.mode
+    case 4
+        Load.time = [10;4;10].*3600;          % time spent in each load period, s
+        Load.type = ["chgCO2";"str";"disCO2"]; % type of load period
+        Load.mdot = [10;0;10];              % working fluid mass flow rate, kg/s
+    case 5
+        Load.time = [10;4;10].*3600;          % time spent in each load period, s
+        Load.type = ["sol";"str";"rcmpCO2"]; % type of load period
+        Load.mdot = [10;0;10];              % working fluid mass flow rate, kg/s
+end
 Load.num = numel(Load.time);
 Load.ind = 1:Load.num;
 
@@ -40,13 +47,14 @@ Nrcp = 2 ; % Can be 0,1,2.
 if (Nrcp > 0) && (Nhot > 1 || Ncld > 1)
     error('Have not implemented recuperators and multiple storage tanks in series')
 end
+
 switch Nrcp
     % If the sCO2-PTES cycle is not recuperator, then efficiency is
     % increased by having several stores in series
     case 0
         % Hot storage tanks
-        %fHname  = ["SolarSalt";"MineralOil"]; % fluid name
-        fHname  = 'SolarSalt'; % fluid name
+        fHname  = ["SolarSalt";"MineralOil"]; % fluid name
+        %fHname  = 'SolarSalt'; % fluid name
         MH_dis0(1:Nhot) = 1e6;          % initial mass of discharged hot fluid, kg
         MH_chg0(1:Nhot) = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
         
@@ -74,8 +82,8 @@ switch Nrcp
             end
         end
         % Cold storage tanks
-        %fCname  = ["INCOMP::MEG2[0.56]";"INCOMP::MEG2[0.56]"]; % fluid name
-        fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
+        fCname  = ["INCOMP::MEG2[0.56]";"INCOMP::MEG2[0.56]"]; % fluid name
+        %fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
         MC_dis0(1:Ncld) = 1e6;          % initial mass of discharged cold fluid, kg
         MC_chg0(1:Ncld) = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
         
@@ -119,24 +127,44 @@ switch Nrcp
         
         % If there are two recuperators, also use a recompressor during discharge
     case 2
-        % Hot storage tanks
-        fHname  = 'SolarSalt';  % fluid name
-        TH_dis0 = 410. + 273.15;  % initial temperature of discharged hot fluid, K
-        MH_dis0 = 1e6;              % initial mass of discharged hot fluid, kg
-        TH_chg0 = 570 + 273.15;     % initial temperature of charged hot fluid, K
-        MH_chg0 = 0.0*1.e6;         % initial mass of charged hot fluid, kg
-        % Cold storage tanks
-        fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
-        TC_dis0 = T0 + 0;           % initial temperature of discharged cold fluid, K
-        MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
-        TC_chg0 = T0-5;        % initial temperature of charged cold fluid, K
-        MC_chg0 = 0.0*1.e6; % initial mass of charged cold fluid, kg
-        % Choose a threshold temperature between the recuperators
-        TthreshC = 38. + 273.15 ; % Charge - threshold is on low-pressure side
-        TthreshD = 200. + 273.15 ; % Discharge - threshold is on high-pressure side
-        Trej     = 3.5 ;  % Reject heat to this temperature above ambient (helps cold store behaviour)
         Lrcmp    = true ;         % Is there a recompression
+        switch Load.mode
+            case 4
+                % Hot storage tanks
+                fHname  = 'SolarSalt';  % fluid name
+                TH_dis0 = 410. + 273.15;  % initial temperature of discharged hot fluid, K
+                MH_dis0 = 1e6;              % initial mass of discharged hot fluid, kg
+                TH_chg0 = 570 + 273.15;     % initial temperature of charged hot fluid, K
+                MH_chg0 = 0.0*1.e6;         % initial mass of charged hot fluid, kg
+                % Cold storage tanks
+                fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
+                TC_dis0 = T0 + 0;           % initial temperature of discharged cold fluid, K
+                MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
+                TC_chg0 = T0-5;        % initial temperature of charged cold fluid, K
+                MC_chg0 = 0.0*1.e6; % initial mass of charged cold fluid, kg
+                % Choose a threshold temperature between the recuperators
+                TthreshC = 38. + 273.15 ; % Charge - threshold is on low-pressure side
+                TthreshD = 200. + 273.15 ; % Discharge - threshold is on high-pressure side
+                Trej     = 3.5 ;  % Reject heat to this temperature above ambient (helps cold store behaviour)
+            case 5
+                % Hot storage tanks
+                fHname  = 'SolarSalt';  % fluid name
+                TH_dis0 = 410. + 273.15;    % initial temperature of discharged hot fluid, K
+                MH_dis0 = 1e6;              % initial mass of discharged hot fluid, kg
+                TH_chg0 = 565 + 273.15;     % initial temperature of charged hot fluid, K
+                MH_chg0 = 0.0*1.e6;         % initial mass of charged hot fluid, kg
+                % Cold storage tanks
+                fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
+                TC_dis0 = T0 + 0;           % initial temperature of discharged cold fluid, K
+                MC_dis0 = 1e6;              % initial mass of discharged cold fluid, kg
+                TC_chg0 = T0-5;             % initial temperature of charged cold fluid, K
+                MC_chg0 = 0.0*1.e6;         % initial mass of charged cold fluid, kg
+                % Choose a threshold temperature between the recuperators
+                TthreshD = 250. + 273.15 ; % Discharge - threshold is on high-pressure side
+        end
+                
 end
+
 
 % Set working fluids, storage fluids, and heat rejection streams. 'WF' or
 % 'SF' indicates working fluid or storage fluid. 'CP' or 'TAB' indicate
@@ -147,19 +175,29 @@ end
 gas = fluid_class('CarbonDioxide','WF','CP','TTSE',Load.num,30);
 
 % Make heat exchangers
-iHX = 1 ; % Heat exchanger counter
-for ii = 1 : Nhot
-    HX(iHX) = hx_class('hot', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-    iHX = iHX + 1 ;
-end
-for ii = 1 : Ncld
-    HX(iHX) = hx_class('cold', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-    iHX = iHX + 1 ;
-end
-if (Nhot < 2) && (Ncld < 2) && (Nrcp > 0)
-    for ii = 1 : Nrcp
-        HX(iHX) = hx_class('regen', 'regen', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
+
+
+% Heat exchangers set up to match Ty's work
+if Load.mode == 5
+    HX(1) = hx_class('hot', 'hex', 'eff', 0.879, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
+    HX(2) = hx_class('cold', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
+    HX(3) = hx_class('regen', 'regen', 'eff', 0.968, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
+    HX(4) = hx_class('regen', 'regen', 'eff', 0.937, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
+else
+    iHX = 1 ; % Heat exchanger counter
+    for ii = 1 : Nhot
+        HX(iHX) = hx_class('hot', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
         iHX = iHX + 1 ;
+    end
+    for ii = 1 : Ncld
+        HX(iHX) = hx_class('cold', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
+        iHX = iHX + 1 ;
+    end
+    if (Nhot < 2) && (Ncld < 2) && (Nrcp > 0)
+        for ii = 1 : Nrcp
+            HX(iHX) = hx_class('regen', 'regen', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
+            iHX = iHX + 1 ;
+        end
     end
 end
 

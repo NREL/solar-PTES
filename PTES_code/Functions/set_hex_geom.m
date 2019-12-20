@@ -121,8 +121,9 @@ fun = @(D) stream_losses(D,SS);
 xmin = SW.D/100;
 xmax = SW.D*100;
 %plot_function(fun,xmin,xmax,100,30,'loglog')
-options = optimset('Display','notify','TolX',0.01*xmin,...
-    'FunValCheck','on','AlwaysHonorConstraints','bounds');
+%options = optimset('Display','notify','TolX',0.01*xmin,...
+%    'FunValCheck','on','AlwaysHonorConstraints','bounds');
+options = optimset('Display','notify','TolX',0.01*xmin);
 SS.D = fminbnd(fun,xmin,xmax,options);
 
 % Compute mass flux

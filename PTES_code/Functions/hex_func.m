@@ -53,7 +53,7 @@ TC1 = fluidC.state(iL,iC).T;
 if TC1 > TH2 % swap needed
     swap = 1;
     error(strcat('swap not implemented for hx_class and set_hex_geom.',...
-        'make sure that fluidH is fluidH and fluidC is fluiC when calling hex_func'))
+        'make sure that fluidH is fluidH and fluidC is fluidC when calling hex_func'))
     fluidH0 = fluidH;
     fluidH  = fluidC;
     fluidC  = fluidH0;

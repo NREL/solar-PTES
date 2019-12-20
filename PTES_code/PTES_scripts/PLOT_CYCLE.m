@@ -34,14 +34,14 @@ switch Load.mode
         figure(1); hold off;
         legend(pl1,'heat pump','Location','best');
         
-    case 2 % Heat engine only
+    case {2,5} % Heat engine only
         
         % Plot states in Ts diagram
-        pl2 = plot_Ts_diag(steam,Load,{'dis','disCO2'},2,100,'k:','k:s',true,true);
+        pl2 = plot_Ts_diag(gas,Load,{'dis','disCO2','rcmpCO2'},2,100,'k:','k:s',true,true);
         
         % Plot storage tank temperatures
-        plot_T_storage(HT(1),Load,{'dis','disCO2'},2,{'r','r'},true,NameArray,ValueArray);
-        plot_T_storage(CT(1),Load,{'dis','disCO2'},2,{'b','b'},true,NameArray,ValueArray);
+        plot_T_storage(HT(1),Load,{'dis','disCO2','rcmpCO2'},2,{'r','r'},true,NameArray,ValueArray);
+        plot_T_storage(CT(1),Load,{'dis','disCO2','rcmpCO2'},2,{'b','b'},true,NameArray,ValueArray);
         
         % Set legend
         figure(2); hold off;

@@ -74,6 +74,9 @@ for ix = 1:1
                     case 'disCO2'
                         sCO2_DISCHARGE
                         
+                    case 'rcmpCO2'
+                        sCO2_RECOMP
+                        
                     case 'str'
                         TANKS_STORAGE
                         
