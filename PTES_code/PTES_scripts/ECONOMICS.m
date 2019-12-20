@@ -113,8 +113,8 @@ switch Load.mode
         fprintf(1,'     Standard deviation:       %8.1f M$\n\n',Cdata.cap_costSD/1e6);
         fprintf(1,'Cost per unit power:           %8.1f $/kW-e\n',Cdata.cap_cost_pow);
         fprintf(1,'Cost per unit energy:          %8.1f $/kWh-e\n\n',Cdata.cap_cost_en);
-        fprintf(1,'Levelised cost of storage:     %8.1f $/kWh-e\n',Cdata.lcosM);
-        fprintf(1,'     Standard deviation:       %8.1f $/kWh-e\n\n',Cdata.lcosSD);
+        fprintf(1,'Levelised cost of storage:     %8.3f $/kWh-e\n',Cdata.lcosM);
+        fprintf(1,'     Standard deviation:       %8.3f $/kWh-e\n\n',Cdata.lcosSD);
 end
 
 % Calculate the fixed charge rate and other economic factors
