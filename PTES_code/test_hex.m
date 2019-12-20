@@ -37,7 +37,7 @@ load_coolprop
 % 2 = SolarSalt and Water
 % 3 = CO2 and Water
 % 4 = Steam and MEG
-scenario = 3;
+scenario = 1;
 
 % Set indices
 iL = 1; i1 = 1; i2 = 1;
@@ -88,7 +88,7 @@ switch scenario
         F1.state(1,i1).mdot = 0.75;
         
         % Water
-        F2 = fluid_class('Water','SF','CP','TTSE',1,5); % storage fluid       
+        F2 = fluid_class('Water','SF','CP','HEOS',1,5); % storage fluid       
         F2.state(1,i2).p = 5e5;
         F2.state(1,i2).T = 300;
         F2.state(1,i2).mdot = 1;
@@ -105,13 +105,13 @@ switch scenario
         F1.state(iL,i2).mdot = 200;
         
         % Water
-        F2 = fluid_class('Water','WF','CP','TTSE',1,5);
+        F2 = fluid_class('Water','WF','CP','HEOS',1,5);
         F2.state(iL,i2).p = 0.1*1e5;
         F2.state(iL,i2).T = 322;
         F2.state(iL,i2).mdot = 10;
         
         % Set hex_mode
-        hex_mode = 6;
+        hex_mode = 5;
         par = 315;
         %hex_mode = 0;
         %par = 0;
@@ -124,10 +124,13 @@ end
 [F2] = update(F2,[iL,i2],1);
 
 % Specify HX settings
-HX.NX = 100; % Number of sections (grid)
-HX.model = 'geom'; % either 'eff', 'UA' or 'geom'
-HX.stage_type = 'hex';
+NX = 100; % Number of sections (grid)
+model = 'geom'; % either 'eff', 'UA' or 'geom'
+stage_type = 'hex';
 method = 'automatic';
+eff    = 1.00;
+ploss  = 0.01; 
+HX = hx_class('hot', stage_type, model, eff, ploss,  4, NX, 2, 2);
 
 switch HX.model
     case 'eff'
@@ -174,7 +177,7 @@ end
 [HX,~,~,~,~] = hex_func(HX,iL,F1,i1,F2,i2,hex_mode,par);
 
 % Make plots
-plot_hex(HX,20,'C');
+plot_hex(HX,1,20,'C');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Compare specifications from set_hex_geom with numerical results

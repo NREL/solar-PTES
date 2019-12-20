@@ -99,7 +99,7 @@ classdef hx_class
             %obj.H    = zeros(Nsave, 1) ;
             %obj.C    = zeros(Nsave, 1) ;
                         
-            obj.QS    = zeros(Ngrid+1,Nsave) ;
+            obj.QS    = zeros(Nsave,Ngrid+1) ;
             
             obj.hx_cost = econ_class(cost_mode, 0.2, 5, 0.2) ;
             

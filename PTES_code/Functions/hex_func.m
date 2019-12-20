@@ -52,6 +52,7 @@ TC1 = fluidC.state(iL,iC).T;
 % Check which one is fluidH and which is fluidC and swap them if necessary
 if TC1 > TH2 % swap needed
     swap = 1;
+    error('swap not implemented for hx_class and set_hex_geom')
     fluidH0 = fluidH;
     fluidH  = fluidC;
     fluidC  = fluidH0;
@@ -355,7 +356,7 @@ switch model
         H.h = hH;
         HX.C(iL) = C;
         HX.H(iL) = H;
-        HX.QS(:,iL) = QS;
+        HX.QS(iL,:) = QS;
         HX.AS  = [];
         
         
@@ -376,6 +377,9 @@ switch model
         
         % Compute derived geometric parameters and mass fluxes
         [C, H, HX] = shell_and_tube_geom(C, H, HX);
+        
+        QMAX0 = min([mC*(hC2_max - hC1),mH*(hH2 - hH1_min)])*(1.01); %necessary to find root
+        hH1_min = hH2 - QMAX0/mH;
         
         % Find value of hH1 for which computed area equals specified area
         f1 = @(hH1) compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
@@ -509,7 +513,7 @@ if isempty(HX.UA0)
     % If specified, estimate the HX area
     if HX.LestA
         HXt = set_hex_geom(HX, iL, fluidH, iH, fluidC, iC, mode, par, HX.NTU0, HX.ploss, HX.D1); % HXt is a temporary class
-        [~,~,HXt] = shell_and_tube_geom(HXt.C(1), HXt.H(1), HXt) ;
+        [~,~,HXt] = shell_and_tube_geom(HXt.C(iL), HXt.H(iL), HXt) ;
         
         HX.N1  = HXt.N1 ;
         HX.t1  = HXt.t1 ;
@@ -754,6 +758,10 @@ for iI = 1:NI
     % Compute arrays of pressure loss
     Dp_H = - 2*H.G^2*Cf_H.*v_H.*dL./H.D;
     Dp_C = - 2*C.G^2*Cf_C.*v_C.*dL./C.D;
+    if any(isnan([Dp_H;Dp_C]))
+        Dp_H = zeros(size(Dp_H));
+        Dp_C = zeros(size(Dp_C));
+    end
     % Update pressure profiles
     for i=NX+1:-1:2
         H.p(i-1) = H.p(i) + Dp_H(i-1);

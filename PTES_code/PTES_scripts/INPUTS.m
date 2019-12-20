@@ -48,21 +48,6 @@ air  = fluid_class('Air','ENV','CP','HEOS',Load.num,30);
 huge = max(Load.mdot)*3600*1e6; % represents a very large mass
 AT   = double_tank_class(air,T0,p0,huge,T0,p0,huge,T0,Load.num+1);
 
-% DELETE THIS EVENTUALLY
-% Create generic heat exchanger structure to run the 'hex_func' function
-% (this is to be put into a class and different objects to be created with
-% a class constructor).
-% HX.model = 'eff';
-% HX.eff = eff;
-% HX.ploss = ploss;
-% HX.stage_type = 'hex';
-% HX.NX = 100;
-% REGEN.model = 'eff';
-% REGEN.eff = eff;
-% REGEN.ploss = ploss;
-% REGEN.stage_type = 'regen';
-% REGEN.NX = 100;
-
 % Use new heat exchanger calls?
 new_hex_calls = 1;
 

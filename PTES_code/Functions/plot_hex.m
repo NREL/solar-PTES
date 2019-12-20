@@ -1,4 +1,4 @@
-function [] = plot_hex(HX,fignum,C_or_K)
+function [] = plot_hex(HX,iL,fignum,C_or_K)
 % PLOT_HEX_TQA Make T-Q, T-A and p-A diagrams of a heat exchanger.
 % Use data stored in the HX structure.
 % If the AS array (cummulative area) does not exist (i.e. the HX structure
@@ -6,9 +6,9 @@ function [] = plot_hex(HX,fignum,C_or_K)
 % only the T-Q diagram is made. 
 
 % Extract inputs
-C  = HX.C;
-H  = HX.H;
-QS = HX.QS;
+C  = HX.C(iL);
+H  = HX.H(iL);
+QS = HX.QS(iL,:);
 AS = HX.AS;
 
 % Set plots in either Celcius or Kelvin

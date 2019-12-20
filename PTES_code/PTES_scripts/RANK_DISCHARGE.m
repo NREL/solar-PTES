@@ -102,7 +102,7 @@ while 1
     [fluidH] = update(fluidH,[iL,iH],1);
     Taim = HT.A(iL).T;
     %[HX_REHEAT,steam,iG,fluidH,iH] = hex_func(HX_REHEAT,iL,steam,iG,fluidH,iH,4,Taim);
-    [HX(6),steam,iG,fluidH,iH] = hex_func(HX(6),iL,steam,iG,fluidH,iH,4,Taim); % New call with hx_class
+    [HX(6),fluidH,iH,steam,iG] = hex_func(HX(6),iL,fluidH,iH,steam,iG,4,Taim); % New call with hx_class
     iH = iH + 1;
     
     % EXPAND (4-->5)
@@ -169,7 +169,7 @@ while 1
     [fluidH] = update(fluidH,[iL,iH],1);
     Taim = HT.A(iL).T;
     %[HX_BOILER,steam,iG,fluidH,iH] = hex_func(HX_BOILER,iL,steam,iG,fluidH,iH,4,Taim);
-    [HX(7),steam,iG,fluidH,iH] = hex_func(HX(7),iL,steam,iG,fluidH,iH,4,Taim);
+    [HX(7),fluidH,iH,steam,iG] = hex_func(HX(7),iL,fluidH,iH,steam,iG,4,Taim);
     iH = iH + 1;
     
     % Determine convergence and proceed

@@ -9,20 +9,24 @@ function [HX] = set_hex_geom(HX, iL, fluidH, iH, fluidC, iC, mode, par, NTUmin, 
 % (2) Minimum D2 value according to lattice configuration.
 % (3) Introduction of tube thickness if metal volume is wanted
 
-% Use hex_func to obtain the thermal profiles for the specified NTU.
-% First, run with 'eff'=1.0 to obtain approximate Cmin.
-HX.model = 'eff';
-HX.eff   = 1.0;
-HX.ploss = ploss_max;
-[HX,~,~,~,~] = hex_func(HX,iL,fluidH,iH,fluidC,iC,mode,par);
-% Now use Cmin to compute UA and update profiles.
-HX.model = 'UA';
-HX.UA    = HX.Cmin*NTUmin;
-[HX,~,~,~,~] = hex_func(HX,iL,fluidH,iH,fluidC,iC,mode,par);
-% Reset heat exchanger model to 'geom'.
-HX.model = 'geom'; HX.eff=0; HX.UA=0;
-%plot_hex(HX,1,'C')
-
+if isempty(HX.UA0)
+    % Use hex_func to obtain the thermal profiles for the specified NTU.
+    % First, run with 'eff'=1.0 to obtain approximate Cmin.
+    model0 = HX.model;
+    eff0   = HX.eff;
+    UA0    = HX.UA;
+    HX.model = 'eff';
+    HX.eff   = 1.0;
+    HX.ploss = ploss_max;
+    [HX,~,~,~,~] = hex_func(HX,iL,fluidH,iH,fluidC,iC,mode,par);
+    % Now use Cmin to compute UA and update profiles.
+    HX.model = 'UA';
+    HX.UA    = HX.Cmin*NTUmin;
+    [HX,~,~,~,~] = hex_func(HX,iL,fluidH,iH,fluidC,iC,mode,par);
+    % Reset parameters
+    HX.model = model0; HX.eff=eff0; HX.UA=UA0;
+    %plot_hex(HX,1,'C')
+end
 
 % Declare the two fluid streams
 SH = stream;
@@ -36,7 +40,9 @@ SH = stream_update(fluidH,SH,1);
 SC.h = HX.C(iL).h;
 SC.p = HX.C(iL).pin*ones(size(SC.h));
 SC.mdot = HX.C(iL).mdot;
+%keyboard
 SC = stream_update(fluidC,SC,1);
+%keyboard
 
 % Determine which one is the "weak" stream (the one likely to present
 % higher thermo-hydraulic losses for a given value of G). Sizing will start
@@ -107,15 +113,16 @@ SS.A = SW.A;
 
 % Assume an initial value of D2 and update until it satisfies
 % thermo-hydraulic performance requirements
-SS.D = SW.D;
+% SS.D = SW.D;
 
 % Find the optimal hydraulic diameter that minimises losses on the second
 % stream
 fun = @(D) stream_losses(D,SS);
 xmin = SW.D/100;
 xmax = SW.D*100;
-%plot_function(fun,S1.D/100,S1.D*100,100,30,'loglog')
-options = optimset('Display','notify','TolX',0.01*xmin);
+%plot_function(fun,xmin,xmax,100,30,'loglog')
+options = optimset('Display','notify','TolX',0.01*xmin,...
+    'FunValCheck','on','AlwaysHonorConstraints','bounds');
 SS.D = fminbnd(fun,xmin,xmax,options);
 
 % Compute mass flux
@@ -129,11 +136,11 @@ SS.Re = SS.G*SS.D./SS.mu;
 SS.Af = SS.mdot/SS.G;
 
 % Check results
-Ntu1   = 4*SW.L/SW.D*mean(SW.St)
-Ntu2   = 4*SS.L/SS.D*mean(SS.St)
-ploss1 = mean(Ntu1*SW.G^2*SW.v.*(SW.Cf./SW.St)./(2*SW.p))
-ploss2 = mean(Ntu2*SS.G^2*SS.v.*(SS.Cf./SS.St)./(2*SS.p))
-keyboard
+% Ntu1   = 4*SW.L/SW.D*mean(SW.St)
+% Ntu2   = 4*SS.L/SS.D*mean(SS.St)
+% ploss1 = mean(Ntu1*SW.G^2*SW.v.*(SW.Cf./SW.St)./(2*SW.p))
+% ploss2 = mean(Ntu2*SS.G^2*SS.v.*(SS.Cf./SS.St)./(2*SS.p))
+% keyboard
 
 % Export results into HX structure
 HX.shape = 'circular';
@@ -178,6 +185,7 @@ PL = 2*S.G^2*mean(S.Cf.*S.v./S.p)*S.L/D;
 
 % Add the thermal and the pressure loss factors
 out = PL + TL;
+%keyboard
 
 % if any([TL > 1/Ntu_min, PL > ploss_max])
 %     out = 1000*out;

@@ -86,48 +86,25 @@ if Load.mode==3
     steam = fluid_class('Water','WF','CP','HEOS',Load.num,30);
 end
 
-% Set heat exchangers (this is temporary, it will be done properly using a
-% class constructor
-% HX_CONDEN.model = 'eff';
-% HX_CONDEN.eff = eff;
-% HX_CONDEN.ploss = 0;
-% HX_CONDEN.stage_type = 'hex';
-% HX_CONDEN.NX = 100;
-% HX_REHEAT.model = 'eff';
-% HX_REHEAT.eff = eff;
-% HX_REHEAT.ploss = ploss;
-% HX_REHEAT.stage_type = 'hex';
-% HX_REHEAT.NX = 100;
-% HX_BOILER.model = 'eff';
-% HX_BOILER.eff = eff;
-% HX_BOILER.ploss = ploss;
-% HX_BOILER.stage_type = 'hex';
-% HX_BOILER.NX = 100;
-% HX_ACC.model = 'eff';
-% HX_ACC.eff = eff;
-% HX_ACC.ploss = 0.1/100;
-% HX_ACC.stage_type = 'regen';
-% HX_ACC.NX = 100;
-
 % Make heat exchangers
 switch Load.mode
     case {0,1,2}
         % Call HX classes for ideal-gas PTES cycle
-        HX(1) = hx_class('hot', 'hex', 'eff', eff, ploss, 11, 100, Load.num, Load.num) ; % Hot heat exchanger
-        HX(2) = hx_class('cold', 'hex', 'eff', eff, ploss, 11, 100, Load.num, Load.num) ; % Cold heat exchanger
-        HX(3) = hx_class('regen', 'regen', 'eff', eff, ploss, 11, 100, Load.num, Load.num) ; % Recuperator
-        HX(4) = hx_class('rej', 'hex', 'eff', eff, ploss, 33 , 100, Load.num, Load.num) ; % Heat rejection unit
+        HX(1) = hx_class('hot',  'hex',   'eff', eff, ploss,  4, 100, Load.num, Load.num) ; % Hot heat exchanger
+        HX(2) = hx_class('cold', 'hex',   'eff', eff, ploss,  4, 100, Load.num, Load.num) ; % Cold heat exchanger
+        HX(3) = hx_class('regen','regen', 'eff', eff, ploss,  4, 100, Load.num, Load.num) ; % Recuperator
+        HX(4) = hx_class('rej',  'hex',   'eff', eff, ploss, 33, 100, Load.num, Load.num) ; % Heat rejection unit
     case 3
         % Call HX classes for ideal-gas PTES heat pump with Rankine cycle discharge
-        HX(1) = hx_class('hot', 'hex', 'eff', eff, ploss, 3, 100, Load.num, Load.num) ; % Hot heat exchanger
-        HX(2) = hx_class('cold', 'hex', 'eff', eff, ploss, 3, 100, Load.num, Load.num) ; % Cold heat exchanger
-        HX(3) = hx_class('regen', 'regen', 'eff', eff, ploss, 3, 100, Load.num, Load.num) ; % Recuperator
-        HX(4) = hx_class('rej', 'hex', 'eff', eff, ploss, 33, 100, Load.num, Load.num) ; % Heat rejection unit
+        HX(1) = hx_class('hot',  'hex',   'eff', eff, ploss,  3, 100, Load.num, Load.num) ; % Hot heat exchanger
+        HX(2) = hx_class('cold', 'hex',   'eff', eff, ploss,  3, 100, Load.num, Load.num) ; % Cold heat exchanger
+        HX(3) = hx_class('regen','regen', 'eff', eff, ploss,  3, 100, Load.num, Load.num) ; % Recuperator
+        HX(4) = hx_class('rej',  'hex',   'eff', eff, ploss, 33, 100, Load.num, Load.num) ; % Heat rejection unit
         
-        HX(5) = hx_class('cold', 'hex', 'eff', eff, 0, 1, 100, Load.num, Load.num) ; % Condenser
-        HX(6) = hx_class('hot', 'hex', 'eff', eff, ploss, 1, 100, Load.num, Load.num) ; % Reheat
-        HX(7) = hx_class('hot', 'hex', 'eff', eff, ploss, 1, 100, Load.num, Load.num) ; % Boiler
-        HX(8) = hx_class('rej', 'regen', 'eff', eff, 0.1/100, 1, 100, Load.num, Load.num) ; % Air-cooled condenser
+        HX(5) = hx_class('cold', 'hex',   'eff', eff, 0,      1, 100, Load.num, Load.num) ; % Condenser
+        HX(6) = hx_class('hot',  'hex',   'eff', eff, ploss,  1, 100, Load.num, Load.num) ; % Reheat
+        HX(7) = hx_class('hot',  'hex',   'eff', eff, ploss,  1, 100, Load.num, Load.num) ; % Boiler
+        HX(8) = hx_class('rej',  'regen', 'eff', eff, 0.1/100,1, 100, Load.num, Load.num) ; % Air-cooled condenser
 end
 
 % Options for specifying heat exchanger geometry
