@@ -32,7 +32,7 @@ Load.num = numel(Load.time);
 Load.ind = 1:Load.num;
 
 Lcld    = false ;       % Make cold store as cold as possible?
-Lrcmp   = false ;       % Is there a recompressor?
+Lrcmp   = true ;       % Is there a recompressor?
 
 % Number of recuperators
 Nrcp = 2 ; % Can be 0,1,2.
