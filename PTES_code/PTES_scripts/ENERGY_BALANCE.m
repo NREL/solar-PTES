@@ -11,7 +11,7 @@ for ii = 1:length(CEXP)
 end
 
 switch Load.mode
-    case {0,1,2,4,5}
+    case {0,1,2,4,5,6}
         NC = Ne_ch ;
         NE = Nc_ch ;
     case 3
@@ -27,7 +27,7 @@ for ii = 1:length(DEXP)
 end
 
 % Recompressor if specified for sCO2 cycle
-if Load.mode == 4 || Load.mode == 5
+if Load.mode == any([4,5,6])
     if Lrcmp
         RCMP = compexp_energy(RCMP,Load.time)  ;
     end
@@ -65,7 +65,7 @@ nH = numel(fluidH);
 nC = numel(fluidC);
 for iL=1:Load.num
     
-    if any(strcmp(Load.type(iL),{'chg','chgCO2'}))
+    if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
         W_in_chg   = W_in_chg   -    sum([gas.stage(iL,:).w]   .*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
         W_lost_chg = W_lost_chg + T0*sum([gas.stage(iL,:).sirr].*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
         DH_chg     = DH_chg     +    sum([gas.stage(iL,:).Dh]  .*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
@@ -77,7 +77,7 @@ for iL=1:Load.num
         end
         QE_chg = QE_chg + sum([environ.sink(iL,:).DHdot]*Load.time(iL));
         
-    elseif any(strcmp(Load.type(iL),{'dis','disCO2','rcmpCO2'}))
+    elseif any(strcmp(Load.type(iL),{'dis','disCO2','rcmpCO2','disTSCO2'}))
         W_out_dis  = W_out_dis  +    sum([gas.stage(iL,:).w]   .*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
         W_lost_dis = W_lost_dis + T0*sum([gas.stage(iL,:).sirr].*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
         DH_dis     = DH_dis     +    sum([gas.stage(iL,:).Dh]  .*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
@@ -114,11 +114,11 @@ for iL=1:Load.num
     end
     
     % Compute contributions from ambient air streams (heat rejection)
-    if any(strcmp(Load.type(iL),{'chg','chgCO2'}))
+    if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
         W_in_chg   = W_in_chg   -    sum([air.stage(iL,:).w]   .*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));
         W_lost_chg = W_lost_chg + T0*sum([air.stage(iL,:).sirr].*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));
         QE_chg     = QE_chg     +    sum([air.stage(iL,:).Dh]  .*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));        
-    elseif any(strcmp(Load.type(iL),{'dis','disCO2','ran','rcmpCO2'}))
+    elseif any(strcmp(Load.type(iL),{'dis','disCO2','ran','rcmpCO2','disTSCO2'}))
         W_out_dis  = W_out_dis  +    sum([air.stage(iL,:).w]   .*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));
         W_lost_dis = W_lost_dis + T0*sum([air.stage(iL,:).sirr].*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));
         QE_dis     = QE_dis     +    sum([air.stage(iL,:).Dh]  .*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));      
@@ -134,11 +134,11 @@ fact    = 1e6*3600; % J to MWh
 Net_chg = (+ W_in_chg  + QC_chg  - QH_chg  - DH_chg  - QE_chg);
 Net_dis = (- W_out_dis - QC_dis  + QH_dis  - DH_dis  - QE_dis);
 
-i_chg = Load.ind(any(Load.type == {'chg','chgCO2'},2));
+i_chg = Load.ind(any(Load.type == {'chg','chgCO2','chgTSCO2'},2));
 i_dis = Load.ind(any(Load.type == {'dis','disCO2','ran','rcmpCO2'},2));
 i_ran = Load.ind(Load.type == 'ran');
-i_gas = Load.ind(any(Load.type == {'chg','dis','chgCO2','disCO2','rcmpCO2'},2));
-i_act = Load.ind(any(Load.type == {'chg','dis','chgCO2','disCO2','ran','rcmpCO2'},2));
+i_gas = Load.ind(any(Load.type == {'chg','dis','chgCO2','disCO2','rcmpCO2','chgTSCO2','disTSCO2'},2));
+i_act = Load.ind(any(Load.type == {'chg','dis','chgCO2','disCO2','ran','rcmpCO2','chgTSCO2','disTSCO2'},2));
 
 t_chg = sum(Load.time(i_chg));
 t_dis = sum(Load.time(i_dis));
@@ -157,7 +157,7 @@ ip2 = find(i_dis == 1,1,'first'); %index for printing (first discharge period)
 WL_PTES_chg = zeros(1,7);
 WL_PTES_dis = zeros(1,7);
 for iL=1:Load.num
-    if any(strcmp(Load.type(iL),{'chg','chgCO2','dis','disCO2','rcmpCO2'}))
+    if any(strcmp(Load.type(iL),{'chg','chgCO2','dis','disCO2','rcmpCO2','chgTSCO2','disTSCO2'}))
         for i0=1:gas.Nstg(iL)
             switch gas.stage(iL,i0).type
                 case 'comp'
@@ -175,10 +175,10 @@ for iL=1:Load.num
                     error('unknown stage type');
             end
             if any(strcmp(gas.stage(iL,i0).type,{'comp','exp','hex','regen','hex_reject','mixing'}))
-                if any(strcmp(Load.type(iL),{'chg','chgCO2'}))
+                if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
                     WL_PTES_chg(i1) = WL_PTES_chg(i1) + gas.stage(iL,i0).sirr*T0*gas.state(iL,i0).mdot*Load.time(iL);
                 end
-                if any(strcmp(Load.type(iL),{'dis','disCO2'}))
+                if any(strcmp(Load.type(iL),{'dis','disCO2','disTSCO2'}))
                     WL_PTES_dis(i1) = WL_PTES_dis(i1) + gas.stage(iL,i0).sirr*T0*gas.state(iL,i0).mdot*Load.time(iL);
                 end
             end
@@ -223,10 +223,10 @@ for iL=1:Load.num
                 error('unknown stage type');
         end
         if any(strcmp(air.stage(iL,i0).type,{'comp','exp','hex','regen','hex_reject','mixing'}))
-            if any(strcmp(Load.type(iL),{'chg','chgCO2'}))
+            if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
                 WL_PTES_chg(i1) = WL_PTES_chg(i1) + air.stage(iL,i0).sirr*T0*air.state(iL,i0).mdot*Load.time(iL);
             end
-            if any(strcmp(Load.type(iL),{'dis','disCO2','ran'}))
+            if any(strcmp(Load.type(iL),{'dis','disCO2','ran','disTSCO2'}))
                 WL_PTES_dis(i1) = WL_PTES_dis(i1) + air.stage(iL,i0).sirr*T0*air.state(iL,i0).mdot*Load.time(iL);
             end
         end
@@ -235,7 +235,7 @@ for iL=1:Load.num
 end
 switch Load.mode
 
-    case {0,3,4} % PTES, Rankine, or sCO2-PTES
+    case {0,3,4,6} % PTES, Rankine, or sCO2-PTES
         
         for ii = 1 : Nhot
             WL_PTES_chg(5) = WL_PTES_chg(5) + HT(ii).WL_chg ;
@@ -335,7 +335,7 @@ end
 
 % Compute efficiencies, energy and power densities and errors
 switch Load.mode
-    case {0,3,4} % PTES, Rankine, or sCO2-PTES
+    case {0,3,4,6} % PTES, Rankine, or sCO2-PTES
         Heat_in_tanks = 0;
         for ii = 1 : Nhot
             Heat_in_tanks = Heat_in_tanks + (HT(ii).A(end).H - HT(ii).A(1).H) + (HT(ii).B(end).H - HT(ii).B(1).H) ;
@@ -393,7 +393,7 @@ if Load.mode == 1
 end
 
 switch Load.mode
-    case {0,1,3,4}
+    case {0,1,3,4,6}
         Exergy_in = W_in_chg;
     case {2,5}
         Exergy_in = Exergy_from_tanks;
@@ -412,7 +412,7 @@ if WM == 1
     fprintf(1,'-----------------\n');
     
     switch Load.mode
-        case {0,1,3,4}
+        case {0,1,3,4,6}
             fprintf(1,'CHARGE\n');
             fprintf(1,'Average power input:     %8.1f MW\n',W_in_chg/t_chg/1e6);
             fprintf(1,'Total charge time:       %8.1f h\n',t_chg/3600);
@@ -425,7 +425,7 @@ if WM == 1
     end
     
     switch Load.mode
-        case {0,2,3,4,5}
+        case {0,2,3,4,5,6}
             fprintf(1,'DISCHARGE\n');
             fprintf(1,'Average power output:    %8.1f MW\n',W_out_dis/t_dis/1e6);
             fprintf(1,'Total discharge time:    %8.1f h\n',t_dis/3600);
@@ -446,7 +446,7 @@ if WM == 1
     end
     
     switch Load.mode
-        case {0,3,4}
+        case {0,3,4,6}
             fprintf(1,'Round trip efficiency:   %8.1f %%\n\n',chi_PTES*100);
             fprintf(1,'Exergy density:          %9.2f kWh/m3\n',rhoE);
             
@@ -479,7 +479,7 @@ end
 % temperature. If stores are above T0 when discharged, then they must be
 % returned to their original temp or greater. If stores are below T0 when
 % discharged, then they must be returned to original temp or lower.
-if (Load.mode == 0 || Load.mode == 4)
+if Load.mode == any([0,4,6])
     problem = 0 ;
     
     % Hot tanks

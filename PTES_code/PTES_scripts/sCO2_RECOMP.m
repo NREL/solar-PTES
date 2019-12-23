@@ -22,7 +22,7 @@ switch Load.mode
         if Lrcmp
             iReg2 = iReg2 + 1 ;
         end
-    case 5 % Heat engine only
+    case {5} % Heat engine only
         iReg2 = iReg1 + 3 + 3*Nc_dis; % index HOT regenerator cold inlet (after regeneration + heat rejection + compression)
         iReg3 = iReg2 - 2 ;
 end
@@ -60,7 +60,7 @@ while 1
     switch Load.mode
         case 4 % PTES
             ind = 1.0 ;
-        case 5 % Heat engine only
+        case {5} % Heat engine only
             ind = 1.0 ; % Check this
     end
     p_aim = gas.state(iL,iRCMP).p*PRdis*(1-ploss)^ind;
@@ -99,7 +99,7 @@ while 1
                     [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
                 end 
                 
-            case 5 % Heat engine only
+            case {5} % Heat engine only
                 % REJECT HEAT (external HEX)
                 T_aim = environ.T0 + Trej;
                 [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
@@ -137,7 +137,7 @@ while 1
     for iN = 1:Ne_dis
         % HEAT (gas-fluid)
         for ii = Nhot : -1 : 1
-            fluidH(ii).state(iL,iH(ii)).T = HT(ii).B(iL).T; fluidH(ii).state(iL,iH(ii)).p = HT(ii).B(iL).p; 
+            fluidH(ii).state(iL,iH(ii)).T = HT(ii).B(iL).T; fluidH(ii).state(iL,iH(ii)).p = HT(ii).B(iL).p;
             THoutMAX = max(gas.state(iL,iG).T+1,HT(ii).A(1).T);
             [fluidH(ii)] = update(fluidH(ii),[iL,iH(ii)],1);
             if new_hex_calls
@@ -147,6 +147,7 @@ while 1
             end
             iH(ii) = iH(ii) + 1 ;
         end
+        
         
         % EXPAND
         PRe_dis = (gas.state(iL,iG).p/pbot)^(1/(Ne_dis+1-iN));  % expansion pressure ratio

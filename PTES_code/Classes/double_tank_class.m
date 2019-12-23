@@ -132,12 +132,12 @@ classdef double_tank_class
              s_mix = mix_state.s; % entropy flow into sink tank (after mixing)
              
              % Select sink tank and source tank depending on operation mode
-             if any(strcmp(Load.type(iL),{'chg','chgCO2'}))
+             if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
                  SO1   = obj.A(iL);   %source tank
                  SO2   = obj.A(iL+1); %source tank
                  SI1   = obj.B(iL);   %sink tank
                  SI2   = obj.B(iL+1); %sink tank
-             elseif any(strcmp(Load.type(iL),{'dis','ran','disCO2','rcmpCO2'}))
+             elseif any(strcmp(Load.type(iL),{'dis','ran','disCO2','rcmpCO2','disTSCO2'}))
                  SI1   = obj.A(iL);   %sink tank
                  SI2   = obj.A(iL+1); %sink tank
                  SO1   = obj.B(iL);   %source tank
@@ -163,11 +163,11 @@ classdef double_tank_class
              S_irr1 = (s_mix*Mdot - Sdot_in)*t; %mixing of streams before sink tank inlet
              S_irr2 = SI2.S - (SI1.S + s_mix*Mdot*t); %mixing of streams with fluid inside sink tank
              S_irr  = S_irr1 + S_irr2;
-             if any(strcmp(Load.type(iL),{'chg','chgCO2'})) 
+             if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'})) 
                  obj.A(iL+1) = SO2;
                  obj.B(iL+1) = SI2;
                  obj.WL_chg = obj.WL_chg + T0*S_irr;
-             elseif any(strcmp(Load.type(iL),{'dis','ran','disCO2'}))
+             elseif any(strcmp(Load.type(iL),{'dis','ran','disCO2','rcmpCO2','disTSCO2'}))
                  obj.A(iL+1) = SI2;
                  obj.B(iL+1) = SO2;
                  obj.WL_dis = obj.WL_dis + T0*S_irr;

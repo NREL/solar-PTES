@@ -58,7 +58,7 @@ switch Load.mode
         DCMP(1:3) = compexp_class('comp', 'isen', 22, eta, Load.num) ; % Discharging compressors
         DEXP(1:3) = compexp_class('exp', 'isen', 11, eta, Load.num) ; % Discharging expanders
         
-    case {5} % sCO2-PTES type cycles
+    case {4,5,6} % sCO2-PTES type cycles
         CCMP(1:Nc_ch) = compexp_class('comp', 'poly', 7, eta, Load.num) ; % Charging compressors
         DEXP(1:Nc_ch) = compexp_class('exp', 'poly', 17, eta, Load.num) ; % Discharging expanders
         
@@ -70,17 +70,6 @@ switch Load.mode
             RCMP = compexp_class('comp', 'poly', 7, eta, Load.num) ; % Re-compressors
         end
         
-    case {5} % sCO2-PTES type cycles
-        
-        DEXP(1:Nc_ch) = compexp_class('exp', 'isen', 17, eta, Load.num) ; % Discharging expanders
-        
-        
-        DCMP(1:Ne_ch) = compexp_class('comp', 'isen', 17, 0.89, Load.num) ; % Discharging compressors
-        
-        %Recompressor
-        if Lrcmp
-            RCMP = compexp_class('comp', 'isen', 7, 0.89, Load.num) ; % Re-compressors
-        end
 end
 
 % Fans --> NOT SURE WHAT cost_mode should be selected in this case
