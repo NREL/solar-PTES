@@ -89,6 +89,12 @@ for iL=1:Load.num
         end
         QE_dis = QE_dis + sum([environ.sink(iL,:).DHdot]*Load.time(iL));
         
+        % Also calculate the solar heat input to one tank
+        if Load.mode == 6
+            QH_sol = -sum([fluidH(1).stage(iL,:).q].*[fluidH(1).state(iL,1:(end-1)).mdot]*Load.time(iL));
+            EX_sol = QH_sol - T0 * (fluidH(1).state(iL,1).s - fluidH(1).state(iL,2).s)*fluidH(1).state(iL,1).mdot*Load.time(iL);
+        end
+        
     elseif strcmp(Load.type(iL),'ran')
         W_out_dis  = W_out_dis  +    sum([steam.stage(iL,:).w]   .*[steam.state(iL,1:(end-1)).mdot]*Load.time(iL));
         W_lost_dis = W_lost_dis + T0*sum([steam.stage(iL,:).sirr].*[steam.state(iL,1:(end-1)).mdot]*Load.time(iL));
@@ -135,7 +141,7 @@ Net_chg = (+ W_in_chg  + QC_chg  - QH_chg  - DH_chg  - QE_chg);
 Net_dis = (- W_out_dis - QC_dis  + QH_dis  - DH_dis  - QE_dis);
 
 i_chg = Load.ind(any(Load.type == {'chg','chgCO2','chgTSCO2'},2));
-i_dis = Load.ind(any(Load.type == {'dis','disCO2','ran','rcmpCO2'},2));
+i_dis = Load.ind(any(Load.type == {'dis','disCO2','ran','rcmpCO2','disTSCO2'},2));
 i_ran = Load.ind(Load.type == 'ran');
 i_gas = Load.ind(any(Load.type == {'chg','dis','chgCO2','disCO2','rcmpCO2','chgTSCO2','disTSCO2'},2));
 i_act = Load.ind(any(Load.type == {'chg','dis','chgCO2','disCO2','ran','rcmpCO2','chgTSCO2','disTSCO2'},2));
@@ -353,9 +359,17 @@ switch Load.mode
         for ii = 1:Ncld; vol = vol + CT(ii).tank_volA + CT(ii).tank_volB ; end
         rhoE = W_out_dis/fact/vol*1e3; %kWh/m3
         
-        HEeff = 100. * W_out_dis / QH_dis ; % Heat engine average efficiency
-        HEeffRC = 100. * W_out_disRC / QH_disRC ; % Efficiency for cycles where only cold tanks are used for condensing
-        HEeffNC = 100. * W_out_disNC / QH_disNC ; % Efficiency for cycles where cold tanks are NOT used for condensing
+        % Calculate some special metrics for certain cycles
+        if Load.mode == 3
+            HEeff = 100. * W_out_dis / QH_dis ; % Heat engine average efficiency
+            HEeffRC = 100. * W_out_disRC / QH_disRC ; % Efficiency for cycles where only cold tanks are used for condensing
+            HEeffNC = 100. * W_out_disNC / QH_disNC ; % Efficiency for cycles where cold tanks are NOT used for condensing
+        elseif Load.mode == 6
+            SOLeff = 100. * W_out_dis / QH_sol ; % Solar conversion efficiency
+            HEeff  = 100. * W_out_dis / QH_dis ; % Heat engine efficiency
+            NETeff = 100. * (W_out_dis - W_in_chg) / QH_sol ; % Net efficiency
+            EXeff  = 100. * W_out_dis / (W_in_chg + EX_sol) ; % Exergetic efficiency
+        end
         
     case 1 % Heat pump only
         Heat_into_tanks   = (HT.A(end).H - HT.A(1).H) + (HT.B(end).H - HT.B(1).H) + (CT.A(end).H - CT.A(1).H) + (CT.B(end).H - CT.B(1).H);
@@ -440,9 +454,15 @@ if WM == 1
     switch Load.mode
         case 3
             fprintf(1,'DISCHARGE Efficiencies\n');
-            fprintf(1,'Rankine cycle average efficiency           %8.1f %%\n',HEeff);
-            fprintf(1,'Rankine cycle efficiency NO cold stores    %8.1f %%\n',HEeffNC);
-            fprintf(1,'Rankine cycle efficiency using cold stores %8.1f %%\n\n',HEeffRC);
+            fprintf(1,'Rankine cycle average efficiency:           %8.1f %%\n',HEeff);
+            fprintf(1,'Rankine cycle efficiency NO cold stores:    %8.1f %%\n',HEeffNC);
+            fprintf(1,'Rankine cycle efficiency using cold stores: %8.1f %%\n\n',HEeffRC);
+        case 6
+            fprintf(1,'EFFICIENCIES\n');
+            fprintf(1,'Solar conversion efficiency:     %8.1f %%\n',SOLeff);
+            fprintf(1,'Heat engine efficiency:          %8.1f %%\n',HEeff);
+            fprintf(1,'Net efficiency:                  %8.1f %%\n',NETeff);
+            fprintf(1,'Exergetic efficiency:            %8.1f %%\n\n',EXeff);
     end
     
     switch Load.mode

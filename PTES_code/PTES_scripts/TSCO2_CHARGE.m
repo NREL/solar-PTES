@@ -103,9 +103,12 @@ while 1
     
         
     % REJECT HEAT (external HEX)
-    %T_aim = environ.T0;
-    %[gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
-    
+    if Lcld
+        T_aim = environ.T0;
+    else
+        T_aim = gas.state(iL,iG).T - 0.1 ; % Need to reject a little heat for the energy balance
+    end
+    [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
     
     % EXPAND
     PRe = (gas.state(iL,iG).p/pbot)^(1/(Ne_ch+1-iN)); % stage expansion pressure ratio

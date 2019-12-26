@@ -192,7 +192,7 @@ switch Nrcp
                 
                 % Choose a threshold temperature between the recuperators
                 TthreshD = 250. + 273.15 ; % Discharge - threshold is on high-pressure side
-        
+                Lcld = false ;
         end
                 
 end

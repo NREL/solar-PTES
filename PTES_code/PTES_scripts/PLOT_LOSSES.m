@@ -1,6 +1,6 @@
 figure(8)
 switch Load.mode
-    case {0,3,4}
+    case {0,3,4,6}
         names = {'$$\mathrm{PTES_{ch}}$$','$$\mathrm{PTES_{dis}}$$'};
         b = bar(WL_matrix./W_in_chg*100,'stacked');
         set(gca, 'XTick', 1:2, 'XTickLabel', names, 'TickLabelInterpreter', 'latex')
