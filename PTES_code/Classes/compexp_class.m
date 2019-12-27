@@ -289,9 +289,7 @@ classdef compexp_class
             % equation given in the solar-PTES Q2 report
             switch mode
                 case 0
-                    % Black and Veatch correlation, eq. C1 and E1
-                    COST = 250. * obj.W0 ;
-                    COST = COST * CEind(curr) / CEind(2018) ;
+                    COST = 0.01 ;
                 
                 case 1
                     % Reciprocating compressor cost from Georgiou et al 2019 based on Turton
@@ -410,6 +408,11 @@ classdef compexp_class
                     % FANS --> NEED UPDATING!
                     COST = 50e3 + 1500 * (obj.W0 / 1e3)^0.8 ;
                     COST = COST * CEind(curr) / CEind(2009) ;
+                    
+                case 40
+                    % Black and Veatch correlation, eq. C1 and E1
+                    COST = 250. * obj.W0 ;
+                    COST = COST * CEind(curr) / CEind(2018) ;
 
             end
             

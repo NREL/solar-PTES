@@ -12,7 +12,7 @@
 if iL == 1
 
     % First reset the solar tanks
-    HT(1) = reset_tanks(HT(1),TH_dis0(1),p0,0,TH_chg0(1),p0,1e6,T0);
+    HT(1) = reset_tanks(HT(1),TH_dis0(1),p0,0,TH_chg0(1),p0,MH_dis0(1),T0);
     
     HT(1).A(2) = HT(1).A(1); % Not sure these are necessary
     HT(1).B(2) = HT(1).B(1);
@@ -167,7 +167,7 @@ end
 % by solar???
 
 % Solar tank behaviour
-HT(1) = reset_tanks(HT(1),TH_dis0(1),p0,0,TH_chg0(1),p0,1e6,T0);
+HT(1) = reset_tanks(HT(1),TH_dis0(1),p0,0,TH_chg0(1),p0,MH_dis0(1),T0);
 HT(1).A(2) = HT(1).A(1);
 HT(1).B(2) = HT(1).B(1);
 

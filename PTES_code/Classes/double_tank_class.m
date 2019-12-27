@@ -231,6 +231,11 @@ classdef double_tank_class
              
              % Numerous cost correlations available
              switch mode
+                 case 0 
+                     
+                     Acost = 0.01 ;
+                     Bcost = 0.01 ;
+                 
                  case 1
                      % Tank cost based upon Peters + Timmerhaus
                      % See solar-PTES Q2 report, equation PV2 - updated

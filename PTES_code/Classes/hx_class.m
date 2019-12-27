@@ -113,7 +113,7 @@ classdef hx_class
            curr = 2019 ; % Current year
            switch obj.hx_cost.cost_mode
                case 0
-                   COST = 0 ;
+                   COST = 0.01 ;
                    
                % ** 
                case 1
