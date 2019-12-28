@@ -10,6 +10,8 @@ elseif strcmp(fluid.read,'TAB')
             v  = fluid.TAB(:,1); %temperature
         case 'H'
             v  = fluid.TAB(:,2); %enthalpy
+        case 'S'
+            v  = fluid.TAB(:,4) ; % entropy
         otherwise
             error('not implemented')
     end

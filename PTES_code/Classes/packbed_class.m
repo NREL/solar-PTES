@@ -9,18 +9,14 @@ classdef packbed_class
         eps
         Sv
         AR
-        MS
-        VS
-        Vtank
+        V       % Tank volume
         
         Sname % Solid name
         sld   % Table that contains solid data
         rhoS
         kS
         cS
-        
-        ceff
-        
+                
         rhoF
         kF
         cF
@@ -58,6 +54,7 @@ classdef packbed_class
         timeD
         textC
         textD
+        time
         
         keff
         Bi
@@ -77,6 +74,14 @@ classdef packbed_class
         TF
         P
         rho
+        
+        H       % Enthalpy stored in the packed bed (at the end of each cycle)
+        S       % Entropy of the packed bed (at the end of each cycle)
+        Mflux   % Flux of mass into/out of the packed bed
+        Hflux   % Flux of enthalpy into/out of the packed bed
+        Sflux   % Flux of entropy into/out of the packed bed
+        Hnet    % Net change of enthalpy (should be zero)
+        Snet    % Net change of entropy (is sirr)
             
         w       % specific work transfer, J/kg
         q       % specific heat transfer, J/kg
@@ -106,16 +111,11 @@ classdef packbed_class
         function obj = PB_INITIALISE(obj,fld)
             
             % mass of solid required
-            obj.ceff = obj.eps * obj.rhoF * obj.cF + (1-obj.eps) * obj.rhoS * obj.cS ;
-            obj.ceff = obj.ceff / (obj.rhoF + obj.rhoS) ;
-            obj.MS = obj.tN * obj.mdot * obj.cF / obj.cS ;
-            
-            % volumes
-            obj.VS    = obj.MS / obj.rhoS ; % Solid volume
-            obj.Vtank = obj.VS / obj.eps ; % Tank volume
-            
+            ceff  = obj.eps * obj.rhoF * obj.cF + (1-obj.eps) * obj.rhoS * obj.cS ;
+            obj.V = obj.tN * obj.mdot * obj.cF / ceff ;
+                        
             % Geometry
-            obj.D  = (4. * obj.Vtank / (pi * obj.AR)) ^ (1./3.) ;
+            obj.D  = (4. * obj.V / (pi * obj.AR)) ^ (1./3.) ;
             obj.L  = obj.D * obj.AR ;
             obj.A  = 0.25 * pi * obj.D^2 ;
             obj.Sv = 6. / obj.dp ;
@@ -127,7 +127,7 @@ classdef packbed_class
             % Grid and time-steps
             obj.dx = obj.DELX * obj.L ;
             obj.dt = obj.CFL * obj.dx / obj.ui ;
-            obj.NX = obj.L / obj.dx ; % Number of grid steps
+            obj.NX = int64(obj.L / obj.dx) ; % Number of grid steps
             obj.Nt = obj.TMAX * obj.tN / obj.dt ; % Max number of time steps
             obj.TMAX = obj.TMAX * obj.tN ;
             
@@ -196,6 +196,11 @@ classdef packbed_class
             % dependent properties - SOLID
             obj.CSfacs = X\obj.sld(lo:hi,5); % coefficients for heat capacity
                 
+            obj.Mflux = zeros(30,2) ;
+            obj.Hflux = zeros(30,2) ;
+            obj.Sflux = zeros(30,2) ;
+            obj.time  = zeros(30,2) ;
+            
             
             % Error control
             if (obj.Ltime && obj.Ltext)
@@ -243,6 +248,11 @@ classdef packbed_class
                     %muf(i) = Xf * obj.MUfacs ;
                     
                     CS(i) = Xs * obj.CSfacs ;
+                    
+                    % Alternative
+                    %CF(i) = interp1(fld.TAB(:,1),fld.TAB(:,5),obj.TF(i,1)) ; 
+                    %CS(i) = interp1(obj.sld(:,1),obj.sld(:,5),obj.TS(i,1)) ; 
+                    
                 end
             end
             
@@ -292,7 +302,7 @@ classdef packbed_class
             obj.TS(:,1) = T(:,1) ;
             obj.TF(:,1) = T(:,2) ;
             
-            % Calculate densities - need to calculate properly
+            % Calculate densities 
             if obj.Lconst
                 obj.rho(:,1) = obj.rho(:,2)  ;
             else
@@ -326,34 +336,69 @@ classdef packbed_class
         end
         
         % Calculate energy in storage at end of charge and end of discharge
-        function [obj, en] = PB_ENERGY(obj)
+        function [obj, en, ent] = PB_ENERGY(obj, fld)
             
             N  = obj.NX ;
             Tf = obj.TF ;
             Ts = obj.TS ;
             
-            CF  = zeros(N,1) ;
-            CS  = zeros(N,1) ;
+            HF  = zeros(N,1) ;
+            SF  = zeros(N,1) ;
+            
+            HS  = zeros(N,1) ;
+            SS  = zeros(N,1) ;
+            
+            if obj.TC > obj.TD
+                T0 = obj.TD ;
+            else
+                T0 = obj.TC ;
+            end
             
             if obj.Lconst
                 CF  = obj.cF .* ones(N,1) ;
                 CS  = obj.cS .* ones(N,1) ;
+                
+                en = obj.rhoS * (1-obj.eps) * (trapz(obj.dx, CS.*(obj.TS(:,1)- T0)) ) ;
+                en = en + obj.eps * (trapz(obj.dx, CF.*obj.rho(:,1).*(obj.TF(:,1)- T0)) ) ;
+                en = en * obj.A / 3600e6 ; % Energy in MWh
+                ent = 0;
             else
             
+                % Calculate solid and fluid entropies and entropies by
+                % interpolating original data
+                
+                % Reference points
+                HF0 = RP1('PT_INPUTS',1e5,T0,'H',fld) ;
+                SF0 = RP1('PT_INPUTS',1e5,T0,'S',fld) ;
+                
+                x = obj.sld(:,1) ;
+                HS0 = interp1(x,obj.sld(:,2),T0) ;
+                SS0 = interp1(x,obj.sld(:,4),T0) ;
+                
                 for i = 1 : N
-                    % Temperature array from previous timestep
-                    Xf = [1 Tf(i,2) Tf(i,2)*Tf(i,2)] ;
-                    Xs = [1 Ts(i,2) Ts(i,2)*Ts(i,2)] ;
                     
-                    CF(i)  = Xf * obj.CFfacs ;
-                    CS(i) = Xs * obj.CSfacs ;
+                    HF(i) = RP1('PT_INPUTS',1e5,obj.TF(i,1),'H',fld) ; % Enthalpy
+                    SF(i) = RP1('PT_INPUTS',1e5,obj.TF(i,1),'S',fld) ; % Entropy
+                    
+                    HS(i) = interp1(x,obj.sld(:,2),obj.TS(i,1)) ; % Enthalpy
+                    SS(i) = interp1(x,obj.sld(:,4),obj.TS(i,1)) ; % Entropy
+                    
                 end
+                
+                en = obj.rhoS * (1-obj.eps) * (trapz(obj.dx, (HS(:) - HS0))) ;
+                en = en + obj.eps * (trapz(obj.dx, obj.rho(:,1).*(HF(:) - HF0))) ;
+                en = en * obj.A ; % Energy 
+                
+                ent = obj.rhoS * (1-obj.eps) * (trapz(obj.dx, (SS(:) - SS0))) ;
+                ent = ent + obj.eps * (trapz(obj.dx, obj.rho(:,1).*(SF(:) - SF0))) ;
+                ent = ent * obj.A  ; % Entropy 
+                                
             end
             
-            en = obj.rhoS * (1-obj.eps) * (trapz(obj.dx, CS.*(obj.TS(:,1)- obj.TD)) ) ;
-            en = en + obj.eps * (trapz(obj.dx, CF.*obj.rho(:,1).*(obj.TF(:,1)- obj.TD)) ) ;
-            en = en * obj.A / 3600e6 ; % Energy in MWh
             
+            
+            
+                        
         end
         
         

@@ -27,25 +27,32 @@ load_coolprop
 tic
 PACKED_BED_INPUTS
 
-i = 1 ;
+i    = 1 ;
+iCYC = 1 ;
 Lcyc = false ;
-den = 0.0 ;
+den  = 0.0 ;
 en_prev = 0.0 ;
 
-while ~Lcyc 
+for ii = 1 : Nhot
+    [pbH(ii), pbH(ii).H(iCYC), pbH(ii).S(iCYC)] = PB_ENERGY(pbH(ii), fluidS) ; % Evaluate energy at the start of time
+end
+iCYC = iCYC + 1;
 
-    [pbH, TsC, TfC, enC, retu] = PB_RUN(pbH, Nhot, 'chg');
-    %[pbH, TsD, TfD, enD, retu] = PB_RUN(pbH, Nhot, 'dis');
+while ~Lcyc 
+    
+    [pbH, TsC, TfC, iCYC] = PB_RUN(pbH, Nhot, fluidS, iCYC, 'chg');
+    %[pbH, TsD, TfD, iCYC] = PB_RUN(pbH, Nhot, fluidS, iCYC, 'dis');
     fprintf(1,'COMPLETED CYCLE %5i\n\n',i) ;
     
-    den     = 100.0 * abs(enC - en_prev) / en_prev ;
-    en_prev = enC ;
+    den     = 100.0 * abs(pbH(1).H(1) - en_prev) / en_prev ;
+    en_prev = pbH(1).H(1) ;
     
     if i == pbH.Ncyc || den < 0.1 
         Lcyc = true ;
     end
     
     i = i + 1 ;
+    iCYC = 2 ;
 
 end
 
