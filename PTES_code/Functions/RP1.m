@@ -32,6 +32,40 @@ elseif strcmp(fluid.read,'TAB')
         otherwise
             error('not implemented')
     end
+
+elseif strcmp(fluid.read,'IDL')
+    % Calculate properties of an ideal gas
+    
+    switch input_pair
+        case 'HmassP_INPUTS'
+            switch out1
+                case 'T'
+                    output1 = input1 / fluid.IDL.cp ;
+                case 'S'
+                    T       = input1 / fluid.IDL.cp ; % Find T first, then S
+                    output1 = fluid.IDL.cp * log(T) - fluid.IDL.R * log(input2) - fluid.IDL.s0 ;
+                case 'D'
+                    T       = input1 / fluid.IDL.cp ; % Find T first, then density
+                    output1 = input2 / (fluid.IDL.R * T) ;
+            end
+            
+        case 'PT_INPUTS'
+            switch out1
+                case 'H'
+                    output1 = fluid.IDL.cp  * input2 - fluid.IDL.h0 ;
+                case 'S'
+                    output1 = fluid.IDL.cp * log(input2) - fluid.IDL.R * log(input1) - fluid.IDL.s0 ;
+            end
+        case 'PSmass_INPUTS'
+            switch out1
+                case 'T'
+                    output1 = exp( (input2 + fluid.IDL.R * input1)/fluid.IDL.cp) ;
+                case 'H'
+                    T       = exp( (input2 + fluid.IDL.R * input1)/fluid.IDL.cp) ;
+                    output1 = fluid.IDL.cp * T - h0 ;
+            end
+    end
+    
 end
 
 end
