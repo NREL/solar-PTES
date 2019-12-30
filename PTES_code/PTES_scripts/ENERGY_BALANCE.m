@@ -404,6 +404,11 @@ if Load.mode == 1
     % Treat mixing_liquid loss and exergy of cold tanks as heat_reject
     WL_matrix(1,4) = WL_matrix(1,5) + (Exergy_into_tanks - Exergy_into_hot_tanks);
     WL_matrix(1,5) = 0;
+elseif Load.mode == 6
+    % Ignore tank losses from the solar tank
+    WL_matrix(1,5) = WL_matrix(1,5) - HT(1).WL_chg ;
+    WL_matrix(1,5) = WL_matrix(1,5) - HT(1).WL_dis ;
+    WL_matrix(2,7) = WL_matrix(2,7) - (HT(1).A(end).B - HT(1).A(1).B + HT(1).B(end).B - HT(1).B(1).B);
 end
 
 switch Load.mode

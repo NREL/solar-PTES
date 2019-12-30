@@ -68,9 +68,6 @@ while 1
     end
     iC = iC + 1 ;
                 
-    gas.stage(iL,iCLD+1).type = 'hex'; % This seems to be necessary to get recompressor written and plotted
-    gas.stage(iL,iCLD+2).type = 'hex'; % This seems to be necessary to get recompressor written and plotted
-    
     % Reject heat to environment (external HEX)
     T_aim = environ.T0 + Trej;
     [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
