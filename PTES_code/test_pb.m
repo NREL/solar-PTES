@@ -56,4 +56,8 @@ while ~Lcyc
 
 end
 
+error1 = 100*(((pbH.Hflux(2,1)-pbH.Hflux(2,2)))-pbH.H(2))/((pbH.Hflux(2,1)-pbH.Hflux(2,2))) ;
+fprintf(1,'FIRST LAW ERROR %8.3f\n\n',error1) ;
+
+plot(TsC,'DisplayName','TsC')
 toc

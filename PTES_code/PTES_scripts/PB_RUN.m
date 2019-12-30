@@ -42,21 +42,22 @@ while ~Lend
     
     % Step forward one time step
     for j = 1 : Npb
-        obj(Npb) = PB_TIMESTEP(obj(Npb), mode) ;
+        obj(Npb) = PB_TIMESTEP(obj(Npb), fld, mode) ;
+        %obj(Npb) = PB_TIMESTEP_IDEAL(obj(Npb), fld, mode) ;
         
         % Calculate the mass, enthalpy, and entropy flux INTO the storage in that timestep
         Min = obj(Npb).u(1,1) * obj(Npb).rho(1,1) * obj(Npb).A * obj(Npb).dt ;
         obj(Npb).Mflux(iCYC, 1) = obj(Npb).Mflux(iCYC, 1) + Min ;
-        obj(Npb).Hflux(iCYC, 1) = obj(Npb).Hflux(iCYC, 1) + Min * (RP1('PT_INPUTS',1e5,obj.TF(1,1),'H',fld) - HF0);
+        obj(Npb).Hflux(iCYC, 1) = obj(Npb).Hflux(iCYC, 1) + Min * (RP1('PT_INPUTS',obj.P(1),obj.TF(1,1),'H',fld) - HF0);
         %obj(Npb).Hflux(iCYC, 1) = obj(Npb).Hflux(iCYC, 1) + Min * (obj(Npb).cF *(obj.TF(1,1)-T0));
-        obj(Npb).Sflux(iCYC, 1) = obj(Npb).Sflux(iCYC, 1) + Min * (RP1('PT_INPUTS',1e5,obj.TF(1,1),'S',fld) - SF0);
+        obj(Npb).Sflux(iCYC, 1) = obj(Npb).Sflux(iCYC, 1) + Min * (RP1('PT_INPUTS',obj.P(1),obj.TF(1,1),'S',fld) - SF0);
     
         % Calculate the mass, enthalpy, and entropy flux OUT OF the storage in that timestep
         Mout = obj(Npb).u(end,1) * obj(Npb).rho(end,1) * obj(Npb).A * obj(Npb).dt ;
         obj(Npb).Mflux(iCYC, 2) = obj(Npb).Mflux(iCYC, 2) + Mout ;
-        obj(Npb).Hflux(iCYC, 2) = obj(Npb).Hflux(iCYC, 2) + Mout * (RP1('PT_INPUTS',1e5,obj.TF(end,1),'H',fld) - HF0) ;
+        obj(Npb).Hflux(iCYC, 2) = obj(Npb).Hflux(iCYC, 2) + Mout * (RP1('PT_INPUTS',obj.P(end),obj.TF(end,1),'H',fld) - HF0) ;
         %obj(Npb).Hflux(iCYC, 2) = obj(Npb).Hflux(iCYC, 2) + Mout * (obj(Npb).cF *(obj.TF(end,1)-T0));
-        obj(Npb).Sflux(iCYC, 2) = obj(Npb).Sflux(iCYC, 2) + Mout * (RP1('PT_INPUTS',1e5,obj.TF(end,1),'S',fld) - SF0) ;
+        obj(Npb).Sflux(iCYC, 2) = obj(Npb).Sflux(iCYC, 2) + Mout * (RP1('PT_INPUTS',obj.P(end),obj.TF(end,1),'S',fld) - SF0) ;
             
     end
     
@@ -98,8 +99,10 @@ end
 switch mode
     case 'chg'
         obj.time(iCYC,1) = time ;
+        fprintf(1,'Charging duration, h %8.3f\n',time/3600) ;
     case 'dis'
         obj.time(iCYC,2) = time ;
+        fprintf(1,'Discharging duration,h  %8.3f\n',time/3600) ;
 end
 
 fprintf(1,str2) ;

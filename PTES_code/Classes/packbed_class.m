@@ -20,6 +20,7 @@ classdef packbed_class
         rhoF
         kF
         cF
+        R
         mu
         Pr
         mdot
@@ -94,6 +95,7 @@ classdef packbed_class
         Sirr     % entropy generation, W/K
         
         Lconst
+        Lideal
                 
         % Economics
         pckbed_cost = econ_class(0,0,0,0) ;
@@ -159,14 +161,14 @@ classdef packbed_class
             % Some have two columns. One for the current time-step, and one for the previous time-step
             obj.TS  = zeros(obj.NX, 2) ; % Solid temperature
             obj.TF  = zeros(obj.NX, 2) ; % Fluid temperature
-            obj.P   = zeros(obj.NX, 1) ; % Pressure
+            obj.P   = zeros(obj.NX, 2) ; % Pressure
             obj.u   = zeros(obj.NX, 2) ; % Fluid velocity
             obj.rho = zeros(obj.NX, 2) ; % Fluid density
             
             % Set the initial temperature distributions
             obj.TS(:,:)  = obj.TD ;
             obj.TF(:,:)  = obj.TD ;
-            obj.P        = obj.Pin ;
+            obj.P(:,:)   = obj.Pin ;
             obj.u(:,:)   = obj.us ; 
             obj.rho(:,:) = obj.rhoF ; 
             
@@ -188,12 +190,28 @@ classdef packbed_class
                 obj.CFfacs = X\fld.TAB(lo:hi,5); % coefficients for heat capacity
                 obj.KFfacs = X\fld.TAB(lo:hi,6); % coefficients for conductivity
                 obj.MUfacs = X\fld.TAB(lo:hi,7); % coefficients for viscosity
+            elseif strcmp(fld.read,'CP')
+                if obj.Lideal
+                    obj.CFfacs = [obj.cF; 0; 0] ;
+                    obj.R      = 285 ;
+                else
+                    error('Not implemented')                    
+                end
             else
                 error('Not implemented')
             end
             
             % Use a simple fit to find correlation for temperature
             % dependent properties - SOLID
+            lo = min(obj.TD,obj.TC); % Lowest temp
+            hi = max(obj.TD,obj.TC); % Highest temp
+                
+            % Find indices closest to these hi and lo temps
+            [~, lo] = min( abs( obj.sld(:,1) - lo ) ) ;
+            [~, hi] = min( abs( obj.sld(:,1) - hi ) ) ;
+                
+            % Only find the heat cap function between these temperatures
+            X = [ones(size(obj.sld(lo:hi,1))) obj.sld(lo:hi,1) obj.sld(lo:hi,1).*obj.sld(lo:hi,1) ];
             obj.CSfacs = X\obj.sld(lo:hi,5); % coefficients for heat capacity
                 
             obj.Mflux = zeros(30,2) ;
@@ -211,7 +229,7 @@ classdef packbed_class
         
         
         % March forward one timestep
-        function obj = PB_TIMESTEP(obj, mode)
+        function obj = PB_TIMESTEP(obj, fld, mode)
             
             N  = obj.NX ;
             Tf = obj.TF ;
@@ -237,29 +255,29 @@ classdef packbed_class
                 CF  = obj.cF .* ones(N,1) ;
                 CS  = obj.cS .* ones(N,1) ;
                 muf = obj.mu .* ones(N,1) ;
-            else
-            
+            elseif strcmp(fld.read,'CP') && ~obj.Lideal
+                for i = 1 : N
+                    % Temperature array from previous timestep
+                    Xs = [1 Ts(i,2) Ts(i,2)*Ts(i,2)] ;
+                    CS(i) = Xs * obj.CSfacs ;
+                    CF(i) = CP1('PT_INPUTS',obj.P(i,2),obj.TF(:,1),'CPMASS',fld.handle) ;
+                    %muf(i) = Xf * obj.MUfacs ;                    
+                end
+            else % This accounts for fld.read='TAB' and also ideal gases
                 for i = 1 : N
                     % Temperature array from previous timestep
                     Xf = [1 Tf(i,2) Tf(i,2)*Tf(i,2)] ;
                     Xs = [1 Ts(i,2) Ts(i,2)*Ts(i,2)] ;
-                    
-                    CF(i)  = Xf * obj.CFfacs ;
-                    %muf(i) = Xf * obj.MUfacs ;
-                    
+                    CF(i) = Xf * obj.CFfacs ;
                     CS(i) = Xs * obj.CSfacs ;
-                    
-                    % Alternative
-                    %CF(i) = interp1(fld.TAB(:,1),fld.TAB(:,5),obj.TF(i,1)) ; 
-                    %CS(i) = interp1(obj.sld(:,1),obj.sld(:,5),obj.TS(i,1)) ; 
-                    
+                    %muf(i) = Xf * obj.MUfacs ;                    
                 end
             end
             
             % Reynolds number, Nusselt number and heat transfer coef
             for i = 1 : N
-                Re  = obj.rho(i,2) .* obj.u(:,2) .* obj.dp ./ muf(i) ;
-                [Nu(i), h(i)] = nusselt(Re(i), obj.Pr, obj) ;
+                Re  = obj.rho(i,2) .* obj.u(i,2) .* obj.dp ./ muf(i) ;
+                [Nu(i), h(i)] = nusselt(Re, obj.Pr, obj) ;
             end
             
             % First calculate some coefficients at each node
@@ -306,35 +324,489 @@ classdef packbed_class
             if obj.Lconst
                 obj.rho(:,1) = obj.rho(:,2)  ;
             else
-                for i = 1 : N
-                    Xf = [1 T(i,2) T(i,2)*T(i,2) ] ;
-                    obj.rho(i,1) = Xf * obj.Dfacs ;
+                if strcmp(fld.read,'TAB')
+                    for i = 1 : N
+                        Xf = [1 T(i,2) T(i,2)*T(i,2) ] ;
+                        obj.rho(i,1) = Xf * obj.Dfacs ;
+                    end
+                elseif obj.Lideal
+                    for i = 1 : N
+                        obj.rho(i,1) = obj.P(i,2) / (T(i,2) * obj.R) ;
+                    end
+                elseif strcmp(fld.read,'CP')
+                    for i = 1 : N
+                        obj.rho(i,1) = CP1('PT_INPUTS',obj.P(i,2),obj.TF(:,1),'D',fld.handle) ;
+                    end
                 end
             end
             
             
             % Calculate velocities and pressures 
             obj.u(1,1) = obj.us ;
-            obj.P(1)   = obj.Pin ;
+            obj.P(1,1) = obj.Pin ;
             fact1 = obj.Sv * (1-obj.eps) * obj.dx / (2. * obj.eps^3) ;
             for i = 2 : N
                obj.u(i,1) = (obj.rho(i-1,1) * obj.u(i-1,1) + obj.eps * obj.dx * (obj.rho(i,2) - obj.rho(i,1))/obj.dt) / obj.rho(i,1) ;
                fact2      = fact1 * obj.rho(i,1) * obj.u(i,1) * obj.u(i,1) ;
-               obj.P(i)   = obj.P(i-1) - fact2 * friction(obj,obj.rho(i,1),obj.u(i,1)) ; 
+               obj.P(i,1) = obj.P(i-1,1) - fact2 * friction(obj,obj.rho(i,1),obj.u(i,1)) ; 
             end
             
-            
-            % Should now probably calculate lots of losses
-                        
             % Move new results into previous results, for use in future steps
             obj.TS(:,2)  = obj.TS(:,1) ;
             obj.TF(:,2)  = obj.TF(:,1) ;
             obj.u(:,2)   = obj.u(:,1) ;
+            obj.P(:,2)   = obj.P(:,1) ;
             obj.rho(:,2) = obj.rho(:,1) ;
             
             
         end
         
+        
+        % March forward one timestep
+        % Modified to include pressure losses
+        function obj = PB_TIMESTEP2(obj, fld, mode)
+            
+            N  = obj.NX ;
+            Tf = obj.TF ;
+            Ts = obj.TS ;
+                        
+            % Some arrays
+            Nu  = zeros(N,1) ;
+            h   = zeros(N,1) ;
+            CF  = zeros(N,1) ;
+            CS  = zeros(N,1) ;
+            %muf = zeros(N,1) ;
+            
+            switch mode
+                case 'chg'
+                    Tin = obj.TC ;
+                case 'dis'
+                    Tin = obj.TD ;
+            end
+            
+            muf = obj.mu .* ones(N,1) ;
+            % Find properties that vary with temperature
+            if obj.Lconst
+                CF  = obj.cF .* ones(N,1) ;
+                CS  = obj.cS .* ones(N,1) ;
+                muf = obj.mu .* ones(N,1) ;
+            elseif strcmp(fld.read,'CP') && ~obj.Lideal
+                for i = 1 : N
+                    % Temperature array from previous timestep
+                    Xs = [1 Ts(i,2) Ts(i,2)*Ts(i,2)] ;
+                    CS(i) = Xs * obj.CSfacs ;
+                    CF(i) = CP1('PT_INPUTS',obj.P(i,2),obj.TF(:,1),'CPMASS',fld.handle) ;
+                    %muf(i) = Xf * obj.MUfacs ;                    
+                end
+            else % This accounts for fld.read='TAB' and also ideal gases
+                for i = 1 : N
+                    % Temperature array from previous timestep
+                    Xf = [1 Tf(i,2) Tf(i,2)*Tf(i,2)] ;
+                    Xs = [1 Ts(i,2) Ts(i,2)*Ts(i,2)] ;
+                    CF(i) = Xf * obj.CFfacs ;
+                    CS(i) = Xs * obj.CSfacs ;
+                    %muf(i) = Xf * obj.MUfacs ;                    
+                end
+            end
+            
+            % Reynolds number, Nusselt number and heat transfer coef
+            for i = 1 : N
+                Re  = obj.rho(i,2) .* obj.u(i,2) .* obj.dp ./ muf(i) ;
+                [Nu(i), h(i)] = nusselt(Re, obj.Pr, obj) ;
+            end
+            
+            % First calculate some coefficients at each node
+            a = obj.u(:,2) .* obj.dt / (obj.eps * obj.dx) ;
+            b = obj.keff .* obj.dt ./ (obj.eps .* obj.rho(:,2) .* CF * obj.dx * obj.dx) ;
+            c = (1-obj.eps) .* obj.Sv .* h .* obj.dt ./ (2 .* obj.eps .* obj.rho(:,2) .* CF) ;
+            d = obj.Sv .* h .* obj.dt ./ (2 .* obj.rhoS .* CS) ;
+            e = obj.dx ./ (obj.rho(:,2) .* CF(:)) ;
+            
+            fact1 = obj.Sv * (1-obj.eps) * obj.dx / (2. * obj.eps^3) ;
+            
+            % Calculate the determinant at each node
+            DET = ((1 + d) .* (1 + a + c) - c .* d ) ;
+            
+            % terms for matrix calculation
+            t1 = (1 - d) .* Ts(:,2) + d .* Tf(:,2) ;
+            t2 = (1 - c) .* Tf(:,2) + c .* Ts(:,2) - 2 .* b .* Tf(:,2) ;
+            
+            % Bit annoying Matlab doesn't do zero indices - otherwise the
+            % first node could be easily wrapped into the for loop below
+            % First node
+            X = [(1+a(1)+c(1)), d(1) ; c(1), (1+d(1))] ; % Could probably make a matrix of matrices, urgh
+            Y = [ t1(1) ; t2(1) + a(1) * Tin + b(1) * (Tf(2,2) + Tin)] ;
+            T(1,:) = X * Y / DET(1) ;
+            
+            % Calculate density at first node
+            if obj.Lconst
+                obj.rho(1,1) = obj.rho(1,2)  ;
+            else
+                if strcmp(fld.read,'TAB')
+                    Xf = [1 T(1,1) T(1,1)*T(1,1) ] ;
+                    obj.rho(1,1) = Xf * obj.Dfacs ;
+                elseif obj.Lideal
+                    obj.rho(1,1) = obj.P(1,2) / (T(1,1) * obj.R) ;
+                elseif strcmp(fld.read,'CP')
+                    obj.rho(1,1) = CP1('PT_INPUTS',obj.P(1,2),obj.TF(1,1),'D',fld.handle) ;
+                end
+            end
+                
+            % Calculate velocities and pressures
+            obj.u(1,1) = obj.us ;
+            obj.P(1,1) = obj.Pin ;
+            
+            % For final node extrapolate Tf at N+1
+            Tf(N+1,2) = 2.*Tf(N,2) - Tf(N-1,2) ;
+            
+            % Remaining nodes
+            for i = 2 : N
+                f = e(i) * (obj.P(i-1,1) - obj.P(i-1,2)) ;
+                X = [(1 + a(i) + c(i)), d(i) ; c(i), (1 + d(i))] ; % Could probably make a matrix of matrices, urgh
+                Y = [ t1(i) ; t2(i) + a(i) * Tf(i-1,1) + b(i) * (Tf(i+1,2) + Tf(i-1,2)) + f] ;
+                T(i,:) = X * Y / DET(i) ;
+                
+                % Calculate densities
+                if obj.Lconst
+                    obj.rho(i,1) = obj.rho(i,2)  ;
+                else
+                    if strcmp(fld.read,'TAB')
+                        Xf = [1 T(i,1) T(i,1)*T(i,1) ] ;
+                        obj.rho(i,1) = Xf * obj.Dfacs ;
+                    elseif obj.Lideal
+                        obj.rho(i,1) = obj.P(i,2) / (T(i,1) * obj.R) ;
+                    elseif strcmp(fld.read,'CP')
+                        obj.rho(i,1) = CP1('PT_INPUTS',obj.P(i,2),obj.TF(:,1),'D',fld.handle) ;
+                    end
+                end
+                
+                % Calculate velocities and pressures
+                obj.u(i,1) = (obj.rho(i-1,1) * obj.u(i-1,1) + obj.eps * obj.dx * (obj.rho(i,2) - obj.rho(i,1))/obj.dt) / obj.rho(i,1) ;
+                fact2      = fact1 * obj.rho(i,1) * obj.u(i,1) * obj.u(i,1) ;
+                obj.P(i,1) = obj.P(i-1,1) - fact2 * friction(obj,obj.rho(i,1),obj.u(i,1)) ;
+                
+            end
+                       
+            % Assign temperatures
+            obj.TS(:,1) = T(:,1) ;
+            obj.TF(:,1) = T(:,2) ;
+            
+            
+            
+            % Move new results into previous results, for use in future steps
+            obj.TS(:,2)  = obj.TS(:,1) ;
+            obj.TF(:,2)  = obj.TF(:,1) ;
+            obj.u(:,2)   = obj.u(:,1) ;
+            obj.P(:,2)   = obj.P(:,1) ;
+            obj.rho(:,2) = obj.rho(:,1) ;
+            
+            
+        end
+        
+        %***** ALTERNATIVE !! ******
+        % March forward one timestep. Routine is intended for ideal gases
+        function obj = PB_TIMESTEP_IDEAL(obj, fld, mode)
+            
+            N  = obj.NX ;
+            Tf = obj.TF ;
+            Ts = obj.TS ;
+                        
+            % Some arrays
+            St  = zeros(N,1) ;
+            CF  = zeros(N,1) ;
+            CS  = zeros(N,1) ;
+            %muf = zeros(N,1) ;
+            
+            switch mode
+                case 'chg'
+                    Tin = obj.TC ;
+                case 'dis'
+                    Tin = obj.TD ;
+            end
+            
+            muf = obj.mu .* ones(N,1) ;
+            % Find properties that vary with temperature
+            if obj.Lconst
+                CF  = obj.cF .* ones(N,1) ;
+                CS  = obj.cS .* ones(N,1) ;
+                muf = obj.mu .* ones(N,1) ;
+            elseif strcmp(fld.read,'CP') && ~obj.Lideal
+                for i = 1 : N
+                    % Temperature array from previous timestep
+                    Xs = [1 Ts(i,2) Ts(i,2)*Ts(i,2)] ;
+                    CS(i) = Xs * obj.CSfacs ;
+                    CF(i) = CP1('PT_INPUTS',obj.P(i,2),obj.TF(:,1),'CPMASS',fld.handle) ;
+                    %muf(i) = Xf * obj.MUfacs ;                    
+                end
+            else % This accounts for fld.read='TAB' and also ideal gases
+                for i = 1 : N
+                    % Temperature array from previous timestep
+                    Xf = [1 Tf(i,2) Tf(i,2)*Tf(i,2)] ;
+                    Xs = [1 Ts(i,2) Ts(i,2)*Ts(i,2)] ;
+                    CF(i) = Xf * obj.CFfacs ;
+                    CS(i) = Xs * obj.CSfacs ;
+                    %muf(i) = Xf * obj.MUfacs ;                    
+                end
+            end
+            
+            % Reynolds number, Nusselt number and heat transfer coef
+            for i = 1 : N
+                Re      = obj.rho(i,2) .* obj.u(i,2) .* obj.dp ./ muf(i) ;
+                [Nu, ~] = nusselt(Re, obj.Pr, obj) ;
+                St(i)   = Nu / (Re * obj.Pr) ;
+            end
+            
+            % First calculate some coefficients at each node
+            ell = 1 ./ ((1-obj.eps) * obj.Sv * St) ;
+            tau = obj.rhoS .* CS ./ (obj.rho(:,2) .* obj.u(:,2) .* CF .* St .* obj.Sv) ;
+            alp = obj.keff / ((1-obj.eps) .* CS .* obj.rhoS) ;
+            C   = (obj.eps .* obj.dx ./ (obj.u(:,2) * obj.dt)) ; % Unsteady term. Gets updated as go along.
+            
+            f1 = obj.dx ./ (2 .* ell) ;
+            f2 = obj.dt ./ (2 .* tau) ;
+            f3 = alp .* obj.dt ./ (obj.dx * obj.dx) ;
+            f4 = obj.Sv * (1-obj.eps) * obj.dx / (2. * obj.eps^3) ;
+            
+            % Calculate the determinant at each node
+            DET = (1. + f1) .* (1. + f2) - (f1 .* f2) ;
+            
+            % terms for matrix calculation
+            t1 = (1 - f2 - 2*f3) .* Ts(:,2) + f2 .* Tf(:,2) ;
+                       
+            % Bit annoying Matlab doesn't do zero indices - otherwise the
+            % first node could be easily wrapped into the for loop below
+            % First node - assume C(1) = 0
+            X = [(1 + f2(1)), f1(1) ; f2(1), (1 + f1(1))] ; 
+            Y = [Tin ; t1(1) + f3(1) * (Tin + Ts(2,2)) ] ;   
+            
+            T(1,:) = X * Y / DET(1) ;
+            % Assign temperatures
+            Ts(1,1) = T(1,2) ;
+            Tf(1,1) = T(1,1) ;
+            
+            % Calculate density at first node
+            if obj.Lconst
+                obj.rho(1,1) = obj.rho(1,2)  ;
+            else
+                if strcmp(fld.read,'TAB')
+                    Xf = [1 T(1,1) T(1,1)*T(1,1) ] ;
+                    obj.rho(1,1) = Xf * obj.Dfacs ;
+                elseif obj.Lideal
+                    obj.rho(1,1) = obj.P(1,2) / (T(1,1) * obj.R) ;
+                elseif strcmp(fld.read,'CP')
+                    obj.rho(1,1) = CP1('PT_INPUTS',obj.P(1,2),obj.TF(1,1),'D',fld.handle) ;
+                end
+            end
+                
+            % Calculate velocities and pressures
+            obj.u(1,1) = obj.us ;
+            obj.P(1,1) = obj.Pin ;
+            
+            % For final node extrapolate Tf at N+1
+            Ts(N+1,2) = 2.*Ts(N,2) - Ts(N-1,2) ;
+            
+            % Remaining nodes
+            for i = 2 : N
+                cc     = (obj.P(i-1,1) - obj.P(i-1,2)) / (obj.rho(i-1,1) * CF(i)) ;
+                cc     = C(i) * (cc - (Tf(i-1,1) - Tf(i-1,2))) ;
+                X      = [(1 + f2(i)), f1(i) ; f2(i), (1 + f1(i))] ;
+                Y      = [(1-f1(i))*Tf(i-1,1) + f1(i) * Ts(i-1,1) + cc ; t1(i) + f3(i) * (Ts(i-1,2) + Ts(i+1,2)) ] ;
+                T(i,:) = X * Y / DET(i) ;
+                                
+                % Assign temperatures
+                Ts(i,1) = T(i,2) ;
+                Tf(i,1) = T(i,1) ;
+                
+                % Calculate densities
+                if obj.Lconst
+                    obj.rho(i,1) = obj.rho(i,2)  ;
+                else
+                    if strcmp(fld.read,'TAB')
+                        Xf = [1 T(i,1) T(i,1)*T(i,1) ] ;
+                        obj.rho(i,1) = Xf * obj.Dfacs ;
+                    elseif obj.Lideal
+                        obj.rho(i,1) = obj.P(i,2) / (T(i,1) * obj.R) ;
+                    elseif strcmp(fld.read,'CP')
+                        obj.rho(i,1) = CP1('PT_INPUTS',obj.P(i,2),obj.TF(:,1),'D',fld.handle) ;
+                    end
+                end
+                
+                % Calculate velocities and pressures
+                obj.u(i,1) = (obj.rho(i-1,1) * obj.u(i-1,1) + obj.eps * obj.dx * (obj.rho(i,2) - obj.rho(i,1))/obj.dt) / obj.rho(i,1) ;
+                f5         = f4 * obj.rho(i,1) * obj.u(i,1) * obj.u(i,1) ;
+                obj.P(i,1) = obj.P(i-1,1) - f5 * friction(obj,obj.rho(i,1),obj.u(i,1)) ;
+                
+            end
+            
+            % Assign temperatures
+            obj.TS(:,1) = T(:,2) ;
+            obj.TF(:,1) = T(:,1) ;
+            
+            % Move new results into previous results, for use in future steps
+            obj.TS(:,2)  = obj.TS(:,1) ;
+            obj.TF(:,2)  = obj.TF(:,1) ;
+            obj.u(:,2)   = obj.u(:,1) ;
+            obj.P(:,2)   = obj.P(:,1) ;
+            obj.rho(:,2) = obj.rho(:,1) ;
+            
+        end
+        
+        
+        
+%         %***** ALTERNATIVE V2 !! ******
+%         % This follows the same methodology as PB_TIMESTEP but the routine
+%         % has been updated to (hopefully) capture the unsteady energy term
+%         % of liquids more accurately.
+%         % Doesn't really work :(
+%         % March forward one timestep. Routine is intended for ideal gases
+%         function obj = PB_TIMESTEP_IDEAL2(obj, fld, mode)
+%             
+%             N  = obj.NX ;
+%             Tf = obj.TF ;
+%             Ts = obj.TS ;
+%                         
+%             % Some arrays
+%             St  = zeros(N,1) ;
+%             CF  = zeros(N,1) ;
+%             CS  = zeros(N,1) ;
+%             %muf = zeros(N,1) ;
+%             
+%             switch mode
+%                 case 'chg'
+%                     Tin = obj.TC ;
+%                 case 'dis'
+%                     Tin = obj.TD ;
+%             end
+%             
+%             muf = obj.mu .* ones(N,1) ;
+%             % Find properties that vary with temperature
+%             if obj.Lconst
+%                 CF  = obj.cF .* ones(N,1) ;
+%                 CS  = obj.cS .* ones(N,1) ;
+%                 muf = obj.mu .* ones(N,1) ;
+%             elseif strcmp(fld.read,'CP') && ~obj.Lideal
+%                 for i = 1 : N
+%                     % Temperature array from previous timestep
+%                     Xs = [1 Ts(i,2) Ts(i,2)*Ts(i,2)] ;
+%                     CS(i) = Xs * obj.CSfacs ;
+%                     CF(i) = CP1('PT_INPUTS',obj.P(i,2),obj.TF(:,1),'CPMASS',fld.handle) ;
+%                     %muf(i) = Xf * obj.MUfacs ;                    
+%                 end
+%             else % This accounts for fld.read='TAB' and also ideal gases
+%                 for i = 1 : N
+%                     % Temperature array from previous timestep
+%                     Xf = [1 Tf(i,2) Tf(i,2)*Tf(i,2)] ;
+%                     Xs = [1 Ts(i,2) Ts(i,2)*Ts(i,2)] ;
+%                     CF(i) = Xf * obj.CFfacs ;
+%                     CS(i) = Xs * obj.CSfacs ;
+%                     %muf(i) = Xf * obj.MUfacs ;                    
+%                 end
+%             end
+%             
+%             % Reynolds number, Nusselt number and heat transfer coef
+%             for i = 1 : N
+%                 Re      = obj.rho(i,2) .* obj.u(i,2) .* obj.dp ./ muf(i) ;
+%                 [Nu, ~] = nusselt(Re, obj.Pr, obj) ;
+%                 St(i)   = Nu / (Re * obj.Pr) ;
+%             end
+%             
+%             % First calculate some coefficients at each node
+%             ell = 1 ./ ((1-obj.eps) * obj.Sv * St) ;
+%             tau = obj.rhoS .* CS ./ (obj.rho(:,2) .* obj.u(:,2) .* CF .* St .* obj.Sv) ;
+%             alp = obj.keff / ((1-obj.eps) .* CS .* obj.rhoS) ;
+%                         
+%             a = obj.dx ./ (2 .* ell) ;
+%             b = obj.eps * obj.dx / (2 .* obj.u(:,2) * obj.dt) ;
+%             C = (obj.eps .* obj.dx ./ (obj.u(:,2) * obj.dt)) ; % Unsteady term. Gets updated as go along.
+%             d = obj.dt ./ (2 .* tau) ;
+%             e = alp .* obj.dt ./ (obj.dx * obj.dx) ;
+%             f = obj.Sv * (1-obj.eps) * obj.dx / (2. * obj.eps^3) ;
+%             
+%             % Calculate the determinant at each node
+%             DET = (1 + a + b).*(1 + d) - a .* d ;
+%             
+%             % First node - assume C(1) = 0
+%             X = [(1 + d(1)), a(1) ; d(1), (1 + a(1) + b(1))] ; 
+%             y1 = Tin + b(1) * Tf(1,2) ;
+%             y2 = (1-d(1))*Ts(1,2) + d(1)*Tf(1,2) + e(1)*(Ts(2,2) - 2*Ts(1,2) + Tin) ; 
+%             Y = [y1 ; y2 ] ;   
+%             
+%             T(1,:) = X * Y / DET(1) ;
+%             % Assign temperatures
+%             Ts(1,1) = T(1,2) ;
+%             Tf(1,1) = T(1,1) ;
+%             
+%             % Calculate density at first node
+%             if obj.Lconst
+%                 obj.rho(1,1) = obj.rho(1,2)  ;
+%             else
+%                 if strcmp(fld.read,'TAB')
+%                     Xf = [1 T(1,1) T(1,1)*T(1,1) ] ;
+%                     obj.rho(1,1) = Xf * obj.Dfacs ;
+%                 elseif obj.Lideal
+%                     obj.rho(1,1) = obj.P(1,2) / (T(1,1) * obj.R) ;
+%                 elseif strcmp(fld.read,'CP')
+%                     obj.rho(1,1) = CP1('PT_INPUTS',obj.P(1,2),obj.TF(1,1),'D',fld.handle) ;
+%                 end
+%             end
+%                 
+%             % Calculate velocities and pressures
+%             obj.u(1,1) = obj.us ;
+%             obj.P(1,1) = obj.Pin ;
+%             
+%             % For final node extrapolate Tf at N+1
+%             Ts(N+1,2) = 2.*Ts(N,2) - Ts(N-1,2) ;
+%             
+%             % Remaining nodes
+%             for i = 2 : N
+%                 
+%                 c  = C(i) * (obj.P(i-1,1) - obj.P(i-1,2)) / (obj.rho(i-1,1) * CF(i)) ;
+%                 y1 = (1-a(i)-b(i))*Tf(i-1,1) + a(i)*Ts(i-1,1) + b(i)*(Tf(i-1,2) + Tf(i,2)) +  c ;
+%                 y2 = (1-d(i))*Ts(i,2) + d(i)*Tf(i,2) + e(i)*(Ts(i+1,2) - 2*Ts(i,2) + Ts(i-1,2)) ;
+%                 
+%                 X = [(1 + d(i)), a(i) ; d(i), (1 + a(i) + b(i))] ;
+%                 Y = [y1 ; y2 ] ;
+%                 T(i,:) = X * Y / DET(i) ;
+%                 
+%                 % Assign temperatures
+%                 Ts(i,1) = T(i,2) ;
+%                 Tf(i,1) = T(i,1) ;
+%                 
+%                 % Calculate densities
+%                 if obj.Lconst
+%                     obj.rho(i,1) = obj.rho(i,2)  ;
+%                 else
+%                     if strcmp(fld.read,'TAB')
+%                         Xf = [1 T(i,1) T(i,1)*T(i,1) ] ;
+%                         obj.rho(i,1) = Xf * obj.Dfacs ;
+%                     elseif obj.Lideal
+%                         obj.rho(i,1) = obj.P(i,2) / (T(i,1) * obj.R) ;
+%                     elseif strcmp(fld.read,'CP')
+%                         obj.rho(i,1) = CP1('PT_INPUTS',obj.P(i,2),obj.TF(:,1),'D',fld.handle) ;
+%                     end
+%                 end
+%                 
+%                 % Calculate velocities and pressures
+%                 obj.u(i,1) = (obj.rho(i-1,1) * obj.u(i-1,1) + obj.eps * obj.dx * (obj.rho(i,2) - obj.rho(i,1))/obj.dt) / obj.rho(i,1) ;
+%                 g          = f * obj.rho(i,1) * obj.u(i,1) * obj.u(i,1) ;
+%                 obj.P(i,1) = obj.P(i-1,1) - g * friction(obj,obj.rho(i,1),obj.u(i,1)) ;
+%                 
+%             end
+%             
+%             % Assign temperatures
+%             obj.TS(:,1) = T(:,2) ;
+%             obj.TF(:,1) = T(:,1) ;
+%             
+%             % Move new results into previous results, for use in future steps
+%             obj.TS(:,2)  = obj.TS(:,1) ;
+%             obj.TF(:,2)  = obj.TF(:,1) ;
+%             obj.u(:,2)   = obj.u(:,1) ;
+%             obj.P(:,2)   = obj.P(:,1) ;
+%             obj.rho(:,2) = obj.rho(:,1) ;
+%             
+%         end
+        
+                
         % Calculate energy in storage at end of charge and end of discharge
         function [obj, en, ent] = PB_ENERGY(obj, fld)
             
@@ -360,8 +832,10 @@ classdef packbed_class
                 
                 en = obj.rhoS * (1-obj.eps) * (trapz(obj.dx, CS.*(obj.TS(:,1)- T0)) ) ;
                 en = en + obj.eps * (trapz(obj.dx, CF.*obj.rho(:,1).*(obj.TF(:,1)- T0)) ) ;
-                en = en * obj.A / 3600e6 ; % Energy in MWh
-                ent = 0;
+                en = en * obj.A ; % Energy in MWh
+                
+                ent = 0.0;
+            
             else
             
                 % Calculate solid and fluid entropies and entropies by
@@ -395,13 +869,7 @@ classdef packbed_class
                                 
             end
             
-            
-            
-            
-                        
         end
-        
-        
         
         
         function keff = eff_cond(obj)
@@ -421,7 +889,7 @@ classdef packbed_class
         % Coefficient of friction - Carman correlation
         function Cf = friction(obj, rhoF, us)
             
-            Rem = obj.rhoF * obj.us / ((1-obj.eps) * obj.Sv * obj.mu) ;
+            Rem = rhoF * us / ((1-obj.eps) * obj.Sv * obj.mu) ;
             Cf  = 10 / Rem + 8 / (10 * Rem^(1/10)) ;
             
         end
@@ -593,10 +1061,6 @@ classdef packbed_class
             
         end
         
-
-        
      
-        
-        
     end
 end
