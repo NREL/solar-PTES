@@ -47,7 +47,7 @@ Ne_dis = Nc_ch; % expansions during discharge
 
 % Construct compressor and expander classes
 switch Load.mode
-    case {0,1,2} % Ideal gas Joule-Bratyon PTES
+    case {0,1,2} % Ideal gas Joule-Brayton PTES
         CCMP(1:Nc_ch) = compexp_class('comp', 'poly', 2, eta, Load.num) ; % Charging compressors
         DEXP(1:Nc_ch) = compexp_class('exp', 'poly', 11, eta, Load.num) ; % Discharging expanders
         

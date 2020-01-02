@@ -32,9 +32,9 @@ Nhot = 1; % number of hot stores. Not implemented for >2
 % Set parameters of Load structure
 switch Load.mode
     case 0 % PTES
-        Load.time = [10;10;10;10;10;10;10;10;10;10;10;10;10;10;10;10;10;10].*3600;               % time spent in each load period, s
-        Load.type = ["chg";"str";"dis";"chg";"str";"dis";"chg";"str";"dis";"chg";"str";"dis";"chg";"str";"dis";"chg";"str";"dis"];    % type of load period
-        Load.mdot = [10;0;10;10;0;10;10;0;10;10;0;10;10;0;10;10;0;10];                       % working fluid mass flow rate, kg/s
+        Load.time = [10;2;10;10;2].*3600;               % time spent in each load period, s
+        Load.type = ["chg";"chg";"str";"dis";"dis"];    % type of load period
+        Load.mdot = [10;8;0;10;8];                       % working fluid mass flow rate, kg/s
                 
     case 1 % Heat pump
         Load.time = 10.*3600;                  % time spent in each load period, s
@@ -79,20 +79,20 @@ MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
 % accurate method but is very slow. 'BICUBIC&HEOS' is recommended over
 % 'TTSE' for speed and accuracy. 'num' indicates number of preallocated
 % elements in state arrays.
-% gas = fluid_class('Nitrogen','WF','CP','BICUBIC&HEOS',Load.num,30);
+gas = fluid_class('Nitrogen','WF','CP','BICUBIC&HEOS',Load.num,30);
 
 % Set up an ideal gas - should run faster
-gas_temp = fluid_class('Nitrogen','WF','CP','BICUBIC&HEOS',Load.num,30);
-dat.T0   = 300 ;
-dat.P0   = 1e5 ;
-dat.cp   = CP1('PT_INPUTS',dat.P0,dat.T0,'CPMASS',gas_temp.handle) ;
-dat.cv   = CP1('PT_INPUTS',dat.P0,dat.T0,'CVMASS',gas_temp.handle) ;
-dat.mu0  = 17.81e-6 ;
-dat.TVref = 300.55 ;
-dat.S     = 111 ;
-dat.k     = 0.026 ;
-
-gas      = fluid_class('Nitrogen','WF','IDL',dat,Load.num,30);
+% gas_temp = fluid_class('Nitrogen','WF','CP','BICUBIC&HEOS',Load.num,30);
+% dat.T0   = 300 ;
+% dat.P0   = 1e5 ;
+% dat.cp   = CP1('PT_INPUTS',dat.P0,dat.T0,'CPMASS',gas_temp.handle) ;
+% dat.cv   = CP1('PT_INPUTS',dat.P0,dat.T0,'CVMASS',gas_temp.handle) ;
+% dat.mu0  = 17.81e-6 ;
+% dat.TVref = 300.55 ;
+% dat.S     = 111 ;
+% dat.k     = 0.026 ;
+% 
+% gas      = fluid_class('Nitrogen','WF','IDL',dat,Load.num,30);
 
 if Load.mode==3
     % 'TTSE' interpolation is NOT recommended for steam when reading values
