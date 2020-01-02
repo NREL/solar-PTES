@@ -40,13 +40,13 @@ elseif strcmp(fluid.read,'IDL')
         case 'HmassP_INPUTS'
             switch out1
                 case 'T'
-                    output1 = input1 / fluid.IDL.cp ;
+                    output1 = input1 / fluid.IDL.cp + fluid.IDL.T0 ;
                 case 'S'
-                    T       = input1 / fluid.IDL.cp ; % Find T first, then S
+                    T       = input1 / fluid.IDL.cp + fluid.IDL.T0 ; % Find T first, then S
                     output1 = fluid.IDL.cp * log(T) - fluid.IDL.R * log(input2) - fluid.IDL.s0 ;
                 case 'D'
-                    T       = input1 / fluid.IDL.cp ; % Find T first, then density
-                    output1 = input2 / (fluid.IDL.R * T) ;
+                    T       = input1 / fluid.IDL.cp + fluid.IDL.T0 ; % Find T first, then density
+                    output1 = input2 ./ (fluid.IDL.R * T) ;
             end
             
         case 'PT_INPUTS'
@@ -55,14 +55,18 @@ elseif strcmp(fluid.read,'IDL')
                     output1 = fluid.IDL.cp  * input2 - fluid.IDL.h0 ;
                 case 'S'
                     output1 = fluid.IDL.cp * log(input2) - fluid.IDL.R * log(input1) - fluid.IDL.s0 ;
+                case 'CPMASS'
+                    output1 = fluid.IDL.cp ;
+                case 'CVMASS'
+                    output1 = fluid.IDL.cv ;
             end
         case 'PSmass_INPUTS'
             switch out1
                 case 'T'
-                    output1 = exp( (input2 + fluid.IDL.R * input1)/fluid.IDL.cp) ;
+                    output1 = fluid.IDL.T0 * exp( (input2 + fluid.IDL.R * log(input1/fluid.IDL.P0))/fluid.IDL.cp) ;
                 case 'H'
-                    T       = exp( (input2 + fluid.IDL.R * input1)/fluid.IDL.cp) ;
-                    output1 = fluid.IDL.cp * T - h0 ;
+                    T       = fluid.IDL.T0 * exp( (input2 + fluid.IDL.R * log(input1/fluid.IDL.P0))/fluid.IDL.cp) ;
+                    output1 = fluid.IDL.cp * T - fluid.IDL.h0 ;
             end
     end
     

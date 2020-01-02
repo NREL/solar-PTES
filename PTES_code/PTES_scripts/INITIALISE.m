@@ -31,7 +31,11 @@ pbot = pmax/PRch;
 T1   = TH_dis0(1); % compressor inlet temperature estimate
 if setTmax
     % Obtain PRch from maximum temperature and estimated temperature ratio
-    Gama = CP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CPMASS',gas.handle)/CP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CVMASS',gas.handle);
+    if strcmp(gas.read,'IDL')
+        Gama = gas.IDL.gam ;
+    else
+        Gama = CP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CPMASS',gas.handle)/CP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CVMASS',gas.handle);
+    end
     PR_estim = ((Tmax/T1)^((Gama*eta)/(Gama-1)))^Nc_ch;
     pbot = pmax/PR_estim;
 end

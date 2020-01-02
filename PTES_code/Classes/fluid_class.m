@@ -34,6 +34,11 @@ classdef fluid_class
                     obj.IDL.P0 = backend.P0 ;
                     obj.IDL.cp = backend.cp ;
                     obj.IDL.cv = backend.cv ;
+                                      
+                    obj.IDL.mu0   = backend.mu0 ;
+                    obj.IDL.TVref = backend.TVref ;
+                    obj.IDL.S     = backend.S ;
+                    obj.IDL.k     = backend.k ;
                     
                     % Now calculate some other reference points
                     obj.IDL.R   = obj.IDL.cp - obj.IDL.cv ;
@@ -104,6 +109,17 @@ classdef fluid_class
             for i = ind
                 Mdot  = Mdot  + fluid.state(iL,i).mdot;
             end
+            
+        end
+        
+        % Calculate the viscosity of an ideal gas using Sutherland's law
+        function mu = fvisc(fluid,T)
+            
+            mu0   = fluid.IDL.mu0 ;
+            TVref = fluid.IDL.TVref ;
+            S     = fluid.IDL.S ;
+            
+            mu    = mu0 .* ((TVref + S) ./ (T + S)) .* (T./TVref).^1.5 ;
             
         end
         

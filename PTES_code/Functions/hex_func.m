@@ -421,10 +421,10 @@ end
 % Update states
 stateH.h = hH1;
 stateH.p = pH1;
-stateH   = update_state(stateH,fluidH.handle,fluidH.read,fluidH.TAB,2);
+stateH   = update_state(stateH,fluidH.handle,fluidH.read,fluidH.TAB,fluidH.IDL,2);
 stateC.h = hC2;
 stateC.p = pC2;
-stateC   = update_state(stateC,fluidC.handle,fluidC.read,fluidC.TAB,2);
+stateC   = update_state(stateC,fluidC.handle,fluidC.read,fluidC.TAB,fluidC.IDL,2);
 
 % Update average specific heat capacities and compute Cmin and NTU. Save
 % into HX structure. Also save DppC nd DppH.

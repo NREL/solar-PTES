@@ -125,13 +125,15 @@ classdef compexp_class
                 % Estimate polytropic index to estimate final pressure
                 T2   = aim;
                 TAV  = 0.5*(T1 + T2);
-                Gama = CP1('PT_INPUTS',p1,TAV,'CPMASS',fluid.handle)/CP1('PT_INPUTS',p1,TAV,'CVMASS',fluid.handle);
+                %Gama = CP1('PT_INPUTS',p1,TAV,'CPMASS',fluid.handle)/CP1('PT_INPUTS',p1,TAV,'CVMASS',fluid.handle);
+                Gama = RP1('PT_INPUTS',p1,TAV,'CPMASS',fluid)/RP1('PT_INPUTS',p1,TAV,'CVMASS',fluid);
                 phi  = (Gama/(Gama-1))*etaI^n;
                 p2   = p1*(T2/T1)^phi;
                 
                 % Compute compression/expansion for estimated final pressure
                 h2   = nested_compexp(fluid,p1,h1,s1,rho1,p2,etaI,n,num);
-                Tnew = CP1('HmassP_INPUTS',h2,p2,'T',fluid.handle);
+                %Tnew = CP1('HmassP_INPUTS',h2,p2,'T',fluid.handle);
+                Tnew = RP1('HmassP_INPUTS',h2,p2,'T',fluid);
                 
                 % Re-compute polytropic index and adapt final pressure
                 phi  = log(p2/p1)/log(Tnew/T1);
@@ -156,7 +158,7 @@ classdef compexp_class
             % Update state
             state.h = h2;
             state.p = p2;
-            state   = update_state(state,fluid.handle,fluid.read,fluid.TAB,2);
+            state   = update_state(state,fluid.handle,fluid.read,fluid.TAB,fluid.IDL,2);
             
             obj.Dh(iL)   = state.h - h1;
             obj.q(iL)    = 0;
@@ -185,13 +187,15 @@ classdef compexp_class
                 pv = logspace(log10(p1),log10(p2),num);
                 Dp = pv(2:num) - pv(1:(num-1));
                 % Initial guess
-                h2_is = CP1('PSmass_INPUTS',p2,s1,'H',fluid.handle);
+                %h2_is = CP1('PSmass_INPUTS',p2,s1,'H',fluid.handle);
+                h2_is = RP1('PSmass_INPUTS',p2,s1,'H',fluid);
                 h2 = h1 + eta^n*(h2_is - h1);
                 % Update until convergence
                 err = zeros(1,20);
                 for i1 = 1:20
                     h2_0  = h2;
-                    rho2  = CP1('HmassP_INPUTS',h2,p2,'D',fluid.handle);
+                    %rho2  = CP1('HmassP_INPUTS',h2,p2,'D',fluid.handle);
+                    rho2  = RP1('HmassP_INPUTS',h2,p2,'D',fluid);
                     xi    = log(rho2/rho1)/log(p2/p1); %assumes rho = K*p^xi along polytropic compression/expansion
                     rhov  = rho1*(pv/p1).^xi;  %density array (estimate)
                     rhoAV = 0.5*(rhov(1:(num-1))+rhov(2:num));
@@ -216,7 +220,8 @@ classdef compexp_class
             
             function h2 = nested_compexp_is(fluid,h1,s1,p2,eta,n)
                 % Use isentropic efficiency
-                h2_is = CP1('PSmass_INPUTS',p2,s1,'H',fluid.handle);
+                %h2_is = CP1('PSmass_INPUTS',p2,s1,'H',fluid.handle);
+                h2_is = RP1('PSmass_INPUTS',p2,s1,'H',fluid);
                 if n == 1 %compressor
                     h2 = h1 + (h2_is - h1)/eta;
                 elseif n==-1 %expander
