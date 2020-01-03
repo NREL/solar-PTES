@@ -17,6 +17,7 @@ classdef compexp_class
         pr      % Pressure ratio
         eta     % Efficiency that is used in calculations 
         mdot    % Mass flow rate
+        N       % Speed
         
         w       % specific work transfer, J/kg
         q       % specific heat transfer, J/kg
@@ -47,6 +48,7 @@ classdef compexp_class
             obj.eta  = zeros(numPeriods,1) ;
             obj.pr   = zeros(numPeriods,1) ;
             obj.mdot = zeros(numPeriods,1) ;
+            obj.N    = zeros(numPeriods,1) ;
             
             obj.w    = zeros(numPeriods,1) ;
             obj.q    = zeros(numPeriods,1) ;
@@ -239,16 +241,21 @@ classdef compexp_class
         
         % Calculate the off-design performance of the compressor given how
         % the mass flow or pressure ratio deviate from the design point
-        function obj = compexp_offdesign(obj,state,iL,mode)
+        function [obj, Nr, mr] = compexp_offdesign(obj,state,iL,mode)
             % iL is the current timestep
             % Mode 1: Map based on Zhang and Cai 2002
             
             % Unpack
             T1   = state.T;
             P1   = state.p;
-            N    = obj.N0 ;
             obj.mdot(iL) = state.mdot ; 
+            Nr = 0.;
+            mr = 0.;
             
+            if obj.N(iL) == 0
+                obj.N(iL) = obj.N0 ;
+            end
+                        
             % If design variables are undefined set them here
             % (Essentially, the 1st charge and 1st discharge cycles set the
             % design point
@@ -265,8 +272,10 @@ classdef compexp_class
             % Check whether at design point
             % (Running the off-design model at the design point should
             % return the same value, running this way requires fewer calcs
-            if P1==obj.Pin && T1==obj.Tin && obj.mdot(iL)==obj.mdot0
+            if P1==obj.Pin && T1==obj.Tin && obj.mdot(iL)==obj.mdot0 && obj.N(iL) == obj.N0
                 obj.eta(iL) = obj.eta0 ;
+                mr = 1. ;
+                Nr = 1. ;
             else
             
                 % Off-design compressor
@@ -274,10 +283,10 @@ classdef compexp_class
                     switch mode
                         case 1
                             mr = (obj.mdot(iL) / obj.mdot0) * (T1/obj.Tin)^0.5 * (obj.Pin/P1) ; % Reduced mass
-                            Nr = (N / obj.N0) * (T1/obj.Tin)^0.5 ; % Reduced speed
+                            Nr = (obj.N(iL) / obj.N0) * (T1/obj.Tin)^0.5 ; % Reduced speed
                             % Constants
                             c1 = 1.8 ;
-                            c2 = 1.4 ;
+                            c2 = 1.8 ; % These values seem to be variable
                             c3 = c1*(1-c2/Nr) + Nr*(Nr-c2)^2 ;
                             c4 = Nr / c3 ;
                             c5 = (c1 - 2*c2*Nr^2) / c3 ;
@@ -294,13 +303,19 @@ classdef compexp_class
                     switch mode
                         case 1
                             mr = (obj.mdot(iL) / obj.mdot0) * (T1/obj.Tin)^0.5 * (obj.Pin/P1) ; % Reduced mass
-                            Nr = (N / obj.N0) * (T1/obj.Tin)^0.5 ; % Reduced speed
+                            Nr = (obj.N(iL) / obj.N0) * (T1/obj.Tin)^0.5 ; % Reduced speed
                             
                             t1 = (1.4 - 0.4 * Nr)^0.5 ;
                             t2 = 0.3 ;
                             
-                            obj.pr(iL)  = (1+(obj.pr0^2 - 1)*(T1/obj.Tin)*(obj.mdot(iL)/(obj.mdot0*t1))^2)^0.5;
-                            obj.eta(iL) = (1-t2*(1-Nr)^2)*(Nr/mr)*(2-Nr/mr) ;
+                            % PR equations in references seem to be wrong -
+                            % based on Stodola's ellipse - use this!
+                            %obj.pr(iL)  = (1+(obj.pr0^2 - 1)*(T1/obj.Tin)*(mr/t1)^2)^0.5;
+                            obj.pr(iL)  = (1./((1.-(1-1./obj.pr0^2)*(T1/obj.Tin)*(mr/t1)^2)))^0.5;
+                            if imag(obj.pr(iL)) > 0
+                                warning('Imaginary pressure ratios achieved in off-design expander')
+                            end
+                            obj.eta(iL) = obj.eta0 *(1-t2*(1-Nr)^2)*(Nr/mr)*(2-Nr/mr) ;
                             
                         case 2
                             error('Not implemented')
