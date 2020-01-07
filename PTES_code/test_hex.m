@@ -16,9 +16,9 @@ c = computer();
 % Add paths
 switch computer
     case 'GLNXA64' %Linux
-        addpath('./Classes/','./Generic/','./Functions/')
+        addpath('./Classes/','./Generic/','./Functions/','./Other')
     case 'PCWIN64' %Windows
-        addpath('.\Classes\','.\Generic\','.\Functions\')
+        addpath('.\Classes\','.\Generic\','.\Functions\','./Other')
 end
 
 % Set properties for plots
@@ -37,7 +37,8 @@ load_coolprop
 % 2 = SolarSalt and Water
 % 3 = CO2 and Water
 % 4 = Steam and MEG
-scenario = 1;
+% 5 = sCO2 and sCO2
+scenario = 5;
 
 % Set indices
 iL = 1; i1 = 1; i2 = 1;
@@ -116,6 +117,23 @@ switch scenario
         %hex_mode = 0;
         %par = 0;
         
+    case 5        
+        % CO2
+        F1 = fluid_class('CarbonDioxide','WF','CP','TTSE',1,5); % working fluid
+        F1.state(1,i1).p = 30.86e5;
+        F1.state(1,i1).T = 776.9 + 273.15;
+        F1.state(1,i1).mdot = 58.0;
+        
+        % Water
+        F2 = fluid_class('CarbonDioxide','WF','CP','TTSE',1,5); % storage fluid       
+        F2.state(1,i2).p = 297.62e5;
+        F2.state(1,i2).T = 81.9 + 273.15;
+        F2.state(1,i2).mdot = 58.0;
+        
+        % Set hex_mode
+        hex_mode = 0; % Both mass flow rates specified
+        par = 0;
+        
     otherwise
         error('not implemented')
 end
@@ -128,9 +146,7 @@ NX = 100; % Number of sections (grid)
 model = 'geom'; % either 'eff', 'UA' or 'geom'
 stage_type = 'hex';
 method = 'automatic';
-eff    = 1.00;
-ploss  = 0.01; 
-HX = hx_class('hot', stage_type, model, eff, ploss,  4, NX, 2, 2);
+HX = hx_class('hot', stage_type, model, 1.00, 0.00,  4, NX, 2, 2);
 
 switch HX.model
     case 'eff'
@@ -159,9 +175,9 @@ switch HX.model
             case 'automatic'
                 % Obtain geometric parameters based on performance objectives,
                 % using analytical solutions.
-                NTU   = 50;
-                ploss = 0.01;
-                D     = 1e-2;
+                NTU   = 4.5;
+                ploss = 0.026;
+                D     = 0.95e-3;
                 [HX]  = set_hex_geom(HX,iL,F1,i1,F2,i2,hex_mode,par,NTU,ploss,D);
         end
         
@@ -190,49 +206,110 @@ if all([strcmp(HX.model,'geom'),strcmp(method,'automatic')])
     
 end
 
-% %%% COMPARE GEOMETRICAL MODEL WITH ANALYTICAL SOLUTIONS %%%
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% n = 1;
-% if n>1
-%     mdot1 = F1.state(iL,i1).mdot*linspace(0.5,2.0,n);
-%     mdot2 = F2.state(iL,i1).mdot*linspace(0.5,2.0,n);
-% else
-%     mdot1 = F1.state(iL,i1).mdot;
-%     mdot2 = F2.state(iL,i1).mdot;
-% end
-% NU_eff  = zeros(size(mdot1));
-% AN_eff  = zeros(size(mdot1));
-% NU_DppH = zeros(size(mdot1));
-% AN_DppH = zeros(size(mdot1));
-% NU_DppC = zeros(size(mdot1));
-% AN_DppC = zeros(size(mdot1));
-% for im = 1:n
-%     F1.state(iL,i1).mdot = mdot1(im);
-%     F2.state(iL,i1).mdot = mdot2(im);
-%     % Run HEX code
-%     %[F1,F2,~,~,HX] = hex_TQA(F1,[iL,i1],F2,[iL,i2],HX,'hex',hex_mode,var);
-%     [F1,F2,~,~,HX] = hex_func(HX,iL,F1,i1,F2,i2,hex_mode,par);
-%     
-%     % Compare numerical results (NU) with analytical results (AN)
-%     NU_eff(im)  = HX.QS(HX.NX+1)/HX.QMAX;
-%     NU_DppH(im) = (HX.H.pin-HX.H.p(1))./HX.H.pin;
-%     NU_DppC(im) = (HX.C.pin-HX.C.p(HX.NX+1))./HX.C.pin;
-%     [AN_eff(im),AN_DppH(im),AN_DppC(im)] = hex_analytic(HX,iL,F1,i1,F2,i2);
+%%% COMPARE GEOMETRICAL MODEL WITH ANALYTICAL SOLUTIONS %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+n = 30;
+if n>1
+    mdot1 = F1.state(iL,i1).mdot*linspace(0.25,1.0,n);
+    mdot2 = F2.state(iL,i1).mdot*linspace(0.25,1.0,n);
+    %mdot2 = F2.state(iL,i1).mdot*ones(size(mdot1));
+else
+    mdot1 = F1.state(iL,i1).mdot;
+    mdot2 = F2.state(iL,i1).mdot;
+end
+
+AN_TH1  = zeros(size(mdot1));
+AN_TC2  = zeros(size(mdot1));
+AN_pH1  = zeros(size(mdot1));
+AN_pC2  = zeros(size(mdot1));
+AN_DppH = zeros(size(mdot1));
+AN_DppC = zeros(size(mdot1));
+NU_TH1  = zeros(size(mdot1));
+NU_TC2  = zeros(size(mdot1));
+NU_pH1  = zeros(size(mdot1));
+NU_pC2  = zeros(size(mdot1));
+NU_DppH = zeros(size(mdot1));
+NU_DppC = zeros(size(mdot1));
+for im = 1:n
+    F1.state(iL,i1).mdot = mdot1(im);
+    F2.state(iL,i1).mdot = mdot2(im);
+    % Run HEX code
+    [HX,F1,~,F2,~] = hex_func(HX,iL,F1,i1,F2,i2,hex_mode,par);
+    
+    % Compare numerical results (NU) with analytical results (AN)
+    NU_TH1(im)  = HX.H.T(1);
+    NU_TC2(im)  = HX.C.T(NX+1);
+    NU_pH1(im)  = HX.H.p(1);
+    NU_pC2(im)  = HX.C.p(HX.NX+1);
+    NU_DppH(im) = (HX.H.pin-HX.H.p(1))/HX.H.pin;
+    NU_DppC(im) = (HX.C.pin-HX.C.p(HX.NX+1))/HX.C.pin;
+    [AN_TH1(im),AN_TC2(im),AN_pH1(im),AN_pC2(im)] = hex_analytic(HX,iL,F1,i1,F2,i2);
+    AN_DppH(im) = (HX.H.pin-AN_pH1(im))/HX.H.pin;
+    AN_DppC(im) = (HX.C.pin-AN_pC2(im))/HX.C.pin;
 %     fprintf(1,'\n      Numerical  Analytical\n')
-%     fprintf(1,'Eff  = %8.3f   %9.3f\n',NU_eff(im),AN_eff(im))
-%     fprintf(1,'DppH = %8.5f   %9.5f\n',NU_DppH(im),AN_DppH(im))
-%     fprintf(1,'DppC = %8.5f   %9.5f\n',NU_DppC(im),AN_DppC(im))
-% end
+%     fprintf(1,'TH1 [C] = %8.1f   %8.1f\n',NU_TH1(im)-273.15,AN_TH1(im)-273.15)
+%     fprintf(1,'TC2 [C] = %8.1f   %8.1f\n',NU_TC2(im)-273.15,AN_TC2(im)-273.15)
+%     fprintf(1,'DppH    = %8.5f   %8.5f\n',NU_DppH(im),AN_DppH(im))
+%     fprintf(1,'DppC    = %8.5f   %8.5f\n',NU_DppC(im),AN_DppC(im))
+    
+    % Make plots
+    %plot_hex(HX,1,20,'C');
+    %pause(2);
+end
 % if n>1
 %     figure(25)
-%     plot(mdot1,NU_eff,'o',mdot1,AN_eff)
+%     plot(mdot1,NU_TH1,'o',mdot1,AN_TH1)
 %     xlabel('Mass flow rate, kg/s')
-%     ylabel('Effectiveness')
+%     ylabel('Outlet temperature, K')
 %     legend('numerical','analytical')
 %     figure(26)
-%     semilogy(mdot1,NU_DppH,'o',mdot1,AN_DppH,mdot1,NU_DppC,'o',mdot1,AN_DppC)
+%     plot(mdot1,NU_TC2,'o',mdot1,AN_TC2)
+%     xlabel('Mass flow rate, kg/s')
+%     ylabel('Outlet temperature, K')
+%     legend('numerical','analytical')
+%     figure(27)
+%     semilogy(mdot1,NU_DppH,'o',mdot1,AN_pH1,mdot1,NU_DppC,'o',mdot1,AN_pC2)
 %     xlabel('Mass flow rate, kg/s')
 %     ylabel('$ \Delta p / p $')
 %     legend('FH numerical','FH analytical','FC numerical','FC analytical','Location','Best')
 % end
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Load data from Hoopes2016
+data = load('Validation.csv');
+
+% Compare numerical results with data from Hoopes2016
+figure(30)
+%plot(mdot1,NU_TH1-273.15,data(:,1),data(:,7),'s')
+plot(mdot1,NU_TH1-273.15,data(:,1),data(:,3),'s')
+xlabel('Mass flow rate [kg/s]')
+ylabel('Outlet temperature (hot) [K]')
+legend('numerical','Hoopes2016','Location','Best')
+figure(31)
+%plot(mdot1,NU_TC2-273.15,data(:,1),data(:,8),'s')
+plot(mdot1,NU_TC2-273.15,data(:,1),data(:,4),'s')
+xlabel('Mass flow rate [kg/s]')
+ylabel('Outlet temperature (cold) [K]')
+legend('numerical','Hoopes2016','Location','Best')
+figure(32)
+%plot(mdot1,NU_pH1/1e5,data(:,1),data(:,9),'s')
+plot(mdot1,NU_pH1/1e5,data(:,1),data(:,5),'s')
+xlabel('Mass flow rate [kg/s]')
+ylabel('Outlet pressure (hot) [bar]')
+legend('numerical','Hoopes2016','Location','Best')
+figure(33)
+%plot(mdot1,NU_pC2/1e5,data(:,1),data(:,10),'s')
+plot(mdot1,NU_pC2/1e5,data(:,1),data(:,6),'s')
+xlabel('Mass flow rate [kg/s]')
+ylabel('Outlet pressure (cold) [bar]')
+legend('numerical','Hoopes2016','Location','Best')
+% figure(34)
+% plot(mdot1,NU_DppH,data(:,1),(HX.H.pin-data(:,5)*1e5)/HX.H.pin,'s')
+% xlabel('Mass flow rate, kg/s')
+% ylabel('$ \Delta p / p $ (hot)')
+% legend('numerical','Hoopes2016','Location','Best')
+% figure(35)
+% plot(mdot1,NU_DppC,data(:,1),(HX.C.pin-data(:,6)*1e5)/HX.C.pin,'s')
+% xlabel('Mass flow rate, kg/s')
+% ylabel('$ \Delta p / p $ (hot)')
+% legend('numerical','Hoopes2016','Location','Best')
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

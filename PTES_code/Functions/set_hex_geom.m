@@ -111,10 +111,6 @@ SW.Af = SW.mdot/SW.G;
 SS.L = SW.L;
 SS.A = SW.A;
 
-% Assume an initial value of D2 and update until it satisfies
-% thermo-hydraulic performance requirements
-% SS.D = SW.D;
-
 % Find the optimal hydraulic diameter that minimises losses on the second
 % stream
 fun = @(D) stream_losses(D,SS);
