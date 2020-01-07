@@ -184,7 +184,7 @@ for iL=1:Load.num
                 if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
                     WL_PTES_chg(i1) = WL_PTES_chg(i1) + gas.stage(iL,i0).sirr*T0*gas.state(iL,i0).mdot*Load.time(iL);
                 end
-                if any(strcmp(Load.type(iL),{'dis','disCO2','disTSCO2'}))
+                if any(strcmp(Load.type(iL),{'dis','disCO2','rcmpCO2','disTSCO2'}))
                     WL_PTES_dis(i1) = WL_PTES_dis(i1) + gas.stage(iL,i0).sirr*T0*gas.state(iL,i0).mdot*Load.time(iL);
                 end
             end
@@ -232,7 +232,7 @@ for iL=1:Load.num
             if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
                 WL_PTES_chg(i1) = WL_PTES_chg(i1) + air.stage(iL,i0).sirr*T0*air.state(iL,i0).mdot*Load.time(iL);
             end
-            if any(strcmp(Load.type(iL),{'dis','disCO2','ran','disTSCO2'}))
+            if any(strcmp(Load.type(iL),{'dis','disCO2','ran','rcmpCO2','disTSCO2'}))
                 WL_PTES_dis(i1) = WL_PTES_dis(i1) + air.stage(iL,i0).sirr*T0*air.state(iL,i0).mdot*Load.time(iL);
             end
         end
@@ -404,7 +404,7 @@ if Load.mode == 1
     % Treat mixing_liquid loss and exergy of cold tanks as heat_reject
     WL_matrix(1,4) = WL_matrix(1,5) + (Exergy_into_tanks - Exergy_into_hot_tanks);
     WL_matrix(1,5) = 0;
-elseif Load.mode == 6
+elseif Load.mode == 5 || Load.mode == 6
     % Ignore tank losses from the solar tank
     WL_matrix(1,5) = WL_matrix(1,5) - HT(1).WL_chg ;
     WL_matrix(1,5) = WL_matrix(1,5) - HT(1).WL_dis ;

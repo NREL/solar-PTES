@@ -103,7 +103,7 @@ ylabel('Reduced isentropic efficiency $$\eta / \eta_0$$')
 xlim([0.4 1.1])
 ylim([0.8 1.0])
 legend({'$$\dot{n}_c = $$ 0.6','$$\dot{n}_c = $$ 0.7','$$\dot{n}_c = $$ 0.8','$$\dot{n}_c = $$ 0.9','$$\dot{n}_c = $$ 1.0'},'Location','Best')
-
+legend boxoff
 
 figure(2)
 plot(mr,pr)
@@ -113,7 +113,7 @@ ylabel('Reduced pressure ratio $$\beta / \beta_0$$')
 xlim([0.4 1.1])
 ylim([0.0 1.1])
 legend({'$$\dot{n}_c = $$ 0.6','$$\dot{n}_c = $$ 0.7','$$\dot{n}_c = $$ 0.8','$$\dot{n}_c = $$ 0.9','$$\dot{n}_c = $$ 1.0'},'Location','Best')
-    
+legend boxoff
 
 
 
@@ -169,7 +169,7 @@ ylabel('Reduced isentropic efficiency $$\eta / \eta_0$$')
 xlim([0.4 1.1])
 ylim([0.6 1.0])
 legend({'$$\dot{n}_t = $$ 0.6','$$\dot{n}_t = $$ 0.7','$$\dot{n}_t = $$ 0.8','$$\dot{n}_t = $$ 0.9','$$\dot{n}_t = $$ 1.0'},'Location','Best')
-
+legend boxoff
 
 figure(4)
 pr(pr<=0) = nan;
@@ -180,5 +180,6 @@ ylabel('Reduced pressure ratio $$\beta / \beta_0$$')
 xlim([0.4 1.2])
 ylim([0. 1.2])
 legend({'$$\dot{n}_t = $$ 0.6','$$\dot{n}_t = $$ 0.7','$$\dot{n}_t = $$ 0.8','$$\dot{n}_t = $$ 0.9','$$\dot{n}_t = $$ 1.0'},'Location','Best')
+legend boxoff
     
     
