@@ -4,7 +4,7 @@ function [fluid] = update (fluid,ind,mode)
 idx   = sub2ind(size(fluid.state),ind(1),ind(2));
 state = fluid.state(idx);
 
-state = update_state(state,fluid.handle,fluid.read,fluid.TAB,mode);
+state = update_state(state,fluid.handle,fluid.read,fluid.TAB,fluid.IDL,mode);
 
 fluid.state(idx) = state;
 

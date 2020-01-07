@@ -3,22 +3,26 @@ classdef compexp_class
         type      % "comp" or "exp"
         aim_mode  % "Paim" or "Taim"
         eff_mode  % "isen" or "poly"
+        
+        % Design values
         eta0  = 0 % Design value of isen/polytropic efficiency
         mdot0 = 0 % Design mass flow rate, kg/s
         W0    = 0 % Design point work, W
         pr0   = 0 % Design pressure ratio
+        Tin   = 0 % Design inlet temperature, K
+        Pin   = 0 % Design inlet pressure, Pa
+        N0    = 0 % Design rotational speed, rad/s
                 
         % Following variables are arrays (one for each time period)
         pr      % Pressure ratio
         eta     % Efficiency that is used in calculations 
+        mdot    % Mass flow rate
+        N       % Speed
         
         w       % specific work transfer, J/kg
         q       % specific heat transfer, J/kg
         Dh      % specific enthalpy change, J/kg
         sirr    % specific entropy generation, J/kgK
-        
-        mdot  = 0 % Mass flow rate, kg/s
-        TIT   = 0 % Turbine inlet temperature, K
         
         W        % work transfer, W
         Q        % heat transfer, W
@@ -26,6 +30,7 @@ classdef compexp_class
         Sirr     % entropy generation, W/K
         
         rhoP    % design point power density
+        firstcall
         
         % Economics
         cmpexp_cost = econ_class(0,0,0,0) ;
@@ -37,17 +42,19 @@ classdef compexp_class
             obj.type      = type ;
             obj.eff_mode  = eff_mode ;
             obj.eta0      = eta0 ;
+            
+            obj.N0  = 2 * pi * 3600 ; % Design rotational speed
                         
-            obj.eta = zeros(numPeriods,1) ;
-            obj.pr  = zeros(numPeriods,1) ;
+            obj.eta  = zeros(numPeriods,1) ;
+            obj.pr   = zeros(numPeriods,1) ;
+            obj.mdot = zeros(numPeriods,1) ;
+            obj.N    = zeros(numPeriods,1) ;
             
             obj.w    = zeros(numPeriods,1) ;
             obj.q    = zeros(numPeriods,1) ;
             obj.Dh   = zeros(numPeriods,1) ;
             obj.sirr = zeros(numPeriods,1) ;
-            
-            obj.mdot  = zeros(numPeriods,1) ;
-            
+                        
             obj.W    = zeros(numPeriods,1) ;
             obj.Q    = zeros(numPeriods,1) ;
             obj.DH   = zeros(numPeriods,1) ;
@@ -72,10 +79,9 @@ classdef compexp_class
             h1   = state.h;
             s1   = state.s;
             rho1 = state.rho;
-            obj.mdot(iL) = state.mdot ;
             
             % Extract eta for this time period
-            obj = compexp_offdesign (obj , iL , 1) ;
+            obj = compexp_offdesign (obj , state, iL , 1) ;
             etaI = obj.eta(iL) ;
             
             
@@ -125,13 +131,15 @@ classdef compexp_class
                 % Estimate polytropic index to estimate final pressure
                 T2   = aim;
                 TAV  = 0.5*(T1 + T2);
-                Gama = CP1('PT_INPUTS',p1,TAV,'CPMASS',fluid.handle)/CP1('PT_INPUTS',p1,TAV,'CVMASS',fluid.handle);
+                %Gama = CP1('PT_INPUTS',p1,TAV,'CPMASS',fluid.handle)/CP1('PT_INPUTS',p1,TAV,'CVMASS',fluid.handle);
+                Gama = RP1('PT_INPUTS',p1,TAV,'CPMASS',fluid)/RP1('PT_INPUTS',p1,TAV,'CVMASS',fluid);
                 phi  = (Gama/(Gama-1))*etaI^n;
                 p2   = p1*(T2/T1)^phi;
                 
                 % Compute compression/expansion for estimated final pressure
                 h2   = nested_compexp(fluid,p1,h1,s1,rho1,p2,etaI,n,num);
-                Tnew = CP1('HmassP_INPUTS',h2,p2,'T',fluid.handle);
+                %Tnew = CP1('HmassP_INPUTS',h2,p2,'T',fluid.handle);
+                Tnew = RP1('HmassP_INPUTS',h2,p2,'T',fluid);
                 
                 % Re-compute polytropic index and adapt final pressure
                 phi  = log(p2/p1)/log(Tnew/T1);
@@ -156,7 +164,7 @@ classdef compexp_class
             % Update state
             state.h = h2;
             state.p = p2;
-            state   = update_state(state,fluid.handle,fluid.read,fluid.TAB,2);
+            state   = update_state(state,fluid.handle,fluid.read,fluid.TAB,fluid.IDL,2);
             
             obj.Dh(iL)   = state.h - h1;
             obj.q(iL)    = 0;
@@ -185,13 +193,15 @@ classdef compexp_class
                 pv = logspace(log10(p1),log10(p2),num);
                 Dp = pv(2:num) - pv(1:(num-1));
                 % Initial guess
-                h2_is = CP1('PSmass_INPUTS',p2,s1,'H',fluid.handle);
+                %h2_is = CP1('PSmass_INPUTS',p2,s1,'H',fluid.handle);
+                h2_is = RP1('PSmass_INPUTS',p2,s1,'H',fluid);
                 h2 = h1 + eta^n*(h2_is - h1);
                 % Update until convergence
                 err = zeros(1,20);
                 for i1 = 1:20
                     h2_0  = h2;
-                    rho2  = CP1('HmassP_INPUTS',h2,p2,'D',fluid.handle);
+                    %rho2  = CP1('HmassP_INPUTS',h2,p2,'D',fluid.handle);
+                    rho2  = RP1('HmassP_INPUTS',h2,p2,'D',fluid);
                     xi    = log(rho2/rho1)/log(p2/p1); %assumes rho = K*p^xi along polytropic compression/expansion
                     rhov  = rho1*(pv/p1).^xi;  %density array (estimate)
                     rhoAV = 0.5*(rhov(1:(num-1))+rhov(2:num));
@@ -216,7 +226,8 @@ classdef compexp_class
             
             function h2 = nested_compexp_is(fluid,h1,s1,p2,eta,n)
                 % Use isentropic efficiency
-                h2_is = CP1('PSmass_INPUTS',p2,s1,'H',fluid.handle);
+                %h2_is = CP1('PSmass_INPUTS',p2,s1,'H',fluid.handle);
+                h2_is = RP1('PSmass_INPUTS',p2,s1,'H',fluid);
                 if n == 1 %compressor
                     h2 = h1 + (h2_is - h1)/eta;
                 elseif n==-1 %expander
@@ -230,33 +241,86 @@ classdef compexp_class
         
         % Calculate the off-design performance of the compressor given how
         % the mass flow or pressure ratio deviate from the design point
-        function obj = compexp_offdesign(obj,i,mode)
-            % i is the current timestep
-            % Mode 1: Specify current mass flow rate
-            % Mode 2:
-            if obj.type == "comp"
-                switch mode
-                    case 1
-                        % Currently do not have an off-design map
-                        if obj.mdot0 == 0
-                            obj.eta(i) = obj.eta0 ;
-                        else
-                            obj.eta(i) = obj.eta0 * obj.mdot(i) / obj.mdot0 ;
-                        end
-                    case 2
-                        error('Not implemented')
-                end
-            elseif obj.type == "exp"
-                switch mode
-                    case 1
-                        % Currently do not have an off-design map
-                        if obj.mdot0 == 0
-                            obj.eta(i) = obj.eta0 ;
-                        else
-                            obj.eta(i) = obj.eta0 * obj.mdot(i) / obj.mdot0 ;
-                        end
-                    case 2
-                        error('Not implemented')
+        function [obj, Nr, mr] = compexp_offdesign(obj,state,iL,mode)
+            % iL is the current timestep
+            % Mode 1: Map based on Zhang and Cai 2002
+            
+            % Unpack
+            T1   = state.T;
+            P1   = state.p;
+            obj.mdot(iL) = state.mdot ; 
+            Nr = 0.;
+            mr = 0.;
+            
+            if obj.N(iL) == 0
+                obj.N(iL) = obj.N0 ;
+            end
+                        
+            % If design variables are undefined set them here
+            % (Essentially, the 1st charge and 1st discharge cycles set the
+            % design point
+            if obj.mdot0 == 0
+                obj.firstcall = iL ;
+            end
+            
+            if iL == obj.firstcall
+                obj.mdot0 = obj.mdot(iL) ;
+                obj.Tin   = T1 ;
+                obj.Pin   = P1 ;
+            end
+            
+            % Check whether at design point
+            % (Running the off-design model at the design point should
+            % return the same value, running this way requires fewer calcs
+            if P1==obj.Pin && T1==obj.Tin && obj.mdot(iL)==obj.mdot0 && obj.N(iL) == obj.N0
+                obj.eta(iL) = obj.eta0 ;
+                mr = 1. ;
+                Nr = 1. ;
+            else
+            
+                % Off-design compressor
+                if obj.type == "comp"
+                    switch mode
+                        case 1
+                            mr = (obj.mdot(iL) / obj.mdot0) * (T1/obj.Tin)^0.5 * (obj.Pin/P1) ; % Reduced mass
+                            Nr = (obj.N(iL) / obj.N0) * (T1/obj.Tin)^0.5 ; % Reduced speed
+                            % Constants
+                            c1 = 1.8 ;
+                            c2 = 1.8 ; % These values seem to be variable
+                            c3 = c1*(1-c2/Nr) + Nr*(Nr-c2)^2 ;
+                            c4 = Nr / c3 ;
+                            c5 = (c1 - 2*c2*Nr^2) / c3 ;
+                            c6 = -(c1*c2*Nr - c2^2*Nr^3) / c3 ;
+                            c7 = 0.3 ;
+                            % Pressure ratio and isentropic efficiency
+                            obj.pr(iL)  = c4 * mr^2 + c5 * mr + c6 ;
+                            obj.eta(iL) = obj.eta0 *((1-c7*(1-Nr)^2)*(Nr/mr)*(2-Nr/mr)) ;
+                            
+                        case 2
+                            error('Not implemented')
+                    end
+                elseif obj.type == "exp"
+                    switch mode
+                        case 1
+                            mr = (obj.mdot(iL) / obj.mdot0) * (T1/obj.Tin)^0.5 * (obj.Pin/P1) ; % Reduced mass
+                            Nr = (obj.N(iL) / obj.N0) * (T1/obj.Tin)^0.5 ; % Reduced speed
+                            
+                            t1 = (1.4 - 0.4 * Nr)^0.5 ;
+                            t2 = 0.3 ;
+                            
+                            % PR equations in references seem to be wrong -
+                            % based on Stodola's ellipse - use this!
+                            %obj.pr(iL)  = (1+(obj.pr0^2 - 1)*(T1/obj.Tin)*(mr/t1)^2)^0.5;
+                            obj.pr(iL)  = (1./((1.-(1-1./obj.pr0^2)*(T1/obj.Tin)*(mr/t1)^2)))^0.5;
+                            if imag(obj.pr(iL)) > 0
+                                warning('Imaginary pressure ratios achieved in off-design expander')
+                            end
+                            obj.eta(iL) = obj.eta0 *(1-t2*(1-Nr)^2)*(Nr/mr)*(2-Nr/mr) ;
+                            
+                        case 2
+                            error('Not implemented')
+                    end
+                    
                 end
             end
         end
@@ -289,9 +353,7 @@ classdef compexp_class
             % equation given in the solar-PTES Q2 report
             switch mode
                 case 0
-                    % Black and Veatch correlation, eq. C1 and E1
-                    COST = 250. * obj.W0 ;
-                    COST = COST * CEind(curr) / CEind(2018) ;
+                    COST = 0.01 ;
                 
                 case 1
                     % Reciprocating compressor cost from Georgiou et al 2019 based on Turton
@@ -369,8 +431,8 @@ classdef compexp_class
                     % sCO2 radial turbine, 8-35 MW
                     % From Weiland et al 2019
                     % Valid up to TIT = 700C, and Pin = 200-260 bar
-                    if obj.TIT > 550 + 273.15
-                        fact = 1 + 1.137e-5 * (obj.TIT - 550 - 273.15)^2 ;
+                    if obj.Tin > 550 + 273.15
+                        fact = 1 + 1.137e-5 * (obj.Tin - 550 - 273.15)^2 ;
                     else
                         fact = 1.0 ;
                     end
@@ -381,8 +443,8 @@ classdef compexp_class
                     % sCO2 axial turbine, 10-750 MW
                     % From Weiland et al 2019
                     % Valid up to TIT = 730C, and Pin = 240-280 bar
-                    if obj.TIT > 550 + 273.15
-                        fact = 1 + 1.106e-4 * (obj.TIT - 550 - 273.15)^2 ;
+                    if obj.Tin > 550 + 273.15
+                        fact = 1 + 1.106e-4 * (obj.Tin - 550 - 273.15)^2 ;
                     else
                         fact = 1.0 ;
                     end
@@ -410,6 +472,11 @@ classdef compexp_class
                     % FANS --> NEED UPDATING!
                     COST = 50e3 + 1500 * (obj.W0 / 1e3)^0.8 ;
                     COST = COST * CEind(curr) / CEind(2009) ;
+                    
+                case 40
+                    % Black and Veatch correlation, eq. C1 and E1
+                    COST = 250. * obj.W0 ;
+                    COST = COST * CEind(curr) / CEind(2018) ;
 
             end
             

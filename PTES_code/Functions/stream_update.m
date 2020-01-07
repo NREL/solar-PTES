@@ -20,7 +20,14 @@ if mode == 1 % Enthalpy and pressure
         vv  = fluid.TAB(:,3);
         [S.T, S.k, S.mu, S.Pr, S.v] = rtab_1D_5out( hv, Tv, kv, muv, Prv, vv, S.h, 1);
         S.rho = 1./S.v;
-                
+        
+    elseif strcmp(fluid.read,'IDL')
+        S.T   = RP1('HmassP_INPUTS',S.h,S.p,'T',fluid) ;
+        S.k   = fluid.IDL.k ;
+        S.rho = RP1('HmassP_INPUTS',S.h,S.p,'D',fluid) ;
+        S.mu  = fvisc(fluid,S.T);
+        S.Pr  = fluid.IDL.cp .* S.mu ./ S.k ;
+        S.v   = 1./S.rho ;
     end
     
     S.Cp  = S.Pr.*S.k./S.mu;

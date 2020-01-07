@@ -26,7 +26,7 @@ Nsens    = 10000 ; % How many points to take from distribution for sensitivity a
 cap_sens = zeros(Nsens,1) ;
 
 % Retrofit? Then don't pay for steam turbine or hot storage system        
-Lretro = false  ; 
+Lretro = true ; 
 
 % Compressors and expanders
 for ii = 1 : length(CCMP)
@@ -50,7 +50,7 @@ for ii = 1 : length(DCMP)
     cap_sens = cap_sens + cost_sens(DCMP(ii).cmpexp_cost, Nsens) ;
 end
 
-if Load.mode == 4
+if Load.mode == any([4, 5, 6])
     %Recompressor
     if Lrcmp
         RCMP     = compexp_econ(RCMP, CEind, false, 0) ;
@@ -69,10 +69,14 @@ end
 % Hot tank cost and hot fluid cost
 for ii = 1 : Nhot
     fluidH(ii).cost = 1.0 ; % Specify in input file in class constructor
-    if Lretro
-        HT(ii).tankA_cost.COST = 0.1 ;
-        HT(ii).tankB_cost.COST = 0.1 ;
-        HT(ii).fluid_cost.COST = 0.1 ;
+    if Lretro && Load.mode == 3
+        HT(ii).tankA_cost.COST = 0.01 ;
+        HT(ii).tankB_cost.COST = 0.01 ;
+        HT(ii).fluid_cost.COST = 0.01 ;
+    elseif Lretro && Load.mode == 6 && ii == 1
+        HT(ii).tankA_cost.COST = 0.01 ;
+        HT(ii).tankB_cost.COST = 0.01 ;
+        HT(ii).fluid_cost.COST = 0.01 ;
     else
         HT(ii) = tank_cost(HT(ii), CEind) ;
         HT(ii) = fld_cost(HT(ii),fluidH(ii).cost, CEind) ;
@@ -114,7 +118,7 @@ Cdata = calc_lcos(Cdata, Win, Wout, Load.time, Nsens) ;
 
 % Write out some results
 switch Load.mode
-    case {0,1,3,4}
+    case {0,1,3,4, 5, 6}
         fprintf(1,'ECONOMIC RESULTS:\n');
         fprintf(1,'Capital cost:                  %8.1f M$\n',Cdata.cap_costM/1e6);
         fprintf(1,'     Standard deviation:       %8.1f M$\n\n',Cdata.cap_costSD/1e6);

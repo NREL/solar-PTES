@@ -8,6 +8,7 @@ set(0,'defaultAxesFontSize',14);
 set(0,'defaultLegendFontSize',12);
 set(0,'defaultAxesLabelFontSizeMultiplier',1.25)
 set(0,'defaultAxesTitleFontSizeMultiplier',1.25)
+set(0,'defaultfigurecolor','w')
 
 % Get colors: (or manually using "uisetcolor")
 c_pale_blue   = [0.3020    0.7490    0.9294];

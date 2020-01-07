@@ -5,15 +5,15 @@ NameArray  = {'LineWidth','LineStyle'};
 ValueArray = {0.8,'-'};
 
 switch Load.mode
-    case {0,4} % PTES
+    case {0,4,6} % PTES
         
         % Plot states in Ts diagram
-        pl1 = plot_Ts_diag(gas,Load,{'chg','chgCO2'},1,100,'k-','k-o',true,false);
-        pl2 = plot_Ts_diag(gas,Load,{'dis','disCO2'},1,100,'k:','k:s',true,true);
+        pl1 = plot_Ts_diag(gas,Load,{'chg','chgCO2','chgTSCO2'},1,100,'k-','k-o',true,false);
+        pl2 = plot_Ts_diag(gas,Load,{'dis','disCO2','disTSCO2'},1,100,'k:','k:s',true,true);
         
         % Plot storage tank temperatures
-        plot_T_storage(HT(1),Load,{'chg','chgCO2'},1,{'r','r'},true,NameArray,ValueArray);
-        plot_T_storage(CT(1),Load,{'chg','chgCO2'},1,{'b','b'},true,NameArray,ValueArray);
+        plot_T_storage(HT(1),Load,{'chg','chgCO2','chgTSCO2'},1,{'r','r'},true,NameArray,ValueArray);
+        plot_T_storage(CT(1),Load,{'chg','chgCO2','disTSCO2'},1,{'b','b'},true,NameArray,ValueArray);
         %plot_T_storage(HT(1),Load,{'dis','disCO2'},1,{'r','r'},true,NameArray,ValueArray);
         %plot_T_storage(CT(1),Load,{'dis','disCO2'},1,{'b','b'},true,NameArray,ValueArray);
         
@@ -34,14 +34,14 @@ switch Load.mode
         figure(1); hold off;
         legend(pl1,'heat pump','Location','best');
         
-    case 2 % Heat engine only
+    case {2,5} % Heat engine only
         
         % Plot states in Ts diagram
-        pl2 = plot_Ts_diag(steam,Load,{'dis','disCO2'},2,100,'k:','k:s',true,true);
+        pl2 = plot_Ts_diag(gas,Load,{'dis','disCO2','rcmpCO2'},2,100,'k:','k:s',true,true);
         
         % Plot storage tank temperatures
-        plot_T_storage(HT(1),Load,{'dis','disCO2'},2,{'r','r'},true,NameArray,ValueArray);
-        plot_T_storage(CT(1),Load,{'dis','disCO2'},2,{'b','b'},true,NameArray,ValueArray);
+        plot_T_storage(HT(1),Load,{'dis','disCO2','rcmpCO2'},2,{'r','r'},true,NameArray,ValueArray);
+        plot_T_storage(CT(1),Load,{'dis','disCO2','rcmpCO2'},2,{'b','b'},true,NameArray,ValueArray);
         
         % Set legend
         figure(2); hold off;

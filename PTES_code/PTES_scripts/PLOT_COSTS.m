@@ -1,6 +1,6 @@
 figure(9)
 switch Load.mode
-    case {0,3,4}
+    case {0,3,4,5,6}
         names = {'Charge machine','Discharge machine','Hot tanks','Cold tanks','Hot HX','Cold HX','Recuperators','Heat rejection'};
         matrix = zeros(8,7) ;
         

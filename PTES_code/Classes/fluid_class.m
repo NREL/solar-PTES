@@ -5,6 +5,7 @@ classdef fluid_class
         read   % 'CP' (CoolProp) or 'TAB' (table)
         handle % integer to identify CoolProp AbstractState
         TAB    % matrix of thermophysical properties
+        IDL    % Structure that contains ideal gas properties - e.g. cp, cv, R, T0, P0, h0, s0
         state = state_class;
         stage = stage_class;
         Nstg   % number of stages
@@ -26,7 +27,25 @@ classdef fluid_class
                     obj.handle = calllib('coolprop','AbstractState_factory',backend,name,ierr,herr,buffer_size);
                 case 'TAB'
                     % Read thermophysical properties from table
-                    obj.TAB = create_table(name);                    
+                    obj.TAB = create_table(name); 
+                case 'IDL'
+                    % In this case backend is used to provide a structure of some useful properties
+                    obj.IDL.T0 = backend.T0 ;
+                    obj.IDL.P0 = backend.P0 ;
+                    obj.IDL.cp = backend.cp ;
+                    obj.IDL.cv = backend.cv ;
+                                      
+                    obj.IDL.mu0   = backend.mu0 ;
+                    obj.IDL.TVref = backend.TVref ;
+                    obj.IDL.S     = backend.S ;
+                    obj.IDL.k     = backend.k ;
+                    
+                    % Now calculate some other reference points
+                    obj.IDL.R   = obj.IDL.cp - obj.IDL.cv ;
+                    obj.IDL.gam = obj.IDL.cp / obj.IDL.cv ;
+                    obj.IDL.h0  = obj.IDL.cp * obj.IDL.T0 ;
+                    obj.IDL.s0  = obj.IDL.cp * log(obj.IDL.T0) - obj.IDL.R * log(obj.IDL.P0) ;
+                                        
                 otherwise
                     error('not implemented')
             end
@@ -90,6 +109,17 @@ classdef fluid_class
             for i = ind
                 Mdot  = Mdot  + fluid.state(iL,i).mdot;
             end
+            
+        end
+        
+        % Calculate the viscosity of an ideal gas using Sutherland's law
+        function mu = fvisc(fluid,T)
+            
+            mu0   = fluid.IDL.mu0 ;
+            TVref = fluid.IDL.TVref ;
+            S     = fluid.IDL.S ;
+            
+            mu    = mu0 .* ((TVref + S) ./ (T + S)) .* (T./TVref).^1.5 ;
             
         end
         

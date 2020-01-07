@@ -1,7 +1,7 @@
 % Set atmospheric conditions and cycle parameters
 T0      = 30 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
-pmax    = 25e5;         % top pressure, Pa
+pmax    = 10e5;         % top pressure, Pa
 PRch    = 6.0;          % charge pressure ratio
 PRr     = 1.5;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
@@ -32,9 +32,9 @@ Nhot = 1; % number of hot stores. Not implemented for >2
 % Set parameters of Load structure
 switch Load.mode
     case 0 % PTES
-        Load.time = [10;10;10].*3600;               % time spent in each load period, s
-        Load.type = ["chg";"str";"dis"];    % type of load period
-        Load.mdot = [10;0;10];                       % working fluid mass flow rate, kg/s
+        Load.time = [10;2;10;10;2].*3600;               % time spent in each load period, s
+        Load.type = ["chg";"chg";"str";"dis";"dis"];    % type of load period
+        Load.mdot = [10;8;0;10;8];                       % working fluid mass flow rate, kg/s
                 
     case 1 % Heat pump
         Load.time = 10.*3600;                  % time spent in each load period, s
@@ -80,6 +80,20 @@ MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
 % 'TTSE' for speed and accuracy. 'num' indicates number of preallocated
 % elements in state arrays.
 gas = fluid_class('Nitrogen','WF','CP','BICUBIC&HEOS',Load.num,30);
+
+% Set up an ideal gas - should run faster
+% gas_temp = fluid_class('Nitrogen','WF','CP','BICUBIC&HEOS',Load.num,30);
+% dat.T0   = 300 ;
+% dat.P0   = 1e5 ;
+% dat.cp   = CP1('PT_INPUTS',dat.P0,dat.T0,'CPMASS',gas_temp.handle) ;
+% dat.cv   = CP1('PT_INPUTS',dat.P0,dat.T0,'CVMASS',gas_temp.handle) ;
+% dat.mu0  = 17.81e-6 ;
+% dat.TVref = 300.55 ;
+% dat.S     = 111 ;
+% dat.k     = 0.026 ;
+% 
+% gas      = fluid_class('Nitrogen','WF','IDL',dat,Load.num,30);
+
 if Load.mode==3
     % 'TTSE' interpolation is NOT recommended for steam when reading values
     % close to the saturation curve. Use 'HEOS' or 'BICUBIC&HEOS'

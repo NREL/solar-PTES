@@ -2,11 +2,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Call the correct input file
-Load.mode = 4;
+Load.mode = 5;
 switch Load.mode
     case {0,1,2,3} % Joule-Bratyon PTES / Joule-Brayton + Rankine
         JB_RANK_INPUTS
-    case 4 % sCO2-PTES type cycles
+    case {4, 5, 6} % sCO2-PTES type cycles
         sCO2_INPUTS
 end
 

@@ -32,8 +32,8 @@ for ii = 1 : Nhot
     % Replace these later with data from an input file
     pbH(ii).Sname = 'Magnetite' ;
     pbH(ii).sld   = packbed_class.create_solid_table(pbH(ii).Sname) ;
-    pbH(ii).kS   = pbH(ii).sld(1,6) ;    % Thermal conductivity, W/mK
-    pbH(ii).rhoS = 1./pbH(ii).sld(1,3) ;   % Density, kg/m3
+    pbH(ii).kS    = pbH(ii).sld(1,6) ;    % Thermal conductivity, W/mK
+    pbH(ii).rhoS  = 1./pbH(ii).sld(1,3) ;   % Density, kg/m3
     
     x  = pbH(ii).sld(:,1); %temperatures
     h1 = interp1(x,pbH(ii).sld(:,2),pbH(ii).TC);
@@ -44,12 +44,12 @@ for ii = 1 : Nhot
     % Fluid properties
     % Eventually this will be an input from external routines
     pbH(ii).kF   = 0.035 ; % Thermal conductivity, W/mK
-    pbH(ii).rhoF = 1000  ; % Density, kg/m3
-    pbH(ii).cF   = 2500 ; % Specific heat capcaity, J/kgK
+    pbH(ii).rhoF = 857;%12;% % Density, kg/m3 - Need to calculate these properly!
+    pbH(ii).cF   = 2300;%1000; % Specific heat capacity, J/kgK
     pbH(ii).Pr   = 0.7 ;  % Prandtl number
-    pbH(ii).mu   = 5e-4 ; % Viscosity, Pa.s
+    pbH(ii).mu   = 5e-4 ;%1e-5;% Viscosity, Pa.s
     pbH(ii).mdot = 10.0 ; % Fluid mass flow rate, kg/s
-    pbH(ii).Pin  = 1e5 ;
+    pbH(ii).Pin  = 10e5 ;
     
     % Nominal charging time
     pbH(ii).tN = 8.0 * 3600.0 ; % Nominal charging time (to fully charge storage)
@@ -66,19 +66,23 @@ for ii = 1 : Nhot
     pbH(ii).textD = 0.25 ; % End discharge cycle after this temperature threshold is exceeded
     
     % Grid and timestep controls
-    pbH(ii).DELX = 0.01 ; % Size of grid-step relative to length of storage, dx / L
-    pbH(ii).CFL  = 1  ; % Courant-Friedrichs-Levy number, used to set time step size
+    pbH(ii).DELX = (1/100) ; % Size of grid-step relative to length of storage, dx / L
+    pbH(ii).CFL  = 0.1; % Courant-Friedrichs-Levy number, used to set time step size. (Choose 5 for oil with ideal gas routine. Choose 100 for ideal gas with ideal gas routine or 10 if using liquid routine. Choose 0.1 for liquids with liquid routine.
     pbH(ii).TMAX = 4.0 ;  % Max time to run calculations for - this is a multiple of tN
     
-    % Turn conduction terms on/off (can speed up and stabalize routine
-    pbH(ii).Cond = 1 ; % Conduction is on if 1, off if 0
+    % Turn conduction terms on/off 
+    pbH(ii).Cond = 0 ; % Conduction is on if 1, off if 0
     
     % Plotting controls
     pbH(ii).Nprof = 5 ; % Number of temperature profiles to save
     
     % Fluid
-    FSname  = 'MineralOil';  % fluid name
+    FSname = 'MineralOil';  % fluid name
     fluidS = fluid_class(FSname,'SF','TAB',NaN,1,30); % Storage fluid
+    
+    %FSname = 'Nitrogen';  % fluid name
+    %fluidS = fluid_class(FSname,'WF','CP','BICUBIC&HEOS',1,30);
+    pbH(ii).Lideal = false ;
     
     % Set up packed bed
     pbH(ii) = PB_INITIALISE( pbH(ii), fluidS ) ;

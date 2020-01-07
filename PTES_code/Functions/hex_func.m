@@ -53,7 +53,7 @@ TC1 = fluidC.state(iL,iC).T;
 if TC1 > TH2 % swap needed
     swap = 1;
     error(strcat('swap not implemented for hx_class and set_hex_geom.',...
-        'make sure that fluidH is fluidH and fluidC is fluiC when calling hex_func'))
+        'make sure that fluidH is fluidH and fluidC is fluidC when calling hex_func'))
     fluidH0 = fluidH;
     fluidH  = fluidC;
     fluidC  = fluidH0;
@@ -421,10 +421,10 @@ end
 % Update states
 stateH.h = hH1;
 stateH.p = pH1;
-stateH   = update_state(stateH,fluidH.handle,fluidH.read,fluidH.TAB,2);
+stateH   = update_state(stateH,fluidH.handle,fluidH.read,fluidH.TAB,fluidH.IDL,2);
 stateC.h = hC2;
 stateC.p = pC2;
-stateC   = update_state(stateC,fluidC.handle,fluidC.read,fluidC.TAB,2);
+stateC   = update_state(stateC,fluidC.handle,fluidC.read,fluidC.TAB,fluidC.IDL,2);
 
 % Update average specific heat capacities and compute Cmin and NTU. Save
 % into HX structure. Also save DppC nd DppH.
