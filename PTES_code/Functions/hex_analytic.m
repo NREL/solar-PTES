@@ -119,8 +119,8 @@ for i=1:3
     QT   = eff*QMAX;
     hC2  = hC1 + QT/mC;
     hH1  = hH2 - QT/mH;
-    pC2  = pC1 - DppC;
-    pH1  = pH2 - DppH;
+    pC2  = pC1*(1 - DppC);
+    pH1  = pH2*(1 - DppH);
     TC2 = RP1('HmassP_INPUTS',hC2,pC2,'T',fluidC);
     TH1 = RP1('HmassP_INPUTS',hH1,pH1,'T',fluidH);
     
