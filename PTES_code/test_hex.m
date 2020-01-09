@@ -38,10 +38,10 @@ load_coolprop
 % 3 = CO2 and Water
 % 4 = Steam and MEG
 % 5 = sCO2 and sCO2
-scenario = 1;
+scenario = 5;
 
 % Save figures?
-save_figures = 0;
+save_figures = 1;
 
 % Set indices
 iL = 1; i1 = 1; i2 = 1;
@@ -195,12 +195,6 @@ end
 
 % Make plots
 plot_hex(HX,1,10,'C');
-if save_figures
-    save_fig(10,'./Results/T_Q',{'epsc'}) %#ok<UNRCH>
-    save_fig(11,'./Results/T_A',{'epsc'})
-    save_fig(12,'./Results/p_A',{'epsc'})
-    save_fig(13,'./Results/Re_A',{'epsc'})
-end
 
 % Compare specifications from set_hex_geom with numerical results
 if strcmp(HX.model,'geom')    
@@ -314,13 +308,6 @@ switch scenario
         errpC2  = max(abs(num_pC2 - an_pC2)./num_pC2*100);
         errDppH = max(abs(num_DppH - an_DppH)./num_DppH*100);
         errDppC = max(abs(num_DppC - an_DppC)./num_DppC*100);
-        
-        % Save figure
-        if save_figures
-            save_fig(25,'./Results/TH1_analytic','epsc') %#ok<UNRCH>
-            save_fig(26,'./Results/TC2_analytic','epsc')
-            save_fig(27,'./Results/Dpp_analytic','epsc')
-        end
 end
 
 
@@ -334,46 +321,54 @@ switch scenario
         errDppH = abs(num_pH1 - data(:,5)'*1e5)./pH2*100;
         errDppC = abs(num_pC2 - data(:,6)'*1e5)./pC1*100;
         
-        % Make figures
+        % Plot figures
         figure(30)
         yyaxis left
         plot(mdot1,num_TH1-273.15,data(:,1),data(:,3),'s');
+        ylim([85 105])
         xlabel('Mass flow rate [kg/s]')
-        ylabel('Outlet temperature (hot) [K]')
+        ylabel('Outlet temperature (hot) [K]')        
         yyaxis right
         plot(mdot1,errTH1,'d')
+        ylim([0 0.2])
         ylabel('Error [$\%$]')
-        legend('Numerical','Hoopes2016','Error','Location','Best')        
+        legend('Numerical','Hoopes2016','Error','Location','NorthWest')        
         
         figure(31)
         yyaxis left
         plot(mdot1,num_TC2-273.15,data(:,1),data(:,4),'s')
+        ylim([615 635])
         xlabel('Mass flow rate [kg/s]')
         ylabel('Outlet temperature (cold) [K]')
         yyaxis right
         plot(mdot1,errTC2,'d')
+        ylim([0 0.10])
         ylabel('Error [$\%$]')
         legend('Numerical','Hoopes2016','Error','Location','Best')
         
         figure(32)
         yyaxis left
         plot(mdot1,num_pH1/1e5,data(:,1),data(:,5),'s')
+        ylim([29 31])
         xlabel('Mass flow rate [kg/s]')
         ylabel('Outlet pressure (hot) [bar]')
         yyaxis right
         plot(mdot1,errDppH,'d')
+        ylim([0 0.10])
         ylabel('Error [$\%$]')
         legend('Numerical','Hoopes2016','Error','Location','Best')
         
         figure(33)
         yyaxis left
         plot(mdot1,num_pC2/1e5,data(:,1),data(:,6),'s')
+        ylim([290 300])
         xlabel('Mass flow rate [kg/s]')
         ylabel('Outlet pressure (cold) [bar]')
         yyaxis right
         plot(mdot1,errDppC,'d')
+        ylim([0 2.5])
         ylabel('Error [$\%$]')
-        legend('Numerical','Hoopes2016','Error','Location','South')
+        legend('Numerical','Hoopes2016','Error','Location','West')
         
         % Compare against Hoopes' scaling method
         %figure(30)
@@ -385,12 +380,31 @@ switch scenario
         %figure(33)
         %plot(mdot1,num_pC2/1e5,data(:,1),data(:,10),'s')
         
-        % Save figures
-        if save_figures
-            save_fig(30,'./Results/TH1','epsc') %#ok<UNRCH>
-            save_fig(31,'./Results/TC2','epsc')
-            save_fig(32,'./Results/pH1','epsc')
-            save_fig(33,'./Results/pC2','epsc')
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%% SAVE FIGURES %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+switch save_figures
+    case 1
+        formats = {'epsc','emf'};
+        
+        save_fig(10,'./Results/T_Q',formats)
+        save_fig(11,'./Results/T_A',formats)
+        save_fig(12,'./Results/p_A',formats)
+        save_fig(13,'./Results/Re_A',formats)
+        
+        switch scenario
+            case 1
+                save_fig(25,'./Results/TH1_analytic',formats)
+                save_fig(26,'./Results/TC2_analytic',formats)
+                save_fig(27,'./Results/Dpp_analytic',formats)
+            case 5
+                save_fig(30,'./Results/TH1',formats)
+                save_fig(31,'./Results/TC2',formats)
+                save_fig(32,'./Results/pH1',formats)
+                save_fig(33,'./Results/pC2',formats)
         end
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
