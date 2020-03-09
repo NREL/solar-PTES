@@ -1,13 +1,13 @@
 % Set atmospheric conditions and cycle parameters
-T0      = 30 + 273.15;  % ambient temp, K
+T0      = 40 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
-pmax    = 10e5;         % top pressure, Pa
-PRch    = 6.0;          % charge pressure ratio
-PRr     = 1.5;          % discharge pressure ratio: PRdis = PRch*PRr
+pmax    = 25e5;         % top pressure, Pa
+PRch    = 2.5;          % charge pressure ratio
+PRr     = 1.18;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 1;            % set Tmax? (this option substitutes PRch)
-Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
+Tmax    = 560 + 273.15; % maximum temp at compressor outlet, K
 
 % Set Rankine-specific parameters
 Ran_ptop  = 100e5;
@@ -21,7 +21,7 @@ ploss = 0.01;  % pressure loss in HEXs
 
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
-Ne_ch = 2; % number of expansions during charge
+Ne_ch = 1; % number of expansions during charge
 nH    = max([2,Nc_ch]); % number of hot fluid streams
 nC    = Ne_ch;          % number of cold fluid streams
 
@@ -32,9 +32,12 @@ Nhot = 1; % number of hot stores. Not implemented for >2
 % Set parameters of Load structure
 switch Load.mode
     case 0 % PTES
-        Load.time = [10;2;10;10;2].*3600;               % time spent in each load period, s
-        Load.type = ["chg";"chg";"str";"dis";"dis"];    % type of load period
-        Load.mdot = [10;8;0;10;8];                       % working fluid mass flow rate, kg/s
+        fac = 10.0/0.985/0.999; % This can be used to more easily set the mass flow to obtain a desired power output
+        ee  = 0.5886 ;
+        stH = 8 ;
+        Load.time = [stH/ee;4;stH].*3600;               % time spent in each load period, s
+        Load.type = ["chg";"str";"dis"];    % type of load period
+        Load.mdot = [10*fac*ee;0;10*fac];                       % working fluid mass flow rate, kg/s
                 
     case 1 % Heat pump
         Load.time = 10.*3600;                  % time spent in each load period, s
@@ -47,29 +50,30 @@ switch Load.mode
         Load.mdot = [0,10];                        % working fluid mass flow rate, kg/s
         
     case 3 % JB charge, Rankine discharge
-%         Load.time = [10;4;10;10].*3600;        % time spent in each load period, s
-%         Load.type = ["chg";"str";"ran";"ran"];    % type of load period
-%         Load.mdot = [10;0;1;1];              % working fluid mass flow rate, kg/s
-%         Load.options.useCold = [0,0,1,0]; %Use cold stores during Rankine discharge?
-        Load.time = [10;4;15].*3600;        % time spent in each load period, s
-        Load.type = ["chg";"str";"ran"];    % type of load period
-        Load.mdot = [10;0;1];              % working fluid mass flow rate, kg/s
-        Load.options.useCold = [0,0,0]; %Use cold stores during Rankine discharge?
+         fac = 73.32285 ; % THis can be used to more easily set the mass flow to obtain a desired power output 
+         Load.time = [10;4;10;10].*3600;        % time spent in each load period, s
+         Load.type = ["chg";"str";"ran";"ran"];    % type of load period
+         Load.mdot = [10*fac;0;1*fac;1*fac];              % working fluid mass flow rate, kg/s
+         Load.options.useCold = [0,0,0,0]; %Use cold stores during Rankine discharge?
+%        Load.time = [10;4;15].*3600;        % time spent in each load period, s
+%        Load.type = ["chg";"str";"ran"];    % type of load period
+%        Load.mdot = [10;0;1];              % working fluid mass flow rate, kg/s
+%        Load.options.useCold = [0,0,0]; %Use cold stores during Rankine discharge?
 end
 Load.num  = numel(Load.time);
 Load.ind  = 1:Load.num;
 
 % Hot storage tanks
 fHname  = 'SolarSalt';  % fluid name
-TH_dis0 = 230 + 273.15; % initial temperature of discharged hot fluid, K
-MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
-TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
+TH_dis0 = 350 + 273.15; % initial temperature of discharged hot fluid, K
+MH_dis0 = 1e9;          % initial mass of discharged hot fluid, kg
+TH_chg0 = 570 + 273.15; % initial temperature of charged hot fluid, K
 MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
 
 % Cold storage tanks
 fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
 TC_dis0 = T0;           % initial temperature of discharged cold fluid, K
-MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
+MC_dis0 = 1e9;          % initial mass of discharged cold fluid, kg
 TC_chg0 = T0-50;        % initial temperature of charged cold fluid, K
 MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
 
@@ -104,21 +108,21 @@ end
 switch Load.mode
     case {0,1,2}
         % Call HX classes for ideal-gas PTES cycle
-        HX(1) = hx_class('hot',  'hex',   'eff', eff, ploss,  4, 100, Load.num, Load.num) ; % Hot heat exchanger
-        HX(2) = hx_class('cold', 'hex',   'eff', eff, ploss,  4, 100, Load.num, Load.num) ; % Cold heat exchanger
-        HX(3) = hx_class('regen','regen', 'eff', eff, ploss,  4, 100, Load.num, Load.num) ; % Recuperator
-        HX(4) = hx_class('rej',  'hex',   'eff', eff, ploss, 33, 100, Load.num, Load.num) ; % Heat rejection unit
+        HX(1) = hx_class('hot',  'hex',   'eff', eff, ploss,  11, 100, Load.num, Load.num) ; % Hot heat exchanger
+        HX(2) = hx_class('cold', 'hex',   'eff', eff, ploss,  11, 100, Load.num, Load.num) ; % Cold heat exchanger
+        HX(3) = hx_class('regen','regen', 'eff', eff, ploss,  11, 100, Load.num, Load.num) ; % Recuperator
+        HX(4) = hx_class('rej',  'hex',   'eff', eff, ploss, 2, 100, Load.num, Load.num) ; % Heat rejection unit
     case 3
         % Call HX classes for ideal-gas PTES heat pump with Rankine cycle discharge
-        HX(1) = hx_class('hot',  'hex',   'eff', eff, ploss,  3, 100, Load.num, Load.num) ; % Hot heat exchanger
-        HX(2) = hx_class('cold', 'hex',   'eff', eff, ploss,  3, 100, Load.num, Load.num) ; % Cold heat exchanger
-        HX(3) = hx_class('regen','regen', 'eff', eff, ploss,  3, 100, Load.num, Load.num) ; % Recuperator
-        HX(4) = hx_class('rej',  'hex',   'eff', eff, ploss, 33, 100, Load.num, Load.num) ; % Heat rejection unit
+        HX(1) = hx_class('hot',  'hex',   'eff', eff, ploss,  11, 100, Load.num, Load.num) ; % Hot heat exchanger
+        HX(2) = hx_class('cold', 'hex',   'eff', eff, ploss,  11, 100, Load.num, Load.num) ; % Cold heat exchanger
+        HX(3) = hx_class('regen','regen', 'eff', eff, ploss,  1, 100, Load.num, Load.num) ; % Recuperator
+        HX(4) = hx_class('rej',  'hex',   'eff', eff, ploss, 0, 100, Load.num, Load.num) ; % Heat rejection unit
         
-        HX(5) = hx_class('cold', 'hex',   'eff', eff, 0,      1, 100, Load.num, Load.num) ; % Condenser
-        HX(6) = hx_class('hot',  'hex',   'eff', eff, ploss,  1, 100, Load.num, Load.num) ; % Reheat
-        HX(7) = hx_class('hot',  'hex',   'eff', eff, ploss,  1, 100, Load.num, Load.num) ; % Boiler
-        HX(8) = hx_class('rej',  'regen', 'eff', eff, 0.1/100,1, 100, Load.num, Load.num) ; % Air-cooled condenser
+        HX(5) = hx_class('cold', 'hex',   'eff', eff, 0.1/100, 0, 100, Load.num, Load.num) ; % Condenser
+        HX(6) = hx_class('hot',  'hex',   'eff', eff, ploss,  0, 100, Load.num, Load.num) ; % Reheat
+        HX(7) = hx_class('hot',  'hex',   'eff', eff, ploss,  0, 100, Load.num, Load.num) ; % Boiler
+        HX(8) = hx_class('rej',  'regen', 'eff', eff, 0.1/100,0, 100, Load.num, Load.num) ; % Air-cooled condenser
 end
 
 % Options for specifying heat exchanger geometry

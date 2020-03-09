@@ -50,7 +50,8 @@ while 1
     % Set mass flows
     iCLD = iReg2 + 4 ; % Cold store is tabulated after the rest of the cycle
     gas.state(iL,iCLD)      = gas.state(iL,iG);
-    gas.state(iL,iCLD).mdot = gas.state(iL,iG).mdot - gas.state(iL,iReg3).mdot ; % Mass flow into recompressor
+   
+    gas.state(iL,iCLD).mdot = gas.state(iL,iG).mdot - gas.state(iL,iReg3).mdot ; % Mass flow through low-temp hot store
     gas.state(iL,iG).mdot   = gas.state(iL,iReg3).mdot ; % Set mass flow that goes on through heat rejection and cold store
     
     % Check that isn't zero

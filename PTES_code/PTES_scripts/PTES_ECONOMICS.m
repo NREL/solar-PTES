@@ -5,7 +5,7 @@
 % Some input variables - move these to an input file?
 % Have a structure called Cdata
 Cdata.lifetime    = 25.0 ;      % Lifetime
-Cdata.price       = 0.06 ;      % Electricity price - dollars per kWhe
+Cdata.price       = 0.06 ;      % Electricity price - dollars per kWhe. Lazard uses 0.033
 Cdata.inflation   = 0.025;      % Inflation
 Cdata.irr         = 0.10 ;      % Internal Rate of Return
 Cdata.debt_frac   = 0.60 ;      % Project debt fraction - SAM is 0.60
@@ -50,7 +50,7 @@ for ii = 1 : length(DCMP)
     cap_sens = cap_sens + cost_sens(DCMP(ii).cmpexp_cost, Nsens) ;
 end
 
-if Load.mode == any([4, 5, 6])
+if Load.mode == 4 || Load.mode == 5 || Load.mode == 6
     %Recompressor
     if Lrcmp
         RCMP     = compexp_econ(RCMP, CEind, false, 0) ;
@@ -58,6 +58,14 @@ if Load.mode == any([4, 5, 6])
         cap_sens = cap_sens + cost_sens(RCMP.cmpexp_cost, Nsens) ;
     end
 end
+
+% Motor-generator. Assume this is just to provide the net work (i.e. don't
+% have a motor on the compressor and a separate generator on the expander)
+powIN  = W_in_chg/t_chg/1e3 ;
+GEN.gen_cost = econ_class(1, 0.2, 5, 0.2) ;
+GEN.gen_cost.COST = 1.85e6 * (powIN / 1.18e4)^0.94 ; % Really need to make a class .... just for this
+cap_cost = cap_cost + GEN.gen_cost.COST ;
+cap_sens = cap_sens + cost_sens(GEN.gen_cost, Nsens) ;
 
 % Heat exchangers
 for ii = 1 : numel(HX)

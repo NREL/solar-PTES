@@ -82,8 +82,19 @@ classdef compexp_class
             
             % Extract eta for this time period
             obj = compexp_offdesign (obj , state, iL , 1) ;
-            etaI = obj.eta(iL) ;
+            obj.eta(iL) = obj.eta0 ;
+            etaI = obj.eta(iL) ;     
             
+            %{
+            if obj.pr(iL) ~= 1
+               obj.aim_mode = 'Paim' ;
+               if strcmp(obj.type,'comp')
+                   aim = fluid.state(iL,i).p * obj.pr0 * obj.pr(iL) ;
+               elseif strcmp(obj.type,'exp')
+                   aim = fluid.state(iL,i).p / (obj.pr0 * obj.pr(iL)) ;
+               end
+            end
+            %}
             
             % EXPECT ALL OF THIS COULD BE MOVED INTO CLASS CONSTRUCTOR AND
             % THEREFORE ONLY CALCULATED ONCE >>>>
@@ -151,14 +162,22 @@ classdef compexp_class
             
             % Compressor/expander. Final pressure is specified (aim = p_final)
             if (mode==3 || mode==1)
-                p2   = aim;
+                p2   = aim ;
                 h2   = nested_compexp(fluid,p1,h1,s1,rho1,p2,etaI,n,num);
             end
             
             % Compressor/expander. Final pressure is specified (isentropic efficiency)
             if (mode==4 || mode==5)
-                p2   = aim;
+                p2   = aim ;
                 h2   = nested_compexp_is(fluid,h1,s1,p2,etaI,n);
+            end
+            
+            if iL == obj.firstcall
+                if strcmp(obj.type,'comp')
+                    obj.pr0 = p2 / p1 ;
+                else
+                    obj.pr0 = p1 / p2 ;
+                end
             end
             
             % Update state
@@ -286,7 +305,7 @@ classdef compexp_class
                             Nr = (obj.N(iL) / obj.N0) * (T1/obj.Tin)^0.5 ; % Reduced speed
                             % Constants
                             c1 = 1.8 ;
-                            c2 = 1.8 ; % These values seem to be variable
+                            c2 = 1.6;%1.8 ; % These values seem to be variable
                             c3 = c1*(1-c2/Nr) + Nr*(Nr-c2)^2 ;
                             c4 = Nr / c3 ;
                             c5 = (c1 - 2*c2*Nr^2) / c3 ;
@@ -312,6 +331,7 @@ classdef compexp_class
                             % based on Stodola's ellipse - use this!
                             %obj.pr(iL)  = (1+(obj.pr0^2 - 1)*(T1/obj.Tin)*(mr/t1)^2)^0.5;
                             obj.pr(iL)  = (1./((1.-(1-1./obj.pr0^2)*(T1/obj.Tin)*(mr/t1)^2)))^0.5;
+                            obj.pr(iL) = obj.pr(iL) / obj.pr0 ;
                             if imag(obj.pr(iL)) > 0
                                 warning('Imaginary pressure ratios achieved in off-design expander')
                             end
@@ -374,8 +394,11 @@ classdef compexp_class
                 case 4
                     % Turbomachinery compressor cost from Valero et al 1994, but updated by Farres-Antunez, 2019
                     % Eq. C3.1
-                    COST = 670 * obj.mdot * log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = 670 * obj.mdot0 * log(obj.pr0) / (0.92 - obj.eta0) ;
                     COST = COST * CEind(curr) / CEind(2019) ;
+                    
+                    COST = 39.5 * obj.mdot0 * obj.pr0* log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = COST * CEind(curr) / CEind(1994) ;
                     
                 case 5
                     % Cost for an sCO2 compressor developed by Carlson et al. 2017
@@ -393,6 +416,23 @@ classdef compexp_class
                     % Integrally geared, centrifugal, 1.5-200 MW
                     COST = 1.23e6 * (obj.W0/1e6)^0.3992 ;
                     COST = COST * CEind(curr) / CEind(2019) ;
+                    
+                case 8
+                    % This calculates the average cost from Turton, Sieder, and Couper
+                
+                    % Reciprocating compressor cost from Georgiou et al 2019 based on Seider
+                    SIEDER = exp(7.9661 + 0.8 * log(obj.W0 * 0.00134102)) ;
+                    SIEDER = SIEDER * 2.15 * CEind(curr) / CEind(2010)  ; 
+                    
+                    % Turton
+                    TURT = 10 ^ (2.2897 + 1.3604 * log10(obj.W0/1e3) - 0.1027 * (log10(obj.W0/1e3))^2) ;
+                    TURT = TURT * 3.3 * CEind(curr) / CEind(2001)  ;
+                    
+                    % Couper
+                    COUPER = 7190 * (obj.W0 * 0.00134102)^0.61 ;
+                    COUPER = COUPER * 1.3 * CEind(curr) / CEind(2010)  ; 
+                    
+                    COST = (SIEDER + TURT + COUPER) / 3.;
                 
                 case 10
                     % Reciprocating Expander cost from Georgiou et al 2019 based on Turton
@@ -413,9 +453,12 @@ classdef compexp_class
                 case 13
                     % Expander cost from Valero et al 1994, but updated by Farres-Antunez, 2019
                     % Eq. E3.1
-                    COST = 1100 * obj.mdot * log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = 1100 * obj.mdot0 * log(obj.pr0) / (0.92 - obj.eta0) ;
                     COST = COST * CEind(curr) / CEind(2019) ;
-                 
+                    
+                    COST = 266.3 * obj.mdot0 * log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = COST * CEind(curr) / CEind(1994) ;
+                    
                 case 14 
                     % Cost for an sCO2 expander developed by Carlson et al. 2017
                     % See equation E4 in Q2 solar-PTES report
@@ -450,6 +493,20 @@ classdef compexp_class
                     end
                     COST = fact * 1.826e6 * (obj.W0/1e6)^0.5561 ;
                     COST = COST * CEind(curr) / CEind(2019) ;
+                    
+                case 18
+                    % Average reciprocating expander cost from Turton, Sieder and Couper
+                    
+                    SIEDER = 530 * (obj.W0 * 0.00134102)^0.81 ;
+                    SIEDER = SIEDER * 3.5 * CEind(curr) / CEind(2010)  ; 
+                    
+                    TURT = 10 ^ (2.7051 + 1.4398 * log10(obj.W0/1e3) - 0.1776 * (log10(obj.W0/1e3))^2) ;
+                    TURT = TURT * 3.5 * CEind(curr) / CEind(2001) ;
+                    
+                    COUPER = 378 * (obj.W0 * 0.00134102)^0.81 ;
+                    COUPER = COUPER * 1.5 * CEind(curr) / CEind(2010)  ; 
+                    
+                    COST = (TURT + SIEDER + COUPER) / 3. ;
                     
                 case 20
                     % Pump cost. Centrifugal, carbon steel, includes motor.

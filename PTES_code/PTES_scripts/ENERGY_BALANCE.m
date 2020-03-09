@@ -27,7 +27,7 @@ for ii = 1:length(DEXP)
 end
 
 % Recompressor if specified for sCO2 cycle
-if Load.mode == any([4,5,6])
+if Load.mode == 4 || Load.mode == 5 || Load.mode == 6
     if Lrcmp
         RCMP = compexp_energy(RCMP,Load.time)  ;
     end
@@ -472,16 +472,20 @@ if WM == 1
     
     switch Load.mode
         case {0,3,4,6}
-            fprintf(1,'Round trip efficiency:   %8.1f %%\n\n',chi_PTES*100);
+            fprintf(1,'COP:                     %8.2f \n',QH_chg/W_in_chg);
+            fprintf(1,'Heat engine efficiency:  %8.2f %%\n',W_out_dis/QH_dis*100);
+            fprintf(1,'Round trip efficiency:   %8.2f %%\n\n',chi_PTES*100);
             fprintf(1,'Exergy density:          %9.2f kWh/m3\n',rhoE);
             
             fprintf(1,'STORAGE MEDIA\n');
             for ii = 1 : Nhot
                 fprintf(1,'%18s volume:%8.2f m3/MWh\n',fluidH(ii).name,HT(ii).fluid_volB/(W_out_dis/fact));
+                fprintf(1,'%18s volume:%8.2f m3\n',fluidH(ii).name,HT(ii).fluid_volB);
                 fprintf(1,'%18s mass:  %8.2f tons/MWh\n\n',fluidH(ii).name,HT(ii).fluid_mass/(W_out_dis/fact)/1e3);
             end
             for ii = 1 : Ncld
                 fprintf(1,'%18s volume:%8.2f m3/MWh\n',fluidC(ii).name,CT(ii).fluid_volB/(W_out_dis/fact));
+                fprintf(1,'%18s volume:%8.2f m3\n',fluidC(ii).name,CT(ii).fluid_volB);
                 fprintf(1,'%18s mass:  %8.2f tons/MWh\n\n',fluidC(ii).name,CT(ii).fluid_mass/(W_out_dis/fact)/1e3);
             end
             

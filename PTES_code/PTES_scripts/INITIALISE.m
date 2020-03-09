@@ -15,12 +15,12 @@ end
 
 % Reset cold tanks
 for ir = 1 : Ncld
-    CT(ir) = reset_tanks(CT(ir),TC_dis0(ir),p0,MC_dis0(ir),TC_chg0(ir),p0,MC_chg0(ir),T0);
+    CT(ir) = reset_tanks(CT(ir),TC_dis0(ir),10.*p0,MC_dis0(ir),TC_chg0(ir),10.*p0,MC_chg0(ir),T0);
 end
 
 % Reset hot tanks
 for ir = 1 : Nhot
-    HT(ir) = reset_tanks(HT(ir),TH_dis0(ir),p0,MH_dis0(ir),TH_chg0(ir),p0,MH_chg0(ir),T0);
+    HT(ir) = reset_tanks(HT(ir),TH_dis0(ir),10.*p0,MH_dis0(ir),TH_chg0(ir),10.*p0,MH_chg0(ir),T0);
 end
 
 % Reset atmospheric tanks
@@ -48,19 +48,19 @@ Ne_dis = Nc_ch; % expansions during discharge
 % Construct compressor and expander classes
 switch Load.mode
     case {0,1,2} % Ideal gas Joule-Brayton PTES
-        CCMP(1:Nc_ch) = compexp_class('comp', 'poly', 2, eta, Load.num) ; % Charging compressors
-        DEXP(1:Nc_ch) = compexp_class('exp', 'poly', 11, eta, Load.num) ; % Discharging expanders
+        CCMP(1:Nc_ch) = compexp_class('comp', 'poly', 4, eta, Load.num) ; % Charging compressors
+        DEXP(1:Nc_ch) = compexp_class('exp', 'poly', 13, eta, Load.num) ; % Discharging expanders
         
-        CEXP(1:Ne_ch) = compexp_class('exp', 'poly', 2, eta, Load.num) ; % Charging expanders
-        DCMP(1:Ne_ch) = compexp_class('comp', 'poly', 11, eta, Load.num) ; % Discharging compressors
+        CEXP(1:Ne_ch) = compexp_class('exp', 'poly', 13, eta, Load.num) ; % Charging expanders
+        DCMP(1:Ne_ch) = compexp_class('comp', 'poly', 4, eta, Load.num) ; % Discharging compressors
     case 3 % JB (charge) + Rankine (discharge)
         % Charging components
-        CCMP(1:Nc_ch) = compexp_class('comp', 'poly', 2, eta, Load.num) ; % Charging compressors
-        CEXP(1:Ne_ch) = compexp_class('exp', 'poly', 11, eta, Load.num) ; % Charging expanders
+        CCMP(1:Nc_ch) = compexp_class('comp', 'poly', 4, eta, Load.num) ; % Charging compressors
+        CEXP(1:Ne_ch) = compexp_class('exp', 'poly', 13, eta, Load.num) ; % Charging expanders
         
         % Discharging components
-        DCMP(1:3) = compexp_class('comp', 'isen', 22, eta, Load.num) ; % Discharging compressors
-        DEXP(1:3) = compexp_class('exp', 'isen', 11, eta, Load.num) ; % Discharging expanders
+        DCMP(1:3) = compexp_class('comp', 'isen', 0, eta, Load.num) ; % Discharging compressors
+        DEXP(1:3) = compexp_class('exp', 'isen', 0, eta, Load.num) ; % Discharging expanders
         
     case {4,5} % sCO2-PTES type cycles
         CCMP(1:Nc_ch) = compexp_class('comp', 'poly', 7, eta, Load.num) ; % Charging compressors

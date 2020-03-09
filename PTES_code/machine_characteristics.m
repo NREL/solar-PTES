@@ -37,6 +37,7 @@ Load.mdot = [1; 1];                       % working fluid mass flow rate, kg/s
 Load.num  = numel(Load.time);
 Load.ind  = 1:Load.num;
 
+%gas = fluid_class('CarbonDioxide','WF','CP','TTSE',Load.num,30);
 gas = fluid_class('Nitrogen','WF','CP','BICUBIC&HEOS',Load.num,30);
 
 CMP = compexp_class('comp', 'isen', 2, eta0, Load.num) ; % Compressors
@@ -120,7 +121,7 @@ legend boxoff
 % *** EXPANDER *** %
 % Design point
 [EXP,~,~] = compexp_offdesign (EXP , gas.state(1,1), 1 , 1) ;
-EXP.pr0 = 10. ;
+EXP.pr0 = 2.0 ;
 Nlo = 0.6 * 2 * pi * 3600;
 Nhi = 1.* 2 * pi * 3600;
 nj  = 5 ;
@@ -173,7 +174,7 @@ legend boxoff
 
 figure(4)
 pr(pr<=0) = nan;
-plot(mr,pr/EXP.pr0)
+plot(mr,pr)
 
 xlabel('Reduced mass flow')
 ylabel('Reduced pressure ratio $$\beta / \beta_0$$')
