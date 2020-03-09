@@ -49,15 +49,11 @@ switch Load.mode
         Load.mdot = [0,10];                        % working fluid mass flow rate, kg/s
         
     case 3 % JB charge, Rankine discharge
-         fac = 73.32285 ; % THis can be used to more easily set the mass flow to obtain a desired power output 
+         fac = 1.0 ; % THis can be used to more easily set the mass flow to obtain a desired power output 
          Load.time = [10;4;10;10].*3600;        % time spent in each load period, s
          Load.type = ["chg";"str";"ran";"ran"];    % type of load period
          Load.mdot = [10*fac;0;1*fac;1*fac];              % working fluid mass flow rate, kg/s
-         Load.options.useCold = [0,0,0,0]; %Use cold stores during Rankine discharge?
-%        Load.time = [10;4;15].*3600;        % time spent in each load period, s
-%        Load.type = ["chg";"str";"ran"];    % type of load period
-%        Load.mdot = [10;0;1];              % working fluid mass flow rate, kg/s
-%        Load.options.useCold = [0,0,0]; %Use cold stores during Rankine discharge?
+         Load.options.useCold = [0,0,1,0]; %Use cold stores during Rankine discharge?
 end
 Load.num  = numel(Load.time);
 Load.ind  = 1:Load.num;

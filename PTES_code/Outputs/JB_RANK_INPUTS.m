@@ -32,12 +32,11 @@ Nhot = 1; % number of hot stores. Not implemented for >2
 % Set parameters of Load structure
 switch Load.mode
     case 0 % PTES
-        fac = 10.0/0.985/0.999; % This can be used to more easily set the mass flow to obtain a desired power output
-        ee  = 0.5886 ;
+        fac = 1.0; % This can be used to more easily set the mass flow to obtain a desired power output
         stH = 8 ;
-        Load.time = [stH/ee;4;stH].*3600;               % time spent in each load period, s
+        Load.time = [stH;4;stH].*3600;               % time spent in each load period, s
         Load.type = ["chg";"str";"dis"];    % type of load period
-        Load.mdot = [10*fac*ee;0;10*fac];                       % working fluid mass flow rate, kg/s
+        Load.mdot = [10*fac;0;10*fac];                       % working fluid mass flow rate, kg/s
                 
     case 1 % Heat pump
         Load.time = 10.*3600;                  % time spent in each load period, s
@@ -54,11 +53,7 @@ switch Load.mode
          Load.time = [10;4;10;10].*3600;        % time spent in each load period, s
          Load.type = ["chg";"str";"ran";"ran"];    % type of load period
          Load.mdot = [10*fac;0;1*fac;1*fac];              % working fluid mass flow rate, kg/s
-         Load.options.useCold = [0,0,0,0]; %Use cold stores during Rankine discharge?
-%        Load.time = [10;4;15].*3600;        % time spent in each load period, s
-%        Load.type = ["chg";"str";"ran"];    % type of load period
-%        Load.mdot = [10;0;1];              % working fluid mass flow rate, kg/s
-%        Load.options.useCold = [0,0,0]; %Use cold stores during Rankine discharge?
+         Load.options.useCold = [0,0,1,0]; %Use cold stores during Rankine discharge?
 end
 Load.num  = numel(Load.time);
 Load.ind  = 1:Load.num;
