@@ -15,9 +15,9 @@ switch Load.mode
         
             % Plot storage tank temperatures
             plot_T_storage(HT(1),Load,{'chg','chgCO2','chgTSCO2'},1,{'r','r'},true,NameArray,ValueArray);
-            plot_T_storage(CT(1),Load,{'chg','chgCO2','disTSCO2'},1,{'b','b'},true,NameArray,ValueArray);
-            plot_T_storage(HT(1),Load,{'dis','disCO2'},1,{'r','r'},true,NameArray,ValueArray);
-            plot_T_storage(CT(1),Load,{'dis','disCO2'},1,{'b','b'},true,NameArray,ValueArray);
+            plot_T_storage(CT(1),Load,{'chg','chgCO2','chgTSCO2'},1,{'b','b'},true,NameArray,ValueArray);
+            plot_T_storage(HT(1),Load,{'dis','disCO2','disTSCO2'},1,{'r','r'},true,NameArray,ValueArray);
+            plot_T_storage(CT(1),Load,{'dis','disCO2','disTSCO2'},1,{'b','b'},true,NameArray,ValueArray);
         
             % Set legends
             figure(1); hold off;

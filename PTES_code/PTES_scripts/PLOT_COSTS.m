@@ -71,6 +71,6 @@ b(5).FaceColor = c_pale_orange;
 b(6).FaceColor = c_dark_orange;
 b(7).FaceColor = c_grey;
 ylabel(strcat('Capital cost, \$'))
-legend({'Compresors','Expanders','Source Tank','Sink Tank','Fluid','Heat exchangers','Other'},'Location','Best')
+legend({'Compressors','Expanders','Source Tank','Sink Tank','Fluid','Heat exchangers','Other'},'Location','Best')
 
 
