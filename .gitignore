@@ -16,8 +16,5 @@
 /PTES_code/Outputs/TQ_hex.svg
 *.asv
 /My_To_do_list.txt
-/PTES_code/Other/hex_func_old.m
-/PTES_code/Other/hex_TQ2.m
-/PTES_code/Other/testing_optimisers.m
-/PTES_code/Other/LIB.mat
+/PTES_code/Other/*
 /PTES_code/Results/*

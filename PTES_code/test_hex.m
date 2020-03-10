@@ -41,7 +41,7 @@ load_coolprop
 scenario = 5;
 
 % Save figures?
-save_figures = 1;
+save_figures = 0;
 
 % Set indices
 iL = 1; i1 = 1; i2 = 1;
@@ -86,7 +86,7 @@ switch scenario
         
     case 3        
         % CO2
-        F1 = fluid_class('CarbonDioxide','WF','CP','TTSE',1,5); % working fluid
+        F1 = fluid_class('CarbonDioxide','WF','CP','HEOS',1,5); % working fluid
         F1.state(1,i1).p = 85e5;
         F1.state(1,i1).T = 380;
         F1.state(1,i1).mdot = 0.75;
@@ -179,7 +179,7 @@ switch HX.model
                 ploss = 0.03;
                 D     = 1.00e-3;
             otherwise
-                NTU   = 10;
+                NTU   = 5;
                 ploss = 0.01;
                 D     = 1e-2;                
         end
@@ -220,8 +220,11 @@ switch scenario
         data = load('Validation.csv');
         mdot1 = data(:,1)';
         mdot2 = mdot1;
-        n = length(mdot1);
+    otherwise
+        mdot1 = F1.state(iL,i1).mdot;
+        mdot2 = F2.state(iL,i1).mdot;
 end
+n = length(mdot1);
 
 % Use easier nomenclature for inlet conditions
 TC1 = HX.C.T(1);
@@ -388,7 +391,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 switch save_figures
     case 1
-        formats = {'epsc','emf'};
+        formats = {'fig','epsc','emf'};
         
         save_fig(10,'./Results/T_Q',formats)
         save_fig(11,'./Results/T_A',formats)

@@ -225,14 +225,14 @@ calllib('coolprop','AbstractState_update_and_5_out',fluid.handle,PT_INPUTS,input
 
 %Saving computed values to array
 Cpv=get(out1Ptr,'Value');
-hv =get(out2Ptr,'Value');
+hv =get(out2Ptr,'Value'); %#ok<*NASGU>
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Polytropic compression/expansion 
 % Conventional approach
-state.p = var;
+state.p = var; %#ok<*LTARG>
 pv = logspace(log10(p1),log10(state.p),num);
 hv = zeros(1,num);
 rhov = zeros(1,num);
@@ -399,3 +399,39 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% FITTING USING LINEAR TRANSFORMATIONS
+
+% Obtain fitting coefficients
+fit_mode = 1; %#ok<*FISST>
+x1 = interp_coeffs(h1,T1,fit_mode);
+x2 = interp_coeffs(h2,T2,fit_mode);
+x3 = interp_coeffs(h3,T3,fit_mode);
+
+% Obtain fitting arrays
+y1  = linspace(min(h1),max(h1),10)';
+Tf1 = interp_poly(x1,y1,fit_mode);
+y2  = linspace(min(h2),max(h2),10)';
+Tf2 = interp_poly(x2,y2,fit_mode);
+y3  = linspace(min(h3),max(h3),10)';
+Tf3 = interp_poly(x3,y3,fit_mode);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Logarithmically spaced arrays
+PM   = logspace(log10(Pmin),log10(Pcrit+dP),length(Psat))';
+% Adapt the pressure array to make sure that it has one point at Pcrit.
+ip   = find(PM>Pcrit,1,'first');
+Pr   = (Pcrit/Pmin)^(1/(ip-1));
+PM   = Pmin*Pr.^(0:length(Psat));
+% Adapt the pressure array to make sure that it has one point at Pcrit.
+ip   = find(PM>Pcrit,1,'first');
+PM1  = logspace(log10(Pmin),log10(Pcrit),ip);
+Pr   = PM1(2)/PM1(1);
+PM2  = Pcrit*Pr.^(1:(length(Psat)-ip));
+PM   = [PM1,PM2]';
+% xM grid, containing one vertical line at the point separating HsatL and
+% HsatG
+a  = linspace(xL(iM),HsatL(end),nsx+1);
+da = a(end) - a(end-1);
+b  = linspace(HsatL(end)+da,xR(iM),nsx-1);
+xM(iM,:) = [a,b];

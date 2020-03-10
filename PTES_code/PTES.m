@@ -22,9 +22,9 @@ c = computer();
 % Add paths
 switch computer
     case 'GLNXA64' %Linux
-        addpath('./Classes/','./Generic/','./Functions/','./PTES_scripts/')
+        addpath('./Classes/','./Generic/','./Functions/','./PTES_scripts/','./Other/')
     case 'PCWIN64' %Windows
-        addpath('.\Classes\','.\Generic\','.\Functions\','.\PTES_scripts\')
+        addpath('.\Classes\','.\Generic\','.\Functions\','.\PTES_scripts\','.\Other\')
 end
 
 % Set properties for plots

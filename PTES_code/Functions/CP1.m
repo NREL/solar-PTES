@@ -45,13 +45,10 @@ else % Non-trivial answer
         input1Ptr = libpointer('doublePtr',input1);
         input2Ptr = libpointer('doublePtr',input2);
         
-        %Choosing parameter to compute
-        outputs = calllib('coolprop','get_param_index',out1);
-        
         %Creating ouput pointers
         out1Ptr = libpointer('doublePtr',zeros(n,1));
         
-        calllib('coolprop','AbstractState_update_and_1_out',handle,INPUTS,input1Ptr,input2Ptr,n,outputs,out1Ptr,ierr,herr,buffer_size);
+        calllib('coolprop','AbstractState_update_and_1_out',handle,INPUTS,input1Ptr,input2Ptr,n,output,out1Ptr,ierr,herr,buffer_size);
         
         %Saving computed values to array
         output1=get(out1Ptr,'Value');
