@@ -29,14 +29,29 @@ nC    = Ne_ch;          % number of cold fluid streams
 Ncld = 1; % number of cold stores. Not implemented for >2
 Nhot = 1; % number of hot stores. Not implemented for >2
 
+% Design or off-design analysis?
+Loffdesign = 0; % L for Logical. 0 just run design case. 1 run design case then off-design load cycle.
+
 % Set parameters of Load structure
 switch Load.mode
     case 0 % PTES
         fac = 1.0; % This can be used to more easily set the mass flow to obtain a desired power output
         stH = 8 ;
-        Load.time = [stH;4;stH].*3600;               % time spent in each load period, s
-        Load.type = ["chg";"str";"dis"];    % type of load period
-        Load.mdot = [10*fac;0;10*fac];                       % working fluid mass flow rate, kg/s
+        
+        % This is the load scenario the plant is designed for
+        Design_Load      = Load ;
+        Design_Load.time = [stH;stH].*3600;  % time spent in each load period, s
+        Design_Load.type = ["chg";"dis"];    % type of load period
+        Design_Load.mdot = [10*fac;10*fac];  % working fluid mass flow rate, kg/s
+        
+        if Loffdesign
+            % This is the actual load profile that the plant meets
+            Load.time = [stH;4;stH].*3600;      % time spent in each load period, s
+            Load.type = ["chg";"str";"dis"];    % type of load period
+            Load.mdot = [10*fac;0;10*fac];      % working fluid mass flow rate, kg/s
+        else
+            Load = Design_Load ;
+        end
                 
     case 1 % Heat pump
         Load.time = 10.*3600;                  % time spent in each load period, s
@@ -49,7 +64,7 @@ switch Load.mode
         Load.mdot = [0,10];                        % working fluid mass flow rate, kg/s
         
     case 3 % JB charge, Rankine discharge
-         fac = 73.32285 ; % THis can be used to more easily set the mass flow to obtain a desired power output 
+         fac = 1.0 ; % THis can be used to more easily set the mass flow to obtain a desired power output 
          Load.time = [10;4;10;10].*3600;        % time spent in each load period, s
          Load.type = ["chg";"str";"ran";"ran"];    % type of load period
          Load.mdot = [10*fac;0;1*fac;1*fac];              % working fluid mass flow rate, kg/s
