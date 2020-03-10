@@ -2,11 +2,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Call the correct input file
-Load.mode = 3;
+Load.mode = 0;
 switch Load.mode
     case {0,1,2,3} % Joule-Bratyon PTES / Joule-Brayton + Rankine
         JB_RANK_INPUTS
-    case 4 % sCO2-PTES type cycles
+    case {4, 5, 6} % sCO2-PTES type cycles
         sCO2_INPUTS
 end
 
@@ -24,6 +24,7 @@ end
 % Set double tanks
 if Ncld == 1
     fluidC = fluid_class(fCname,'SF','TAB',NaN,Load.num,30); % Storage fluid
+    %fluidC = fluid_class(fCname,'SF','CP','HEOS',Load.num,30); % Storage fluid
     CT  = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank
 else
     for ii = 1 : Ncld
@@ -32,9 +33,11 @@ else
     end
 end
 
+
 % Hot tanks
 if Nhot == 1
     fluidH = fluid_class(fHname,'SF','TAB',NaN,Load.num,30); % Storage fluid
+    %fluidH = fluid_class(fHname,'SF','CP','HEOS',Load.num,30);
     HT  = double_tank_class(fluidH,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,Load.num+1); %hot double tank
 else
     for ii = 1 : Nhot
@@ -48,19 +51,6 @@ air  = fluid_class('Air','ENV','CP','HEOS',Load.num,30);
 huge = max(Load.mdot)*3600*1e6; % represents a very large mass
 AT   = double_tank_class(air,T0,p0,huge,T0,p0,huge,T0,Load.num+1);
 
-% Create generic heat exchanger structure to run the 'hex_func' function
-% (this is to be put into a class and different objects to be created with
-% a class constructor).
-HX.model = 'eff';
-HX.eff = eff;
-HX.ploss = ploss;
-HX.stage_type = 'hex';
-HX.NX = 100;
-REGEN.model = 'eff';
-REGEN.eff = eff;
-REGEN.ploss = ploss;
-REGEN.stage_type = 'regen';
-REGEN.NX = 100;
 % Use new heat exchanger calls?
 new_hex_calls = 1;
 
