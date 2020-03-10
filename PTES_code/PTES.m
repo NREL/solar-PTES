@@ -95,7 +95,7 @@ for ix = 1:1
             ENERGY_BALANCE
             
             % Evaluate the system cost
-            ECONOMICS
+            ECONOMIC_CALCS
             
             if multi_run
                 PRINT_MULTI_RUN
