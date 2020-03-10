@@ -38,9 +38,9 @@ h    = Hdot/Mdot;
 
 % Update states
 stateM.h = h;
-[stateM] = update_state(stateM,stream.handle,stream.read,stream.TAB,2);
+[stateM] = update_state(stateM,stream.handle,stream.read,stream.TAB,stream.IDL,2);
 stateS.h = h;
-[stateS] = update_state(stateS,stream.handle,stream.read,stream.TAB,2);
+[stateS] = update_state(stateS,stream.handle,stream.read,stream.TAB,stream.IDL,2);
 
 % Compute stages
 % Entropy change

@@ -42,7 +42,7 @@ output4=get(out4Ptr,'Value');
 output5=get(out5Ptr,'Value');
 
 %Fill missing points by interpolation
-interp_method  = 'spline';
+interp_method  = 'linear';
 x = (1:length(output1))';
 a0 = output1 == 0;
 if any(a0)

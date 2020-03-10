@@ -15,17 +15,17 @@ classdef stream
         % Arrays in HEX sections (sides)
         T       {mustBePositive}
         p       {mustBePositive}
-        Cp      {mustBePositive}
-        h       {mustBePositive}
-        s       {mustBePositive}
-        rho     {mustBePositive}
-        v       {mustBePositive}
-        mu      {mustBePositive}
-        k       {mustBePositive}
-        Pr      {mustBePositive}
-        Re      {mustBePositive}
-        Cf      {mustBePositive}
-        St      {mustBePositive}
+        Cp      
+        h       
+        s       
+        rho     
+        v       
+        mu      
+        k       
+        Pr      %{mustBePositive}
+        Re      
+        Cf      
+        St      
         ht %heat transfer coeff
         % Averaged arrays (in sections centers)
         T_AV    {mustBePositive}

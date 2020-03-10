@@ -1,4 +1,4 @@
-function [state] = update_state (state,handle,read,TAB,mode)
+function [state] = update_state (state,handle,read,TAB,IDL,mode)
 
 switch read
     case 'CP'
@@ -23,6 +23,19 @@ switch read
             state.T   = rtab1(TAB(:,2),TAB(:,1),state.h,1);
             state.rho = 1./rtab1(TAB(:,2),TAB(:,3),state.h,1);
             state.s   = rtab1(TAB(:,2),TAB(:,4),state.h,1);
+        else
+            error('not implemented')
+        end
+        
+    case 'IDL'
+        if mode == 1 %Temperature and pressure are known
+            state.h   = IDL.cp  * state.T - IDL.h0 ;
+            state.s   = IDL.cp * log(state.T) - IDL.R * log(state.p) - IDL.s0 ;
+            state.rho = state.p / (IDL.R * state.T) ;
+        elseif mode == 2 %Enthalpy and pressure are known
+            state.T   = state.h / IDL.cp + IDL.T0 ;
+            state.s   = IDL.cp * log(state.T) - IDL.R * log(state.p) - IDL.s0 ;
+            state.rho = state.p / (IDL.R * state.T) ;
         else
             error('not implemented')
         end

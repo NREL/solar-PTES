@@ -14,7 +14,7 @@ T0      = environ.T0;
 % Set final conditions and update
 state.T = T_st + eff*(Tset-T_st);
 state.p = p_st*(1-ploss);
-state   = update_state(state,fluid.handle,fluid.read,fluid.TAB,1);
+state   = update_state(state,fluid.handle,fluid.read,fluid.TAB,fluid.IDL,1);
 
 % Compute stage energy flows
 stage.Dh  = state.h - h_st;

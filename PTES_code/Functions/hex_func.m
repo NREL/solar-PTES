@@ -52,6 +52,8 @@ TC1 = fluidC.state(iL,iC).T;
 % Check which one is fluidH and which is fluidC and swap them if necessary
 if TC1 > TH2 % swap needed
     swap = 1;
+    error(strcat('swap not implemented for hx_class and set_hex_geom.',...
+        'make sure that fluidH is fluidH and fluidC is fluidC when calling hex_func'))
     fluidH0 = fluidH;
     fluidH  = fluidC;
     fluidC  = fluidH0;
@@ -233,7 +235,20 @@ switch model
                 f2 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hC2',hC2,compare,ref,true);
                 plot_function(f2,mCmin,mCmax,100,11);
                 %}
-                mC = fzero(f1,[mCmin,mCmax],options);
+                % Check whether f1 changes sign over interval
+                f1min = f1(mCmin) ;
+                f1max = f1(mCmax) ;
+                % If they don't change sign, choose mC that has minimum boundary
+                if f1min*f1max >= 0
+                    warning('Cold stream may not be heated to desired temperature');
+                    if min(f1min,f1max) == f1min
+                        mC = mCmin ;
+                    else
+                        mC = mCmax ;
+                    end
+                else
+                    mC = fzero(f1,[mCmin,mCmax],options);
+                end
                 
                 % Compute total heat transfer (and update mC if necessary)
                 if strcmp(model,'eff')
@@ -353,9 +368,9 @@ switch model
         H.T = TH;
         C.h = hC;
         H.h = hH;
-        HX.C = C;
-        HX.H = H;
-        HX.QS  = QS;
+        HX.C(iL) = C;
+        HX.H(iL) = H;
+        HX.QS(iL,:) = QS;
         HX.AS  = [];
         
         
@@ -377,6 +392,9 @@ switch model
         % Compute derived geometric parameters and mass fluxes
         [C, H, HX] = shell_and_tube_geom(C, H, HX);
         
+        QMAX0 = min([mC*(hC2_max - hC1),mH*(hH2 - hH1_min)])*(1.01); %necessary to find root
+        hH1_min = hH2 - QMAX0/mH;
+        
         % Find value of hH1 for which computed area equals specified area
         f1 = @(hH1) compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
         %plot_function(f1,hH1_min,hH2,100,31);
@@ -393,9 +411,9 @@ switch model
         pC2 = C.p(NX+1);
         
         % Save variables into HX structure
-        HX.C  = C;
-        HX.H  = H;
-        HX.QS = QS;
+        HX.C(iL)  = C;
+        HX.H(iL)  = H;
+        HX.QS(iL,:) = QS;
         HX.AS = AS;
         
 end
@@ -403,10 +421,10 @@ end
 % Update states
 stateH.h = hH1;
 stateH.p = pH1;
-stateH   = update_state(stateH,fluidH.handle,fluidH.read,fluidH.TAB,2);
+stateH   = update_state(stateH,fluidH.handle,fluidH.read,fluidH.TAB,fluidH.IDL,2);
 stateC.h = hC2;
 stateC.p = pC2;
-stateC   = update_state(stateC,fluidC.handle,fluidC.read,fluidC.TAB,2);
+stateC   = update_state(stateC,fluidC.handle,fluidC.read,fluidC.TAB,fluidC.IDL,2);
 
 % Update average specific heat capacities and compute Cmin and NTU. Save
 % into HX structure. Also save DppC nd DppH.
@@ -416,18 +434,25 @@ CpHmean = (hH2 - hH1)/(TH2-TH1);
 CpCmean = (hC2 - hC1)/(TC2-TC1);
 Cmin  = min([mC*CpCmean,mH*CpHmean]);
 dQ    = QS(2:NX+1)-QS(1:NX);
-DT_AV = 0.5*(HX.H.T(1:NX)+HX.H.T(2:NX+1)) - 0.5*(HX.C.T(1:NX)+HX.C.T(2:NX+1));
+DT_AV = 0.5*(HX.H(iL).T(1:NX)+HX.H(iL).T(2:NX+1)) - 0.5*(HX.C(iL).T(1:NX)+HX.C(iL).T(2:NX+1));
 UA    = sum(dQ./DT_AV);
 NTU   = UA/Cmin;
 DppH  = (pH2-pH1)/pH2;
 DppC  = (pC1-pC2)/pC1;
-HX.H.Cp_mean = CpHmean;
-HX.C.Cp_mean = CpCmean;
-HX.Cmin = Cmin;
-HX.NTU  = NTU;
-HX.DppH = DppH;
-HX.DppC = DppC;
 
+dTa = HX.H(iL).T(1) - HX.C(iL).T(1) ;
+dTb = HX.H(iL).T(end) - HX.C(iL).T(end) ;
+
+HX.H(iL).Cp_mean = CpHmean;
+HX.C(iL).Cp_mean = CpCmean;
+HX.Cmin(iL) = Cmin;
+HX.NTU(iL)  = NTU;
+HX.DppH     = DppH;
+HX.DppC     = DppC;
+HX.UA(iL)   = UA ;
+HX.LMTD(iL) = (dTa - dTb) / log(dTa / dTb) ;
+
+% *** DELETE EVENTUALLY >>>
 % Compute stages
 % Entropy change
 DsH         = stateH.s - sH2;
@@ -444,6 +469,7 @@ stageC.sirr = (stateC.mdot*DsC + stateH.mdot*DsH)/stateC.mdot;
 stageC.q    = stageC.Dh;
 stageC.w    = 0;
 stageC.type = stage_type;
+
 if strcmp(stage_type,'regen')
     stageH.sirr=0; %to avoid counting the lost work twice
 end
@@ -453,6 +479,28 @@ fluidH.state(iL,iH+1) = stateH; % Result goes into next state
 fluidH.stage(iL,iH)   = stageH; % Result stays in current stage
 fluidC.state(iL,iC+1) = stateC; % Result goes into next state
 fluidC.stage(iL,iC)   = stageC; % Result stays in current stage
+
+% <<< DELETE EVENTUALLY ***
+
+% Compute losses, but insert into hx_class
+% Entropy change
+DsH         = stateH.s - sH2;
+DsC         = stateC.s - sC1;
+% Hot stream
+HX.Dh(iL,1)   = stateH.h - hH2;
+HX.sirr(iL,1) = (stateH.mdot*DsH + stateC.mdot*DsC)/stateH.mdot;
+HX.q(iL,1)    = stageH.Dh;
+HX.w(iL,1)    = 0;
+
+% Cold stream
+HX.Dh(iL,2)   = stateC.h - hC1;
+HX.sirr(iL,2) = (stateC.mdot*DsC + stateH.mdot*DsH)/stateC.mdot;
+HX.q(iL,2)    = stageC.Dh;
+HX.w(iL,2)    = 0;
+
+if strcmp(HX.stage_type,'regen')
+    HX.sirr(iL,1) = 0; %to avoid counting the lost work twice
+end
 
 % Update mass flow rates for inlet state, if necessary
 if any(mode==[1,2,3,4,5])
@@ -468,6 +516,33 @@ if swap == 1
     iH0 = iH;
     iH  = iC;
     iC  = iH0;
+end
+
+% Save some values from the first run as the design values
+if isempty(HX.UA0)
+    HX.UA0 = UA ;
+    HX.NTU0 = NTU ;
+    HX.LMTD0 = HX.LMTD(iL) ;
+    
+    % If specified, estimate the HX area
+    if HX.LestA
+        HXt = set_hex_geom(HX, iL, fluidH, iH, fluidC, iC, mode, par, HX.NTU0, HX.ploss, HX.D1); % HXt is a temporary class
+        [~,~,HXt] = shell_and_tube_geom(HXt.C(iL), HXt.H(iL), HXt) ;
+        
+        HX.N1  = HXt.N1 ;
+        HX.t1  = HXt.t1 ;
+        HX.L   = HXt.L ;
+        HX.AfT = HXt.AfT ;
+        HX.AfR = HXt.AfR ;
+        HX.D2  = HXt.D2 ;
+        HX.G1  = HXt.G1 ;
+        HX.G2  = HXt.G2 ;
+        HX.Af1 = HXt.Af1 ;
+        HX.Af2 = HXt.Af2 ;
+        HX.A1  = HXt.A1 ;
+        HX.A2  = HXt.A2 ;
+        HX.Vm  = HXt.Vm ;
+    end
 end
 
 % Increase stage counter
@@ -697,6 +772,10 @@ for iI = 1:NI
     % Compute arrays of pressure loss
     Dp_H = - 2*H.G^2*Cf_H.*v_H.*dL./H.D;
     Dp_C = - 2*C.G^2*Cf_C.*v_C.*dL./C.D;
+    if any(isnan([Dp_H;Dp_C]))
+        Dp_H = zeros(size(Dp_H));
+        Dp_C = zeros(size(Dp_C));
+    end
     % Update pressure profiles
     for i=NX+1:-1:2
         H.p(i-1) = H.p(i) + Dp_H(i-1);

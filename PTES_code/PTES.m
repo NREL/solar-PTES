@@ -22,9 +22,9 @@ c = computer();
 % Add paths
 switch computer
     case 'GLNXA64' %Linux
-        addpath('./Classes/','./Generic/','./Functions/','./PTES_scripts/')
+        addpath('./Classes/','./Generic/','./Functions/','./PTES_scripts/','./Other/')
     case 'PCWIN64' %Windows
-        addpath('.\Classes\','.\Generic\','.\Functions\','.\PTES_scripts\')
+        addpath('.\Classes\','.\Generic\','.\Functions\','.\PTES_scripts\','.\Other\')
 end
 
 % Set properties for plots
@@ -74,6 +74,15 @@ for ix = 1:1
                     case 'disCO2'
                         sCO2_DISCHARGE
                         
+                    case 'rcmpCO2'
+                        sCO2_RECOMP
+                        
+                    case 'chgTSCO2'
+                        TSCO2_CHARGE
+                        
+                    case 'disTSCO2'
+                        TSCO2_DISCHARGE
+                        
                     case 'str'
                         TANKS_STORAGE
                         
@@ -95,7 +104,7 @@ for ix = 1:1
             ENERGY_BALANCE
             
             % Evaluate the system cost
-            ECONOMIC_CALCS
+            PTES_ECONOMICS
             
             if multi_run
                 PRINT_MULTI_RUN
