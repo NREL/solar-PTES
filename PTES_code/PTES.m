@@ -1,8 +1,9 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % PTES
-% This a thermodynamic model of a pumped thermal energy storage cycle. It
-% is based on the Joule-Brayton cycle and employs liquid storage media.
-% Author: Pau Farres-Antunez (pf298@cam.ac.uk)
+% This code employs thermodynamic and economic models to predict the
+% performance and cost of different pumped thermal energy storage cycles.
+%
+% Authors: Pau Farres-Antunez and Joshua Dominic McTigue
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -12,7 +13,7 @@
 clear;
 
 % Enter debugging mode if an error occurs
-dbstop if error
+%dbstop if error
 %dbclear all
 
 % Determine Operating System
@@ -21,9 +22,9 @@ c = computer();
 % Add paths
 switch computer
     case 'GLNXA64' %Linux
-        addpath('./Classes/','./Generic/','./Functions/','./PTES_scripts/')
+        addpath('./Classes/','./Generic/','./Functions/','./PTES_scripts/','./Other/')
     case 'PCWIN64' %Windows
-        addpath('.\Classes\','.\Generic\','.\Functions\','.\PTES_scripts\')
+        addpath('.\Classes\','.\Generic\','.\Functions\','.\PTES_scripts\','.\Other\')
 end
 
 % Set properties for plots
@@ -33,11 +34,12 @@ set_graphics
 load_coolprop
 
 % SET INPUTS
-PTES_INPUTS_test
+INPUTS
 
 % Open the output files and print the headers
-PTES_MANAGE_FILES
+MANAGE_FILES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 tic % start timer
 for ix = 1:1
@@ -49,34 +51,43 @@ for ix = 1:1
             if all([icrv,ipnt] == 1), WM=1; else, WM=0; end
             
             % Set multi_run variables
-            if multi_run==1, PTES_SET_MULTI_RUN; end            
+            if multi_run==1, SET_MULTI_RUN; end            
             
             % Reinitialise arrays (gas, fluids and tanks) to zero and do other
             % preliminary tasks
-            PTES_INITIALISE
+            INITIALISE
             
             for iL = 1:Load.num
                 switch Load.type(iL)
                     case 'chg'
-                        PTES_CHARGE
-                        
-                    case 'str'
-                        PTES_TANKS_STORAGE
+                        JB_CHARGE
                         
                     case 'dis'
-                        PTES_DISCHARGE
+                        JB_DISCHARGE
                         
                     case 'ran'
                         RANK_DISCHARGE
                         
-                    case 'sol'
-                        PTES_SOLAR_TANKS
-                        
                     case 'chgCO2'
-                        sCO2_PTES_CHARGE
-                    
+                        sCO2_CHARGE
+                        
                     case 'disCO2'
-                        sCO2_PTES_DISCHARGE
+                        sCO2_DISCHARGE
+                        
+                    case 'rcmpCO2'
+                        sCO2_RECOMP
+                        
+                    case 'chgTSCO2'
+                        TSCO2_CHARGE
+                        
+                    case 'disTSCO2'
+                        TSCO2_DISCHARGE
+                        
+                    case 'str'
+                        TANKS_STORAGE
+                        
+                    case 'sol'
+                        SOLAR_TANKS
                 end
             end
             
@@ -90,10 +101,13 @@ for ix = 1:1
             end
             
             % Compute energy balance
-            PTES_ENERGY_BALANCE
+            ENERGY_BALANCE
+            
+            % Evaluate the system cost
+            PTES_ECONOMICS
             
             if multi_run
-                PTES_PRINT_MULTI_RUN
+                PRINT_MULTI_RUN
             end
         end
     end
@@ -101,25 +115,19 @@ for ix = 1:1
 end
 toc %stop timer
 
+
 %%% MAKE PLOTS %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if make_plots
-    switch Load.mode
-        case {0,3,4} % PTES
-            PTES_PLOT_HEXS
-            if optimise
-                PTES_PLOT_GOLDEN_SEARCH
-            end
-        case 2 % Heat engine only
-            if optimise
-                PTES_PLOT_GOLDEN_SEARCH
-            end
-    end
-    PTES_PLOT_CYCLE
-    PTES_PLOT_LOSSES
+if make_plots    
+    PLOT_CYCLE
+    PLOT_LOSSES
+    PLOT_COSTS
     if multi_run
-        PTES_PLOT_MULTI_RUN %#ok<*UNRCH>
+        PLOT_MULTI_RUN %#ok<*UNRCH>
     end
+end
+if make_hex_plots
+    PLOT_HEXS
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -127,5 +135,5 @@ end
 %%% FINISH PROGRAM %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Close files, save plots and release CoolProp AbstractStates
-PTES_FINISH
+FINISH
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -56,6 +56,12 @@ for iL=1:Load.num
                 warning('not implemented');
             end
             
+            % This is specifically to improve plotting of time-shifted sCO2
+            % cycle. Not a nice method.
+            if Load.mode == 6 && i > 10
+                type = 0 ;
+            end
+            
             switch type
                 case 1 % nearly-isobaric line
                     p_vect = logspace(log10(state_in.p),log10(state_out.p),num);
@@ -122,7 +128,7 @@ end
 
 % Set x axis
 Dx = xmax-xmin;
-xlim([(xmin-0.1*Dx) (xmax+0.1*Dx)]);
+xlim([(xmin-0.15*Dx) (xmax+0.15*Dx)]);
 xlabel('Specific Entropy [kJ/kg.K]');
 
 % Set y axis

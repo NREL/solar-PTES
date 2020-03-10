@@ -14,7 +14,7 @@ T0      = environ.T0;
 % Set final conditions and update
 state.T = T_st + eff*(Tset-T_st);
 state.p = p_st*(1-ploss);
-state   = update_state(state,fluid.handle,fluid.read,fluid.TAB,1);
+state   = update_state(state,fluid.handle,fluid.read,fluid.TAB,fluid.IDL,1);
 
 % Compute stage energy flows
 stage.Dh  = state.h - h_st;
@@ -24,11 +24,13 @@ if all([T_st >= Tset, Tset >= T0]) || all([T_st <= Tset, Tset <= T0]) %cooling/h
     stage.w    = 0;
     stage.q    = stage.Dh + stage.w;
     stage.sirr = state.s - s_st - stage.Dh/T0;
-else %joule heating
+elseif all([T_st <= Tset, Tset > T0]) %joule heating
     %fprintf(1,'\nJoule heating!\n')
     stage.q    = 0;
     stage.w    = stage.q - stage.Dh;
     stage.sirr = state.s - s_st;
+else
+    error('Selected conditions do not allow cooling/heating versus ambient or Joule heating');
 end
 environ.sink(indE(1),indE(2)).DHdot = - stage.q*state.mdot;
 

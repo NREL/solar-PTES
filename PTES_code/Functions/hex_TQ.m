@@ -237,7 +237,7 @@ end
 
 % % To see the temperature distribution after applying the heat exchanger
 % % effectiveness, uncomment lines below:
-% [~,~,TC,TH,QS] = DTmin(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,n,'hH1',hH1);
+% [~,~,TC,TH,~,~,QS] = DTmin(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,n,'hH1',hH1);
 % figure(10)
 % plot(QS./QS(end),TH,'r'); hold on;
 % plot(QS./QS(end),TC,'b'); hold off;
@@ -303,14 +303,19 @@ iC = indC(2) + 1;
 
 % Set variable argument outputs
 if nargout == 4
+    varargout = {};
 elseif nargout == 5
-    [~,~,TC,TH,QS] = DTmin(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,n,'hH1',hH1);
+    [~,~,TC,TH,hC,hH,QS] = DTmin(mH,mC,hH2,hC1,hvH,TvH,hvC,TvC,n,'hH1',hH1);
     HX.C.name = fluidC.name;
     HX.H.name = fluidH.name;
+    HX.C.mdot = mC;
+    HX.H.mdot = mH;
     HX.C.pin  = pC1;
     HX.H.pin  = pH2;
     HX.C.T = TC;
     HX.H.T = TH;
+    HX.C.h = hC;
+    HX.H.h = hH;
     HX.QS  = QS;
     HX.AS  = [];
     varargout{1} = HX;
@@ -433,12 +438,14 @@ end
 
 if nargout == 1
     varargout{1} = solution;
-elseif nargout == 5
+elseif nargout == 7
     varargout{1} = solution;
     varargout{2} = DT;
     varargout{3} = TC;
     varargout{4} = TH;
-    varargout{5} = QS;
+    varargout{5} = hC;
+    varargout{6} = hH;
+    varargout{7} = QS;
 end
 
 end
