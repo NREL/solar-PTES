@@ -7,13 +7,16 @@ if ~multi_run
     if save_figs == 1
         save_fig(1,'./Outputs/T-s',0,0,0)
         save_fig(8,'./Outputs/Losses',0,0,0)
+        save_fig(9,'./Outputs/Costs',0,0,0)
         %save_fig(10,'./Outputs/TQ_hex',0,0,0)
         if Load.mode==3
             save_fig(2,'./Outputs/T-s_Rankine',0,0,0)
         end
         if all([optimise,any(Load.mode==[0,2])])
             save_fig(3,'./Outputs/Golden_search',0,0,0)            
-        end        
+        end 
+        % Also save workspace
+        save('./Outputs/vars.mat')
     end
 end
 

@@ -1,10 +1,10 @@
 % This file should be split up further
 % Set atmospheric conditions and cycle parameters
-T0      = 43 + 273.15;  % ambient temp, K
+T0      = 40 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 250e5;         % top pressure, Pa
-PRch    = 2.5;          % charge pressure ratio
-PRr     = 1.0;          % discharge pressure ratio: PRdis = PRch*PRr
+PRch    = 2.65;          % charge pressure ratio
+PRr     = 0.98;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 0;            % set Tmax? (this option substitutes PRch)
@@ -27,15 +27,16 @@ Nhot = 1; % number of hot stores. Not implemented for >2
 
 switch Load.mode
     case 4
+        fac = 1 ; % THis can be used to more easily set the mass flow to obtain a desired power output
         Load.time = [10;4;10].*3600;          % time spent in each load period, s
         Load.type = ["chgCO2";"str";"disCO2"]; % type of load period
-        Load.mdot = [10;0;10];              % working fluid mass flow rate, kg/s
+        Load.mdot = [1000*fac;0;1000*fac];              % working fluid mass flow rate, kg/s
     case 5
         Load.time = [10;4;10].*3600;          % time spent in each load period, s
         Load.type = ["sol";"str";"rcmpCO2"]; % type of load period
         Load.mdot = [10;0;10];              % working fluid mass flow rate, kg/s
     case 6
-        Load.time = [20;4;20].*3600;          % time spent in each load period, s
+        Load.time = [10;4;10].*3600;          % time spent in each load period, s
         Load.type = ["chgTSCO2";"str";"disTSCO2"]; % type of load period
         Load.mdot = [1000;0;1000];              % working fluid mass flow rate, kg/s
 end
@@ -58,8 +59,8 @@ switch Nrcp
     case 0
         % Hot storage tanks
         fHname  = ["SolarSalt";"MineralOil"]; % fluid name
-        %fHname  = 'SolarSalt'; % fluid name
-        MH_dis0(1:Nhot) = 1e6;          % initial mass of discharged hot fluid, kg
+        %fHname  = ["MineralOil";"MineralOil"]; % fluid name
+        MH_dis0(1:Nhot) = 1e9;          % initial mass of discharged hot fluid, kg
         MH_chg0(1:Nhot) = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
         
         Td = T0; % Temperature of the coldest 'hot' tank when it is discharged
@@ -88,13 +89,13 @@ switch Nrcp
         % Cold storage tanks
         fCname  = ["INCOMP::MEG2[0.56]";"INCOMP::MEG2[0.56]"]; % fluid name
         %fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
-        MC_dis0(1:Ncld) = 1e6;          % initial mass of discharged cold fluid, kg
+        MC_dis0(1:Ncld) = 1e9;          % initial mass of discharged cold fluid, kg
         MC_chg0(1:Ncld) = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
         
         % Cold store temperatures
-        Td = 425 + 273.15; % Temperature of the hottest 'cold' tank when it is discharged
+        Td = 400 + 273.15; % Temperature of the hottest 'cold' tank when it is discharged
         Tc = T0-5; % Temperature of the coldest 'cold' tank when it is charged
-        Tint = [75 + 273.15] ; % intermediate temperature between tanks. This array should be size = Nhot - 1
+        Tint = [100 + 273.15] ; % intermediate temperature between tanks. This array should be size = Nhot - 1
         TC_chg0 = zeros(1,Ncld);
         TC_dis0 = zeros(1,Ncld);
         % Allocate temperatures to the correct tanks
@@ -117,33 +118,34 @@ switch Nrcp
         end
     case 1
         % Hot storage tanks
-        fHname  = 'SolarSalt';  % fluid name
-        TH_dis0 = T0 + 273.15;  % initial temperature of discharged hot fluid, K
-        MH_dis0 = 1e6;          % initial mass of discharged hot fluid, kg
-        TH_chg0 = 550 + 273.15; % initial temperature of charged hot fluid, K
+        fHname  = 'MineralOil';  % fluid name
+        TH_dis0 = 100 + 273.15;  % initial temperature of discharged hot fluid, K
+        MH_dis0 = 1e9;          % initial mass of discharged hot fluid, kg
+        TH_chg0 = 200 + 273.15; % initial temperature of charged hot fluid, K
         MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
         % Cold storage tanks
         fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
         TC_dis0 = T0 + 0;           % initial temperature of discharged cold fluid, K
-        MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
+        MC_dis0 = 1e9;          % initial mass of discharged cold fluid, kg
         TC_chg0 = T0-5;        % initial temperature of charged cold fluid, K
         MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
         
         % If there are two recuperators, also use a recompressor during discharge
     case 2
         Lrcmp    = true ;         % Is there a recompression
+        Lcld    = true ;       % Make cold store as cold as possible?
         switch Load.mode
             case 4
                 % Hot storage tanks
                 fHname  = 'SolarSalt';  % fluid name
                 TH_dis0 = 410. + 273.15;  % initial temperature of discharged hot fluid, K
-                MH_dis0 = 1e6;              % initial mass of discharged hot fluid, kg
+                MH_dis0 = 1e9;              % initial mass of discharged hot fluid, kg
                 TH_chg0 = 570 + 273.15;     % initial temperature of charged hot fluid, K
                 MH_chg0 = 0.0*1.e6;         % initial mass of charged hot fluid, kg
                 % Cold storage tanks
                 fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
                 TC_dis0 = T0 + 0;           % initial temperature of discharged cold fluid, K
-                MC_dis0 = 1e6;          % initial mass of discharged cold fluid, kg
+                MC_dis0 = 1e9;          % initial mass of discharged cold fluid, kg
                 TC_chg0 = T0-5;        % initial temperature of charged cold fluid, K
                 MC_chg0 = 0.0*1.e6; % initial mass of charged cold fluid, kg
                 % Choose a threshold temperature between the recuperators
@@ -154,13 +156,13 @@ switch Nrcp
                 % Hot storage tanks
                 fHname  = 'SolarSalt';  % fluid name
                 TH_dis0 = 410. + 273.15;    % initial temperature of discharged hot fluid, K
-                MH_dis0 = 1e6;              % initial mass of discharged hot fluid, kg
+                MH_dis0 = 1e9;              % initial mass of discharged hot fluid, kg
                 TH_chg0 = 565 + 273.15;     % initial temperature of charged hot fluid, K
                 MH_chg0 = 0.0*1.e6;         % initial mass of charged hot fluid, kg
                 % Cold storage tanks
                 fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
                 TC_dis0 = T0 + 0;           % initial temperature of discharged cold fluid, K
-                MC_dis0 = 1e6;              % initial mass of discharged cold fluid, kg
+                MC_dis0 = 1e9;              % initial mass of discharged cold fluid, kg
                 TC_chg0 = T0-5;             % initial temperature of charged cold fluid, K
                 MC_chg0 = 0.0*1.e6;         % initial mass of charged cold fluid, kg
                 % Choose a threshold temperature between the recuperators

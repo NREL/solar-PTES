@@ -21,7 +21,7 @@ classdef double_tank_class
         % Costs
         tankA_cost = econ_class(0,0,0,0) ;
         tankB_cost = econ_class(0,0,0,0) ;
-        fluid_cost = econ_class(0,0,0,0) ;
+        fluid_cost = econ_class(1,0,0,0) ;
         
     end
     methods
@@ -45,8 +45,8 @@ classdef double_tank_class
              obj.WL_str = 0;
              obj.WL_dis = 0;
              
-             obj.tankA_cost = econ_class(1, 0.2, 5, 0.2) ;
-             obj.tankB_cost = econ_class(1, 0.2, 5, 0.2) ;
+             obj.tankA_cost = econ_class(5, 0.2, 5, 0.2) ;
+             obj.tankB_cost = econ_class(5, 0.2, 5, 0.2) ;
              obj.fluid_cost = econ_class(1, 0.2, 5, 0.2) ;
              
          end
@@ -240,8 +240,29 @@ classdef double_tank_class
                      % Tank cost based upon Peters + Timmerhaus
                      % See solar-PTES Q2 report, equation PV2 - updated
                      % with CEindex for 2019
-                     Acost = 3829 * obj.tank_volA^0.557 ;
-                     Bcost = 3829 * obj.tank_volB^0.557 ;
+                     
+                     % Maximum tank volume is 50e3 m3. 
+                     maxV  = 50e3 ;
+                     
+                     if obj.tank_volA > maxV
+                         nA    = floor(obj.tank_volA / maxV); % Number of maxV tanks
+                         vA    = mod(obj.tank_volA / maxV,1)  ; % Remaining volume
+                         Acost = nA * 3829 * maxV^0.557 ;
+                         
+                         Acost = Acost + 3829 * vA^0.557 ;
+                     else
+                         Acost = 3829 * obj.tank_volA^0.557 ;
+                     end
+                     
+                     if obj.tank_volB > maxV
+                         nB    = floor(obj.tank_volB / maxV); % Number of maxV tanks
+                         vB    = mod(obj.tank_volB / maxV,1)  ; % Remaining volume
+                         Bcost = nB * 3829 * maxV^0.557 ;
+                         
+                         Bcost = Bcost + 3829 * vB^0.557 ;
+                     else
+                         Bcost = 3829 * obj.tank_volB^0.557 ;
+                     end
                      
                      % Increase cost if pressurized
                      p = obj.A(1).p / 1e5 ;
@@ -279,6 +300,88 @@ classdef double_tank_class
                      Bcost = Bcost * CEind(curr) / CEind(1998) ;
                      
                  case 5
+                     % Tank cost based upon Peters + Timmerhaus
+                     % But updated to match Jack plant data
+                     
+                     % Maximum tank volume is 50e3 m3. 
+                     maxV  = 50e3 ;
+                     
+                     if obj.tank_volA > maxV
+                         nA    = floor(obj.tank_volA / maxV); % Number of maxV tanks
+                         vA    = mod(obj.tank_volA / maxV,1)  ; % Remaining volume
+                         Acost = nA * 13673 * maxV^0.557 ;
+                         
+                         Acost = Acost + 13673 * vA^0.557 ;
+                     else
+                         Acost = 13673 * obj.tank_volA^0.557 ;
+                     end
+                     
+                     if obj.tank_volB > maxV
+                         nB    = floor(obj.tank_volB / maxV); % Number of maxV tanks
+                         vB    = mod(obj.tank_volB / maxV,1)  ; % Remaining volume
+                         Bcost = nB * 13673 * maxV^0.557 ;
+                         
+                         Bcost = Bcost + 13673 * vB^0.557 ;
+                     else
+                         Bcost = 13673 * obj.tank_volB^0.557 ;
+                     end
+                     
+                     % Increase cost if pressurized
+                     p = obj.A(1).p / 1e5 ;
+                     if p > 7
+                         Cfact = 0.922 + 0.0335*p - 0.0003*p^2 +1e-6*p^3 ;
+                         Acost = Acost * Cfact ;
+                         Bcost = Bcost * Cfact ;
+                     end
+                     
+                     Acost = Acost * CEind(curr) / CEind(2015) ;
+                     Bcost = Bcost * CEind(curr) / CEind(2015) ;
+                     
+                 case 6
+                     % Storage tank cost based on Couper
+                     % Up to 11 million gallons for field constructed tanks
+                     % These costs seem ridiculously high!
+                     
+                     % Maximum tank volume is 50e3 m3. 
+                     m3toGAL = 264.172 ;
+                     maxV  = 50e3 * m3toGAL ;
+                     CF = 2.7 ; % Cost factor for Stainless Steel 316
+                     
+                     volA = obj.tank_volA * m3toGAL ;
+                     volB = obj.tank_volB * m3toGAL ;
+                     
+                     if volA > maxV
+                         nA    = floor(volA / maxV); % Number of maxV tanks
+                         vA    = mod(volA / maxV,1)  ; % Remaining volume
+                         Acost = nA * CF * 1218 * exp(11.662-0.6104 * log(maxV) + 0.04536 * (log(maxV)^2)) ;
+                         
+                         Acost = Acost + CF * 1218 * exp(11.662-0.6104 * log(vA) + 0.04536 * (log(vA)^2)) ;
+                     else
+                         Acost = CF * 1218 * exp(11.662-0.6104 * log(volA) + 0.04536 * (log(volA)^2)) ;
+                     end
+                     
+                     if volB > maxV
+                         nB    = floor(volB / maxV); % Number of maxV tanks
+                         vB    = mod(volB / maxV,1)  ; % Remaining volume
+                         Bcost = nB * CF * 1218 * exp(11.662-0.6104 * log(maxV) + 0.04536 * (log(maxV)^2)) ;
+                         
+                         Bcost = Bcost + CF * 1218 * exp(11.662-0.6104 * log(vB) + 0.04536 * (log(vB)^2)) ;
+                     else
+                         Bcost = CF * 1218 * exp(11.662-0.6104 * log(volB) + 0.04536 * (log(volB)^2)) ;
+                     end
+                     
+                     % Increase cost if pressurized
+                     p = obj.A(1).p / 1e5 ;
+                     if p > 7
+                         Cfact = 0.922 + 0.0335*p - 0.0003*p^2 +1e-6*p^3 ;
+                         Acost = Acost * Cfact ;
+                         Bcost = Bcost * Cfact ;
+                     end
+                     
+                     Acost = Acost * CEind(curr) / CEind(2010) ;
+                     Bcost = Bcost * CEind(curr) / CEind(2010) ;
+                     
+                 case 10
                      
                      error('Mode not available for tank costs')
              end

@@ -2,7 +2,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Call the correct input file
-Load.mode = 5;
+Load.mode = 6;
 switch Load.mode
     case {0,1,2,3} % Joule-Bratyon PTES / Joule-Brayton + Rankine
         JB_RANK_INPUTS
@@ -24,6 +24,7 @@ end
 % Set double tanks
 if Ncld == 1
     fluidC = fluid_class(fCname,'SF','TAB',NaN,Load.num,30); % Storage fluid
+    %fluidC = fluid_class(fCname,'SF','CP','HEOS',Load.num,30); % Storage fluid
     CT  = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank
 else
     for ii = 1 : Ncld
@@ -32,9 +33,11 @@ else
     end
 end
 
+
 % Hot tanks
 if Nhot == 1
     fluidH = fluid_class(fHname,'SF','TAB',NaN,Load.num,30); % Storage fluid
+    %fluidH = fluid_class(fHname,'SF','CP','HEOS',Load.num,30);
     HT  = double_tank_class(fluidH,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,Load.num+1); %hot double tank
 else
     for ii = 1 : Nhot

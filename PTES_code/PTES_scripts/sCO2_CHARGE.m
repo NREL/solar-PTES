@@ -104,7 +104,7 @@ while 1
     if Lcld
         T_aim = environ.T0 ;
     else
-        T_aim = gas.state(iL,iG).T - 1.0 ;
+        T_aim = gas.state(iL,iG).T - 0.1 ;
     end
     % REJECT HEAT (external HEX)
     [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
