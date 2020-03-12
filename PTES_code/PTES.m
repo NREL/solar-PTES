@@ -42,6 +42,7 @@ MANAGE_FILES
 
 
 tic % start timer
+
 for ix = 1:1
     %%% RUN CYCLE LOOP %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -57,38 +58,47 @@ for ix = 1:1
             % preliminary tasks
             INITIALISE
             
-            for iL = 1:Load.num
-                switch Load.type(iL)
-                    case 'chg'
-                        JB_CHARGE
-                        
-                    case 'dis'
-                        JB_DISCHARGE
-                        
-                    case 'ran'
-                        RANK_DISCHARGE
-                        
-                    case 'chgCO2'
-                        sCO2_CHARGE
-                        
-                    case 'disCO2'
-                        sCO2_DISCHARGE
-                        
-                    case 'rcmpCO2'
-                        sCO2_RECOMP
-                        
-                    case 'chgTSCO2'
-                        TSCO2_CHARGE
-                        
-                    case 'disTSCO2'
-                        TSCO2_DISCHARGE
-                        
-                    case 'str'
-                        TANKS_STORAGE
-                        
-                    case 'sol'
-                        SOLAR_TANKS
+            for iix = 1:(Loffdesign+1)
+                fprintf(['\n',line,txt(iix,:),line,'\n'])
+            
+                for iL = 1:Load.num
+                    switch Load.type(iL)
+                        case 'chg'
+                            JB_CHARGE
+                            
+                        case 'dis'
+                            JB_DISCHARGE
+                            
+                        case 'ran'
+                            RANK_DISCHARGE
+                            
+                        case 'chgCO2'
+                            sCO2_CHARGE
+                            
+                        case 'disCO2'
+                            sCO2_DISCHARGE
+                            
+                        case 'rcmpCO2'
+                            sCO2_RECOMP
+                            
+                        case 'chgTSCO2'
+                            TSCO2_CHARGE
+                            
+                        case 'disTSCO2'
+                            TSCO2_DISCHARGE
+                            
+                        case 'str'
+                            TANKS_STORAGE
+                            
+                        case 'sol'
+                            SOLAR_TANKS
+                    end
                 end
+                
+                if Loffdesign && iix==1
+                    SET_DESIGN
+                end
+                
             end
             
             if optimise % obtain optimal PRr

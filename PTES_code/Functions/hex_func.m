@@ -518,33 +518,6 @@ if swap == 1
     iC  = iH0;
 end
 
-% Save some values from the first run as the design values
-if isempty(HX.UA0)
-    HX.UA0 = UA ;
-    HX.NTU0 = NTU ;
-    HX.LMTD0 = HX.LMTD(iL) ;
-    
-    % If specified, estimate the HX area
-    if HX.LestA
-        HXt = set_hex_geom(HX, iL, fluidH, iH, fluidC, iC, mode, par, HX.NTU0, HX.ploss, HX.D1); % HXt is a temporary class
-        [~,~,HXt] = shell_and_tube_geom(HXt.C(iL), HXt.H(iL), HXt) ;
-        
-        HX.N1  = HXt.N1 ;
-        HX.t1  = HXt.t1 ;
-        HX.L   = HXt.L ;
-        HX.AfT = HXt.AfT ;
-        HX.AfR = HXt.AfR ;
-        HX.D2  = HXt.D2 ;
-        HX.G1  = HXt.G1 ;
-        HX.G2  = HXt.G2 ;
-        HX.Af1 = HXt.Af1 ;
-        HX.Af2 = HXt.Af2 ;
-        HX.A1  = HXt.A1 ;
-        HX.A2  = HXt.A2 ;
-        HX.Vm  = HXt.Vm ;
-    end
-end
-
 % Increase stage counter
 iH = iH + 1;
 iC = iC + 1;

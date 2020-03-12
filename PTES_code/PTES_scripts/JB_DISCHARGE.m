@@ -5,14 +5,6 @@ iC = 1;  % keeps track of the Cold fluid stream number
 iE = 1;  % keeps track of the Environment (heat rejection) stream number
 iA = 1;  % keeps track of the Air (heat rejection) stream number
 
-% Compute PR_dis based on charge pressure ratio and PRr
-PRdis = PRr*PRch;
-
-% Initial guess of discharge conditions
-% Expander outlet (regenerator hot inlet)
-gas.state(iL,1).p    = pbot; gas.state(iL,1).T = T1;
-gas.state(iL,1).mdot = Load.mdot(iL);
-[gas] = update(gas,[iL,1],1);
 % Regenerator cold inlet
 iReg1 = 1; % index regenerator hot inlet
 switch Load.mode
@@ -21,20 +13,43 @@ switch Load.mode
     case 2 % Heat engine only
         iReg2 = iReg1 + 1 + 2*Nc_dis; % index regenerator cold inlet (after regeneration + heat rejection + compression)    
 end
-gas.state(iL,iReg2).T = T0;
-gas.state(iL,iReg2).p = gas.state(iL,1).p*PRdis;
-gas.state(iL,iReg2).mdot = gas.state(iL,1).mdot;
-[gas] = update(gas,[iL,iReg2],1);
+
+% Compute PR_dis based on charge pressure ratio and PRr
+PRdis = PRr*PRch;
+
+if design_mode == 1
+    % Initial guess of discharge conditions
+    % Expander outlet (regenerator hot inlet)
+    gas.state(iL,1).p    = pbot; gas.state(iL,1).T = T1;
+    gas.state(iL,1).mdot = Load.mdot(iL);
+    [gas] = update(gas,[iL,1],1);
+    gas.state(iL,iReg2).T = T0;
+    gas.state(iL,iReg2).p = gas.state(iL,1).p*PRdis;
+    gas.state(iL,iReg2).mdot = gas.state(iL,1).mdot;
+    [gas] = update(gas,[iL,iReg2],1);
+else
+    for ii = 1 : numel(D(D~=0))/2
+        gas.state(iL,ii).T    = D(1,ii) ;
+        gas.state(iL,ii).p    = D(2,ii) ;
+        gas.state(iL,ii).mdot = Load.mdot(iL) ;
+        
+        % For inventory control, assume that the pressure scales with the off-design mass flow rate
+        gas.state(iL,ii).p = gas.state(iL,ii).p * Load.mdot(iL) / DEXP.mdot0 ;
+        
+        [gas] = update(gas,[iL,ii],1);
+    end    
+end
 
 % Set matrix of temperature and pressure points to test convergence
-A_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
+D_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
+counter = 1 ;
 while 1
-    fprintf(1,'Hello discharge PTES\n')
+    fprintf(1,['Discharging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
     
     % REGENERATE (gas-gas)
     if new_hex_calls
         %[REGEN,gas,iG,~,~] = hex_func(REGEN,iL,gas,iReg1,gas,iReg2,0,0);
-        [HX(3),gas,iG,~,~] = hex_func(HX(3),iL,gas,iReg1,gas,iReg2,0,0); % New call using hx_class
+        [HX(3),gas,iG,~,~] = set_hex(HX(3),iL,gas,iReg1,gas,iReg2,0,0); % New call using hx_class
     else
         [gas,~,iG,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
     end
@@ -43,7 +58,7 @@ while 1
         % REJECT HEAT (external HEX)
         % REPLACE THIS WITH hex_func call?
         T_aim = environ.T0;
-        [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
+        [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,1.0,ploss);
         
         switch Load.mode
             case 0 % PTES
@@ -52,7 +67,7 @@ while 1
                 [fluidC] = update(fluidC,[iL,iC],1);
                 if new_hex_calls
                     %[HX,gas,iG,fluidC,iC] = hex_func(HX,iL,gas,iG,fluidC,iC,1,1.0);
-                    [HX(2),gas,iG,fluidC,iC] = hex_func(HX(2),iL,gas,iG,fluidC,iC,1,1.0);
+                    [HX(2),gas,iG,fluidC,iC] = set_hex(HX(2),iL,gas,iG,fluidC,iC,1,1.0);
                 else
                     [gas,fluidC,iG,iC] = hex_TQ(gas,[iL,iG],fluidC,[iL,iC],eff,ploss,'hex',1,1.0);
                 end
@@ -63,13 +78,13 @@ while 1
         % COMPRESS
         PRc_dis = (PRdis)^(1/Nc_dis)/(1-ploss)^2; % stage compression pressure ratio
         p_aim = gas.state(iL,iG).p*PRc_dis;
-        [DCMP(iN),gas,iG] = compexp_func (DCMP(iN),iL,gas,iG,'Paim',p_aim) ; 
+        [DCMP(iN),gas,iG] = compexp_func (DCMP(iN),iL,gas,iG,'Paim',p_aim, design_mode) ; 
     end
     
     % REGENERATE (gas-gas)
     if new_hex_calls
         %[REGEN,~,~,gas,iG] = hex_func(REGEN,iL,gas,iReg1,gas,iReg2,0,0);
-        [HX(3),~,~,gas,iG] = hex_func(HX(3),iL,gas,iReg1,gas,iReg2,0,0); % New call using hx_class
+        [HX(3),~,~,gas,iG] = set_hex(HX(3),iL,gas,iReg1,gas,iReg2,0,0); % New call using hx_class
     else
         [~,gas,~,iG] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
     end
@@ -81,7 +96,7 @@ while 1
         Taim = THmin;
         if new_hex_calls
             %[HX,fluidH,iH,gas,iG] = hex_func(HX,iL,fluidH,iH,gas,iG,2,1.0);
-            [HX(1),fluidH,iH,gas,iG] = hex_func(HX(1),iL,fluidH,iH,gas,iG,2,1.0); % New call using hx_class
+            [HX(1),fluidH,iH,gas,iG] = set_hex(HX(1),iL,fluidH,iH,gas,iG,2,1.0); % New call using hx_class
         else
             [fluidH,gas,iH,iG] = hex_TQ(fluidH,[iL,iH],gas,[iL,iG],eff,ploss,'hex',2,1.0);
         end            
@@ -90,13 +105,13 @@ while 1
         % EXPAND
         PRe_dis = (gas.state(iL,iG).p/pbot)^(1/(Ne_dis+1-iN));  % stage expansion pressure ratio
         p_aim = gas.state(iL,iG).p/PRe_dis;
-        [DEXP(iN),gas,iG] = compexp_func (DEXP(iN),iL,gas,iG,'Paim',p_aim) ; 
+        [DEXP(iN),gas,iG] = compexp_func (DEXP(iN),iL,gas,iG,'Paim',p_aim, design_mode) ; 
     end
     
     % Determine convergence and proceed
-    A = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
+    D = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
 
-    if all(abs((A(A~=0) - A_0(A~=0))./A(A~=0))*100 < 1e-3) % is discharge cycle converged?
+    if all(abs((D(D~=0) - D_0(D~=0))./D(D~=0))*100 < 1e-3) || counter > 100 % is discharge cycle converged?
         % Close working fluid streams
         gas.stage(iL,iG).type = 'end';
         gas = count_Nstg(gas);
@@ -115,17 +130,35 @@ while 1
         fluidC = count_Nstg(fluidC);
         
         % Uncomment these lines to print states
-        %print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
-        %print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
-        %print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);
+        print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
+        print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
+        print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);
         
         % Exit loop
         break
     else
         % Set new initial conditions
-        gas.state(iL,1) = gas.state(iL,iG);
-        A_0 = A;
+        if ~design_mode
+            
+            %print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
+%              fprintf('p1:   %13.8f \n',gas.state(iL,1).p/1e5)
+%              fprintf('pEND: %13.8f \n\n',gas.state(iL,iG).p/1e5)
+%              fprintf('T1:   %13.8f \n',gas.state(iL,1).T)
+%              fprintf('TEND: %13.8f \n\n',gas.state(iL,iG).T)
+            % Adjust inlet pressure to try to reach convergence. The
+            % 'smoothing' factor has to be quite small (<0.1, say) for this to be stable
+            gas.state(iL,1).p = gas.state(iL,1).p - 0.10 * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
+            gas.state(iL,1).T = gas.state(iL,1).T + 0.10 * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
+            gas.state(iL,1).mdot = Load.mdot(iL);
+            [gas] = update(gas,[iL,1],1);
+            
+        else
+            gas.state(iL,1) = gas.state(iL,iG);
+        end
+        
+        D_0 = D;
         iG=1;iH=1;iHc=1;iC=1;iE=1;
+        counter = counter + 1 ;
     end
 end
 

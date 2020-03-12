@@ -91,3 +91,10 @@ end
 % Fans --> NOT SURE WHAT cost_mode should be selected in this case
 CFAN(1:10) = compexp_class('comp', 'isen', 40, 0.5, Load.num) ;
 DFAN(1:10) = compexp_class('comp', 'isen', 40, 0.5, Load.num) ;
+
+% Put design case load cycles in load for the first iteration.
+if Loffdesign
+    Load = Design_Load ; % Later reset Load using Load0
+end
+
+design_mode = 1 ; % Logical - currently in design mode

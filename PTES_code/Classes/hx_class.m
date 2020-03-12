@@ -68,7 +68,7 @@ classdef hx_class
        Sirr     % entropy generation, W/K
        
        % Costs
-       LestA   % Logical - estimate the area (if using effectivenesss/UA method) to enable cost calculations
+       Lgeom_set % Has the geometry been set
        hx_cost = econ_class(0,0,0,0) ;
        
    end
@@ -100,6 +100,8 @@ classdef hx_class
             %obj.C    = zeros(Nsave, 1) ;
                         
             obj.QS    = zeros(Nsave,Ngrid+1) ;
+            
+            obj.Lgeom_set = false ;
             
             obj.hx_cost = econ_class(cost_mode, 0.2, 5, 0.2) ;
             

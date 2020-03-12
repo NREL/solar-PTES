@@ -3,6 +3,8 @@
 
 % Call the correct input file
 Load.mode = 0;
+Loffdesign = 1; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
+
 switch Load.mode
     case {0,1,2,3} % Joule-Bratyon PTES / Joule-Brayton + Rankine
         JB_RANK_INPUTS
@@ -86,3 +88,6 @@ end
 Load0 = Load;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+txt = ['RUN DESIGN CASE FIRST:     \n';'RUN OFF-DESIGN LOAD CYCLES:\n'];
+line = '---------------------------\n';

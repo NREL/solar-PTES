@@ -30,8 +30,7 @@ classdef compexp_class
         Sirr     % entropy generation, W/K
         
         rhoP    % design point power density
-        firstcall
-        
+                
         % Economics
         cmpexp_cost = econ_class(0,0,0,0) ;
         
@@ -64,7 +63,7 @@ classdef compexp_class
             
         end
             
-        function [obj,fluid,i] = compexp_func (obj,iL,fluid,i,aim_mode,aim)
+        function [obj,fluid,i] = compexp_func (obj,iL,fluid,i,aim_mode,aim, design_mode)
             % iL is the Load index
             % i is the index of the state point within the cycle
             
@@ -80,12 +79,17 @@ classdef compexp_class
             s1   = state.s;
             rho1 = state.rho;
             
-            % Extract eta for this time period
-            obj = compexp_offdesign (obj , state, iL , 1) ;
-            obj.eta(iL) = obj.eta0 ;
+            % Extract eta, pr for this time period
+            if design_mode
+                obj.eta(iL) = obj.eta0 ;
+                obj.pr(iL)  = 1 ;
+            else
+                obj = compexp_offdesign (obj , state, iL , 1) ;
+            end
             etaI = obj.eta(iL) ;     
             
-            %{
+            % If not at the design pressure ratio then calculate the
+            % required pressure ratio
             if obj.pr(iL) ~= 1
                obj.aim_mode = 'Paim' ;
                if strcmp(obj.type,'comp')
@@ -94,7 +98,7 @@ classdef compexp_class
                    aim = fluid.state(iL,i).p / (obj.pr0 * obj.pr(iL)) ;
                end
             end
-            %}
+            
             
             % EXPECT ALL OF THIS COULD BE MOVED INTO CLASS CONSTRUCTOR AND
             % THEREFORE ONLY CALCULATED ONCE >>>>
@@ -172,14 +176,6 @@ classdef compexp_class
                 h2   = nested_compexp_is(fluid,h1,s1,p2,etaI,n);
             end
             
-            if iL == obj.firstcall
-                if strcmp(obj.type,'comp')
-                    obj.pr0 = p2 / p1 ;
-                else
-                    obj.pr0 = p1 / p2 ;
-                end
-            end
-            
             % Update state
             state.h = h2;
             state.p = p2;
@@ -200,12 +196,26 @@ classdef compexp_class
             % Export computed state and stage back into fluid
             fluid.state(iL,i+1) = state; % Result goes into next state
             fluid.stage(iL,i)   = stage; % Result stays in current stage
-            
+            % << DELETE THIS EVENTUALLY 
             %Increase stage counter
             i = i+1;
             
-            % << DELETE THIS EVENTUALLY 
-            
+            % Save the main design parameters
+            if design_mode
+                obj.mdot0 = state.mdot ;
+                obj.Tin   = T1 ;
+                obj.Pin   = p1 ;
+                
+                % Design pressure ratio
+                if strcmp(obj.type,'comp')
+                    obj.pr0 = p2 / p1 ;
+                else
+                    obj.pr0 = p1 / p2 ;
+                end
+                
+                obj.W0 = abs(obj.w(iL) * obj.mdot0) ;
+            end
+                        
             function h2 = nested_compexp(fluid,p1,h1,s1,rho1,p2,eta,n,num)
                 % Use isentropic efficiency as an initial guess to speed things up
                 % Pressure array (to solve integral)
@@ -275,24 +285,12 @@ classdef compexp_class
                 obj.N(iL) = obj.N0 ;
             end
                         
-            % If design variables are undefined set them here
-            % (Essentially, the 1st charge and 1st discharge cycles set the
-            % design point
-            if obj.mdot0 == 0
-                obj.firstcall = iL ;
-            end
-            
-            if iL == obj.firstcall
-                obj.mdot0 = obj.mdot(iL) ;
-                obj.Tin   = T1 ;
-                obj.Pin   = P1 ;
-            end
-            
             % Check whether at design point
             % (Running the off-design model at the design point should
             % return the same value, running this way requires fewer calcs
             if P1==obj.Pin && T1==obj.Tin && obj.mdot(iL)==obj.mdot0 && obj.N(iL) == obj.N0
                 obj.eta(iL) = obj.eta0 ;
+                obj.pr(iL)  = 1.;
                 mr = 1. ;
                 Nr = 1. ;
             else
@@ -353,14 +351,6 @@ classdef compexp_class
             obj.Q    = obj.q    .* obj.mdot .* T ;
             obj.DH   = obj.Dh   .* obj.mdot .* T ;
             obj.Sirr = obj.sirr .* obj.mdot .* T ;
-            
-            % What is the design point work? Need a better method in the
-            % long run
-            if strcmp(obj.type,'comp')
-                obj.W0 = -min(obj.w .* obj.mdot) ;
-            elseif strcmp(obj.type,'exp')
-                obj.W0 = max(obj.w .* obj.mdot) ;
-            end
         end
                
         % Calculate the economic cost of the compressor or expander
