@@ -134,11 +134,6 @@ while 1
         print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
         print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);
         
-        % All heat exchangers now have their geometry set up properly
-        for ihx = 1 : length(HX)
-            HX(ihx).Lgeom_set = true ;
-        end
-        
         % Exit loop
         break
     else
