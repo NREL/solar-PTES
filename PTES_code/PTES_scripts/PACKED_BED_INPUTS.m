@@ -31,9 +31,9 @@ for ii = 1 : Nhot
     % Solid properties
     % Replace these later with data from an input file
     pbH(ii).Sname = 'Magnetite' ;
-    pbH(ii).sld   = packbed_class.create_solid_table(pbH(ii).Sname) ;
-    pbH(ii).kS    = pbH(ii).sld(1,6) ;    % Thermal conductivity, W/mK
-    pbH(ii).rhoS  = 1./pbH(ii).sld(1,3) ;   % Density, kg/m3
+    pbH(ii).sld   = create_table(pbH(ii).Sname) ;
+    pbH(ii).kS    = pbH(ii).sld(1,6) ;   % Thermal conductivity, W/mK
+    pbH(ii).rhoS  = pbH(ii).sld(1,3) ;   % Density, kg/m3
     
     x  = pbH(ii).sld(:,1); %temperatures
     h1 = interp1(x,pbH(ii).sld(:,2),pbH(ii).TC);

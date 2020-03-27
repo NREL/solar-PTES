@@ -185,7 +185,7 @@ classdef packbed_class
                 % Only find the heat cap function between these temperatures
                 X = [ones(size(fld.TAB(lo:hi,1))) fld.TAB(lo:hi,1) fld.TAB(lo:hi,1).*fld.TAB(lo:hi,1) ];
                 obj.Hfacs  = X\fld.TAB(lo:hi,2); % coefficients for enthalpy
-                obj.Dfacs  = X\(1./fld.TAB(lo:hi,3)); % coefficients for specific volume
+                obj.Dfacs  = X\fld.TAB(lo:hi,3); % coefficients for density
                 obj.Sfacs  = X\fld.TAB(lo:hi,4); % coefficients for entropy
                 obj.CFfacs = X\fld.TAB(lo:hi,5); % coefficients for heat capacity
                 obj.KFfacs = X\fld.TAB(lo:hi,6); % coefficients for conductivity
@@ -930,7 +930,10 @@ classdef packbed_class
     % Other methods
     methods (Static)
         
-        
+        %%% SEE IF THIS CAN BE REMOVED (METHOD HAS BEEN CONSOLIDATED WITH
+        %%% CREATE_TABLE FUNCTION)
+        %%% --------------------->
+        %{
         function [A] = create_solid_table(Sname)
             % THis function is based on CREATE_TABLE
             % Except it has been modified to provide data for a solid
@@ -1060,6 +1063,8 @@ classdef packbed_class
             fclose(fileID);
             
         end
+        %}
+        %%% <--------------------
         
      
     end
