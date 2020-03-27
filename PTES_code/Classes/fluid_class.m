@@ -4,6 +4,7 @@ classdef fluid_class
         job    % 'WF' (working fluid), 'SM' (storage media) or 'ENV' (environment)
         read   % 'CP' (CoolProp) or 'TAB' (table)
         handle % integer to identify CoolProp AbstractState
+        HEOS   % integer to identify CoolProp AbstractState (with HEOS backend)
         TAB    % matrix of thermophysical properties
         IDL    % Structure that contains ideal gas properties - e.g. cp, cv, R, T0, P0, h0, s0
         state = state_class;
@@ -25,6 +26,7 @@ classdef fluid_class
                     ierr = 0; buffer_size = 10;
                     herr= char((1:1:buffer_size));
                     obj.handle = calllib('coolprop','AbstractState_factory',backend,name,ierr,herr,buffer_size);
+                    obj.HEOS   = calllib('coolprop','AbstractState_factory','HEOS',name,ierr,herr,buffer_size);
                 case 'TAB'
                     % Read thermophysical properties from table
                     obj.TAB = create_table(name); 
