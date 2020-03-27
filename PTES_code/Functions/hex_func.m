@@ -271,7 +271,7 @@ switch model
                 % Compute preliminary QMAX (cold outlet cannot be hotter than hot
                 % inlet) and set boundaries accordingly
                 QMAX0 = mC*(hC2_max - hC1);
-                mHmin = mC*eps;
+                mHmin = eps(mC);
                 mHmax = QMAX0/(hH2 - hH1)*(1.01); %necessary to find root
                 
                 % Find value of mH for which DTmin=ref or UA=ref
@@ -301,40 +301,6 @@ switch model
                 TH1 = par;
                 hH1 = RP1('PT_INPUTS',pH1,TH1,'H',fluidH);                
                 
-%                 % Compute total heat transfer
-%                 QT  = mH*(hH2-hH1);
-% 
-%                 if strcmp(model,'eff')
-%                     % Compute QMAX according to eff and obtain outlet
-%                     % conditions in ideal case (DTmin=0)
-%                     QMAX = QT/eff;
-%                     hH1_id = hH2 - QMAX/mH;
-%                     
-%                     % Compute mCmin and mCmax according to QMAX
-%                     mCmin = QMAX/(hC2_max - hC1)*(0.99);
-%                     mCmax = mCmin*1e3; %necessary to find root
-%                     
-%                     % Using hH1_id, find value of mC for which DTmin=0
-%                     f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1_id,'DTmin',0);
-%                     %plot_function(f1,mCmin,mCmax,100,11);
-%                     %symlog(gca,'y')
-%                     %keyboard
-%                     mC = fzero(f1,[mCmin,mCmax],options);
-%                     
-%                 elseif strcmp(model,'UA')
-%                     % Compute mCmin and mCmax according to QT
-%                     mCmin = QT/(hC2_max - hC1)*(0.99);
-%                     mCmax = mCmin*1e3; %necessary to find root
-%                     
-%                     % Find value of mC for which UA=ref
-%                     f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,'UA',ref);
-%                     %plot_function(f1,mCmin,mCmax,100,11);
-%                     %symlog(gca,'y')
-%                     %keyboard
-%                     mC = fzero(f1,[mCmin,mCmax],options);
-%                 end
-%                 stateC.mdot = mC;
-                
                 % Compute total heat transfer and compute mCmin and mCmax
                 % accordingly
                 QT  = mH*(hH2-hH1);
@@ -343,9 +309,11 @@ switch model
                 
                 % Find value of mC for which DTmin=ref or UA=ref
                 f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,compare,ref);
-                %plot_function(f1,mCmin,mCmax,100,11);
-                %symlog(gca,'y')
-                %keyboard
+                %{
+                plot_function(f1,mCmin,mCmax,100,11);
+                symlog(gca,'y')
+                keyboard
+                %}
                 mC = fzero(f1,[mCmin,mCmax],options);                
                 
                 % Update value of mC according to effectiveness value (this
@@ -376,30 +344,47 @@ switch model
         
     case 'geom'
         
-        if any(mode==[3,4,5])
-            error('Operation modes 3, 4 and 5 not implemented yet for geometry-based heat exchanger model');
-        end
-        
-        % Import mH and mC into stream objects
-        H.mdot = mH;
-        C.mdot = mC;
-        
         % Set initial conditions for iteration procedure
         % Pressures
         H.p = ones(NX+1,1)*H.pin;
         C.p = ones(NX+1,1)*C.pin;
         
-        % Compute derived geometric parameters and mass fluxes
-        [C, H, HX] = shell_and_tube_geom(C, H, HX);
+        % Import mH and mC into stream objects (one of these might still be
+        % set to 0 at this stage -unknown-, depending on the mode)
+        H.mdot = mH;
+        C.mdot = mC;
         
-        QMAX0 = min([mC*(hC2_max - hC1),mH*(hH2 - hH1_min)])*(1.01); %necessary to find root
-        hH1_min = hH2 - QMAX0/mH;
-        
-        % Find value of hH1 for which computed area equals specified area
-        f1 = @(hH1) compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
-        %plot_function(f1,hH1_min,hH2,100,31);
-        opt = optimset('TolX',(hH2-hH1_min)/1e12,'Display','notify');
-        hH1 = fzero(f1,[hH1_min,hH2],opt);
+        switch mode
+            case {0,1,2}
+                QMAX0 = min([mC*(hC2_max - hC1),mH*(hH2 - hH1_min)])*(1.01); %necessary to find root
+                hH1_min = hH2 - QMAX0/mH;
+                
+                % Find value of hH1 for which computed area equals specified area
+                f1 = @(hH1) compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
+                %plot_function(f1,hH1_min,hH2,100,31);
+                opt = optimset('TolX',(hH2-hH1_min)/1e12,'Display','notify');
+                hH1 = fzero(f1,[hH1_min,hH2],opt);
+                
+            case 4
+                % Set outlet conditions of hot fluid (assume small effect
+                % of pressure loss on outlet enthalpy)
+                TH1 = par;
+                hH1 = RP1('PT_INPUTS',pH2,TH1,'H',fluidH);
+                
+                % Compute preliminary QMAX (cold outlet cannot be hotter
+                % than hot inlet) and set boundaries accordingly
+                QMAX0 = mC*(hC2_max - hC1);
+                mHmin = eps(mC);
+                mHmax = QMAX0/(hH2 - hH1)*(1.01); %necessary to find root
+                
+                % Find value of mH for which computed area equals specified area
+                f1  = @(mH) compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
+                opt = []; %optimset('TolX',(hH2-hH1_min)/1e12,'Display','notify');
+                mH  = fzero(f1,[mHmin,mHmax],opt);
+                
+            case {3,5}
+                error('Operation modes 3 and 5 not implemented yet for geometry-based heat exchanger model');
+        end
         
         % Obtain output parameters for converged solution
         [C,H,QS,AS] = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
@@ -415,16 +400,15 @@ switch model
         HX.H(iL)  = H;
         HX.QS(iL,:) = QS;
         HX.AS = AS;
-        
 end
 
 % Update states
 stateH.h = hH1;
 stateH.p = pH1;
-stateH   = update_state(stateH,fluidH.handle,fluidH.read,fluidH.TAB,fluidH.IDL,2);
+stateH   = update_state(stateH,fluidH,2);
 stateC.h = hC2;
 stateC.p = pC2;
-stateC   = update_state(stateC,fluidC.handle,fluidC.read,fluidC.TAB,fluidC.IDL,2);
+stateC   = update_state(stateC,fluidC,2);
 
 % Update average specific heat capacities and compute Cmin and NTU. Save
 % into HX structure. Also save DppC nd DppH.
@@ -682,6 +666,9 @@ function varargout = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX)
 % Extract parameters
 NX = HX.NX;
 
+% Compute mass fluxes
+[C, H, HX] = shell_and_tube_geom(C, H, HX);
+
 % Compute enthalpy arrays from hH1 (outlet guess value) and hH2 and hC1
 % (fixed inlet values)
 H.h = linspace(hH1,hH2,NX+1)';
@@ -699,9 +686,9 @@ for iI = 1:NI
     
     % UPDATE PROPERTIES
     % Cold stream
-    C = stream_update(fluidC,C,1);
+    C = stream_update(fluidC,C,2);
     % Hot stream
-    H = stream_update(fluidH,H,1);
+    H = stream_update(fluidH,H,2);
     
     % COMPUTE AVERAGED TEMPERATURE ARRAYS
     H.T_AV = 0.5*(H.T(1:NX) + H.T(2:NX+1));
