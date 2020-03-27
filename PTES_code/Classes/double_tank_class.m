@@ -68,7 +68,7 @@ classdef double_tank_class
          end
          
          function tank_state = update_tank_state(obj, tank_state, T0, mode)
-             tank_state   = update_state(tank_state,obj.handle,obj.read,obj.TAB,0,mode);             
+             tank_state   = update_state(tank_state,obj,mode);             
              tank_state.V = tank_state.M/tank_state.rho;
              tank_state.H = tank_state.M*tank_state.h;
              tank_state.S = tank_state.M*tank_state.s;
@@ -128,7 +128,7 @@ classdef double_tank_class
              mix_state.h = Hdot_in/Mdot;
              mix_state.p = fluid.state(iL,i_in(1)).p;
              mix_state.mdot = Mdot;
-             mix_state   = update_state(mix_state,fluid.handle,fluid.read,fluid.TAB,fluid.TAB,2);
+             mix_state   = update_state(mix_state,fluid,2);
              s_mix = mix_state.s; % entropy flow into sink tank (after mixing)
              
              % Select sink tank and source tank depending on operation mode

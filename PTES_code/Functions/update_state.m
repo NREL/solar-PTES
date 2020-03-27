@@ -1,45 +1,29 @@
-function [state] = update_state (state,handle,read,TAB,IDL,mode)
+function [state] = update_state(state,fluid,mode)
 
-switch read
-    case 'CP'
-        if mode == 1 %Temperature and pressure are known
-                [state.rho,state.h,state.s,state.Q,~] = CP5('PT_INPUTS',state.p,state.T,'D','H','S','Q','T',handle);
-        elseif mode == 2 %Enthalpy and pressure are known
-                [state.T,state.rho,state.s,state.Q,~] = CP5('HmassP_INPUTS',state.h,state.p,'T','D','S','Q','P',handle);
-        elseif mode == 3 % Pressure and Q are known
-                [state.T,state.rho,state.s,state.h,~] = CP5('PQ_INPUTS',state.p,state.Q,'T','D','S','H','P',handle);                
-        elseif mode == 4 % Temperature and Q are known
-                [state.p,state.rho,state.s,state.h,~] = CP5('QT_INPUTS',state.Q,state.T,'P','D','S','H','T',handle);  
-        else
-            error('not implemented')
-        end
+switch mode
+    case 1 %Temperature and pressure are known
+        [state.rho] = RP1('PT_INPUTS',state.p,state.T,'D',fluid);
+        [state.h]   = RP1('PT_INPUTS',state.p,state.T,'H',fluid);
+        [state.s]   = RP1('PT_INPUTS',state.p,state.T,'S',fluid);
+        [state.Q]   = RP1('PT_INPUTS',state.p,state.T,'Q',fluid);
         
-    case 'TAB'        
-        if mode == 1 %Temperature and pressure are known            
-            state.h   = rtab1(TAB(:,1),TAB(:,2),state.T,0);
-            state.rho = 1./rtab1(TAB(:,1),TAB(:,3),state.T,0);
-            state.s   = rtab1(TAB(:,1),TAB(:,4),state.T,0);
-        elseif mode == 2 %Enthalpy and pressure are known
-            state.T   = rtab1(TAB(:,2),TAB(:,1),state.h,1);
-            state.rho = 1./rtab1(TAB(:,2),TAB(:,3),state.h,1);
-            state.s   = rtab1(TAB(:,2),TAB(:,4),state.h,1);
-        else
-            error('not implemented')
-        end
+    case 2 %Enthalpy and pressure are known
+        [state.T]   = RP1('HmassP_INPUTS',state.h,state.p,'T',fluid);
+        [state.rho] = RP1('HmassP_INPUTS',state.h,state.p,'D',fluid);
+        [state.s]   = RP1('HmassP_INPUTS',state.h,state.p,'S',fluid);
+        [state.Q]   = RP1('HmassP_INPUTS',state.h,state.p,'Q',fluid);
         
-    case 'IDL'
-        if mode == 1 %Temperature and pressure are known
-            state.h   = IDL.cp  * state.T - IDL.h0 ;
-            state.s   = IDL.cp * log(state.T) - IDL.R * log(state.p) - IDL.s0 ;
-            state.rho = state.p / (IDL.R * state.T) ;
-        elseif mode == 2 %Enthalpy and pressure are known
-            state.T   = state.h / IDL.cp + IDL.T0 ;
-            state.s   = IDL.cp * log(state.T) - IDL.R * log(state.p) - IDL.s0 ;
-            state.rho = state.p / (IDL.R * state.T) ;
-        else
-            error('not implemented')
-        end
+    case 3 % Pressure and Q are known
+        [state.T]   = RP1('PQ_INPUTS',state.p,state.Q,'T',fluid);
+        [state.rho] = RP1('PQ_INPUTS',state.p,state.Q,'D',fluid);
+        [state.s]   = RP1('PQ_INPUTS',state.p,state.Q,'S',fluid);
+        [state.h]   = RP1('PQ_INPUTS',state.p,state.Q,'H',fluid);
         
+    case 4 % Temperature and Q are known
+        [state.p]   = RP1('QT_INPUTS',state.Q,state.T,'P',fluid);
+        [state.rho] = RP1('QT_INPUTS',state.Q,state.T,'D',fluid);
+        [state.s]   = RP1('QT_INPUTS',state.Q,state.T,'S',fluid);
+        [state.h]   = RP1('QT_INPUTS',state.Q,state.T,'H',fluid);
     otherwise
         error('not implemented')
 end
