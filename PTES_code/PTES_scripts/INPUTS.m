@@ -2,8 +2,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Call the correct input file
-Load.mode = 0;
-Loffdesign = 1; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
+Load.mode = 3;
+Loffdesign = 0; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
 
 switch Load.mode
     case {0,1,2,3} % Joule-Bratyon PTES / Joule-Brayton + Rankine
@@ -52,9 +52,6 @@ end
 air  = fluid_class('Air','ENV','CP','HEOS',Load.num,30);
 huge = max(Load.mdot)*3600*1e6; % represents a very large mass
 AT   = double_tank_class(air,T0,p0,huge,T0,p0,huge,T0,Load.num+1);
-
-% Use new heat exchanger calls?
-new_hex_calls = 1;
 
 % Heat rejection streams
 environ = environment_class(T0,p0,Load.num,10);

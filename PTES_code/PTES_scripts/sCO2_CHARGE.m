@@ -63,18 +63,10 @@ while 1
             fluidH(ii).state(iL,iH(ii)).T = HT(ii).A(iL).T; fluidH(ii).state(iL,iH(ii)).p = HT(ii).A(iL).p; %#ok<*SAGROW>
             [fluidH(ii)] = update(fluidH(ii),[iL,iH(ii)],1);
             if ii == 1
-                if new_hex_calls
-                    [HX(ii),gas,iG,fluidH(ii),iH(ii)] = hex_func(HX(ii),iL,gas,iG,fluidH(ii),iH(ii),1,1.0); % Mode 1: don't know hot fluid mdot. Crat = 1
-                else
-                    [gas,fluidH(ii),iG,iH(ii),HX1] = hex_TQ(gas,[iL,iG],fluidH(ii),[iL,iH(ii)],eff,ploss,'hex',1,1); % Mode 1: don't know hot fluid mdot. Crat = 1
-                end
+                [HX(ii),gas,iG,fluidH(ii),iH(ii)] = hex_func(HX(ii),iL,gas,iG,fluidH(ii),iH(ii),1,1.0); % Mode 1: don't know hot fluid mdot. Crat = 1
             else
                 TCoutMIN = fluidH(ii-1).state(iL,1).T ;
-                if new_hex_calls
-                    [HX(ii),gas,iG,fluidH(ii),iH(ii)] = hex_func(HX(ii),iL,gas,iG,fluidH(ii),iH(ii),3,TCoutMIN); % Mode 3.
-                else
-                    [gas,fluidH(ii),iG,iH(ii)] = hex_TQ(gas,[iL,iG],fluidH(ii),[iL,iH(ii)],eff,ploss,'hex',3,TCoutMIN); % Mode 3.
-                end
+                [HX(ii),gas,iG,fluidH(ii),iH(ii)] = hex_func(HX(ii),iL,gas,iG,fluidH(ii),iH(ii),3,TCoutMIN); % Mode 3.
             end
             iH(ii) = iH(ii) + 1;
         end
@@ -83,20 +75,11 @@ while 1
     
     % REGENERATE (gas-gas)
     if Nrcp == 1
-        if new_hex_calls
-            [HX(Nhot+Ncld+1),gas,iG,~,~] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg2,0,0);
-        else
-            [gas,~,iG,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
-        end
+        [HX(Nhot+Ncld+1),gas,iG,~,~] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg2,0,0);
     elseif Nrcp == 2
         gas.state(iL,iReg3).mdot = gas.state(iL,iReg1).mdot ;
-        if new_hex_calls
-            [HX(Nhot+Ncld+1),gas,iG,~,~] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg3,0,0); % High-temp regenerator
-            [HX(Nhot+Ncld+2),gas,iG,~,~] = hex_func(HX(Nhot+Ncld+2),iL,gas,iG,   gas,iReg2,0,0); % Low-temp regenerator
-        else
-            [gas,~,iG,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg3],eff,ploss,'regen',0,0); % High-temp regenerator
-            [gas,~,iG,~] = hex_TQ(gas,[iL,iG],gas,[iL,iReg2],eff,ploss,'regen',0,0); % Low-temp regenerator
-        end
+        [HX(Nhot+Ncld+1),gas,iG,~,~] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg3,0,0); % High-temp regenerator
+        [HX(Nhot+Ncld+2),gas,iG,~,~] = hex_func(HX(Nhot+Ncld+2),iL,gas,iG,   gas,iReg2,0,0); % Low-temp regenerator
     end
     
     % May wish to make cold store as cold as possible, or avoid rejecting
@@ -120,18 +103,10 @@ while 1
             fluidC(ii).state(iL,iC(ii)).T = CT(ii).A(iL).T; fluidC(ii).state(iL,iC(ii)).p = CT(ii).A(iL).p;
             [fluidC(ii)] = update(fluidC(ii),[iL,iC(ii)],1);
             if ii == 1
-                if new_hex_calls
-                    [HX(Nhot+ii),fluidC(ii),iC(ii),gas,iG] = hex_func(HX(Nhot+ii),iL,fluidC(ii),iC(ii),gas,iG,2,1.0); % Mode 2: sCO2 mdot is known, cold fluid mdot is not
-                else
-                    [fluidC(ii),gas,iC(ii),iG] = hex_TQ(fluidC(ii),[iL,iC(ii)],gas,[iL,iG],eff,ploss,'hex', 2, 1.0); % Mode 2: sCO2 mdot is known, cold fluid mdot is not
-                end
+                [HX(Nhot+ii),fluidC(ii),iC(ii),gas,iG] = hex_func(HX(Nhot+ii),iL,fluidC(ii),iC(ii),gas,iG,2,1.0); % Mode 2: sCO2 mdot is known, cold fluid mdot is not
             else
                 THoutMAX = fluidC(ii-1).state(iL,1).T ;
-                if new_hex_calls
-                    [HX(Nhot+ii),fluidC(ii),iC(ii),gas,iG] = hex_func(HX(Nhot+ii),iL,fluidC(ii),iC(ii),gas,iG,4,THoutMAX);
-                else
-                    [fluidC(ii),gas,iC(ii),iG] = hex_TQ(fluidC(ii),[iL,iC(ii)],gas,[iL,iG],eff,ploss,'hex', 4, THoutMAX); % Mode
-                end
+                [HX(Nhot+ii),fluidC(ii),iC(ii),gas,iG] = hex_func(HX(Nhot+ii),iL,fluidC(ii),iC(ii),gas,iG,4,THoutMAX);
             end
             iC(ii) = iC(ii) + 1;
         end
@@ -139,19 +114,10 @@ while 1
     
     % REGENERATE (gas-gas)
     if Nrcp == 1
-        if new_hex_calls
-            [HX(Nhot+Ncld+1),~,~,gas,iG] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg2,0,0);
-        else
-            [~,gas,~,iG] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
-        end
+        [HX(Nhot+Ncld+1),~,~,gas,iG] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg2,0,0);
     elseif Nrcp == 2
-        if new_hex_calls
-            [HX(Nhot+Ncld+2),~,~,gas,~] = hex_func(HX(Nhot+Ncld+2),iL,gas,iReg1+1,gas,iReg2,0,0);
-            [HX(Nhot+Ncld+1),~,~,gas,iG] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg3,0,0);
-        else
-            [~,gas,~,~] = hex_TQ(gas,[iL,iReg1+1],gas,[iL,iReg2],eff,ploss,'regen',0,0); % Low-temp regenerator
-            [~,gas,~,iG] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg3],eff,ploss,'regen',0,0); 
-        end
+        [HX(Nhot+Ncld+2),~,~,gas,~] = hex_func(HX(Nhot+Ncld+2),iL,gas,iReg1+1,gas,iReg2,0,0);
+        [HX(Nhot+Ncld+1),~,~,gas,iG] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg3,0,0);
     end
     
     % Determine convergence and proceed

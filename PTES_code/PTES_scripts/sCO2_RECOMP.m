@@ -42,13 +42,8 @@ A_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
 while 1
     fprintf(1,'Hello recompression-sCO2 cycle\n')
     % REGENERATE (gas-gas)
-    if new_hex_calls
-        [HX(Nhot+Ncld+1),gas,iG,~,~] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg2,0,0);
-        [HX(Nhot+Ncld+2),gas,iG,~,~] = hex_func(HX(Nhot+Ncld+2),iL,gas,iG,gas,iReg3,3,min(TthreshD,gas.state(iL,iG).T-5)); % Low-temp regenerator
-    else
-        [gas,~,iG,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0); %#ok<*SAGROW>
-        [gas,~,iG,~] = hex_TQ(gas,[iL,iG],gas,[iL,iReg3],eff,ploss,'regen',3,min(TthreshD,gas.state(iL,iG).T-5));% Low-temp regenerator
-    end
+    [HX(Nhot+Ncld+1),gas,iG,~,~] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg2,0,0);
+    [HX(Nhot+Ncld+2),gas,iG,~,~] = hex_func(HX(Nhot+Ncld+2),iL,gas,iG,gas,iReg3,3,min(TthreshD,gas.state(iL,iG).T-5)); % Low-temp regenerator
     
     % RECOMPRESSION
     % Set mass flows
@@ -85,11 +80,7 @@ while 1
                     fluidC(ii).state(iL,iC(ii)).T = CT(ii).B(iL).T; fluidC(ii).state(iL,iC(ii)).p = CT(ii).B(iL).p;
                     TCoutMIN = min(gas.state(iL,iG).T-5,CT(ii).A(1).T) ;
                     [fluidC(ii)] = update(fluidC(ii),[iL,iC(ii)],1);
-                    if new_hex_calls
-                        [HX(Nhot+ii),gas,iG,fluidC(ii),iC(ii)] = hex_func(HX(Nhot+ii),iL,gas,iG,fluidC(ii),iC(ii),3,TCoutMIN);
-                    else
-                        [gas,fluidC(ii),iG,iC(ii)] = hex_TQ(gas,[iL,iG],fluidC(ii),[iL,iC(ii)],eff,ploss,'hex',3,TCoutMIN);
-                    end
+                    [HX(Nhot+ii),gas,iG,fluidC(ii),iC(ii)] = hex_func(HX(Nhot+ii),iL,gas,iG,fluidC(ii),iC(ii),3,TCoutMIN);
                     iC(ii) = iC(ii) + 1 ;
                 end
                 
@@ -112,27 +103,12 @@ while 1
     end
     
     % REGENERATE (gas-gas)
-    if new_hex_calls
-            
-        % Due to recompression adjust mass flows and add a mixer between the recomp. outlet and LTR cold outlet
-        [HX(Nhot+Ncld+2),~,~,gas,iG] = hex_func(HX(Nhot+Ncld+2),iL,gas,iReg1+1,gas,iReg3,3,min(TthreshD,gas.state(iL,iReg1+1).T-5)); % Require cold side to reach a certain temp
-        gas.state(iL,iRCMP).mdot   = gas.state(iL,iReg1).mdot - gas.state(iL,iReg3).mdot ;
-        gas.state(iL,iRCMP+1).mdot = gas.state(iL,iRCMP).mdot ;
-        [gas,~,~] = mix_streams(gas,[iL,iG],[iL,iRCMP+1]) ;
-        
-        [HX(Nhot+Ncld+1),~,~,gas,iG] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg2,0,0);
-               
-    else
-           
-        % If there is a recompression, adjust mass flows and add a mixer between the recomp. outlet and LTR cold outlet
-        [~,gas,~,iG] = hex_TQ(gas,[iL,iReg1+1],gas,[iL,iReg3],eff,ploss,'regen',3,min(TthreshD,gas.state(iL,iReg1+1).T-5)); %% Require cold side to reach a certain temp
-        gas.state(iL,iRCMP).mdot   = gas.state(iL,iReg1).mdot - gas.state(iL,iReg3).mdot ;
-        gas.state(iL,iRCMP+1).mdot = gas.state(iL,iRCMP).mdot ;
-        [gas,~,~] = mix_streams(gas,[iL,iG],[iL,iRCMP+1]) ;
-        
-        [~,gas,~,iG] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
-               
-    end
+    % Due to recompression adjust mass flows and add a mixer between the recomp. outlet and LTR cold outlet
+    [HX(Nhot+Ncld+2),~,~,gas,iG] = hex_func(HX(Nhot+Ncld+2),iL,gas,iReg1+1,gas,iReg3,3,min(TthreshD,gas.state(iL,iReg1+1).T-5)); % Require cold side to reach a certain temp
+    gas.state(iL,iRCMP).mdot   = gas.state(iL,iReg1).mdot - gas.state(iL,iReg3).mdot ;
+    gas.state(iL,iRCMP+1).mdot = gas.state(iL,iRCMP).mdot ;
+    [gas,~,~] = mix_streams(gas,[iL,iG],[iL,iRCMP+1]) ;
+    [HX(Nhot+Ncld+1),~,~,gas,iG] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg2,0,0);
     
     for iN = 1:Ne_dis
         % HEAT (gas-fluid)
@@ -140,14 +116,9 @@ while 1
             fluidH(ii).state(iL,iH(ii)).T = HT(ii).B(iL).T; fluidH(ii).state(iL,iH(ii)).p = HT(ii).B(iL).p;
             THoutMAX = max(gas.state(iL,iG).T+1,HT(ii).A(1).T);
             [fluidH(ii)] = update(fluidH(ii),[iL,iH(ii)],1);
-            if new_hex_calls
-                [HX(ii),fluidH(ii),iH(ii),gas,iG] = hex_func(HX(ii),iL,fluidH(ii),iH(ii),gas,iG,4,THoutMAX); % Mode 4.
-            else
-                [fluidH(ii),gas,iH(ii),iG] = hex_TQ(fluidH(ii),[iL,iH(ii)],gas,[iL,iG],eff,ploss,'hex',4, THoutMAX); % Mode 4.
-            end
+            [HX(ii),fluidH(ii),iH(ii),gas,iG] = hex_func(HX(ii),iL,fluidH(ii),iH(ii),gas,iG,4,THoutMAX); % Mode 4.
             iH(ii) = iH(ii) + 1 ;
         end
-        
         
         % EXPAND
         PRe_dis = (gas.state(iL,iG).p/pbot)^(1/(Ne_dis+1-iN));  % expansion pressure ratio

@@ -47,13 +47,8 @@ while 1
     fprintf(1,['Discharging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
     
     % REGENERATE (gas-gas)
-    if new_hex_calls
-        %[REGEN,gas,iG,~,~] = hex_func(REGEN,iL,gas,iReg1,gas,iReg2,0,0);
-        [HX(3),gas,iG,~,~] = set_hex(HX(3),iL,gas,iReg1,gas,iReg2,0,0); % New call using hx_class
-    else
-        [gas,~,iG,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
-    end
-        
+    [HX(3),gas,iG,~,~] = set_hex(HX(3),iL,gas,iReg1,gas,iReg2,0,0);
+    
     for iN = 1:Nc_dis
         % REJECT HEAT (external HEX)
         % REPLACE THIS WITH hex_func call?
@@ -65,12 +60,7 @@ while 1
                 % COOL (gas-liquid)
                 fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p; %#ok<*SAGROW>
                 [fluidC] = update(fluidC,[iL,iC],1);
-                if new_hex_calls
-                    %[HX,gas,iG,fluidC,iC] = hex_func(HX,iL,gas,iG,fluidC,iC,1,1.0);
-                    [HX(2),gas,iG,fluidC,iC] = set_hex(HX(2),iL,gas,iG,fluidC,iC,1,1.0);
-                else
-                    [gas,fluidC,iG,iC] = hex_TQ(gas,[iL,iG],fluidC,[iL,iC],eff,ploss,'hex',1,1.0);
-                end
+                [HX(2),gas,iG,fluidC,iC] = set_hex(HX(2),iL,gas,iG,fluidC,iC,1,1.0);
                 iC=iC+1;
             case 1 % Heat engine only
         end
@@ -82,24 +72,14 @@ while 1
     end
     
     % REGENERATE (gas-gas)
-    if new_hex_calls
-        %[REGEN,~,~,gas,iG] = hex_func(REGEN,iL,gas,iReg1,gas,iReg2,0,0);
-        [HX(3),~,~,gas,iG] = set_hex(HX(3),iL,gas,iReg1,gas,iReg2,0,0); % New call using hx_class
-    else
-        [~,gas,~,iG] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
-    end
-        
+    [HX(3),~,~,gas,iG] = set_hex(HX(3),iL,gas,iReg1,gas,iReg2,0,0);
+    
     for iN = 1:Ne_dis
         % HEAT (gas-fluid)
         fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p; THmin = HT.A(1).T;
         [fluidH] = update(fluidH,[iL,iH],1);
         Taim = THmin;
-        if new_hex_calls
-            %[HX,fluidH,iH,gas,iG] = hex_func(HX,iL,fluidH,iH,gas,iG,2,1.0);
-            [HX(1),fluidH,iH,gas,iG] = set_hex(HX(1),iL,fluidH,iH,gas,iG,2,1.0); % New call using hx_class
-        else
-            [fluidH,gas,iH,iG] = hex_TQ(fluidH,[iL,iH],gas,[iL,iG],eff,ploss,'hex',2,1.0);
-        end            
+        [HX(1),fluidH,iH,gas,iG] = set_hex(HX(1),iL,fluidH,iH,gas,iG,2,1.0);
         iH=iH+1;
         
         % EXPAND
