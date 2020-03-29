@@ -131,7 +131,7 @@ while 1
         % COOL (condense using cold tanks)
         fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p; %#ok<*SAGROW>
         [fluidC] = update(fluidC,[iL,iC],1);
-        T_aim = RP1('PQ_INPUTS',steam.state(iL,iG).p,0.0,'T',steam) - 1; %wet saturated
+        T_aim = RP1('PQ_INPUTS',steam.state(iL,iG).p,0.0,'T',steam) - 5; %wet saturated
         [HX(5),steam,iG,fluidC,iC] = set_hex(HX(5),iL,steam,iG,fluidC,iC,5,T_aim);
         iC=iC+1;
     else

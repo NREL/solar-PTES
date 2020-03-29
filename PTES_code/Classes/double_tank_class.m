@@ -117,7 +117,7 @@ classdef double_tank_class
                  Hdot_in  = Hdot_in  + fluid.state(iL,i).h.*fluid.state(iL,i).mdot;
                  Sdot_in  = Sdot_in  + fluid.state(iL,i).s.*fluid.state(iL,i).mdot;
              end
-             if abs(Mdot_out/Mdot_in - 1) > 10*eps(Mdot_out)
+             if abs(Mdot_out/Mdot_in - 1) > 1e-6
                  error('mass flow rates do not match!')
              else
                  Mdot = Mdot_out;

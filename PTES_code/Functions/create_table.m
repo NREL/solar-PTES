@@ -13,6 +13,11 @@ function [A] = create_table(Mname)
 %   or a 'packbed_class' object. Properties can be read manually from 'A'
 %   or using the RP1 function.
 %
+%   For incompressible mixtures, creation of CoolProp handles to use with
+%   the low-level interface is not supported. Therefore, properties are
+%   obtained via the Python interface. Once the table is created, the
+%   Python interface is not used anywhere else on the PTES code.
+%
 %   USAGE e.g.:
 %   TAB     = create_table('Water');
 %   obj.TAB = create_table(Fname);

@@ -150,6 +150,7 @@ switch mode
         % Set TH1 = par, and compute mH. Mass flow rate of cold fluid must
         % be previously specified
         if mC == 0, error('mC must be known in mode==4'); end
+        if mH == 0, mH = []; end
         if any([par<=THmin,par>=TH2])
             warning(strcat('Condition THmin<par<TH2 must be true in mode==4. ',...
                 'Changing to mode==2 with Crat=1'));
@@ -314,7 +315,7 @@ switch model
                 symlog(gca,'y')
                 keyboard
                 %}
-                mC = fzero(f1,[mCmin,mCmax],options);                
+                mC = fzero(f1,[mCmin,mCmax],options);
                 
                 % Update value of mC according to effectiveness value (this
                 % will also affect the cold enthalpy outlet)
@@ -325,7 +326,6 @@ switch model
                                 
                 % Update outlet conditions of cold fluid
                 hC2 = hC1 + QT/mC;
-                %keyboard
         end
         
         % Save variables into C and H stream objects
@@ -360,14 +360,15 @@ switch model
                 hH1_min = hH2 - QMAX0/mH;
                 
                 % Find value of hH1 for which computed area equals specified area
-                f1 = @(hH1) compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
+                f1 = @(hH1) compute_area(HX,fluidH,fluidC,H,C,mH,mC,hH2,hC1,'hH1',hH1);
                 %plot_function(f1,hH1_min,hH2,100,31);
                 opt = optimset('TolX',(hH2-hH1_min)/1e12,'Display','notify');
                 hH1 = fzero(f1,[hH1_min,hH2],opt);
                 
             case 4
-                % Set outlet conditions of hot fluid (assume small effect
-                % of pressure loss on outlet enthalpy)
+                % Set outlet conditions of hot fluid. Assume small effect
+                % of pressure loss when computing outlet enthalpy from the
+                % objective outlet temperature.
                 TH1 = par;
                 hH1 = RP1('PT_INPUTS',pH2,TH1,'H',fluidH);
                 
@@ -378,16 +379,40 @@ switch model
                 mHmax = QMAX0/(hH2 - hH1)*(1.01); %necessary to find root
                 
                 % Find value of mH for which computed area equals specified area
-                f1  = @(mH) compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
-                opt = []; %optimset('TolX',(hH2-hH1_min)/1e12,'Display','notify');
+                f1  = @(mH) compute_area(HX,fluidH,fluidC,H,C,mH,mC,hH2,hC1,'hH1',hH1);
+                opt = optimset('TolX',(mHmax-mHmin)/1e12,'Display','notify');
                 mH  = fzero(f1,[mHmin,mHmax],opt);
                 
-            case {3,5}
-                error('Operation modes 3 and 5 not implemented yet for geometry-based heat exchanger model');
+            case 5
+                % Set outlet conditions of hot fluid. Assume small effect
+                % of pressure loss when computing outlet enthalpy from the
+                % objective outlet temperature.
+                TH1 = par;
+                hH1 = RP1('PT_INPUTS',pH2,TH1,'H',fluidH);
+                
+                % Compute total heat transfer and compute mCmin and mCmax
+                % accordingly
+                QT    = mH*(hH2-hH1);
+                mCmin = QT/(hC2_max - hC1)*1.01;
+                mCmax = mCmin*100; %necessary to find root
+                
+                % Find value of mC for which computed area equals specified area
+                %keyboard
+                f1  = @(mC) compute_area(HX,fluidH,fluidC,H,C,mH,mC,hH2,hC1,'hH1',hH1);
+                %plot_function(f1,mCmin,mCmax,5,15,'semilogx');
+                warning(['this is not properly working yet',...
+                    'must modify set_hex_geom function first'])
+                keyboard
+                opt = optimset('TolX',(mCmax-mCmin)/1e12,'Display','notify');
+                mC = fzero(f1,[mCmin,mCmax],opt);
+                
+            case 3
+                error(['Operation mode 3 has not been implemented yet',...
+                    'for the geometry-based heat exchanger model']);
         end
         
         % Obtain output parameters for converged solution
-        [C,H,QS,AS] = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX);
+        [C,H,QS,AS] = compute_area(HX,fluidH,fluidC,H,C,mH,mC,hH2,hC1,'hH1',hH1);
         
         % Save outlet conditions
         hH1 = H.h(1);
@@ -657,11 +682,41 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function varargout = compute_area(hH1,fluidH,fluidC,H,C,mH,mC,hH2,hC1,HX)
-% For a given hot fluit outlet enthalpy (hH1), compute the TQ diagram, the
-% properties of the fluids at each point and the corresponding heat
-% transfer area of the heat exchanger. Compare that to the reference heat
-% transfer area and return the difference between the two.
+function varargout = compute_area(HX,fluidH,fluidC,H,C,mH,mC,hH2,hC1,mode,hout,varargin)
+%COMPUTE_AREA Solve the TQ and TA diagrams diagrams of a two-stream
+%counter-flow heat exchanger.
+%
+%   For a given fluid outlet enthalpy (hH1 or hC2), compute the TQ diagram,
+%   the properties of the fluids at each point and the corresponding heat
+%   transfer area of the heat exchanger. Compare that to the reference heat
+%   transfer area and return the difference between the two.
+%
+%   The "mode" string controls which enthalpy outlet "hout" is specified,
+%   either mode='hH1' or mode='hC2'.
+%
+%   The optional input, "varargin", contains the logical argument
+%   "visualise". If "visualise" is set to true, the compute_area function
+%   pauses at the end of the internal iteration procedure and plots the
+%   result.
+
+% Select mode and assing value of known enthalpy outlet
+switch mode
+    case 'hH1'
+        hH1 = hout;
+    case 'hC2'
+        error('not implemented yet')
+    otherwise
+        error('not implemented')
+end
+
+% Check and assign variable inputs
+if isempty(varargin)
+    visualise = 0;
+elseif length(varargin)==1
+    visualise = varargin{1};
+else
+    error('not implemented')
+end
 
 % Extract parameters
 NX = HX.NX;
@@ -699,6 +754,8 @@ for iI = 1:NI
     if any(H.T <= C.T)
         impossible = true;
         AC = Inf;
+        %warning(['impossible condition reached.',...
+        %    'breaking loop and proceeding'])
         break
     end
     
@@ -759,30 +816,35 @@ for iI = 1:NI
     % Update convergence array
     CON = [AC; H.p; C.p]; % initial value
     
-    %     % Make plots (uncomment to manually check iteration procedure)
-    %     figure(10)
-    %     plot(QS./QS(end),H.T,'r'); hold on;
-    %     plot(QS./QS(end),C.T,'b'); hold off;
-    %     xlabel('Cumulative heat transfer')
-    %     ylabel('Temperature')
-    %     legend([fluidH.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[fluidC.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
-    %     figure(11)
-    %     plot(QS./QS(end),H.p/H.pin,'r-'); hold on
-    %     plot(QS./QS(end),C.p/C.pin,'b-'); hold off
-    %     ylim([0.99 1])
-    %     xlabel('Cummulative heat transfer')
-    %     ylabel('Relative pressure, p/p0')
-    %     legend([fluidH.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[fluidC.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
-    %     keyboard
-    
     % Compute residual
     RES(iI) = max(abs((CON - CON_0)./CON));
-    %fprintf(1,'\n iteration = %d, RES = %.6f',iI,RES(iI));
     
     if (RES(iI)>TOL)
+        if visualise
+            fprintf(1,'\n iteration = %d, RES = %.6f',iI,RES(iI));
+        end
         CON_0 = CON;
     else
-        %fprintf(1,'\n\n*** Successful convergence after %d iterations***\n',iI);
+        if visualise
+            % Make plots
+            figure(10)
+            plot(QS./QS(end),H.T,'r'); hold on;
+            plot(QS./QS(end),C.T,'b'); hold off;
+            xlabel('Cumulative heat transfer')
+            ylabel('Temperature')
+            legend([fluidH.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[fluidC.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
+            
+            figure(11)
+            plot(QS./QS(end),H.p/H.pin,'r-'); hold on
+            plot(QS./QS(end),C.p/C.pin,'b-'); hold off
+            ylim([0.90 1])
+            xlabel('Cummulative heat transfer')
+            ylabel('Relative pressure, p/p0')
+            legend([fluidH.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[fluidC.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
+            
+            fprintf(1,'\n\n*** Successful convergence after %d iterations***\n',iI);
+            keyboard
+        end
         break
     end
     
@@ -795,6 +857,11 @@ if all([iI>=NI,RES(iI)>TOL,~impossible])
     error('Convergence not reached after %d iterations***\n',iI);
 end
 
+% If the value of 'solution' is negative, it means that the computed area
+% is larger than the actual area (heat exchanger too small to achieve
+% selected operating conditions). If the value of 'solution' is positive,
+% the computed area is smaller than the actual area (heat exchanger too
+% large for selected operating conditions).
 solution = C.A - AC;
 % Control physically impossible solutions
 if any(DT_AV <= 0)
