@@ -35,8 +35,8 @@ end
 
 % Set matrix of temperature and pressure points to test convergence
 C_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-counter = 1;
-while 1
+max_iter=100;
+for counter=1:max_iter
     
     fprintf(1,['Charging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
         
@@ -60,12 +60,12 @@ while 1
         % COOL (gas-liquid)
         fluidH.state(iL,iH).T = HT.A(iL).T; fluidH.state(iL,iH).p = HT.A(iL).p;
         [fluidH] = update(fluidH,[iL,iH],1);
-        [HX(1),gas,iG,fluidH,iH] = set_hex(HX(1),iL,gas,iG,fluidH,iH,1,1.0);
+        [HX(ihx_hot(iN)),gas,iG,fluidH,iH] = set_hex(HX(ihx_hot(iN)),iL,gas,iG,fluidH,iH,1,1.0);
         iH=iH+1;
     end    
         
     % REGENERATE (gas-gas)
-    [HX(3),gas,iG,~,~] = set_hex(HX(3),iL,gas,iReg1,gas,iReg2,0,0);
+    [HX(ihx_reg),gas,iG,~,~] = set_hex(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
         
     % REJECT HEAT (external HEX)
     T_aim = environ.T0;
@@ -80,17 +80,17 @@ while 1
         % HEAT (gas-liquid)
         fluidC.state(iL,iC).T = CT.A(iL).T; fluidC.state(iL,iC).p = CT.A(iL).p;
         [fluidC] = update(fluidC,[iL,iC],1);
-        [HX(2),fluidC,iC,gas,iG] = set_hex(HX(2),iL,fluidC,iC,gas,iG,2,1.0);
+        [HX(ihx_cld(iN)),fluidC,iC,gas,iG] = set_hex(HX(ihx_cld(iN)),iL,fluidC,iC,gas,iG,2,1.0);
         iC=iC+1;
     end
     
     % REGENERATE (gas-gas)
-    [HX(3),~,~,gas,iG] = set_hex(HX(3),iL,gas,iReg1,gas,iReg2,0,0);
+    [HX(ihx_reg),~,~,gas,iG] = set_hex(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
     
     % Determine convergence and proceed
     C = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
     
-    if (all(abs((C(C~=0) - C_0(C~=0))./C(C~=0))*100 < 1e-3) || counter > 100) % is charge cycle converged?
+    if (all(abs((C(C~=0) - C_0(C~=0))./C(C~=0))*100 < 1e-3) || counter==max_iter) % is charge cycle converged?
 
         % Close working fluid streams
         gas.stage(iL,iG).type = 'end';
@@ -110,9 +110,12 @@ while 1
         fluidC = count_Nstg(fluidC);
         
         % Uncomment these lines to print states
+        %{
         print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
         print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
         print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);
+        %keyboard
+        %}
         
         % Exit loop
         break
@@ -140,9 +143,11 @@ while 1
         
         C_0 = C;
         iG=1; iH=1; iC=1; iE=1;
-        counter = counter + 1 ;
         
     end
+end
+if counter==max_iter
+    warning('Exiting JB_CHARGE cycle without having reached convergence');
 end
 
 % Compute effect of fluid streams entering/leaving the sink/source tanks

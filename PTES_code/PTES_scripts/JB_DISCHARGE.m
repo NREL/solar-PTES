@@ -42,12 +42,12 @@ end
 
 % Set matrix of temperature and pressure points to test convergence
 D_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-counter = 1 ;
-while 1
+max_iter = 100;
+for counter = 1:max_iter
     fprintf(1,['Discharging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
     
     % REGENERATE (gas-gas)
-    [HX(3),gas,iG,~,~] = set_hex(HX(3),iL,gas,iReg1,gas,iReg2,0,0);
+    [HX(ihx_reg),gas,iG,~,~] = set_hex(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
     
     for iN = 1:Nc_dis
         % REJECT HEAT (external HEX)
@@ -60,7 +60,7 @@ while 1
                 % COOL (gas-liquid)
                 fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p; %#ok<*SAGROW>
                 [fluidC] = update(fluidC,[iL,iC],1);
-                [HX(2),gas,iG,fluidC,iC] = set_hex(HX(2),iL,gas,iG,fluidC,iC,1,1.0);
+                [HX(ihx_cld(iN)),gas,iG,fluidC,iC] = set_hex(HX(ihx_cld(iN)),iL,gas,iG,fluidC,iC,1,1.0);
                 iC=iC+1;
             case 1 % Heat engine only
         end
@@ -72,14 +72,14 @@ while 1
     end
     
     % REGENERATE (gas-gas)
-    [HX(3),~,~,gas,iG] = set_hex(HX(3),iL,gas,iReg1,gas,iReg2,0,0);
+    [HX(ihx_reg),~,~,gas,iG] = set_hex(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
     
     for iN = 1:Ne_dis
         % HEAT (gas-fluid)
         fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p; THmin = HT.A(1).T;
         [fluidH] = update(fluidH,[iL,iH],1);
         Taim = THmin;
-        [HX(1),fluidH,iH,gas,iG] = set_hex(HX(1),iL,fluidH,iH,gas,iG,2,1.0);
+        [HX(ihx_hot(iN)),fluidH,iH,gas,iG] = set_hex(HX(ihx_hot(iN)),iL,fluidH,iH,gas,iG,2,1.0);
         iH=iH+1;
         
         % EXPAND
@@ -91,7 +91,7 @@ while 1
     % Determine convergence and proceed
     D = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
 
-    if all(abs((D(D~=0) - D_0(D~=0))./D(D~=0))*100 < 1e-3) || counter > 100 % is discharge cycle converged?
+    if all(abs((D(D~=0) - D_0(D~=0))./D(D~=0))*100 < 1e-3) || counter >= max_iter % is discharge cycle converged?
         % Close working fluid streams
         gas.stage(iL,iG).type = 'end';
         gas = count_Nstg(gas);
@@ -138,10 +138,11 @@ while 1
         
         D_0 = D;
         iG=1;iH=1;iHc=1;iC=1;iE=1;
-        counter = counter + 1 ;
     end
 end
-
+if counter==max_iter
+    warning('Exiting JB_DISCHARGE cycle without having reached convergence');
+end
 
 % Compute temperatures and mass of the sink tanks. Assume complete
 % depletion of (at least) one of the source tanks to stablish

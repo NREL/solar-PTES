@@ -2,7 +2,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Call the correct input file
-Load.mode  = 3;
+Load.mode  = 0;
 Loffdesign = 0; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
 
 switch Load.mode
@@ -60,12 +60,12 @@ environ = environment_class(T0,p0,Load.num,10);
 % have been defined in the SET_MULTI_RUN script
 if multi_run==1
     Vpnt = 'Ran_TbotC';  % variable along curve
-    Npnt = 8;            % points on curve
-    pnt1 = 2+273.15;     % min value
+    Npnt = 10;            % points on curve
+    pnt1 = 10+273.15;    % min value
     pnt2 = 40+273.15;    % max value
     Apnt = linspace(pnt1,pnt2,Npnt); % array
     Vcrv = 'Ne_ch';  % variable between curves
-    Acrv = 1;%[1,2,3];
+    Acrv = [1,2,3];%[1,2,3];
     Ncrv = numel(Acrv);
     %     Vcrv = 'eta';  % variable between curves
     %     Ncrv = 3;      % number of curves

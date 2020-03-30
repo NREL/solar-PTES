@@ -118,15 +118,14 @@ end
 % Exergetic efficiency
 figure(fignum);
 set(gcf,'DefaultAxesColorOrder',[0 0 0],...
-     'DefaultAxesLineStyleOrder','-|-.|--')
+     'DefaultAxesLineStyleOrder','-s|-.s|--s|:s')
 for icrv=1:Ncrv
     plot(Apnt(OKpnts),chi_mat(OKpnts,icrv)*100); hold on;
 end
 hold off;
 xlabel(strcat(Lpnt,Upnt))
 ylabel('Exergetic efficiency [$$\%$$]')
-%ylim([65 85])
-ylim([40 70])
+ylim([55 60])
 legend(L,'Location','Best')
 grid on;
 
@@ -254,14 +253,14 @@ for icrv=1:Ncrv
     %     end
 end
 
-save_figs = 0;
+save_figs = 1;
 if save_figs
-    save_fig(fignum,'./Outputs/exergy_eff',0,0,0);
-    save_fig(fignum+1,'./Outputs/COP',0,0,0);
-    save_fig(fignum+2,'./Outputs/chi_COP',0,0,0);
-    save_fig(fignum+3,'./Outputs/EFF',0,0,0);
-    for icrv=1:Ncrv
-        savename = strcat('./Outputs/WL_mat_',sprintf('%d',icrv));
-        save_fig(fignum+4+icrv,savename,0,0,0);
-    end
+    save_fig(fignum,'./Outputs/exergy_eff',{'epsc'});
+    %save_fig(fignum+1,'./Outputs/COP',0,0,0);
+    %save_fig(fignum+2,'./Outputs/chi_COP',0,0,0);
+    %save_fig(fignum+3,'./Outputs/EFF',0,0,0);
+    %for icrv=1:Ncrv
+    %    savename = strcat('./Outputs/WL_mat_',sprintf('%d',icrv));
+    %    save_fig(fignum+4+icrv,savename,0,0,0);
+    %end
 end

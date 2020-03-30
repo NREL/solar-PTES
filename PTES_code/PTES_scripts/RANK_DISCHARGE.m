@@ -68,8 +68,9 @@ steam.state(iL,iG).p = Ran_pmid2;
 
 % Set matrix of temperature and pressure points to test convergence
 A_0 = [[steam.state(iL,:).T];[steam.state(iL,:).p]];
-while 1
-    fprintf(1,'Hello Rankine discharge PTES\n')
+max_iter=100;
+for counter=1:max_iter
+    fprintf(1,['Discharging RANKINE. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
     
     % Set stage indices
     iG = 1;  % keeps track of the gas stage number
@@ -101,7 +102,7 @@ while 1
     fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p;
     [fluidH] = update(fluidH,[iL,iH],1);
     Taim = HT.A(iL).T;
-    [HX(6),fluidH,iH,steam,iG] = set_hex(HX(6),iL,fluidH,iH,steam,iG,4,Taim);
+    [HX(ihx_JB+1),fluidH,iH,steam,iG] = set_hex(HX(ihx_JB+1),iL,fluidH,iH,steam,iG,4,Taim);
     iH = iH + 1;
     
     % EXPAND (4-->5)
@@ -132,14 +133,14 @@ while 1
         fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p; %#ok<*SAGROW>
         [fluidC] = update(fluidC,[iL,iC],1);
         T_aim = RP1('PQ_INPUTS',steam.state(iL,iG).p,0.0,'T',steam) - 5; %wet saturated
-        [HX(5),steam,iG,fluidC,iC] = set_hex(HX(5),iL,steam,iG,fluidC,iC,5,T_aim);
+        [HX(ihx_JB+2),steam,iG,fluidC,iC] = set_hex(HX(ihx_JB+2),iL,steam,iG,fluidC,iC,5,T_aim);
         iC=iC+1;
     else
         % REJECT HEAT (external HEX) (7-->8)
         T_aim = Ran_Tbot - 1;
         %[steam,environ,iG,iE] = hex_set(steam,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
         air.state(iL,1).T = T0; air.state(iL,1).p = p0; air = update(air,[iL,1],1);
-        [HX(8), steam, iG, air, iA] = set_hex(HX(8),iL,steam,iG,air,iA,5,T_aim);
+        [HX(ihx_JB+3), steam, iG, air, iA] = set_hex(HX(ihx_JB+3),iL,steam,iG,air,iA,5,T_aim);
         [DFAN(1),air,iA] = compexp_func (DFAN(1),iL,air,iA,'Paim',p0,design_mode);
     end
     
@@ -165,13 +166,13 @@ while 1
     fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p; %#ok<*SAGROW>
     [fluidH] = update(fluidH,[iL,iH],1);
     Taim = HT.A(iL).T;
-    [HX(7),fluidH,iH,steam,iG] = set_hex(HX(7),iL,fluidH,iH,steam,iG,4,Taim);
+    [HX(ihx_JB+4),fluidH,iH,steam,iG] = set_hex(HX(ihx_JB+4),iL,fluidH,iH,steam,iG,4,Taim);
     iH = iH + 1;
     
     % Determine convergence and proceed
     A = [[steam.state(iL,:).T];[steam.state(iL,:).p]];
 
-    if all(abs((A(A~=0) - A_0(A~=0))./A(A~=0))*100 < 1e-3) % is discharge cycle converged?
+    if all(abs((A(A~=0) - A_0(A~=0))./A(A~=0))*100 < 1e-3) || counter==max_iter % is discharge cycle converged?
         % Close working fluid streams
         steam.stage(iL,iG).type = 'end';
         steam.stage(iL,iSA+1).type = 'end';
@@ -192,10 +193,13 @@ while 1
         fluidC = count_Nstg(fluidC);
         
         % Uncomment these lines to print states
-        %print_states(steam,iL,1:steam.Nstg(iL)+1,Load);
-        %print_states(air,iL,1:air.Nstg(iL)+1,Load);
-        %print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
-        %print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);
+        %{
+        print_states(steam,iL,1:steam.Nstg(iL)+1,Load);
+        print_states(air,iL,1:air.Nstg(iL)+1,Load);
+        print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
+        print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);
+        %keyboard
+        %}
         
         % Exit loop
         break
@@ -204,6 +208,9 @@ while 1
         steam.state(iL,1) = steam.state(iL,iG);
         A_0 = A;
     end
+end
+if counter==max_iter
+    warning('Exiting JB_CHARGE cycle without having reached convergence');
 end
 
 % Compute total mass flow rates of the hot and cold storage fluids and
