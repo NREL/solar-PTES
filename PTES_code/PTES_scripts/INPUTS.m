@@ -2,7 +2,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Call the correct input file
-Load.mode  = 0;
+Load.mode  = 3;
 Loffdesign = 0; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
 
 switch Load.mode
@@ -13,7 +13,7 @@ switch Load.mode
 end
 
 % Code options
-multi_run  = 0; % run cycle several times with different parameters?
+multi_run  = 1; % run cycle several times with different parameters?
 optimise   = 0; % optimise cycle?
 make_plots = 1; % make plots?
 save_figs  = 0; % save figures at the end?
@@ -59,19 +59,25 @@ environ = environment_class(T0,p0,Load.num,10);
 % Variables to run cycle multiple times and plot curves. The variables must
 % have been defined in the SET_MULTI_RUN script
 if multi_run==1
+    % Set variable along curves
     Vpnt = 'Ran_TbotC';  % variable along curve
-    Npnt = 10;            % points on curve
+    Npnt = 3;            % points on curve
     pnt1 = 10+273.15;    % min value
     pnt2 = 40+273.15;    % max value
     Apnt = linspace(pnt1,pnt2,Npnt); % array
-    Vcrv = 'Ne_ch';  % variable between curves
-    Acrv = [1,2,3];%[1,2,3];
+    
+    % Set variable between curves
+    Vcrv = 'Ne_ch';
+    Acrv = [1,2];
     Ncrv = numel(Acrv);
-    %     Vcrv = 'eta';  % variable between curves
-    %     Ncrv = 3;      % number of curves
-    %     crv1 = 0.95;   % min value
-    %     crv2 = 0.99;   % max value
-    %     Acrv = linspace(crv1,crv2,Ncrv); % array
+    
+    % Delete previous files
+    delete('./Outputs/Multi_run/*.mat')
+    
+    % Store information on the variables being changed along the multi-run
+    % calls
+    save('./Outputs/Multi_run/Multi_run_var.mat',...
+        'Vpnt','Npnt','Apnt','Vcrv','Ncrv','Acrv');
 else
     Npnt=1; Ncrv=1;
     % Start new logfile

@@ -448,3 +448,9 @@ if any(abs(output1./output2 - 1) > 1e-4)
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% DO NOT PLOT A SPECIFIC POINT?
+%OKpnts = (Apnt<420 | Apnt>460); %remove according to condition
+OKpnts = ~isnan(Apnt); %keep all
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

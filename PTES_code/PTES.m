@@ -35,9 +35,6 @@ load_coolprop
 
 % SET INPUTS
 INPUTS
-
-% Open the output files and print the headers
-MANAGE_FILES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 

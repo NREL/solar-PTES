@@ -75,6 +75,7 @@ switch Load.mode
             Load.time = [10;4;10;10].*3600;         % time spent in each load period, s
             Load.type = ["chg";"str";"ran";"ran"];  % type of load period
             Load.mdot = [10*fac;0;1*fac;1*fac];     % working fluid mass flow rate, kg/s
+            Load.options.useCold = [0,0,1,0];        % Use cold stores during Rankine discharge?
         else
             Load = Design_Load ;
         end

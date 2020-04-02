@@ -60,6 +60,7 @@ QE_dis     = 0;  % heat rejected to environment
 W_out_disRC  = 0;
 QC_disRC     = 0;  
 QH_disRC     = 0; 
+t_disRC   = 0;
 
 nH = numel(fluidH);
 nC = numel(fluidC);
@@ -107,7 +108,7 @@ for iL=1:Load.num
         end
         QE_dis = QE_dis + sum([environ.sink(iL,:).DHdot]*Load.time(iL));
         
-        % Also calculate heat and work terms for when there is only cooling from cold store
+        % Also calculate heat and work terms, and time, for when there is only cooling from cold store
         if Load.options.useCold(iL) == 1
             W_out_disRC  = W_out_disRC  +    sum([steam.stage(iL,:).w]   .*[steam.state(iL,1:(end-1)).mdot]*Load.time(iL));
             for i=1:nH
@@ -116,7 +117,8 @@ for iL=1:Load.num
             for i=1:nC
                 QC_disRC = QC_disRC + sum([fluidC(i).stage(iL,:).q].*[fluidC(i).state(iL,1:(end-1)).mdot]*Load.time(iL));
             end
-        end        
+            t_disRC = t_disRC + Load.time(iL);
+        end
     end
     
     % Compute contributions from ambient air streams (heat rejection)
@@ -150,6 +152,7 @@ t_chg = sum(Load.time(i_chg));
 t_dis = sum(Load.time(i_dis));
 ip1 = find(i_chg == 1,1,'first'); %index for printing (first charge period)
 ip2 = find(i_dis == 1,1,'first'); %index for printing (first discharge period)
+t_disNC = t_dis - t_disRC;
 
 % Compute lost work on specific component types
 % The WL_PTES_chg and WL_PTES_dis arrays are divided in 7 elements:
