@@ -61,14 +61,14 @@ environ = environment_class(T0,p0,Load.num,10);
 if multi_run==1
     % Set variable along curves
     Vpnt = 'Ran_TbotC';  % variable along curve
-    Npnt = 3;            % points on curve
+    Npnt = 10;            % points on curve
     pnt1 = 10+273.15;    % min value
     pnt2 = 40+273.15;    % max value
     Apnt = linspace(pnt1,pnt2,Npnt); % array
     
     % Set variable between curves
     Vcrv = 'Ne_ch';
-    Acrv = [1,2];
+    Acrv = [1,2,3];
     Ncrv = numel(Acrv);
     
     % Delete previous files

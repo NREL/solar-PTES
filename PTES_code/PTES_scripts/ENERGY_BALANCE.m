@@ -364,14 +364,14 @@ switch Load.mode
         
         % Calculate some special metrics for certain cycles
         if Load.mode == 3
-            HEeff = 100. * W_out_dis / QH_dis ; % Heat engine average efficiency
-            HEeffRC = 100. * W_out_disRC / QH_disRC ; % Efficiency for cycles where only cold tanks are used for condensing
-            HEeffNC = 100. * W_out_disNC / QH_disNC ; % Efficiency for cycles where cold tanks are NOT used for condensing
+            HEeff   = W_out_dis / QH_dis ; % Heat engine average efficiency
+            HEeffRC = W_out_disRC / QH_disRC ; % Efficiency for cycles where only cold tanks are used for condensing
+            HEeffNC = W_out_disNC / QH_disNC ; % Efficiency for cycles where cold tanks are NOT used for condensing
         elseif Load.mode == 6
-            SOLeff = 100. * W_out_dis / QH_sol ; % Solar conversion efficiency
-            HEeff  = 100. * W_out_dis / QH_dis ; % Heat engine efficiency
-            NETeff = 100. * (W_out_dis - W_in_chg) / QH_sol ; % Net efficiency
-            EXeff  = 100. * W_out_dis / (W_in_chg + EX_sol) ; % Exergetic efficiency
+            SOLeff  = W_out_dis / QH_sol ; % Solar conversion efficiency
+            HEeff   = W_out_dis / QH_dis ; % Heat engine efficiency
+            NETeff  = (W_out_dis - W_in_chg) / QH_sol ; % Net efficiency
+            EXeff   = W_out_dis / (W_in_chg + EX_sol) ; % Exergetic efficiency
         end
         
     case 1 % Heat pump only
@@ -462,15 +462,15 @@ if WM == 1
     switch Load.mode
         case 3
             fprintf(1,'DISCHARGE Efficiencies\n');
-            fprintf(1,'Rankine cycle average efficiency:           %8.1f %%\n',HEeff);
-            fprintf(1,'Rankine cycle efficiency NO cold stores:    %8.1f %%\n',HEeffNC);
-            fprintf(1,'Rankine cycle efficiency using cold stores: %8.1f %%\n\n',HEeffRC);
+            fprintf(1,'Rankine cycle average efficiency:           %8.1f %%\n',HEeff*100);
+            fprintf(1,'Rankine cycle efficiency NO cold stores:    %8.1f %%\n',HEeffNC*100);
+            fprintf(1,'Rankine cycle efficiency using cold stores: %8.1f %%\n\n',HEeffRC*100);
         case 6
             fprintf(1,'EFFICIENCIES\n');
-            fprintf(1,'Solar conversion efficiency:     %8.1f %%\n',SOLeff);
-            fprintf(1,'Heat engine efficiency:          %8.1f %%\n',HEeff);
-            fprintf(1,'Net efficiency:                  %8.1f %%\n',NETeff);
-            fprintf(1,'Exergetic efficiency:            %8.1f %%\n\n',EXeff);
+            fprintf(1,'Solar conversion efficiency:     %8.1f %%\n',SOLeff*100);
+            fprintf(1,'Heat engine efficiency:          %8.1f %%\n',HEeff*100);
+            fprintf(1,'Net efficiency:                  %8.1f %%\n',NETeff*100);
+            fprintf(1,'Exergetic efficiency:            %8.1f %%\n\n',EXeff*100);
     end
     
     switch Load.mode

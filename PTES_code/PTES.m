@@ -42,7 +42,7 @@ tic % start timer
 
 for ix = 1:1
     %%% RUN CYCLE LOOP %%%
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     for icrv = 1:Ncrv
         for ipnt = 1:Npnt
             % Select Write Mode (if WM=1, then write cycle for plotting)
@@ -51,8 +51,8 @@ for ix = 1:1
             % Set multi_run variables
             if multi_run==1, SET_MULTI_RUN; end            
             
-            % Reinitialise arrays (gas, fluids and tanks) to zero and do other
-            % preliminary tasks
+            % Reinitialise arrays (gas, fluids and tanks) to zero and do
+            % other preliminary tasks
             INITIALISE
             
             for iix = 1:(Loffdesign+1)
@@ -113,12 +113,11 @@ for ix = 1:1
             % Evaluate the system cost
             PTES_ECONOMICS
             
-            if multi_run
-                PRINT_MULTI_RUN
-            end
+            % Save results from multi_run call
+            if multi_run, PRINT_MULTI_RUN; end
         end
     end
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 end
 toc %stop timer
 
