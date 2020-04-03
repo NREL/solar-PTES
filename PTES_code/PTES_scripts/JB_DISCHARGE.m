@@ -34,7 +34,7 @@ else
         gas.state(iL,ii).mdot = Load.mdot(iL) ;
         
         % For inventory control, assume that the pressure scales with the off-design mass flow rate
-        gas.state(iL,ii).p = gas.state(iL,ii).p * Load.mdot(iL) / DEXP.mdot0 ;
+        gas.state(iL,ii).p = (DEXP.Pin/DEXP.pr0) * Load.mdot(iL) / DEXP.mdot0 ;
         
         [gas] = update(gas,[iL,ii],1);
     end    
@@ -58,7 +58,7 @@ while 1
         % REJECT HEAT (external HEX)
         % REPLACE THIS WITH hex_func call?
         T_aim = environ.T0;
-        [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,1.0,ploss);
+        [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
         
         switch Load.mode
             case 0 % PTES

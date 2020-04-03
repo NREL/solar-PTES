@@ -331,7 +331,7 @@ end
 WL_matrix = [ WL_PTES_chg ; WL_PTES_dis ; ];
 Total_loss = sum(WL_matrix(:));
 
-% Calculate tank stats
+% Calculate tank stats - volumes and masses
 for ii = 1 : Nhot
     HT(ii) = tank_stats(HT(ii)) ;
 end
@@ -433,14 +433,14 @@ if WM == 1
     switch Load.mode
         case {0,1,3,4,6}
             fprintf(1,'CHARGE\n');
-            fprintf(1,'Average power input:     %8.1f MW\n',W_in_chg/t_chg/1e6);
-            fprintf(1,'Total charge time:       %8.1f h\n',t_chg/3600);
-            fprintf(1,'Energy(el) input:        %8.1f MWh\n',W_in_chg/fact);
-            fprintf(1,'Heat to hot tanks:       %8.1f MWh\n',QH_chg/fact);
-            fprintf(1,'Heat from cold tanks:    %8.1f MWh\n',QC_chg/fact);
-            fprintf(1,'DH working fluid:        %8.1f MWh\n',DH_chg/fact);
-            fprintf(1,'Heat rejected:           %8.1f MWh\n',QE_chg/fact);
-            fprintf(1,'NET:                     %8.1f MWh\n\n',Net_chg/fact);
+            fprintf(1,'Average power input:     %8.2f MW\n',W_in_chg/t_chg/1e6);
+            fprintf(1,'Total charge time:       %8.2f h\n',t_chg/3600);
+            fprintf(1,'Energy(el) input:        %8.2f MWh\n',W_in_chg/fact);
+            fprintf(1,'Heat to hot tanks:       %8.2f MWh\n',QH_chg/fact);
+            fprintf(1,'Heat from cold tanks:    %8.2f MWh\n',QC_chg/fact);
+            fprintf(1,'DH working fluid:        %8.2f MWh\n',DH_chg/fact);
+            fprintf(1,'Heat rejected:           %8.2f MWh\n',QE_chg/fact);
+            fprintf(1,'NET:                     %8.2f MWh\n\n',Net_chg/fact);
     end
     
     switch Load.mode
@@ -492,7 +492,7 @@ if WM == 1
         case 1
             fprintf(1,'Exergetic efficiency:                %8.1f %%\n',chi_tot*100);
             fprintf(1,'Exergetic efficiency (cold reject):  %8.1f %%\n',chi_hot*100);
-            fprintf(1,'Coefficient of Performance:           %8.2f\n\n',COP);
+            fprintf(1,'Coefficient of Performance:           %8.3f\n\n',COP);
             fprintf(1,'Exergy density (hot tanks):          %9.2f kWh/m3\n',rhoE);
         case {2,5}
             fprintf(1,'Exergetic efficiency:      %7.1f %%\n',chi_tot*100);
@@ -508,7 +508,7 @@ end
 % temperature. If stores are above T0 when discharged, then they must be
 % returned to their original temp or greater. If stores are below T0 when
 % discharged, then they must be returned to original temp or lower.
-if Load.mode == any([0,4,6])
+if any(Load.mode ==[0,4,6])
     problem = 0 ;
     
     % Hot tanks

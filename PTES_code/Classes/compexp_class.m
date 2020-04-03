@@ -227,7 +227,7 @@ classdef compexp_class
                 h2 = h1 + eta^n*(h2_is - h1);
                 % Update until convergence
                 err = zeros(1,20);
-                for i1 = 1:20
+                for i1 = 1:50
                     h2_0  = h2;
                     %rho2  = CP1('HmassP_INPUTS',h2,p2,'D',fluid.handle);
                     rho2  = RP1('HmassP_INPUTS',h2,p2,'D',fluid);

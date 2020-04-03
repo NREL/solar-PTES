@@ -28,7 +28,7 @@ else
         gas.state(iL,ii).mdot = Load.mdot(iL) ;
         
         % For inventory control, assume that the pressure scales with the off-design mass flow rate
-        gas.state(iL,ii).p = gas.state(iL,ii).p * Load.mdot(iL) / CCMP.mdot0 ;
+        gas.state(iL,ii).p = CCMP.Pin * Load.mdot(iL) / CCMP.mdot0 ;
         [gas] = update(gas,[iL,ii],1);
     end  
 end
@@ -60,9 +60,10 @@ while 1
         % COOL (gas-liquid)
         fluidH.state(iL,iH).T = HT.A(iL).T; fluidH.state(iL,iH).p = HT.A(iL).p;
         [fluidH] = update(fluidH,[iL,iH],1);
+
         if new_hex_calls
             %[HX1,gas,iG,fluidH,iH] = hex_func(HX1,iL,gas,iG,fluidH,iH,1,1.0); % Original call
-            [HX(1),gas,iG,fluidH,iH] = set_hex(HX(1),iL,gas,iG,fluidH,iH,1,1.0); % New call using hx_class
+            [HX(ihx_hot(iN)),gas,iG,fluidH,iH] = set_hex(HX(ihx_hot(iN)),iL,gas,iG,fluidH,iH,1,1.0); % New call using hx_class
         else
             [gas,fluidH,iG,iH,HX] = hex_TQ(gas,[iL,iG],fluidH,[iL,iH],eff,ploss,'hex',1,1.0);
         end
@@ -72,14 +73,14 @@ while 1
     % REGENERATE (gas-gas)
     if new_hex_calls
         %[REGEN,gas,iG,~,~] = hex_func(REGEN,iL,gas,iReg1,gas,iReg2,0,0);
-        [HX(3),gas,iG,~,~] = set_hex(HX(3),iL,gas,iReg1,gas,iReg2,0,0);% New call using hx_class
+        [HX(ihx_reg),gas,iG,~,~] = set_hex(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);% New call using hx_class
     else
         [gas,~,iG,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
     end
         
     % REJECT HEAT (external HEX)
     T_aim = environ.T0;
-    [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,1.0,ploss);
+    [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
     
     for iN = 1:Ne_ch
         % EXPAND
@@ -92,7 +93,7 @@ while 1
         [fluidC] = update(fluidC,[iL,iC],1);
         if new_hex_calls
             %[HX,fluidC,iC,gas,iG] = hex_func(HX,iL,fluidC,iC,gas,iG,2,1.0);
-            [HX(2),fluidC,iC,gas,iG] = set_hex(HX(2),iL,fluidC,iC,gas,iG,2,1.0); % New call using hx_class
+            [HX(ihx_cld(iN)),fluidC,iC,gas,iG] = set_hex(HX(ihx_cld(iN)),iL,fluidC,iC,gas,iG,2,1.0); % New call using hx_class
         else
             [fluidC,gas,iC,iG] = hex_TQ(fluidC,[iL,iC],gas,[iL,iG],eff,ploss,'hex',2,1.0);
         end
@@ -102,7 +103,7 @@ while 1
     % REGENERATE (gas-gas)
     if new_hex_calls
         %[REGEN,~,~,gas,iG] = hex_func(REGEN,iL,gas,iReg1,gas,iReg2,0,0);
-        [HX(3),~,~,gas,iG] = set_hex(HX(3),iL,gas,iReg1,gas,iReg2,0,0); % New call using hx_class
+        [HX(ihx_reg),~,~,gas,iG] = set_hex(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0); % New call using hx_class
     else
         [~,gas,~,iG] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
     end
@@ -110,7 +111,7 @@ while 1
     % Determine convergence and proceed
     C = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
     
-    if (all(abs((C(C~=0) - C_0(C~=0))./C(C~=0))*100 < 1e-3) || counter > 100) % is charge cycle converged?
+    if (all(abs((C(C~=0) - C_0(C~=0))./C(C~=0))*100 < 0.5e-3) || counter > 100) % is charge cycle converged?
 
         % Close working fluid streams
         gas.stage(iL,iG).type = 'end';
@@ -155,7 +156,7 @@ while 1
 %             fprintf('TEND: %13.8f \n\n',gas.state(iL,iG).T)
             gas.state(iL,1).p = gas.state(iL,1).p - 0.10 * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
             gas.state(iL,1).T = gas.state(iL,1).T + 0.10 * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
-            
+                      
             gas.state(iL,1).mdot = Load.mdot(iL);
             [gas] = update(gas,[iL,1],1);
             

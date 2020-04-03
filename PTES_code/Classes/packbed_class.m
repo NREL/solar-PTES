@@ -49,12 +49,14 @@ classdef packbed_class
         TMAX
         Ncyc
         
-        Ltime
-        Ltext
-        timeC
-        timeD
-        textC
-        textD
+        Ltime % End cycle after a certain time?
+        Ltext % End cycle after a certain temperature fraction has been exceeded?
+        timeC % Time after which to end charging cycle 
+        timeD % Time after which to end discharging cycle
+        textC % Exit temperature fraction during charge
+        textD % Exit temperature fraction during discharge
+        TxC   % Exit temperature during charge
+        TxD   % Exit temperature during discharge
         time
         
         keff
@@ -71,10 +73,16 @@ classdef packbed_class
         TC
         TD
         
+        % These are profiles along the axis that are used for calculations
         TS
         TF
         P
         rho
+        
+        % These are profiles that are saved. Array with 3 dimensions.
+        % 1: gridsteps. 2: i-th profile in that cycle. 3: cycle number
+        TSprof % Solid temp
+        TFprof % Fluid temp
         
         H       % Enthalpy stored in the packed bed (at the end of each cycle)
         S       % Entropy of the packed bed (at the end of each cycle)
@@ -94,6 +102,9 @@ classdef packbed_class
         DH       % enthalpy change, W
         Sirr     % entropy generation, W/K
         
+        DHprev   % Save the previous cycles DH here (for assessing whether steady state has been reached)
+        Sirrprev % Save the previous cycles Sirr here (for assessing whether steady state has been reached)
+        
         Lconst
         Lideal
                 
@@ -110,7 +121,27 @@ classdef packbed_class
         end
         
         % Set up packed bed geometry and time steps etc.
-        function obj = PB_INITIALISE(obj,fld)
+        function obj = PB_INITIALISE(obj,fld,p,load)
+            
+            obj.sld   = packbed_class.create_solid_table(obj.Sname) ;
+            obj.kS    = obj.sld(1,6) ;    % Thermal conductivity, W/mK
+            obj.rhoS  = 1./obj.sld(1,3) ;   % Density, kg/m3
+            
+            x  = obj.sld(:,1); %temperatures
+            h1 = interp1(x,obj.sld(:,2),obj.TC);
+            h2 = interp1(x,obj.sld(:,2),obj.TD);
+            
+            obj.cS   = (h1 - h2) / (obj.TC - obj.TD) ;    % Specific heat capacity, J/kgK
+            
+            % Fluid properties
+            obj.mdot = load.mdot(1) ; % Fluid mass flow rate, kg/s
+            obj.Pin  = p ;
+            Tave     = 0.5 * (obj.TC + obj.TD) ;
+            obj.kF   = RP1('PT_INPUTS',obj.Pin,Tave,'L',fld); %0.035 ; % Thermal conductivity, W/mK
+            obj.rhoF = RP1('PT_INPUTS',obj.Pin,obj.TD,'D',fld);%857;%12;% % Density, kg/m3 - Need to calculate these properly!
+            obj.cF   = RP1('PT_INPUTS',obj.Pin,Tave,'CPMASS',fld); %2300;%1000; % Specific heat capacity, J/kgK
+            obj.Pr   = RP1('PT_INPUTS',obj.Pin,Tave,'PRANDTL',fld);%0.7 ;  % Prandtl number
+            obj.mu   = RP1('PT_INPUTS',obj.Pin,Tave,'V',fld);%5e-4 ;%1e-5;% Viscosity, Pa.s
             
             % mass of solid required
             ceff  = obj.eps * obj.rhoF * obj.cF + (1-obj.eps) * obj.rhoS * obj.cS ;
@@ -131,7 +162,11 @@ classdef packbed_class
             obj.dt = obj.CFL * obj.dx / obj.ui ;
             obj.NX = int64(obj.L / obj.dx) ; % Number of grid steps
             obj.Nt = obj.TMAX * obj.tN / obj.dt ; % Max number of time steps
-            obj.TMAX = obj.TMAX * obj.tN ;
+            obj.TMAX = obj.TMAX * obj.tN ; % Maximum time to allow cycle to run for 
+            
+            % Exit temperature fractions
+            obj.TxC = obj.TD + obj.textC * (obj.TC - obj.TD) ;
+            obj.TxD = obj.TC + obj.textD * (obj.TD - obj.TC) ;
             
             % Save temp profiles at the following times
             if obj.Nprof < 3
@@ -149,7 +184,7 @@ classdef packbed_class
             % Coefficienct of friction
             obj.Cf = friction(obj, obj.rhoF, obj.us) ;
             
-            % Stanton number
+            % Dimensionless numbers
             obj.Re0 = obj.rhoF * obj.us * obj.dp / obj.mu ;
             [obj.Nu0, obj.h0] = nusselt(obj.Re0, obj.Pr, obj) ;
             obj.St0 = obj.Nu0 / (obj.Re0 * obj.Pr) ;
@@ -158,7 +193,7 @@ classdef packbed_class
             obj.Bi = obj.St0 * obj.dp * obj.rhoF * obj.us * obj.cF / obj.kS ;
             
             % Create arrays for properties that are discretized.
-            % Some have two columns. One for the current time-step, and one for the previous time-step
+            % Two columns. One for the current time-step, and one for the previous time-step
             obj.TS  = zeros(obj.NX, 2) ; % Solid temperature
             obj.TF  = zeros(obj.NX, 2) ; % Fluid temperature
             obj.P   = zeros(obj.NX, 2) ; % Pressure
@@ -193,7 +228,7 @@ classdef packbed_class
             elseif strcmp(fld.read,'CP')
                 if obj.Lideal
                     obj.CFfacs = [obj.cF; 0; 0] ;
-                    obj.R      = 285 ;
+                    obj.R      = RP1('PT_INPUTS',obj.Pin,Tave,'CPMASS',fld) - RP1('PT_INPUTS',obj.Pin,Tave,'CVMASS',fld) ;
                 else
                     error('Not implemented')                    
                 end
@@ -223,6 +258,265 @@ classdef packbed_class
             % Error control
             if (obj.Ltime && obj.Ltext)
                 error('Packed beds: Ltime and Ltext cannot both be true or false')
+            end
+            
+        end
+        
+        % This function obtains the timesteps of each packed bed, picks the
+        % shortest, and resets values for the other beds
+        function [hot, cold] = PB_TIMINGS(hot, cold)
+            
+            % Set minimum time step
+            mindt = min(hot.dt,cold.dt) ;
+            
+            hot.dt = mindt;
+            cold.dt = mindt ;
+            
+            % Hot
+            hot.Nt = hot.TMAX / hot.dt ; % Max number of time steps
+                                
+            % Save temp profiles at the following times
+            inc       = int64(hot.tN / (hot.dt * (hot.Nprof-1))) ;
+            for i = 2 : hot.Nprof-1
+                hot.Tprof(i) = i * inc ;
+            end
+            
+            % Cold
+            cold.Nt = cold.TMAX / cold.dt ; % Max number of time steps
+                                
+            % Save temp profiles at the following times
+            inc       = int64(cold.tN / (cold.dt * (cold.Nprof-1))) ;
+            for i = 2 : cold.Nprof-1
+                cold.Tprof(i) = i * inc ;
+            end
+            
+        end
+        
+        function Lend = PB_STOP_PHASE(hot, cold, time, mode)
+           
+            Lend = false ;
+            
+            c = zeros(4,1) ;
+            c(1) = time > hot.TMAX ;
+            c(2) = time > cold.TMAX ;
+                        
+            switch mode
+                case 'chgPB'
+                    
+                    if hot.Ltime
+                        % Has time elapsed?
+                        c(3) = time > hot.timeC ;
+                        c(4) = time > cold.timeC ;
+                    elseif hot.Ltext
+                        % Have exit temperatures been exceeded?
+                        c(3) = hot.TS(end,1) > hot.TxC ;
+                        c(4) = cold.TS(end,1) < cold.TxC ;
+                    end
+                    
+                case 'disPB'
+                
+                    if hot.Ltime
+                        % Has time elapsed?
+                        c(3) = time > hot.timeD ;
+                        c(4) = time > cold.timeD ;                
+                    elseif hot.Ltext
+                        % Have exit temperatures been exceeded?
+                        c(3) = hot.TS(end,1) < hot.TxD ;
+                        c(4) = cold.TS(end,1) > cold.TxD ;
+                    end
+                    
+            end
+            
+            % Check if any conditions are true
+            if any(c)
+                Lend = true ;
+            end
+            
+            
+        end
+        
+        function [hot, cold] = PB_REVERSE(hot, cold, Load, i)
+            % If time to end the phase then switch around arrays if the
+            % follow load.type is different to the current load type
+            % Watch out for being at the final load
+            if i < Load.num
+                if Load.type(i) ~= Load.type(i+1)
+                    
+                    hot.TS  = flip(hot.TS,1) ;
+                    hot.TF  = flip(hot.TF,1) ;
+                    hot.P   = flip(hot.P,1) ;
+                    hot.u   = flip(hot.u,1) ;
+                    hot.rho = flip(hot.rho,1) ;
+                    
+                    cold.TS  = flip(cold.TS,1) ;
+                    cold.TF  = flip(cold.TF,1) ;
+                    cold.P   = flip(cold.P,1) ;
+                    cold.u   = flip(cold.u,1) ;
+                    cold.rho = flip(cold.rho,1) ;
+                end
+            end
+            
+        end
+        
+        % Check to see whether the hot and cold packed beds have changed
+        % significantly compared to the previous cycle. If not, then cyclic
+        % operation has probably been reached
+        function [hot, cold, iL, Icyc] = PB_STOP_CYC(hot, cold, Load, iL, Icyc, Ncyc, Lcyclic)
+            
+            if Lcyclic
+                error = 1e-2 ;
+                if isempty(hot.DHprev)
+                    hot.DHprev = hot.DH*100;
+                    hot.Sirrprev = hot.Sirr*100;
+                    cold.DHprev = cold.DH*100;
+                    cold.Sirrprev = cold.Sirr*100;
+                end
+                
+                if Icyc < Ncyc
+                    cyclic = zeros(1,4) ;
+                   
+                    cyclic(1) = 100 * abs(hot.DH(1) - hot.DHprev(1)) / hot.DHprev(1) < error ;
+                    cyclic(2) = 100 * abs(cold.DH(1) - cold.DHprev(1)) / cold.DHprev(1) < error ;
+                    
+                    StotH  = hot.Sirr(1) + hot.Sirr(2) ;
+                    StotHp = hot.Sirrprev(1) + hot.Sirrprev(2) ;
+                    
+                    StotC  = cold.Sirr(1) + cold.Sirr(2) ;
+                    StotCp = cold.Sirrprev(1) + cold.Sirrprev(2) ;
+                                        
+                    cyclic(3) = 100 * abs(StotH - StotHp) / StotHp < error ;
+                    cyclic(4) = 100 * abs(StotC - StotCp) / StotCp < error ;
+                    
+                    if all(cyclic)
+                        fprintf("\n\nSTEADY STATE OPERATION REACHED!\n\n");
+                        iL=iL+1;
+                    else
+                        Icyc = Icyc + 1 ;
+                        iL   = 1 ;
+                        
+                        % Flip arrays over
+                        [hot, cold] = PB_REVERSE(hot, cold, Load, iL);
+                    end
+                else
+                    warning('Maximum number of cycles (%i) has elapsed without reaching steady-state operation',Ncyc);
+                    iL=iL+1;
+                end
+                
+                hot.DHprev   = hot.DH ;
+                hot.Sirrprev = hot.Sirr ;
+                
+                cold.DHprev   = cold.DH ;
+                cold.Sirrprev = cold.Sirr ;
+                
+            end
+            
+        end
+        
+        function obj = PB_FLUX(obj, T0, P0, fld, iCYC)
+            
+            % Reference points
+            HF0 = RP1('PT_INPUTS',P0,T0,'H',fld) ;
+            SF0 = RP1('PT_INPUTS',P0,T0,'S',fld) ;
+
+            % Calculate the mass, enthalpy, and entropy flux INTO the storage in that timestep
+            Min = obj.u(1,1) * obj.rho(1,1) * obj.A * obj.dt ;
+            obj.Mflux(iCYC, 1) = obj.Mflux(iCYC, 1) + Min ;
+            obj.Hflux(iCYC, 1) = obj.Hflux(iCYC, 1) + Min * (RP1('PT_INPUTS',obj.P(1),obj.TF(1,1),'H',fld) - HF0);
+            %obj.Hflux(iCYC, 1) = obj.Hflux(iCYC, 1) + Min * (obj.cF *(obj.TF(1,1)-T0));
+            obj.Sflux(iCYC, 1) = obj.Sflux(iCYC, 1) + Min * (RP1('PT_INPUTS',obj.P(1),obj.TF(1,1),'S',fld) - SF0);
+            
+            % Calculate the mass, enthalpy, and entropy flux OUT OF the storage in that timestep
+            Mout = obj.u(end,1) * obj.rho(end,1) * obj.A * obj.dt ;
+            obj.Mflux(iCYC, 2) = obj.Mflux(iCYC, 2) + Mout ;
+            obj.Hflux(iCYC, 2) = obj.Hflux(iCYC, 2) + Mout * (RP1('PT_INPUTS',obj.P(end),obj.TF(end,1),'H',fld) - HF0) ;
+            %obj.Hflux(iCYC, 2) = obj.Hflux(iCYC, 2) + Mout * (obj.cF *(obj.TF(end,1)-T0));
+            obj.Sflux(iCYC, 2) = obj.Sflux(iCYC, 2) + Mout * (RP1('PT_INPUTS',obj.P(end),obj.TF(end,1),'S',fld) - SF0) ;
+             
+            
+        end
+        
+        % Energy and exergy balances for phase iCYC
+        function [obj] = PB_LOSS(obj, iCYC)
+            
+            obj.W(iCYC)    = 0.0 ;
+            obj.Q(iCYC)    = obj.Hflux(iCYC,1) - obj.Hflux(iCYC,2) ; % Heat transferred into/out of storage
+            obj.DH(iCYC)   = obj.H(iCYC,1) - obj.H(iCYC,2) ; % Change in enthalpy of packed bed. Should equal Q (small errors occur though)
+            obj.Sirr(iCYC) = obj.S(iCYC,1) - obj.S(iCYC,2) ; % Change in entropy of packed bed
+            obj.Sirr(iCYC) = obj.Sirr(iCYC) - (obj.Sflux(iCYC,1) - obj.Sflux(iCYC,2)) ; % Net entropy increase of packed bed
+            obj.Sirr(iCYC) = abs(obj.Sirr(iCYC)) ; % Has to be positive
+            
+        end
+             
+        % Calculate energy in storage at end of charge and end of discharge
+        function [obj] = PB_ENERGY(obj, fld, iCYC, mode)
+            
+            N  = obj.NX ;
+            Tf = obj.TF ;
+            Ts = obj.TS ;
+            
+            HF  = zeros(N,1) ;
+            SF  = zeros(N,1) ;
+            
+            HS  = zeros(N,1) ;
+            SS  = zeros(N,1) ;
+            
+            if obj.TC > obj.TD
+                T0 = obj.TD ;
+            else
+                T0 = obj.TC ;
+            end
+            
+            if obj.Lconst
+                CF  = obj.cF .* ones(N,1) ;
+                CS  = obj.cS .* ones(N,1) ;
+                
+                en = obj.rhoS * (1-obj.eps) * (trapz(obj.dx, CS.*(obj.TS(:,1)- T0)) ) ;
+                en = en + obj.eps * (trapz(obj.dx, CF.*obj.rho(:,1).*(obj.TF(:,1)- T0)) ) ;
+                en = en * obj.A ; % Energy in MWh
+                
+                ent = 0.0;
+            
+            else
+            
+                % Calculate solid and fluid entropies and entropies by
+                % interpolating original data
+                
+                % Reference points
+                HF0 = RP1('PT_INPUTS',1e5,T0,'H',fld) ;
+                SF0 = RP1('PT_INPUTS',1e5,T0,'S',fld) ;
+                
+                x = obj.sld(:,1) ;
+                HS0 = interp1(x,obj.sld(:,2),T0) ;
+                SS0 = interp1(x,obj.sld(:,4),T0) ;
+                
+                for i = 1 : N
+                    
+                    HF(i) = RP1('PT_INPUTS',1e5,obj.TF(i,1),'H',fld) ; % Enthalpy
+                    SF(i) = RP1('PT_INPUTS',1e5,obj.TF(i,1),'S',fld) ; % Entropy
+                    
+                    HS(i) = interp1(x,obj.sld(:,2),obj.TS(i,1)) ; % Enthalpy
+                    SS(i) = interp1(x,obj.sld(:,4),obj.TS(i,1)) ; % Entropy
+                    
+                end
+                
+                en = obj.rhoS * (1-obj.eps) * (trapz(obj.dx, (HS(:) - HS0))) ;
+                en = en + obj.eps * (trapz(obj.dx, obj.rho(:,1).*(HF(:) - HF0))) ;
+                en = en * obj.A ; % Energy 
+                
+                ent = obj.rhoS * (1-obj.eps) * (trapz(obj.dx, (SS(:) - SS0))) ;
+                ent = ent + obj.eps * (trapz(obj.dx, obj.rho(:,1).*(SF(:) - SF0))) ;
+                ent = ent * obj.A  ; % Entropy 
+                                                
+            end
+            
+            % Assign energy and entropy to correct term
+            switch mode
+                case 'start'
+                    obj.H(iCYC,1) = en ;
+                    obj.S(iCYC,1) = ent ;
+                case 'end'
+                    obj.H(iCYC,2) = en ;
+                    obj.S(iCYC,2) = ent ;
             end
             
         end
@@ -505,7 +799,7 @@ classdef packbed_class
         
         %***** ALTERNATIVE !! ******
         % March forward one timestep. Routine is intended for ideal gases
-        function obj = PB_TIMESTEP_IDEAL(obj, fld, mode)
+        function obj = PB_TIMESTEP_IDEAL(obj, fld, iL, iG, mode)
             
             N  = obj.NX ;
             Tf = obj.TF ;
@@ -523,6 +817,7 @@ classdef packbed_class
                 case 'dis'
                     Tin = obj.TD ;
             end
+            Tin = fld.state(iL,iG).T;
             
             muf = obj.mu .* ones(N,1) ;
             % Find properties that vary with temperature
@@ -600,7 +895,8 @@ classdef packbed_class
                 
             % Calculate velocities and pressures
             obj.u(1,1) = obj.us ;
-            obj.P(1,1) = obj.Pin ;
+            %obj.P(1,1) = obj.Pin ;
+            obj.P(1,1) = fld.state(iL,iG).p;
             
             % For final node extrapolate Tf at N+1
             Ts(N+1,2) = 2.*Ts(N,2) - Ts(N-1,2) ;
@@ -635,6 +931,10 @@ classdef packbed_class
                 obj.u(i,1) = (obj.rho(i-1,1) * obj.u(i-1,1) + obj.eps * obj.dx * (obj.rho(i,2) - obj.rho(i,1))/obj.dt) / obj.rho(i,1) ;
                 f5         = f4 * obj.rho(i,1) * obj.u(i,1) * obj.u(i,1) ;
                 obj.P(i,1) = obj.P(i-1,1) - f5 * friction(obj,obj.rho(i,1),obj.u(i,1)) ;
+                
+                if imag(obj.P(i,1))>0
+                    keyboard
+                end
                 
             end
             
@@ -806,70 +1106,7 @@ classdef packbed_class
 %             
 %         end
         
-                
-        % Calculate energy in storage at end of charge and end of discharge
-        function [obj, en, ent] = PB_ENERGY(obj, fld)
-            
-            N  = obj.NX ;
-            Tf = obj.TF ;
-            Ts = obj.TS ;
-            
-            HF  = zeros(N,1) ;
-            SF  = zeros(N,1) ;
-            
-            HS  = zeros(N,1) ;
-            SS  = zeros(N,1) ;
-            
-            if obj.TC > obj.TD
-                T0 = obj.TD ;
-            else
-                T0 = obj.TC ;
-            end
-            
-            if obj.Lconst
-                CF  = obj.cF .* ones(N,1) ;
-                CS  = obj.cS .* ones(N,1) ;
-                
-                en = obj.rhoS * (1-obj.eps) * (trapz(obj.dx, CS.*(obj.TS(:,1)- T0)) ) ;
-                en = en + obj.eps * (trapz(obj.dx, CF.*obj.rho(:,1).*(obj.TF(:,1)- T0)) ) ;
-                en = en * obj.A ; % Energy in MWh
-                
-                ent = 0.0;
-            
-            else
-            
-                % Calculate solid and fluid entropies and entropies by
-                % interpolating original data
-                
-                % Reference points
-                HF0 = RP1('PT_INPUTS',1e5,T0,'H',fld) ;
-                SF0 = RP1('PT_INPUTS',1e5,T0,'S',fld) ;
-                
-                x = obj.sld(:,1) ;
-                HS0 = interp1(x,obj.sld(:,2),T0) ;
-                SS0 = interp1(x,obj.sld(:,4),T0) ;
-                
-                for i = 1 : N
-                    
-                    HF(i) = RP1('PT_INPUTS',1e5,obj.TF(i,1),'H',fld) ; % Enthalpy
-                    SF(i) = RP1('PT_INPUTS',1e5,obj.TF(i,1),'S',fld) ; % Entropy
-                    
-                    HS(i) = interp1(x,obj.sld(:,2),obj.TS(i,1)) ; % Enthalpy
-                    SS(i) = interp1(x,obj.sld(:,4),obj.TS(i,1)) ; % Entropy
-                    
-                end
-                
-                en = obj.rhoS * (1-obj.eps) * (trapz(obj.dx, (HS(:) - HS0))) ;
-                en = en + obj.eps * (trapz(obj.dx, obj.rho(:,1).*(HF(:) - HF0))) ;
-                en = en * obj.A ; % Energy 
-                
-                ent = obj.rhoS * (1-obj.eps) * (trapz(obj.dx, (SS(:) - SS0))) ;
-                ent = ent + obj.eps * (trapz(obj.dx, obj.rho(:,1).*(SF(:) - SF0))) ;
-                ent = ent * obj.A  ; % Entropy 
-                                
-            end
-            
-        end
+           
         
         
         function keff = eff_cond(obj)

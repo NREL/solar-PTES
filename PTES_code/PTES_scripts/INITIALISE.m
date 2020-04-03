@@ -6,38 +6,76 @@ gas = reset_fluid(gas);
 if Load.mode==3
     steam = reset_fluid(steam);
 end
-for ir = 1:length(fluidH)
-    fluidH(ir) = reset_fluid(fluidH(ir)); %#ok<*SAGROW>
-end
-for ir = 1:length(fluidC)
-    fluidC(ir) = reset_fluid(fluidC(ir));
-end
 
-% Reset cold tanks
-for ir = 1 : Ncld
-    CT(ir) = reset_tanks(CT(ir),TC_dis0(ir),10.*p0,MC_dis0(ir),TC_chg0(ir),10.*p0,MC_chg0(ir),T0);
-end
-
-% Reset hot tanks
-for ir = 1 : Nhot
-    HT(ir) = reset_tanks(HT(ir),TH_dis0(ir),10.*p0,MH_dis0(ir),TH_chg0(ir),10.*p0,MH_chg0(ir),T0);
+% These storage fluid streams only exist in certain cases
+if PBmode == 0 || PBmode == 2
+    for ir = 1:length(fluidH)
+        fluidH(ir) = reset_fluid(fluidH(ir)); %#ok<*SAGROW>
+    end
+    for ir = 1:length(fluidC)
+        fluidC(ir) = reset_fluid(fluidC(ir));
+    end
+    
+    % Reset cold tanks
+    for ir = 1 : Ncld
+        CT(ir) = reset_tanks(CT(ir),TC_dis0(ir),10.*p0,MC_dis0(ir),TC_chg0(ir),10.*p0,MC_chg0(ir),T0);
+    end
+    
+    % Reset hot tanks
+    for ir = 1 : Nhot
+        HT(ir) = reset_tanks(HT(ir),TH_dis0(ir),10.*p0,MH_dis0(ir),TH_chg0(ir),10.*p0,MH_chg0(ir),T0);
+    end
 end
 
 % Reset atmospheric tanks
 AT = reset_tanks(AT,T0,p0,huge,T0,p0,huge,T0);
 
+% Estimate cycle pressures and temperatures
 % Set bottom pressure line based on maximum pressure and pressure ratio
 pbot = pmax/PRch;
 T1   = TH_dis0(1); % compressor inlet temperature estimate
+% Estimate gamma
+if strcmp(gas.read,'IDL')
+    Gama = gas.IDL.gam ;
+else
+    Gama = CP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CPMASS',gas.handle)/CP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CVMASS',gas.handle);
+end
+
+% Hot temperatures
 if setTmax
     % Obtain PRch from maximum temperature and estimated temperature ratio
-    if strcmp(gas.read,'IDL')
-        Gama = gas.IDL.gam ;
-    else
-        Gama = CP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CPMASS',gas.handle)/CP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CVMASS',gas.handle);
-    end
     PR_estim = ((Tmax/T1)^((Gama*eta)/(Gama-1)))^Nc_ch;
     pbot = pmax/PR_estim;
+else
+    Tmax = T1 * PRch ^((Gama-1)/(Gama*eta))^(1/Nc_ch) ;
+end
+
+% Cold temperatures
+T3 = TC_dis0(1) ;
+if setTmax
+    TC_chg0(1) = T3 / (PR_estim ^((Gama-1)/(Gama*eta))^(1/Ne_ch)) ;
+else
+    TC_chg0(1) = T3 / (PR_ch ^((Gama-1)/(Gama*eta))^(1/Ne_ch)) ;
+end
+
+switch PBmode
+    case 1
+        % Set up packed beds
+        for ii = 1 : Nhot 
+            pbH(ii).TC = TH_chg0 ;
+            pbH(ii).TD = TH_dis0 ;
+            pbH(ii) = PB_INITIALISE( pbH(ii), gas, pmax, Load ) ;
+        end
+        
+        for ii = 1 : Ncld
+            pbC(ii).TC = TC_chg0 ;
+            pbC(ii).TD = TC_dis0 ;
+            pbC(ii) = PB_INITIALISE( pbC(ii), gas, pbot, Load ) ;
+        end
+        
+        [pbH, pbC] = PB_TIMINGS(pbH, pbC) ; % This routine selects the smallest timesteps to run at
+    case 2
+        error ('Not implemented')
 end
 
 % Set number of compressions and expansions symmetrically between charge

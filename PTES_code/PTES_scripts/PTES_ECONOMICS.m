@@ -61,7 +61,16 @@ end
 
 % Motor-generator. Assume this is just to provide the net work (i.e. don't
 % have a motor on the compressor and a separate generator on the expander)
-powIN  = W_in_chg/t_chg/1e3 ;
+% This needs to be based on design values of the compressors and expanders
+%powIN  = W_in_chg/t_chg/1e3 ;
+WINch = 0.; WOUTch = 0.;
+for ii = 1 : Nc_ch
+    WINch = WINch + CCMP(ii).W0;
+end
+for ii = 1 : Ne_ch
+    WOUTch = WOUTch + CEXP(ii).W0;
+end
+powIN  = (WINch - WOUTch) / 1e3 ; % This is only correct for JB PTES.
 GEN.gen_cost = econ_class(1, 0.2, 5, 0.2) ;
 GEN.gen_cost.COST = 1.85e6 * (powIN / 1.18e4)^0.94 ; % Really need to make a class .... just for this
 cap_cost = cap_cost + GEN.gen_cost.COST ;

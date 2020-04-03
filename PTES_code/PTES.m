@@ -60,38 +60,45 @@ for ix = 1:1
             
             for iix = 1:(Loffdesign+1)
                 fprintf(['\n',line,txt(iix,:),line,'\n'])
-            
-                for iL = 1:Load.num
+                iL=1;
+                while iL <= Load.num
                     switch Load.type(iL)
                         case 'chg'
                             JB_CHARGE
-                            
+                            iL=iL+1;
+                        case 'chgPB'
+                            JB_CHARGE_PB
+                            iL=iL+1;
                         case 'dis'
                             JB_DISCHARGE
+                            iL=iL+1;
+                        case 'disPB'
+                            JB_DISCHARGE_PB
                             
                         case 'ran'
                             RANK_DISCHARGE
-                            
+                            iL=iL+1;
                         case 'chgCO2'
                             sCO2_CHARGE
-                            
+                            iL=iL+1;
                         case 'disCO2'
                             sCO2_DISCHARGE
-                            
+                            iL=iL+1;
                         case 'rcmpCO2'
                             sCO2_RECOMP
-                            
+                            iL=iL+1;
                         case 'chgTSCO2'
                             TSCO2_CHARGE
-                            
+                            iL=iL+1;
                         case 'disTSCO2'
                             TSCO2_DISCHARGE
-                            
+                            iL=iL+1;
                         case 'str'
                             TANKS_STORAGE
-                            
+                            iL=iL+1;
                         case 'sol'
                             SOLAR_TANKS
+                            iL=iL+1;
                     end
                 end
                 
