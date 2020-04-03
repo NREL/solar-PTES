@@ -36,12 +36,12 @@ SC = stream;
 SH.h = HX.H(iL).h;
 SH.p = HX.H(iL).pin*ones(size(SH.h));
 SH.mdot = HX.H(iL).mdot;
-SH = stream_update(fluidH,SH,1);
+SH = stream_update(fluidH,SH,2);
 SC.h = HX.C(iL).h;
 SC.p = HX.C(iL).pin*ones(size(SC.h));
 SC.mdot = HX.C(iL).mdot;
 %keyboard
-SC = stream_update(fluidC,SC,1);
+SC = stream_update(fluidC,SC,2);
 %keyboard
 
 % Determine which one is the "weak" stream (the one likely to present

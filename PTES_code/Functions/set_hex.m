@@ -1,8 +1,9 @@
 % This script determines whether the geometry of the heat exchanger should
-% be evaluated. There are two scenarios when this is required: 1) The heat
-% exchangers are defined in 'geom' mode so geometry is require. 2) The heat
-% exchanger is in 'eff' mode but the geometry should be estimated for
-% economic calculations
+% be evaluated. There are two scenarios when this is required:
+%   1) The heat exchangers are defined in 'geom' mode so geometry is
+%   required.
+%   2) The heat exchanger is in 'eff' mode but the geometry should be
+%   estimated for economic calculations
 
 % It has the same inputs and outputs as hex_func that is subsequently called
 
@@ -34,6 +35,7 @@ if ~HX.Lgeom_set
     % Set up geometry
     HX = set_hex_geom(HX, iL, fluidH, iH, fluidC, iC, mode, par, HX.NTU0, HX.ploss, HX.D1); % HXt is a temporary class
     [~,~,HX] = shell_and_tube_geom(HX.C(iL), HX.H(iL), HX) ;
+    HX.Lgeom_set = true;
     
     % Set the HX mode back to its original type
     HX.model = orig ;

@@ -39,3 +39,5 @@ switch Vcrv
     otherwise
         error('not implemented')
 end
+
+fprintf(1,'\nMULTI RUN STEP: Point #%d of %d, Curve #%d of %d',ipnt,length(Apnt),icrv,length(Acrv))

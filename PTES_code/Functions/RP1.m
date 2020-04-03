@@ -1,75 +1,146 @@
 function [output1] = RP1(input_pair,input1,input2,out1,fluid)
+%RP1 Reads thermophysical properties, one at a time.
+%
+%   RP1 supports three different modes, 'CP' (obtain properties from
+%   CoolProp), 'TAB' (tabular interpolation) and 'IDL' (ideal gas).
 
-if strcmp(fluid.read,'CP')
-    output1 = CP1(input_pair,input1,input2,out1,fluid.handle);
-    
-elseif strcmp(fluid.read,'TAB')
-    
-    switch out1
-        case 'T'
-            v  = fluid.TAB(:,1); %temperature
-        case 'H'
-            v  = fluid.TAB(:,2); %enthalpy
-        case 'S'
-            v  = fluid.TAB(:,4) ; % entropy
-        otherwise
-            error('not implemented')
-    end
-    
-    switch input_pair
-        case 'HmassP_INPUTS'
-            % Tabulated data is pressure independent at the moment. Only
-            % input1 (enthalpy) is used.
-            x  = fluid.TAB(:,2); %enthalpy
-            output1 = interp1(x,v,input1);
-            
-        case 'PT_INPUTS'
-            % Tabulated data is pressure independent at the moment. Only
-            % input2 (temperature) is used.
-            x  = fluid.TAB(:,1); %temperature
-            output1 = interp1(x,v,input2);
-            
-        otherwise
-            error('not implemented')
-    end
-
-elseif strcmp(fluid.read,'IDL')
-    % Calculate properties of an ideal gas
-    
-    switch input_pair
-        case 'HmassP_INPUTS'
-            switch out1
-                case 'T'
-                    output1 = input1 / fluid.IDL.cp + fluid.IDL.T0 ;
-                case 'S'
-                    T       = input1 / fluid.IDL.cp + fluid.IDL.T0 ; % Find T first, then S
-                    output1 = fluid.IDL.cp * log(T) - fluid.IDL.R * log(input2) - fluid.IDL.s0 ;
-                case 'D'
-                    T       = input1 / fluid.IDL.cp + fluid.IDL.T0 ; % Find T first, then density
-                    output1 = input2 ./ (fluid.IDL.R * T) ;
+switch fluid.read
+    case 'CP' % Obtain properties from CoolProp
+        
+        % Select Coolprop handle. Control cases where some CoolProp backends
+        % (other than HEOS) do not produce accurate results. This is seen to
+        % happen at low pressures and close to the saturation curve
+        handle = fluid.handle;
+        if strcmp(fluid.name,'Water')
+            switch input_pair
+                case {'HmassP_INPUTS'}
+                    if any(input2<1e5)
+                        handle = fluid.HEOS;
+                    end
+                case {'PSmass_INPUTS','PT_INPUTS','PQ_INPUTS'}
+                    if any(input1<1e5)
+                        handle = fluid.HEOS;
+                    end
+                case {'QT_INPUTS'}
+                    handle = fluid.HEOS;
+                case {0}
+                otherwise
+                    error('not implemented')
             end
-            
-        case 'PT_INPUTS'
-            switch out1
-                case 'H'
-                    output1 = fluid.IDL.cp  * input2 - fluid.IDL.h0 ;
-                case 'S'
-                    output1 = fluid.IDL.cp * log(input2) - fluid.IDL.R * log(input1) - fluid.IDL.s0 ;
-                case 'CPMASS'
-                    output1 = fluid.IDL.cp ;
-                case 'CVMASS'
-                    output1 = fluid.IDL.cv ;
-            end
-        case 'PSmass_INPUTS'
-            switch out1
-                case 'T'
-                    output1 = fluid.IDL.T0 * exp( (input2 + fluid.IDL.R * log(input1/fluid.IDL.P0))/fluid.IDL.cp) ;
-                case 'H'
-                    T       = fluid.IDL.T0 * exp( (input2 + fluid.IDL.R * log(input1/fluid.IDL.P0))/fluid.IDL.cp) ;
-                    output1 = fluid.IDL.cp * T - fluid.IDL.h0 ;
-            end
-    end
-    
+        end
+        
+        % Call CoolProp and extract output
+        output1 = CP1(input_pair,input1,input2,out1,handle);
+        
+        
+    case 'TAB' % Use tabular interpolation
+        
+        % Obtain x array and query points (xq)
+        switch input_pair
+            case 'HmassP_INPUTS'
+                % Tabulated data is pressure independent at the moment. Only
+                % input1 (enthalpy) is used.
+                x  = fluid.TAB(:,2); %enthalpy
+                xq = input1;
+                
+            case 'PT_INPUTS'
+                % Tabulated data is pressure independent at the moment. Only
+                % input2 (temperature) is used.
+                x  = fluid.TAB(:,1); %temperature
+                xq = input2;
+                
+            otherwise
+                error('not implemented')
+        end
+        
+        % Obtain y array
+        switch out1
+            case {'T'}                  % temperature
+                y = fluid.TAB(:,1);
+            case {'H','HMASS','Hmass'}  % mass specific enthalpy
+                y = fluid.TAB(:,2);
+            case {'D','DMASS','Dmass'}  % mass density
+                y = fluid.TAB(:,3);
+            case {'S','SMASS','Smass'}  % mass specific entropy
+                y = fluid.TAB(:,4);
+            case {'C','CPMASS','Cpmass'}             % isobaric specific heat capacity
+                y = fluid.TAB(:,5);
+            case {'CONDUCTIVITY','L','conductivity'} % thermal conductivity
+                y = fluid.TAB(:,6);
+            case {'VISCOSITY','V','viscosity'}       % dynamic viscosity
+                y = fluid.TAB(:,7);
+            case {'PRANDTL','Prandtl'}  % Prandtl number
+                y = fluid.TAB(:,8);
+            case {'Q'}                  % vapour quality
+                y = fluid.TAB(:,9);
+            otherwise
+                error('not implemented')
+        end
+        
+        % Interpolate
+        output1 = interp1(x,y,xq);
+        
+        
+    case 'IDL' % Calculate properties of an ideal gas
+        
+        % First obtain 'base' properties (h,p,T,s)
+        switch input_pair
+            case 'HmassP_INPUTS'
+                h   = input1;
+                p   = input2;
+                
+                T   = h / fluid.IDL.cp + fluid.IDL.T0 ;
+                s   = fluid.IDL.cp * log(T) - fluid.IDL.R * log(p) - fluid.IDL.s0 ;
+                
+            case 'PT_INPUTS'
+                p   = input1;
+                T   = input2;
+                
+                h   = fluid.IDL.cp  * T - fluid.IDL.h0 ;
+                s   = fluid.IDL.cp * log(T) - fluid.IDL.R * log(p) - fluid.IDL.s0 ;
+                
+            case 'PSmass_INPUTS'
+                p   = input1;
+                s   = input2;
+                
+                T   = fluid.IDL.T0 * exp( (s + fluid.IDL.R * log(p/fluid.IDL.P0))/fluid.IDL.cp) ;
+                h   = fluid.IDL.cp  * T - fluid.IDL.h0 ;
+        end
+        
+        % Then compute derived properties
+        rho = p ./ (fluid.IDL.R * T);
+        k   = fluid.IDL.k * ones(size(T));
+        mu  = fvisc(fluid,T);
+        cp  = fluid.IDL.cp * ones(size(T));
+        cv  = fluid.IDL.cv * ones(size(T));
+        Pr  = fluid.IDL.cp .* mu ./ k ;
+        Q   = -1.0 * ones(size(T));
+        
+        % Store requested properties in output1
+        switch out1
+            case {'T'}
+                output1 = T;
+            case {'H','HMASS','Hmass'}
+                output1 = h;
+            case {'D','DMASS','Dmass'}
+                output1 = rho ;
+            case {'S','SMASS','Smass'}
+                output1 = s;
+            case {'C','CPMASS','Cpmass'}
+                output1 = cp ;
+            case {'CVMASS'}
+                output1 = cv ;
+            case {'CONDUCTIVITY','L','conductivity'}
+                output1 = k;
+            case {'VISCOSITY','V','viscosity'}
+                output1 = mu;
+            case {'PRANDTL','Prandtl'}
+                output1 = Pr;
+            case {'Q'}
+                output1 = Q;
+            otherwise
+                error('not implemented')
+        end
 end
 
 end

@@ -435,3 +435,22 @@ a  = linspace(xL(iM),HsatL(end),nsx+1);
 da = a(end) - a(end-1);
 b  = linspace(HsatL(end)+da,xR(iM),nsx-1);
 xM(iM,:) = [a,b];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Check difference between CoolProp handles
+output1 = CP1(input_pair,input1,input2,out1,handle);
+output2 = CP1(input_pair,input1,input2,out1,fluid.HEOS);
+if any(abs(output1./output2 - 1) > 1e-4)
+    warning('Original CoolProp handle proving innacurate')
+    keyboard
+    output1 = output2;
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% DO NOT PLOT A SPECIFIC POINT?
+%OKpnts = (Apnt<420 | Apnt>460); %remove according to condition
+OKpnts = ~isnan(Apnt); %keep all
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

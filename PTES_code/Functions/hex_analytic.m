@@ -73,9 +73,9 @@ TC2 = TH2;
 for i=1:3
     % UPDATE PROPERTIES
     % Cold stream
-    C = stream_update(fluidC,C,1);
+    C = stream_update(fluidC,C,2);
     % Hot stream
-    H = stream_update(fluidH,H,1);
+    H = stream_update(fluidH,H,2);
     
     % COMPUTE HEAT TRANSFER COEFFICIENTS
     % Cold stream

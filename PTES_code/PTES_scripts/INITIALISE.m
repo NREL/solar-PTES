@@ -44,6 +44,11 @@ end
 % Hot temperatures
 if setTmax
     % Obtain PRch from maximum temperature and estimated temperature ratio
+    if strcmp(gas.read,'IDL')
+        Gama = gas.IDL.gam ;
+    else
+        Gama = RP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CPMASS',gas)/RP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CVMASS',gas);
+    end
     PR_estim = ((Tmax/T1)^((Gama*eta)/(Gama-1)))^Nc_ch;
     pbot = pmax/PR_estim;
 else
@@ -124,6 +129,44 @@ switch Load.mode
             RCMP = compexp_class('comp', 'poly', 0, eta, Load.num) ; % Re-compressors
         end
         
+end
+
+% Construct heat exchangers
+JB_HX_model   = 'eff' ;
+RANK_HX_model = 'eff';
+NX = 100; % number of section for HEX algorithm
+ihx_hot = 1:Nc_ch;
+ihx_reg = ihx_hot(end)+1;
+ihx_rej = ihx_reg(end)+1;
+ihx_cld = ihx_rej(end)+(1:Ne_ch);
+switch Load.mode
+    case {0,1,2}
+        switch PBmode
+            case {0,2}
+                % Call HX classes for ideal-gas PTES cycle
+                % Call HX classes for ideal-gas PTES cycle
+                HX(ihx_hot)  = hx_class('hot',  'hex',   JB_HX_model, eff, ploss,  1, NX, Load.num, Load.num) ; % Hot heat exchanger
+                HX(ihx_reg)  = hx_class('regen','regen', JB_HX_model, eff, ploss,  1, NX, Load.num, Load.num) ; % Recuperator
+                HX(ihx_rej)  = hx_class('rej',  'hex',   JB_HX_model, eff, ploss,  0, NX, Load.num, Load.num) ; % Heat rejection unit
+                HX(ihx_cld)  = hx_class('cold', 'hex',   JB_HX_model, eff, ploss,  1, NX, Load.num, Load.num) ; % Cold heat exchanger
+            case 1
+                HX(1) = hx_class('rej',  'hex',   JB_HX_model, eff, ploss, 2, 100, Load.num, Load.num) ; % Heat rejection unit
+                HX(2) = hx_class('rej',  'hex',   JB_HX_model, eff, ploss, 2, 100, Load.num, Load.num) ; % Heat rejection unit
+        end
+        
+        
+    case 3
+        % Call HX classes for ideal-gas PTES heat pump with Rankine cycle discharge
+        ihx_JB  = ihx_cld(end);
+        HX(ihx_hot)  = hx_class('hot',  'hex',   JB_HX_model, eff, ploss,  1, NX, Load.num, Load.num) ; % Hot heat exchanger
+        HX(ihx_reg)  = hx_class('regen','regen', JB_HX_model, eff, ploss,  1, NX, Load.num, Load.num) ; % Recuperator
+        HX(ihx_rej)  = hx_class('rej',  'hex',   JB_HX_model, eff, ploss,  0, NX, Load.num, Load.num) ; % Heat rejection unit
+        HX(ihx_cld)  = hx_class('cold', 'hex',   JB_HX_model, eff, ploss,  1, NX, Load.num, Load.num) ; % Cold heat exchanger
+        
+        HX(ihx_JB+1) = hx_class('hot',  'hex',   RANK_HX_model, eff, ploss,   0, NX, Load.num, Load.num) ; % Reheat
+        HX(ihx_JB+2) = hx_class('cold', 'hex',   RANK_HX_model, eff, 0.1/100, 0, NX, Load.num, Load.num) ; % Condenser
+        HX(ihx_JB+3) = hx_class('rej',  'regen', RANK_HX_model, eff, 0.1/100, 0, NX, Load.num, Load.num) ; % Air-cooled condenser
+        HX(ihx_JB+4) = hx_class('hot',  'hex',   RANK_HX_model, eff, ploss,   0, NX, Load.num, Load.num) ; % Boiler
 end
 
 % Fans --> NOT SURE WHAT cost_mode should be selected in this case
