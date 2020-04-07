@@ -13,7 +13,7 @@ switch Load.mode
 end
 
 % Code options
-multi_run  = 1; % run cycle several times with different parameters?
+multi_run  = 0; % run cycle several times with different parameters?
 optimise   = 0; % optimise cycle?
 make_plots = 1; % make plots?
 save_figs  = 0; % save figures at the end?

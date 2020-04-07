@@ -8,6 +8,7 @@ classdef hx_class
        
        eff      % Effectiveness
        ploss    % Pressure loss
+       DT       % Pinch-point temperature difference
        
        UA0      % Conductance, W/K - (design)
        NTU0     % Design NTU
@@ -74,13 +75,49 @@ classdef hx_class
    end
    
    methods
-       function obj = hx_class(name, stage_type, model, eff, ploss, cost_mode, Ngrid, Nsave, numPeriods)
+       function obj = hx_class(name, stage_type, cost_mode, Ngrid, Nsave, numPeriods, model, varargin)
+           % There are four possible ways to construct a hx, depending on
+           % the selected hx model.
+           % If model is 'eff',  eff = varargin{1} and ploss = varargin{2}.
+           % If model is 'UA',   UA  = varargin{1} and ploss = varargin{2}.
+           % If model is 'DT',   DT  = varargin{1} and ploss = varargin{2}.
+           % If model is 'geom', DT  = varargin{1}, ploss = varargin{2} and
+           % D1 = varargin{3}.
+           
+           switch model
+               case 'eff'
+                   if length(varargin)~=2
+                       error('incorrect number of inputs');
+                   end
+                   obj.eff   = varargin{1};
+                   obj.ploss = varargin{2};
+               case 'UA'
+                   if length(varargin)~=2
+                       error('incorrect number of inputs');
+                   end
+                   obj.UA    = varargin{1};
+                   obj.ploss = varargin{2};
+               case 'DT'
+                   if length(varargin)~=2
+                       error('incorrect number of inputs');
+                   end
+                   obj.DT    = varargin{1};
+                   obj.ploss = varargin{2};
+                   error('not implemented yet')
+               case 'geom'
+                   if length(varargin)~=3
+                       error('incorrect number of inputs');
+                   end
+                   obj.DT    = varargin{1};
+                   obj.ploss = varargin{2};
+                   obj.D1    = varargin{3};
+               otherwise
+                   error('not implemented')
+           end
+           
             obj.name       = name ;
             obj.stage_type = stage_type ;
             obj.model      = model ;
-            obj.eff        = eff ;
-            obj.ploss      = ploss ;
-            
             obj.NX         = Ngrid ;
             
             % Loss data          

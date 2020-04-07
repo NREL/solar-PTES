@@ -16,9 +16,9 @@ c = computer();
 % Add paths
 switch computer
     case 'GLNXA64' %Linux
-        addpath('./Classes/','./Generic/','./Functions/','./Other')
+        addpath('./Classes/','./Generic/','./Functions/','./PTES_scripts/','./Other/')
     case 'PCWIN64' %Windows
-        addpath('.\Classes\','.\Generic\','.\Functions\','./Other')
+        addpath('.\Classes\','.\Generic\','.\Functions\','.\PTES_scripts\','.\Other\')
 end
 
 % Set properties for plots
@@ -33,12 +33,12 @@ load_coolprop
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Choose scenario
-% 1 = Helium and Helium
+% 1 = Gas regenerator
 % 2 = SolarSalt and Water
 % 3 = CO2 and Water
 % 4 = Steam and MEG
 % 5 = sCO2 and sCO2
-scenario = 5;
+scenario = 1;
 
 % Save figures?
 save_figures = 0;
@@ -50,13 +50,13 @@ iL = 1; i1 = 1; i2 = 1;
 switch scenario
     case 1
         % Helium (hot, high pressure)
-        F1 = fluid_class('Helium','WF','CP','TTSE',1,5);
+        F1 = fluid_class('Nitrogen','WF','CP','TTSE',1,5);
         F1.state(iL,i1).p = 100e5;
         F1.state(iL,i1).T = 600;
         F1.state(iL,i1).mdot = 10;
         
         % Helium (cold, low pressure)
-        F2 = fluid_class('Helium','WF','CP','TTSE',1,5);
+        F2 = fluid_class('Nitrogen','WF','CP','TTSE',1,5);
         F2.state(iL,i2).p = 20e5;
         F2.state(iL,i2).T = 300;
         F2.state(iL,i2).mdot = 10;
@@ -146,13 +146,14 @@ end
 
 % Specify HX settings
 NX = 100; % Number of sections (grid)
-model = 'geom'; % either 'eff', 'UA' or 'geom'
 stage_type = 'hex';
-HX = hx_class('hot', stage_type, model, 1.00, 0.00,  4, NX, 2, 2);
+HX = hx_class('hot', stage_type, 4, NX, 2, 2, 'eff', 0.97, 0.01);
+%hx_class(name, stage_type, model, eff, ploss, cost_mode, Ngrid, Nsave, numPeriods)
+keyboard
 
 switch HX.model
     case 'eff'
-        HX.eff   = 1.00;
+        HX.eff   = 0.97;
         HX.ploss = 0.01;
         
     case 'UA'
@@ -187,6 +188,8 @@ switch HX.model
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%HX(ihx_reg)  = hx_class('regen','regen', JB_HX_model, eff, ploss,  1, NX, Load.num, Load.num) ; % Recuperator
+%[HX(ihx_hot(iN)),gas,iG,fluidH,iH] = set_hex(HX(ihx_hot(iN)),iL,gas,iG,fluidH,iH,1,1.0);
 
 %%% DESIGN PERFORMANCE %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
