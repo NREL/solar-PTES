@@ -33,7 +33,7 @@ load_coolprop
 %**** INPUT PARAMETERS ****%
 dp    = 0.1 ;  % Pipe diameter
 Lp    = 1.0 ; % Pipe length
-U     = 1e6 ; % Overall heat transfer coefficient, W/m2K
+U     = 5e5 ; % Overall heat transfer coefficient, W/m2K
 Psat  = 20e5 ; % Saturation pressure
 x0    = 1.0 ;  % Initial dryness fraction
 mdot0 = 1.0;  % Mass flow rate, kg/s

@@ -58,9 +58,9 @@ end
 % Cold temperatures
 T3 = TC_dis0(1) ;
 if setTmax
-    TC_chg0(1) = T3 / (PR_estim ^((Gama-1)/(Gama*eta))^(1/Ne_ch)) ;
+    TC_chg0(1) = T3 / (PR_estim ^((Gama-1)*eta/(Gama))^(1/Ne_ch)) ;
 else
-    TC_chg0(1) = T3 / (PR_ch ^((Gama-1)/(Gama*eta))^(1/Ne_ch)) ;
+    TC_chg0(1) = T3 / (PR_ch ^((Gama-1)*eta/(Gama))^(1/Ne_ch)) ;
 end
 
 switch PBmode
@@ -167,6 +167,7 @@ switch Load.mode
         HX(ihx_JB+2) = hx_class('cold', 'hex',   RANK_HX_model, eff, 0.1/100, 0, NX, Load.num, Load.num) ; % Condenser
         HX(ihx_JB+3) = hx_class('rej',  'regen', RANK_HX_model, eff, 0.1/100, 0, NX, Load.num, Load.num) ; % Air-cooled condenser
         HX(ihx_JB+4) = hx_class('hot',  'hex',   RANK_HX_model, eff, ploss,   0, NX, Load.num, Load.num) ; % Boiler
+        
 end
 
 % Fans --> NOT SURE WHAT cost_mode should be selected in this case

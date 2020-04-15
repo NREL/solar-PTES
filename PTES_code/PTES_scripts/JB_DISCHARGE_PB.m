@@ -82,7 +82,6 @@ while 1
                     % COOL in the cold packed bed
                     %pbC = PB_TIMESTEP(pbC, gas, 'dis') ;
                     pbC = PB_TIMESTEP_IDEAL(pbC, gas, iL, iG, 'dis') ;
-                    
                     pbC = PB_FLUX(pbC, T0, p0, gas, iL) ;
                     
                     % Fluid outlet
@@ -182,7 +181,7 @@ while 1
         air = count_Nstg(air);
                 
         % Uncomment these lines to print states
-        print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
+        %print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
         
         [pbH,pbC] = PB_REVERSE(pbH,pbC,Load,iL) ;
         

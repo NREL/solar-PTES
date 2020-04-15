@@ -28,7 +28,8 @@ else
         gas.state(iL,ii).mdot = Load.mdot(iL) ;
         
         % For inventory control, assume that the pressure scales with the off-design mass flow rate
-        gas.state(iL,ii).p = CCMP.Pin * Load.mdot(iL) / CCMP.mdot0 ;
+        %gas.state(iL,ii).p = CCMP.Pin * Load.mdot(iL) / CCMP.mdot0 ;
+        gas.state(iL,ii).p = gas.state(iL,ii).p * Load.mdot(iL) / CCMP.mdot0 ;
         [gas] = update(gas,[iL,ii],1);
     end  
 end
@@ -69,7 +70,11 @@ for counter=1:max_iter
     [HX(ihx_reg),gas,iG,~,~] = set_hex(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
         
     % REJECT HEAT (external HEX)
-    T_aim = environ.T0;
+    if ~design_mode
+        T_aim = environ.T0 + T0_inc;
+    else
+        T_aim = environ.T0;
+    end
     [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
     
     for iN = 1:Ne_ch
@@ -133,14 +138,16 @@ for counter=1:max_iter
 %             fprintf('pEND: %13.8f \n\n',gas.state(iL,iG).p/1e5)
 %             fprintf('T1:   %13.8f \n',gas.state(iL,1).T)
 %             fprintf('TEND: %13.8f \n\n',gas.state(iL,iG).T)
-            gas.state(iL,1).p = gas.state(iL,1).p - 0.10 * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
-            gas.state(iL,1).T = gas.state(iL,1).T + 0.10 * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
+            % Reduce smoothing factor with number of iterations
+            smooth = 0.10;% / double(counter)^1 
+            gas.state(iL,1).p = gas.state(iL,1).p - smooth * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
+            gas.state(iL,1).T = gas.state(iL,1).T + smooth * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
                       
             gas.state(iL,1).mdot = Load.mdot(iL);
             [gas] = update(gas,[iL,1],1);
             
         else
-            gas.state(iL,1) = gas.state(iL,iG);
+            gas.state(iL,1) = gas.state(iL,iG); 
         end
         
         C_0 = C;

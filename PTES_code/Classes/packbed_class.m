@@ -123,9 +123,9 @@ classdef packbed_class
         % Set up packed bed geometry and time steps etc.
         function obj = PB_INITIALISE(obj,fld,p,load)
             
-            obj.sld   = create_table(pbH(ii).Sname) ;
+            obj.sld   = create_table(obj.Sname) ;
             obj.kS    = obj.sld(1,6) ;    % Thermal conductivity, W/mK
-            obj.rhoS  = 1./obj.sld(1,3) ;   % Density, kg/m3
+            obj.rhoS  = obj.sld(1,3) ;   % Density, kg/m3
             
             x  = obj.sld(:,1); %temperatures
             h1 = interp1(x,obj.sld(:,2),obj.TC);
@@ -138,15 +138,14 @@ classdef packbed_class
             obj.Pin  = p ;
             Tave     = 0.5 * (obj.TC + obj.TD) ;
             obj.kF   = RP1('PT_INPUTS',obj.Pin,Tave,'L',fld); %0.035 ; % Thermal conductivity, W/mK
-            obj.rhoF = RP1('PT_INPUTS',obj.Pin,obj.TD,'D',fld);%857;%12;% % Density, kg/m3 - Need to calculate these properly!
+            obj.rhoF = RP1('PT_INPUTS',obj.Pin,Tave,'D',fld);%857;%12;% % Density, kg/m3 - Need to calculate these properly!
             obj.cF   = RP1('PT_INPUTS',obj.Pin,Tave,'CPMASS',fld); %2300;%1000; % Specific heat capacity, J/kgK
             obj.Pr   = RP1('PT_INPUTS',obj.Pin,Tave,'PRANDTL',fld);%0.7 ;  % Prandtl number
             obj.mu   = RP1('PT_INPUTS',obj.Pin,Tave,'V',fld);%5e-4 ;%1e-5;% Viscosity, Pa.s
             
-            % mass of solid required
-            ceff  = obj.eps * obj.rhoF * obj.cF + (1-obj.eps) * obj.rhoS * obj.cS ;
-            obj.V = obj.tN * obj.mdot * obj.cF / ceff ;
-                        
+            % volume of solid required
+            obj.V = obj.tN * obj.mdot * obj.cF / ((1-obj.eps)*obj.rhoS * obj.cS) ;
+                         
             % Geometry
             obj.D  = (4. * obj.V / (pi * obj.AR)) ^ (1./3.) ;
             obj.L  = obj.D * obj.AR ;
@@ -179,7 +178,7 @@ classdef packbed_class
             end
             
             % Effective conductivity
-            obj.keff = eff_cond(obj) ;
+            obj.keff = 0.0;%eff_cond(obj) ;
             
             % Coefficienct of friction
             obj.Cf = friction(obj, obj.rhoF, obj.us) ;
@@ -353,6 +352,16 @@ classdef packbed_class
                     cold.P   = flip(cold.P,1) ;
                     cold.u   = flip(cold.u,1) ;
                     cold.rho = flip(cold.rho,1) ;
+                    
+                    % Set the flux counters to zero after each cycle
+                    hot.Mflux = zeros(30,2) ;
+                    hot.Hflux = zeros(30,2) ;
+                    hot.Sflux = zeros(30,2) ;
+                    
+                    cold.Mflux = zeros(30,2) ;
+                    cold.Hflux = zeros(30,2) ;
+                    cold.Sflux = zeros(30,2) ;
+                    
                 end
             end
             
@@ -375,8 +384,8 @@ classdef packbed_class
                 if Icyc < Ncyc
                     cyclic = zeros(1,4) ;
                    
-                    cyclic(1) = 100 * abs(hot.DH(1) - hot.DHprev(1)) / hot.DHprev(1) < error ;
-                    cyclic(2) = 100 * abs(cold.DH(1) - cold.DHprev(1)) / cold.DHprev(1) < error ;
+                    cyclic(1) = 100 * abs((hot.DH(1) - hot.DHprev(1)) / hot.DHprev(1)) < error ;
+                    cyclic(2) = 100 * abs((cold.DH(1) - cold.DHprev(1)) / cold.DHprev(1)) < error ;
                     
                     StotH  = hot.Sirr(1) + hot.Sirr(2) ;
                     StotHp = hot.Sirrprev(1) + hot.Sirrprev(2) ;
@@ -384,8 +393,8 @@ classdef packbed_class
                     StotC  = cold.Sirr(1) + cold.Sirr(2) ;
                     StotCp = cold.Sirrprev(1) + cold.Sirrprev(2) ;
                                         
-                    cyclic(3) = 100 * abs(StotH - StotHp) / StotHp < error ;
-                    cyclic(4) = 100 * abs(StotC - StotCp) / StotCp < error ;
+                    cyclic(3) = 100 * abs((StotH - StotHp) / StotHp) < error ;
+                    cyclic(4) = 100 * abs((StotC - StotCp) / StotCp) < error ;
                     
                     if all(cyclic)
                         fprintf("\n\nSTEADY STATE OPERATION REACHED!\n\n");
@@ -407,6 +416,7 @@ classdef packbed_class
                 
                 cold.DHprev   = cold.DH ;
                 cold.Sirrprev = cold.Sirr ;
+                
                 
             end
             
@@ -810,14 +820,10 @@ classdef packbed_class
             CF  = zeros(N,1) ;
             CS  = zeros(N,1) ;
             %muf = zeros(N,1) ;
-            
-            switch mode
-                case 'chg'
-                    Tin = obj.TC ;
-                case 'dis'
-                    Tin = obj.TD ;
-            end
+                        
             Tin = fld.state(iL,iG).T;
+            pin = fld.state(iL,iG).p;
+            Rin = fld.state(iL,iG).rho;
             
             muf = obj.mu .* ones(N,1) ;
             % Find properties that vary with temperature
@@ -868,16 +874,25 @@ classdef packbed_class
             % terms for matrix calculation
             t1 = (1 - f2 - 2*f3) .* Ts(:,2) + f2 .* Tf(:,2) ;
                        
+            % Inlet temperatures of gas and solid
+            TinG = Tin ;
+            TinS = exp(-2. * f2(1)) ;
+            TinS = TinG * (1. - TinS) + obj.TS(1,2) * TinS ; % Based on analytical solution to a simple differential equation
+            
             % Bit annoying Matlab doesn't do zero indices - otherwise the
             % first node could be easily wrapped into the for loop below
             % First node - assume C(1) = 0
             X = [(1 + f2(1)), f1(1) ; f2(1), (1 + f1(1))] ; 
-            Y = [Tin ; t1(1) + f3(1) * (Tin + Ts(2,2)) ] ;   
+            Y = [(1.- f1(1))*TinG + f1(1)*TinS ; t1(1) + f3(1) * (TinS + Ts(2,2)) ] ;   
             
             T(1,:) = X * Y / DET(1) ;
             % Assign temperatures
             Ts(1,1) = T(1,2) ;
             Tf(1,1) = T(1,1) ;
+            
+            % Calculate pressures
+            f5         = f4 * obj.rho(1,2) * obj.u(1,2) * obj.u(1,2) ;
+            obj.P(1,1) = pin - f5 * friction(obj,obj.rho(1,2),obj.u(1,2)) ;
             
             % Calculate density at first node
             if obj.Lconst
@@ -887,16 +902,15 @@ classdef packbed_class
                     Xf = [1 T(1,1) T(1,1)*T(1,1) ] ;
                     obj.rho(1,1) = Xf * obj.Dfacs ;
                 elseif obj.Lideal
-                    obj.rho(1,1) = obj.P(1,2) / (T(1,1) * obj.R) ;
+                    obj.rho(1,1) = obj.P(1,1) / (T(1,1) * obj.R) ;
                 elseif strcmp(fld.read,'CP')
-                    obj.rho(1,1) = CP1('PT_INPUTS',obj.P(1,2),obj.TF(1,1),'D',fld.handle) ;
+                    obj.rho(1,1) = CP1('PT_INPUTS',obj.P(1,1),obj.TF(1,1),'D',fld.handle) ;
                 end
             end
-                
-            % Calculate velocities and pressures
-            obj.u(1,1) = obj.us ;
-            %obj.P(1,1) = obj.Pin ;
-            obj.P(1,1) = fld.state(iL,iG).p;
+            
+            % Calculate mass flux and velocity
+            obj.u(1,1) = obj.mdot / (obj.A * Rin) ;
+            %obj.u(1,1) = (Rin * obj.us + obj.eps * obj.dx * (obj.rho(1,2) - obj.rho(1,1))/obj.dt) / obj.rho(1,1) ;
             
             % For final node extrapolate Tf at N+1
             Ts(N+1,2) = 2.*Ts(N,2) - Ts(N-1,2) ;
@@ -913,6 +927,13 @@ classdef packbed_class
                 Ts(i,1) = T(i,2) ;
                 Tf(i,1) = T(i,1) ;
                 
+                % Calculate pressures
+                f5         = f4 * obj.rho(i,2) * obj.u(i,2) * obj.u(i,2) ;
+                obj.P(i,1) = obj.P(i-1,1) - f5 * friction(obj,obj.rho(i,2),obj.u(i,2)) ;
+                if imag(obj.P(i,1))>0
+                    keyboard
+                end
+                
                 % Calculate densities
                 if obj.Lconst
                     obj.rho(i,1) = obj.rho(i,2)  ;
@@ -921,21 +942,15 @@ classdef packbed_class
                         Xf = [1 T(i,1) T(i,1)*T(i,1) ] ;
                         obj.rho(i,1) = Xf * obj.Dfacs ;
                     elseif obj.Lideal
-                        obj.rho(i,1) = obj.P(i,2) / (T(i,1) * obj.R) ;
+                        obj.rho(i,1) = obj.P(i,1) / (T(i,1) * obj.R) ;
                     elseif strcmp(fld.read,'CP')
-                        obj.rho(i,1) = CP1('PT_INPUTS',obj.P(i,2),obj.TF(:,1),'D',fld.handle) ;
+                        obj.rho(i,1) = CP1('PT_INPUTS',obj.P(i,1),obj.TF(:,1),'D',fld.handle) ;
                     end
                 end
                 
-                % Calculate velocities and pressures
+                % Calculate velocities
                 obj.u(i,1) = (obj.rho(i-1,1) * obj.u(i-1,1) + obj.eps * obj.dx * (obj.rho(i,2) - obj.rho(i,1))/obj.dt) / obj.rho(i,1) ;
-                f5         = f4 * obj.rho(i,1) * obj.u(i,1) * obj.u(i,1) ;
-                obj.P(i,1) = obj.P(i-1,1) - f5 * friction(obj,obj.rho(i,1),obj.u(i,1)) ;
-                
-                if imag(obj.P(i,1))>0
-                    keyboard
-                end
-                
+    
             end
             
             % Assign temperatures

@@ -1,5 +1,5 @@
 % Set atmospheric conditions and cycle parameters
-T0      = 25 + 273.15;  % ambient temp, K
+T0      = 30 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 25e5;         % top pressure, Pa
 PRch    = 2.5;          % charge pressure ratio
@@ -10,9 +10,10 @@ setTmax = 1;            % set Tmax? (this option substitutes PRch)
 Tmax    = 560 + 273.15; % maximum temp at compressor outlet, K
 
 % Set Rankine-specific parameters
-Ran_ptop  = 100e5;
-Ran_Tbot0 = T0+15; %when discharging against the environment
-Ran_TbotC = 273.15+20; %when discharging against the cold stores
+Ran_ptop    = 100e5;
+Ran_pbotMIN = 0.05e5 ; % If condenser pressure decreases below this, the final stage chokes. Can't go to pressures below this, because who knows what happens.
+Ran_Tbot0   = T0+15; %when discharging against the environment. This sets design condenser pressure.
+Ran_TbotC   = 273.15+20; %when discharging against the cold stores
 
 % Set component parameters
 eta   = 0.90;  % polytropic efficiency
@@ -21,13 +22,7 @@ ploss = 0.01;  % pressure loss in HEXs
 
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
-<<<<<<< HEAD
-Ne_ch = 3; % number of expansions during charge
-||||||| merged common ancestors
 Ne_ch = 1; % number of expansions during charge
-=======
-Ne_ch = 2; % number of expansions during charge
->>>>>>> 726205aa6bc2eb2bf649a4ede295791eb583eeea
 nH    = max([2,Nc_ch]); % number of hot fluid streams
 nC    = Ne_ch;          % number of cold fluid streams
 
@@ -38,7 +33,7 @@ Nhot = 1; % number of hot stores. Not implemented for >2
 % Set parameters of Load structure
 switch Load.mode
     case 0 % PTES
-        fac = 1.0; % This can be used to more easily set the mass flow to obtain a desired power output
+        fac = 100.0; % This can be used to more easily set the mass flow to obtain a desired power output
         stH = 8 ;
         ee  = 1;%0.6031 ;
         % This is the load scenario the plant is designed for
@@ -52,6 +47,7 @@ switch Load.mode
             Load.time = [stH;stH].*3600;      % time spent in each load period, s
             Load.type = ["chg";"dis"];    % type of load period
             Load.mdot = [8.*fac;8.*fac];      % working fluid mass flow rate, kg/s
+            T0_inc    = 0.0 ; % Increase in ambient temperature
         else
             Load = Design_Load ;
         end
@@ -61,21 +57,34 @@ switch Load.mode
         stH              = 10 ;
         Design_Load.time = stH*3600;                  % time spent in each load period, s
         Design_Load.type = "chg";                     % type of load period
-        Design_Load.mdot = 10;                        % working fluid mass flow rate, kg/s
+        Design_Load.mdot = 1000;                        % working fluid mass flow rate, kg/s
         
         if Loffdesign
             % This is the actual load profile that the plant meets
             Load.time = [stH].*3600;      % time spent in each load period, s
             Load.type = ["chg"];    % type of load period
-            Load.mdot = [7.7];      % working fluid mass flow rate, kg/s
+            Load.mdot = [1000];      % working fluid mass flow rate, kg/s
+            T0_inc    = 10.0 ; % Increase in ambient temperature
         else
             Load = Design_Load ;
         end
         
     case 2 % Heat engine (no cold tanks)
-        Load.time = [0,10].*3600;                  % time spent in each load period, s
-        Load.type = ["sol","dis"];                 % type of load period
-        Load.mdot = [0,10];                        % working fluid mass flow rate, kg/s
+        
+        Design_Load      = Load ;
+        Design_Load.time = [0,10].*3600;                  % time spent in each load period, s
+        Design_Load.type = ["sol";"dis"];                     % type of load period
+        Design_Load.mdot = [0,10];                        % working fluid mass flow rate, kg/s
+        
+        if Loffdesign
+            % This is the actual load profile that the plant meets
+            Load.time = [0,10].*3600;      % time spent in each load period, s
+            Load.type = ["sol";"dis"];    % type of load period
+            Load.mdot = [0,10];      % working fluid mass flow rate, kg/s
+            T0_inc    = 0;  % Increase in ambient temperature
+        else
+            Load = Design_Load ;
+        end
         
     case 3 % JB charge, Rankine discharge
         fac = 1.0 ; % This can be used to more easily set the mass flow to obtain a desired power output 
@@ -85,7 +94,7 @@ switch Load.mode
         Design_Load.time = [10;4;10;10].*3600;          % time spent in each load period, s
         Design_Load.type = ["chg";"str";"ran";"ran"];   % type of load period
         Design_Load.mdot = [10*fac;0;1*fac;1*fac];      % working fluid mass flow rate, kg/s
-        Design_Load.options.useCold = [0,0,1,0];        % Use cold stores during Rankine discharge?
+        Design_Load.options.useCold = [0,0,0,0];        % Use cold stores during Rankine discharge? This should be set to 0 for design cases of retrofits.
         
         if Loffdesign
             % This is the actual load profile that the plant meets
@@ -93,6 +102,7 @@ switch Load.mode
             Load.type = ["chg";"str";"ran";"ran"];  % type of load period
             Load.mdot = [10*fac;0;1*fac;1*fac];     % working fluid mass flow rate, kg/s
             Load.options.useCold = [0,0,1,0];        % Use cold stores during Rankine discharge?
+            T0_inc    = 0.0 ; % Increase in ambient temperature
         else
             Load = Design_Load ;
         end
@@ -172,67 +182,5 @@ if Load.mode==3
     steam = fluid_class('Water','WF','CP','BICUBIC&HEOS',Load.num,30);
 end
 
-<<<<<<< HEAD
-model = 'geom' ;
-ihx_hot = 1:Nc_ch;
-ihx_reg = ihx_hot(end)+1;
-ihx_rej = ihx_reg(end)+1;
-ihx_cld = ihx_rej(end)+(1:Ne_ch);
-% Make heat exchangers
-switch Load.mode
-    case {0,1,2}
-        switch PBmode
-            case {0,2}
-                % Call HX classes for ideal-gas PTES cycle
-                HX(ihx_hot) = hx_class('hot',  'hex',   model, eff, ploss,  11, 100, Load.num, Load.num) ; % Hot heat exchanger
-                HX(ihx_reg) = hx_class('cold', 'hex',   model, eff, ploss,  11, 100, Load.num, Load.num) ; % Cold heat exchanger
-                HX(ihx_rej) = hx_class('regen','regen', model, eff, ploss,  11, 100, Load.num, Load.num) ; % Recuperator
-                HX(ihx_cld) = hx_class('rej',  'hex',   model, eff, ploss, 2, 100, Load.num, Load.num) ; % Heat rejection unit
-            case 1
-                HX(1) = hx_class('rej',  'hex',   model, eff, ploss, 2, 100, Load.num, Load.num) ; % Heat rejection unit
-                HX(2) = hx_class('rej',  'hex',   model, eff, ploss, 2, 100, Load.num, Load.num) ; % Heat rejection unit
-        end
-    case 3
-        % Call HX classes for ideal-gas PTES heat pump with Rankine cycle discharge
-        HX(1) = hx_class('hot',  'hex',   model, eff, ploss,  11, 100, Load.num, Load.num) ; % Hot heat exchanger
-        HX(2) = hx_class('cold', 'hex',   model, eff, ploss,  11, 100, Load.num, Load.num) ; % Cold heat exchanger
-        HX(3) = hx_class('regen','regen', model, eff, ploss,  1, 100, Load.num, Load.num) ; % Recuperator
-        HX(4) = hx_class('rej',  'hex',   model, eff, ploss, 0, 100, Load.num, Load.num) ; % Heat rejection unit
-        
-        HX(5) = hx_class('cold', 'hex',   model, eff, 0.1/100, 0, 100, Load.num, Load.num) ; % Condenser
-        HX(6) = hx_class('hot',  'hex',   model, eff, ploss,  0, 100, Load.num, Load.num) ; % Reheat
-        HX(7) = hx_class('hot',  'hex',   model, eff, ploss,  0, 100, Load.num, Load.num) ; % Boiler
-        HX(8) = hx_class('rej',  'regen', model, eff, 0.1/100,0, 100, Load.num, Load.num) ; % Air-cooled condenser
-end
-
-||||||| merged common ancestors
-model = 'geom' ;
-
-% Make heat exchangers
-switch Load.mode
-    case {0,1,2}
-        % Call HX classes for ideal-gas PTES cycle
-        HX(1) = hx_class('hot',  'hex',   model, eff, ploss,  11, 100, Load.num, Load.num) ; % Hot heat exchanger
-        HX(2) = hx_class('cold', 'hex',   model, eff, ploss,  11, 100, Load.num, Load.num) ; % Cold heat exchanger
-        HX(3) = hx_class('regen','regen', model, eff, ploss,  11, 100, Load.num, Load.num) ; % Recuperator
-        HX(4) = hx_class('rej',  'hex',   model, eff, ploss, 2, 100, Load.num, Load.num) ; % Heat rejection unit
-    case 3
-        % Call HX classes for ideal-gas PTES heat pump with Rankine cycle discharge
-        HX(1) = hx_class('hot',  'hex',   model, eff, ploss,  11, 100, Load.num, Load.num) ; % Hot heat exchanger
-        HX(2) = hx_class('cold', 'hex',   model, eff, ploss,  11, 100, Load.num, Load.num) ; % Cold heat exchanger
-        HX(3) = hx_class('regen','regen', model, eff, ploss,  1, 100, Load.num, Load.num) ; % Recuperator
-        HX(4) = hx_class('rej',  'hex',   model, eff, ploss, 0, 100, Load.num, Load.num) ; % Heat rejection unit
-        
-        HX(5) = hx_class('cold', 'hex',   model, eff, 0.1/100, 0, 100, Load.num, Load.num) ; % Condenser
-        HX(6) = hx_class('hot',  'hex',   model, eff, ploss,  0, 100, Load.num, Load.num) ; % Reheat
-        HX(7) = hx_class('hot',  'hex',   model, eff, ploss,  0, 100, Load.num, Load.num) ; % Boiler
-        HX(8) = hx_class('rej',  'regen', model, eff, 0.1/100,0, 100, Load.num, Load.num) ; % Air-cooled condenser
-end
-
-
-
-
-=======
->>>>>>> 726205aa6bc2eb2bf649a4ede295791eb583eeea
 % Save copy of input file in "Outputs" folder
 copyfile(['./PTES_scripts/',mfilename,'.m'],'./Outputs/')

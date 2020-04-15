@@ -1,5 +1,5 @@
 % Set atmospheric conditions and cycle parameters
-T0      = 25 + 273.15;  % ambient temp, K
+T0      = 30 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 25e5;         % top pressure, Pa
 PRch    = 2.5;          % charge pressure ratio
@@ -10,9 +10,10 @@ setTmax = 1;            % set Tmax? (this option substitutes PRch)
 Tmax    = 560 + 273.15; % maximum temp at compressor outlet, K
 
 % Set Rankine-specific parameters
-Ran_ptop  = 100e5;
-Ran_Tbot0 = T0+15; %when discharging against the environment
-Ran_TbotC = 273.15+20; %when discharging against the cold stores
+Ran_ptop    = 100e5;
+Ran_pbotMIN = 0.05e5 ; % If condenser pressure decreases below this, the final stage chokes. Can't go to pressures below this, because who knows what happens.
+Ran_Tbot0   = T0+15; %when discharging against the environment. This sets design condenser pressure.
+Ran_TbotC   = 273.15+20; %when discharging against the cold stores
 
 % Set component parameters
 eta   = 0.90;  % polytropic efficiency
@@ -32,7 +33,7 @@ Nhot = 1; % number of hot stores. Not implemented for >2
 % Set parameters of Load structure
 switch Load.mode
     case 0 % PTES
-        fac = 1.0; % This can be used to more easily set the mass flow to obtain a desired power output
+        fac = 100.0; % This can be used to more easily set the mass flow to obtain a desired power output
         stH = 8 ;
         ee  = 1;%0.6031 ;
         % This is the load scenario the plant is designed for
@@ -46,6 +47,7 @@ switch Load.mode
             Load.time = [stH;stH].*3600;      % time spent in each load period, s
             Load.type = ["chg";"dis"];    % type of load period
             Load.mdot = [8.*fac;8.*fac];      % working fluid mass flow rate, kg/s
+            T0_inc    = 0.0 ; % Increase in ambient temperature
         else
             Load = Design_Load ;
         end
@@ -55,21 +57,34 @@ switch Load.mode
         stH              = 10 ;
         Design_Load.time = stH*3600;                  % time spent in each load period, s
         Design_Load.type = "chg";                     % type of load period
-        Design_Load.mdot = 10;                        % working fluid mass flow rate, kg/s
+        Design_Load.mdot = 1000;                        % working fluid mass flow rate, kg/s
         
         if Loffdesign
             % This is the actual load profile that the plant meets
             Load.time = [stH].*3600;      % time spent in each load period, s
             Load.type = ["chg"];    % type of load period
-            Load.mdot = [7.7];      % working fluid mass flow rate, kg/s
+            Load.mdot = [1000];      % working fluid mass flow rate, kg/s
+            T0_inc    = 10.0 ; % Increase in ambient temperature
         else
             Load = Design_Load ;
         end
         
     case 2 % Heat engine (no cold tanks)
-        Load.time = [0,10].*3600;                  % time spent in each load period, s
-        Load.type = ["sol","dis"];                 % type of load period
-        Load.mdot = [0,10];                        % working fluid mass flow rate, kg/s
+        
+        Design_Load      = Load ;
+        Design_Load.time = [0,10].*3600;                  % time spent in each load period, s
+        Design_Load.type = ["sol";"dis"];                     % type of load period
+        Design_Load.mdot = [0,10];                        % working fluid mass flow rate, kg/s
+        
+        if Loffdesign
+            % This is the actual load profile that the plant meets
+            Load.time = [0,10].*3600;      % time spent in each load period, s
+            Load.type = ["sol";"dis"];    % type of load period
+            Load.mdot = [0,10];      % working fluid mass flow rate, kg/s
+            T0_inc    = 0;  % Increase in ambient temperature
+        else
+            Load = Design_Load ;
+        end
         
     case 3 % JB charge, Rankine discharge
         fac = 1.0 ; % This can be used to more easily set the mass flow to obtain a desired power output 
@@ -79,7 +94,7 @@ switch Load.mode
         Design_Load.time = [10;4;10;10].*3600;          % time spent in each load period, s
         Design_Load.type = ["chg";"str";"ran";"ran"];   % type of load period
         Design_Load.mdot = [10*fac;0;1*fac;1*fac];      % working fluid mass flow rate, kg/s
-        Design_Load.options.useCold = [0,0,1,0];        % Use cold stores during Rankine discharge?
+        Design_Load.options.useCold = [0,0,0,0];        % Use cold stores during Rankine discharge? This should be set to 0 for design cases of retrofits.
         
         if Loffdesign
             % This is the actual load profile that the plant meets
@@ -87,6 +102,7 @@ switch Load.mode
             Load.type = ["chg";"str";"ran";"ran"];  % type of load period
             Load.mdot = [10*fac;0;1*fac;1*fac];     % working fluid mass flow rate, kg/s
             Load.options.useCold = [0,0,1,0];        % Use cold stores during Rankine discharge?
+            T0_inc    = 0.0 ; % Increase in ambient temperature
         else
             Load = Design_Load ;
         end

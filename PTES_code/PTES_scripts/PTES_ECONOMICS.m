@@ -30,22 +30,38 @@ Lretro = true ;
 
 % Compressors and expanders
 for ii = 1 : length(CCMP)
-    CCMP(ii) = compexp_econ(CCMP(ii), CEind, false, 0)  ;
+    if Load.mode == 2
+        CCMP(ii).cmpexp_cost.COST = 0.01 ;
+    else
+        CCMP(ii) = compexp_econ(CCMP(ii), CEind, false, 0)  ;
+    end
     cap_cost = cap_cost + CCMP(ii).cmpexp_cost.COST ;
     cap_sens = cap_sens + cost_sens(CCMP(ii).cmpexp_cost, Nsens) ;
 end
 for ii = 1 : length(DEXP)
-    DEXP(ii) = compexp_econ(DEXP(ii), CEind, false, 0)  ;
+    if Load.mode == 1
+        DEXP(ii).cmpexp_cost.COST = 0.01 ;
+    else
+        DEXP(ii) = compexp_econ(DEXP(ii), CEind, false, 0)  ;
+    end
     cap_cost = cap_cost + DEXP(ii).cmpexp_cost.COST ;
     cap_sens = cap_sens + cost_sens(DEXP(ii).cmpexp_cost, Nsens) ;
 end
 for ii = 1 : length(CEXP)
-    CEXP(ii) = compexp_econ(CEXP(ii), CEind, false, 0)  ;
+    if Load.mode == 2
+        CEXP(ii).cmpexp_cost.COST = 0.01 ;
+    else
+        CEXP(ii) = compexp_econ(CEXP(ii), CEind, false, 0)  ;
+    end
     cap_cost = cap_cost + CEXP(ii).cmpexp_cost.COST ;
     cap_sens = cap_sens + cost_sens(CEXP(ii).cmpexp_cost, Nsens) ;
 end
 for ii = 1 : length(DCMP)
-    DCMP(ii) = compexp_econ(DCMP(ii), CEind, false, 0)  ;
+    if Load.mode == 1
+        DCMP(ii).cmpexp_cost.COST = 0.01 ;
+    else
+        DCMP(ii) = compexp_econ(DCMP(ii), CEind, false, 0)  ;
+    end
     cap_cost = cap_cost + DCMP(ii).cmpexp_cost.COST ;
     cap_sens = cap_sens + cost_sens(DCMP(ii).cmpexp_cost, Nsens) ;
 end
@@ -63,18 +79,43 @@ end
 % have a motor on the compressor and a separate generator on the expander)
 % This needs to be based on design values of the compressors and expanders
 %powIN  = W_in_chg/t_chg/1e3 ;
-WINch = 0.; WOUTch = 0.;
-for ii = 1 : Nc_ch
-    WINch = WINch + CCMP(ii).W0;
-end
-for ii = 1 : Ne_ch
-    WOUTch = WOUTch + CEXP(ii).W0;
-end
-powIN  = (WINch - WOUTch) / 1e3 ; % This is only correct for JB PTES.
 GEN.gen_cost = econ_class(1, 0.2, 5, 0.2) ;
-GEN.gen_cost.COST = 1.85e6 * (powIN / 1.18e4)^0.94 ; % Really need to make a class .... just for this
+if Load.mode == 2
+    WINdis = 0.; WOUTdis = 0.;
+    for ii = 1 : Ne_ch
+        WINdis = WINdis + DCMP(ii).W0;
+    end
+    for ii = 1 : Nc_ch
+        WOUTdis = WOUTdis + DEXP(ii).W0;
+    end
+    powOUT  = -(WINdis - WOUTdis) / 1e3 ; % This is only correct for JB PTES.
+    GEN.gen_cost.COST = 1.85e6 * (powOUT / 1.18e4)^0.94 ; % Really need to make a class .... just for this
+else
+    WINch = 0.; WOUTch = 0.;
+    for ii = 1 : Nc_ch
+        WINch = WINch + CCMP(ii).W0;
+    end
+    for ii = 1 : Ne_ch
+        WOUTch = WOUTch + CEXP(ii).W0;
+    end
+    powIN  = (WINch - WOUTch) / 1e3 ; % This is only correct for JB PTES.
+    GEN.gen_cost.COST = 1.85e6 * (powIN / 1.18e4)^0.94 ; % Really need to make a class .... just for this
+end
 cap_cost = cap_cost + GEN.gen_cost.COST ;
 cap_sens = cap_sens + cost_sens(GEN.gen_cost, Nsens) ;
+
+% Electric heater
+if Load.mode == 2
+   Leh = true ; % Is there an electric heater to charge the hot tanks?
+   if Leh
+      % Heat from hot tanks
+      QH = ((HT.A(2).H - HT.A(end).H) + (HT.B(2).H - HT.B(end).H))/(t_dis*1e6) ; % This equals heat added by electric heater
+      EH.eh_cost = econ_class(1, 0.2, 5, 0.2) ;
+      EH.eh_cost.COST = 75e3 * QH ^ 0.9 ; % Correlation from Benato et al. 2017
+      cap_cost = cap_cost + EH.eh_cost.COST ;
+      cap_sens = cap_sens + cost_sens(EH.eh_cost, Nsens) ;
+   end
+end
 
 % Heat exchangers
 for ii = 1 : numel(HX)
@@ -105,8 +146,14 @@ end
 % Cold tank cost and cold fluid cost
 for ii = 1 : Ncld
    fluidC(ii).cost = 1.0 ; % Specify in input file in class constructor
-   CT(ii) = tank_cost(CT(ii), CEind) ;  
-   CT(ii) = fld_cost(CT(ii),fluidC(ii).cost, CEind) ;  
+   if Load.mode == 2
+       CT(ii).tankA_cost.COST = 0.01 ;
+       CT(ii).tankB_cost.COST = 0.01 ;
+       CT(ii).fluid_cost.COST = 0.01 ;
+   else
+       CT(ii) = tank_cost(CT(ii), CEind) ;
+       CT(ii) = fld_cost(CT(ii),fluidC(ii).cost, CEind) ;
+   end
    cap_cost = cap_cost + CT(ii).tankA_cost.COST + CT(ii).tankB_cost.COST + CT(ii).fluid_cost.COST ;
    cap_sens = cap_sens + cost_sens(CT(ii).tankA_cost, Nsens) + cost_sens(CT(ii).tankB_cost, Nsens) + cost_sens(CT(ii).fluid_cost, Nsens) ;
 end
@@ -135,7 +182,7 @@ Cdata = calc_lcos(Cdata, Win, Wout, Load.time, Nsens) ;
 
 % Write out some results
 switch Load.mode
-    case {0,1,3,4, 5, 6}
+    case {0,1,2,3,4,5,6}
         fprintf(1,'ECONOMIC RESULTS:\n');
         fprintf(1,'Capital cost:                  %8.1f M$\n',Cdata.cap_costM/1e6);
         fprintf(1,'     Standard deviation:       %8.1f M$\n\n',Cdata.cap_costSD/1e6);

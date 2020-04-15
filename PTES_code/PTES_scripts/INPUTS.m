@@ -2,7 +2,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Call the correct input file
-Load.mode  = 1 ;
+Load.mode  = 3 ;
 Loffdesign = 1 ; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
 PBmode     = 0 ; % Liquid stores = 0; Packed beds = 1; Heat exchangers between power cycle and a storage fluid, which then passes through packed beds = 2
 
@@ -14,7 +14,7 @@ switch Load.mode
 end
 
 % Code options
-multi_run  = 1; % run cycle several times with different parameters?
+multi_run  = 0; % run cycle several times with different parameters?
 optimise   = 0; % optimise cycle?
 make_plots = 1; % make plots?
 save_figs  = 0; % save figures at the end?

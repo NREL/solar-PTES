@@ -37,6 +37,8 @@ end
 pbH0 = pbH ;
 pbC0 = pbC ;
 
+fprintf(1,'\n\nCYCLE NUMBER %5i \n\n',Icyc)
+
 % Set matrix of temperature and pressure points to test convergence
 C_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
 counter = 1;
@@ -65,7 +67,7 @@ while 1
     
     while ~Lend
         
-        if mod(istep,50) == 0
+        if mod(istep,100) == 0
             fprintf(1,str1,istep) ;
         end
     
@@ -89,7 +91,6 @@ while 1
             % Put hot gas through hot packed bed
             %pbH = PB_TIMESTEP(pbH, gas, 'chg') ;
             pbH = PB_TIMESTEP_IDEAL(pbH, gas, iL, iG, 'chg') ;
-            
             pbH = PB_FLUX(pbH, T0, p0, gas, iL) ;
         
             % Fluid outlet
@@ -115,7 +116,6 @@ while 1
             % Pass cold gas through cold packed bed
             %pbC = PB_TIMESTEP(pbC, gas, 'chg') ;
             pbC = PB_TIMESTEP_IDEAL(pbC, gas, iL, iG, 'chg') ;
-            
             pbC = PB_FLUX(pbC, T0, p0, gas, iL) ;
         
             % Fluid outlet
@@ -186,7 +186,7 @@ while 1
         
        
         % Uncomment these lines to print states
-        print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
+        %print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
         
         % All heat exchangers now have their geometry set up properly
         for ihx = 1 : length(HX)

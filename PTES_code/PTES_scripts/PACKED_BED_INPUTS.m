@@ -2,7 +2,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Lcyclic = true ; % Run the system until cyclic convergence reached
-Ncyc    = 5 ; % Maximum number of cycles to run before giving up
+Ncyc    = 100 ; % Maximum number of cycles to run before giving up
 Icyc    = 1 ; % Number of cycles that have elapsed so far
 
 % Set up the classes
@@ -44,15 +44,15 @@ for ii = 1 : Nhot
     pbH(ii).Ltime = Ltime ; % End cycle after a certain time has elapsed
     pbH(ii).Ltext = Ltext ; % End cycle after the exit temperature reaches a certain threshold
     
-    pbH(ii).timeC = 2.0 * 3600. ; % End charge cycle after this time, s
-    pbH(ii).timeD = 2.0 * 3600. ; % End discharge cycle after this time, s
+    pbH(ii).timeC = 6.0 * 3600. ; % End charge cycle after this time, s
+    pbH(ii).timeD = 6.0 * 3600. ; % End discharge cycle after this time, s
     
     pbH(ii).textC = 0.25 ; % End charge cycle after this temperature threshold is exceeded
     pbH(ii).textD = 0.25 ; % End discharge cycle after this temperature threshold is exceeded
     
     % Grid and timestep controls
     pbH(ii).DELX = (1/100) ; % Size of grid-step relative to length of storage, dx / L
-    pbH(ii).CFL  = 100; % Courant-Friedrichs-Levy number, used to set time step size. (Choose 5 for oil with ideal gas routine. Choose 100 for ideal gas with ideal gas routine or 10 if using liquid routine. Choose 0.1 for liquids with liquid routine.
+    pbH(ii).CFL  = 200; % Courant-Friedrichs-Levy number, used to set time step size. (Choose 5 for oil with ideal gas routine. Choose 100 for ideal gas with ideal gas routine or 10 if using liquid routine. Choose 0.1 for liquids with liquid routine.
     pbH(ii).TMAX = 4.0 ;  % Max time to run calculations for - this is a multiple of tN
     
     % Turn conduction terms on/off 
@@ -93,8 +93,8 @@ for ii = 1 : Ncld
     pbC(ii).Ltime = Ltime ; % End cycle after a certain time has elapsed
     pbC(ii).Ltext = Ltext ; % End cycle after the exit temperature reaches a certain threshold
     
-    pbC(ii).timeC = 2.0 * 3600. ; % End charge cycle after this time, s
-    pbC(ii).timeD = 2.0 * 3600. ; % End discharge cycle after this time, s
+    pbC(ii).timeC = 6.0 * 3600. ; % End charge cycle after this time, s
+    pbC(ii).timeD = 6.0 * 3600. ; % End discharge cycle after this time, s
     
     pbC(ii).textC = 0.25 ; % End charge cycle after this temperature threshold is exceeded
     pbC(ii).textD = 0.25 ; % End discharge cycle after this temperature threshold is exceeded
