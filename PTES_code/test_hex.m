@@ -38,7 +38,7 @@ load_coolprop
 % 3 = CO2 and Water
 % 4 = Steam and MEG
 % 5 = sCO2 and sCO2
-scenario = 1;
+scenario = 4;
 
 % Save figures?
 save_figures = 0;
@@ -62,7 +62,7 @@ switch scenario
         F2.state(iL,i2).mdot = 10;
         
         % Set hex_mode
-        hex_mode = 0; % Both mass flow rates specified
+        hex_mode = 0;
         par = 0;
         
     case 2        
@@ -73,68 +73,68 @@ switch scenario
         F1.state(iL,i2).mdot = 45;
         
         % Water
-        F2 = fluid_class('Water','WF','CP','HEOS',1,5);
+        F2 = fluid_class('Water','WF','CP','TTSE',1,5);
         F2.state(iL,i2).p = 100*1e5;
         F2.state(iL,i2).T = 400;
         F2.state(iL,i2).mdot = 10;
         
-        % Set hex_mode
-        hex_mode = 0; % Compute mass flow rate of hot fluid with var=mH*CpH/(mC*CpC)
+        % Set hex_mode and stage_type
+        hex_mode = 0;
         par = 1.10;
         %hex_mode = 4;
         %par = 300+273;
         
     case 3        
         % CO2
-        F1 = fluid_class('CarbonDioxide','WF','CP','HEOS',1,5); % working fluid
+        F1 = fluid_class('CarbonDioxide','WF','CP','TTSE',1,5);
         F1.state(1,i1).p = 85e5;
         F1.state(1,i1).T = 380;
         F1.state(1,i1).mdot = 0.75;
         
         % Water
-        F2 = fluid_class('Water','SF','CP','HEOS',1,5); % storage fluid       
+        F2 = fluid_class('Water','SF','CP','TTSE',1,5);
         F2.state(1,i2).p = 5e5;
         F2.state(1,i2).T = 300;
         F2.state(1,i2).mdot = 1;
         
         % Set hex_mode
-        hex_mode = 0; % Both mass flow rates specified
+        hex_mode = 0;
         par = 0;
         
-    case 4        
-        % MEG
-        F1 = fluid_class('INCOMP::MEG2[0.56]','SF','TAB',NaN,1,5);
-        F1.state(iL,i1).p = 1e5;
-        F1.state(iL,i1).T = 245;
-        F1.state(iL,i2).mdot = 200;
-        
+    case 4
         % Water
-        F2 = fluid_class('Water','WF','CP','HEOS',1,5);
-        F2.state(iL,i2).p = 0.1*1e5;
-        F2.state(iL,i2).T = 322;
-        F2.state(iL,i2).mdot = 10;
+        F1 = fluid_class('Water','WF','CP','TTSE',1,5);
+        F1.state(iL,i2).p = 0.1*1e5;
+        F1.state(iL,i2).T = 322;
+        F1.state(iL,i2).mdot = 10;
+        
+        % MEG
+        F2 = fluid_class('INCOMP::MEG2[0.56]','SF','TAB',NaN,1,5);
+        F2.state(iL,i1).p = 1e5;
+        F2.state(iL,i1).T = 245;
+        F2.state(iL,i2).mdot = 200;
         
         % Set hex_mode
         hex_mode = 5;
-        par = 315;
+        par = 300;
         %hex_mode = 0;
         %par = 0;
         
     case 5        
         % CO2
-        F1 = fluid_class('CarbonDioxide','WF','CP','TTSE',1,5); % working fluid
+        F1 = fluid_class('CarbonDioxide','WF','CP','TTSE',1,5);
         F1.state(1,i1).p = 30.86e5;
         F1.state(1,i1).T = 776.9 + 273.15;
         F1.state(1,i1).mdot = 58.0;
         
-        % Water
+        % CO2
         F2 = fluid_class('CarbonDioxide','WF','CP','TTSE',1,5); % storage fluid       
         F2.state(1,i2).p = 297.62e5;
         F2.state(1,i2).T = 81.9 + 273.15;
         F2.state(1,i2).mdot = 58.0;
         
         % Set hex_mode
-        hex_mode = 0; % Both mass flow rates specified
+        hex_mode = 0;
         par = 0;
         
     otherwise
@@ -145,22 +145,38 @@ end
 [F2] = update(F2,[iL,i2],1);
 
 % Specify HX settings
-NX = 100; % Number of sections (grid)
+NX   = 100; % Number of sections (grid)
+name = 'hot';
 stage_type = 'hex';
-HX = hx_class('hot', stage_type, 4, NX, 2, 2, 'eff', 0.97, 0.01);
-%hx_class(name, stage_type, model, eff, ploss, cost_mode, Ngrid, Nsave, numPeriods)
-keyboard
+model = 'geom';
 
-switch HX.model
+switch model
     case 'eff'
-        HX.eff   = 0.97;
-        HX.ploss = 0.01;
+        eff   = 0.97;
+        ploss = 0.01;
+        par1  = eff;
+        par2  = ploss;
+        par3  = [];
+        par4  = [];
         
     case 'UA'
-        HX.UA    = 1e6;
-        HX.ploss = 0.01;        
+        UA    = 1e6;
+        ploss = 0.01;
+        par1  = UA;
+        par2  = ploss;
+        par3  = [];
+        par4  = [];
         
     case 'geom'
+        DT    = 10;
+        ploss = 0.01;
+        D1    = 0.02;
+        par1  = DT;
+        par2  = ploss;
+        par3  = D1;
+        par4  = 'circular';
+        
+        %{
         % Specify HEX geometry
         % Obtain geometric parameters based on performance objectives,
         % using analytical solutions.
@@ -185,11 +201,16 @@ switch HX.model
                 D     = 1e-2;                
         end
         [HX]  = set_hex_geom(HX,iL,F1,i1,F2,i2,hex_mode,par,NTU,ploss,D);
+        %}
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%HX(ihx_reg)  = hx_class('regen','regen', JB_HX_model, eff, ploss,  1, NX, Load.num, Load.num) ; % Recuperator
-%[HX(ihx_hot(iN)),gas,iG,fluidH,iH] = set_hex(HX(ihx_hot(iN)),iL,gas,iG,fluidH,iH,1,1.0);
+
+%%% CONSTRUCT HEAT EXCHANGER %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+HX = hx_class(name, stage_type, 4, NX, 2, 2, model, par1, par2, par3, par4);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 %%% DESIGN PERFORMANCE %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -202,13 +223,13 @@ plot_hex(HX,1,10,'C');
 % Compare specifications from set_hex_geom with numerical results
 if strcmp(HX.model,'geom')    
     fprintf(1,'\n      Specification  Result\n')
-    fprintf(1,'NTU_min = %8.3f   %9.3f\n',NTU,HX.NTU)
+    fprintf(1,'DTmin   = %8.3f   %9.3f\n',DT,min(HX.H.T-HX.C.T))
     fprintf(1,'DppH    = %8.5f   %9.5f\n',ploss,HX.DppH)
     fprintf(1,'DppC    = %8.5f   %9.5f\n',ploss,HX.DppC)
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
+%{
 %%% OFF-DESIGN PERFORMANCE %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Create mass flow rate arrays
@@ -414,3 +435,5 @@ switch save_figures
         end
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%}

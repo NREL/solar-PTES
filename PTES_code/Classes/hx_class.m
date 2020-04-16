@@ -10,6 +10,8 @@ classdef hx_class
        ploss    % Pressure loss
        DT       % Pinch-point temperature difference
        
+       plossH0  % Pressure loss, specific to hot side
+       plossC0  % Pressure loss, specific to cold side
        UA0      % Conductance, W/K - (design)
        NTU0     % Design NTU
        LMTD0    % Design LMTD
@@ -78,11 +80,19 @@ classdef hx_class
        function obj = hx_class(name, stage_type, cost_mode, Ngrid, Nsave, numPeriods, model, varargin)
            % There are four possible ways to construct a hx, depending on
            % the selected hx model.
-           % If model is 'eff',  eff = varargin{1} and ploss = varargin{2}.
-           % If model is 'UA',   UA  = varargin{1} and ploss = varargin{2}.
-           % If model is 'DT',   DT  = varargin{1} and ploss = varargin{2}.
-           % If model is 'geom', DT  = varargin{1}, ploss = varargin{2} and
-           % D1 = varargin{3}.
+           %
+           % If model is 'eff',
+           % eff = varargin{1}, ploss = varargin{2} and D1 = varargin{3}.
+           %
+           % If model is 'UA',
+           % UA  = varargin{1}, ploss = varargin{2} and D1 = varargin{3}.
+           %
+           % If model is 'DT',
+           % DT  = varargin{1}, ploss = varargin{2} and D1 = varargin{3}.
+           %
+           % If model is 'geom',
+           % DT  = varargin{1}, ploss = varargin{2}, D1 = varargin{3} and
+           % shape = varargin{4}.
            
            switch model
                case 'eff'
@@ -91,26 +101,29 @@ classdef hx_class
                    end
                    obj.eff   = varargin{1};
                    obj.ploss = varargin{2};
+                   %obj.D1    = varargin{3};
                case 'UA'
                    if length(varargin)~=2
                        error('incorrect number of inputs');
                    end
                    obj.UA    = varargin{1};
                    obj.ploss = varargin{2};
+                   %obj.D1    = varargin{3};
                case 'DT'
                    if length(varargin)~=2
                        error('incorrect number of inputs');
                    end
                    obj.DT    = varargin{1};
                    obj.ploss = varargin{2};
-                   error('not implemented yet')
+                   %obj.D1    = varargin{3};
                case 'geom'
-                   if length(varargin)~=3
+                   if length(varargin)~=4
                        error('incorrect number of inputs');
                    end
                    obj.DT    = varargin{1};
                    obj.ploss = varargin{2};
                    obj.D1    = varargin{3};
+                   obj.shape = varargin{4};
                otherwise
                    error('not implemented')
            end

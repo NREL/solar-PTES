@@ -23,22 +23,26 @@ function [HX, fluidH, iH, fluidC, iC] = hex_func(HX, iL, fluidH, iH, fluidC, iC,
 
 % Extract parameters from HX structure according to selected model
 model = HX.model;
+stage_type = HX.stage_type;
+NX  = HX.NX;
 switch model
+    case 'DT'
+        DT     = HX.DT;
+        ploss  = HX.ploss;
+        
     case 'eff'
-        eff   = HX.eff;
-        ploss = HX.ploss;
-        stage_type = HX.stage_type;
-        NX  = HX.NX;
+        eff    = HX.eff;
+        ploss  = HX.ploss;
         
     case 'UA'
         UA_ref = HX.UA;
-        ploss = HX.ploss;
-        stage_type = HX.stage_type;
-        NX  = HX.NX;
+        ploss  = HX.ploss;
         
     case 'geom'
-        stage_type = HX.stage_type;
-        NX  = HX.NX;
+        % Set heat exchanger geometry (first time only)
+        if ~HX.Lgeom_set
+            [HX] = set_hex_geom2(HX, iL, fluidH, iH, fluidC, iC, mode, par);
+        end
         
     otherwise
         error('Invalid heat exchanger model')
@@ -87,8 +91,12 @@ mH = stateH.mdot;
 mC = stateC.mdot;
 
 % Declare the two fluid streams
-H = stream; H.name = fluidH.name; H.pin = pH2;
-C = stream; C.name = fluidC.name; C.pin = pC1;
+H = stream; H.mdot = mH; H.name = fluidH.name;
+C = stream; C.mdot = mC; C.name = fluidC.name;
+H.read = fluidH.read; H.handle = fluidH.handle; H.HEOS = fluidH.HEOS;
+C.read = fluidC.read; C.handle = fluidC.handle; C.HEOS = fluidC.HEOS;
+H.pin = pH2;
+C.pin = pC1;
 
 % Obtain minimum hot fluid temperature, and maximum cold fluid temperature
 if strcmp(fluidH.read,'CP')
@@ -163,7 +171,7 @@ switch mode
     case 5
         % Set TH1 = par, and compute mC. Mass flow rate of hot fluid must
         % be previously specified
-        if mH == 0, error('mH must be known in mode==6'); end
+        if mH == 0, error('mH must be known in mode==5'); end
         if any([par<=THmin,par>=TH2]), error('par must be THmin<par<TH2'); end
         
     otherwise
@@ -172,22 +180,36 @@ end
 
 % Run algorithm according to the different models and operation modes
 switch model
-    case {'eff','UA'}
+    case {'eff','UA','DT'}
         
         % Set options for matlab root-finders (if needed)
         options = []; %optimset('Display','iter');
         
-        if strcmp(model,'eff')
-            compare = 'DTmin';
-            ref = 0;
-        elseif strcmp(model,'UA')
-            compare = 'UA';
-            ref = UA_ref;
+        switch model
+            case 'eff'
+                compare = 'DTmin';
+                ref = 0;
+            case 'UA'
+                compare = 'UA';
+                ref = UA_ref;
+            case 'DT'
+                compare = 'DTmin';
+                ref = DT;
         end
         
         % Set outlet pressures
-        pH1 = pH2*(1-ploss);
-        pC2 = pC1*(1-ploss);
+        if ~isempty(HX.plossH0)
+            plossH = HX.plossH0;
+        else
+            plossH = ploss;
+        end
+        if ~isempty(HX.plossC0)
+            plossC = HX.plossC0;
+        else
+            plossC = ploss;
+        end
+        pH1 = pH2*(1-plossH);
+        pC2 = pC1*(1-plossC);
         
         switch mode
             case {0,1,2}
@@ -207,11 +229,12 @@ switch model
                 hH1 = fzero(f1,[hH1_min,hH2],options);
                 
                 % Compute total heat transfer
-                if strcmp(model,'eff')
-                    QMAX = mH*(hH2 - hH1);
-                    QT   = QMAX*eff;
-                elseif strcmp(model,'UA')
-                    QT   = mH*(hH2 - hH1);
+                switch model
+                    case 'eff'
+                        QMAX = mH*(hH2 - hH1);
+                        QT   = QMAX*eff;
+                    case {'DT','UA'}
+                        QT   = mH*(hH2 - hH1);
                 end
                 
                 % Determine outlet enthalpies
@@ -252,12 +275,13 @@ switch model
                 end
                 
                 % Compute total heat transfer (and update mC if necessary)
-                if strcmp(model,'eff')
-                    QMAX = mC*(hC2 - hC1);
-                    QT   = QMAX*eff;
-                    mC = QT/(hC2 - hC1);
-                elseif strcmp(model,'UA')
-                    QT   = mC*(hC2 - hC1);
+                switch model
+                    case 'eff'
+                        QMAX = mC*(hC2 - hC1);
+                        QT   = QMAX*eff;
+                        mC = QT/(hC2 - hC1);
+                    case {'DT','UA'}
+                        QT   = mC*(hC2 - hC1);
                 end
                 stateC.mdot = mC;
                 
@@ -285,12 +309,13 @@ switch model
                 mH = fzero(f1,[mHmin,mHmax],options);
                 
                 % Compute total heat transfer (and update mH if necessary)
-                if strcmp(model,'eff')
-                    QMAX = mH*(hH2 - hH1);
-                    QT   = QMAX*eff;
-                    mH   = QT/(hH2 - hH1);                    
-                elseif strcmp(model,'UA')
-                    QT   = mH*(hH2 - hH1);
+                switch model
+                    case 'eff'
+                        QMAX = mH*(hH2 - hH1);
+                        QT   = QMAX*eff;
+                        mH   = QT/(hH2 - hH1);
+                    case {'UA','DT'}
+                        QT   = mH*(hH2 - hH1);
                 end
                 stateH.mdot = mH;
                 
@@ -340,14 +365,11 @@ switch model
         HX.H(iL) = H;
         HX.QS(iL,:) = QS;
         HX.AS  = [];
+        HX.C(iL).pin = pC1;
+        HX.H(iL).pin = pH2;
         
         
     case 'geom'
-        
-        % Set initial conditions for iteration procedure
-        % Pressures
-        H.p = ones(NX+1,1)*H.pin;
-        C.p = ones(NX+1,1)*C.pin;
         
         % Import mH and mC into stream objects (one of these might still be
         % set to 0 at this stage -unknown-, depending on the mode)
@@ -360,8 +382,9 @@ switch model
                 hH1_min = hH2 - QMAX0/mH;
                 
                 % Find value of hH1 for which computed area equals specified area
-                f1 = @(hH1) compute_area(HX,fluidH,fluidC,H,C,mH,mC,hH2,hC1,'hH1',hH1);
+                f1 = @(hH1) compute_area(HX,H,C,mH,mC,hH2,hC1,'hH1',hH1);
                 %plot_function(f1,hH1_min,hH2,100,31);
+                %keyboard
                 opt = optimset('TolX',(hH2-hH1_min)/1e12,'Display','notify');
                 hH1 = fzero(f1,[hH1_min,hH2],opt);
                 
@@ -379,7 +402,7 @@ switch model
                 mHmax = QMAX0/(hH2 - hH1)*(1.01); %necessary to find root
                 
                 % Find value of mH for which computed area equals specified area
-                f1  = @(mH) compute_area(HX,fluidH,fluidC,H,C,mH,mC,hH2,hC1,'hH1',hH1);
+                f1  = @(mH) compute_area(HX,H,C,mH,mC,hH2,hC1,'hH1',hH1);
                 opt = optimset('TolX',(mHmax-mHmin)/1e12,'Display','notify');
                 mH  = fzero(f1,[mHmin,mHmax],opt);
                 
@@ -398,11 +421,8 @@ switch model
                 
                 % Find value of mC for which computed area equals specified area
                 %keyboard
-                f1  = @(mC) compute_area(HX,fluidH,fluidC,H,C,mH,mC,hH2,hC1,'hH1',hH1);
+                f1  = @(mC) compute_area(HX,H,C,mH,mC,hH2,hC1,'hH1',hH1);
                 %plot_function(f1,mCmin,mCmax,5,15,'semilogx');
-                warning(['this is not properly working yet',...
-                    'must modify set_hex_geom function first'])
-                keyboard
                 opt = optimset('TolX',(mCmax-mCmin)/1e12,'Display','notify');
                 mC = fzero(f1,[mCmin,mCmax],opt);
                 
@@ -412,7 +432,7 @@ switch model
         end
         
         % Obtain output parameters for converged solution
-        [C,H,QS,AS] = compute_area(HX,fluidH,fluidC,H,C,mH,mC,hH2,hC1,'hH1',hH1);
+        [C,H,QS,AS] = compute_area(HX,H,C,mH,mC,hH2,hC1,'hH1',hH1);
         
         % Save outlet conditions
         hH1 = H.h(1);
@@ -456,10 +476,18 @@ HX.H(iL).Cp_mean = CpHmean;
 HX.C(iL).Cp_mean = CpCmean;
 HX.Cmin(iL) = Cmin;
 HX.NTU(iL)  = NTU;
-HX.DppH     = DppH;
-HX.DppC     = DppC;
+HX.DppH(iL) = DppH;
+HX.DppC(iL) = DppC;
 HX.UA(iL)   = UA ;
 HX.LMTD(iL) = (dTa - dTb) / log(dTa / dTb) ;
+
+% If this is the first time that hex_func is called, save the initial
+% values UA0, NTU0 and LMTD0
+if isempty(HX.UA0)
+    HX.UA0 = HX.UA(iL) ;
+    HX.NTU0 = HX.NTU(iL) ;
+    HX.LMTD0 = HX.LMTD(iL) ;
+end
 
 % *** DELETE EVENTUALLY >>>
 % Compute stages
@@ -680,9 +708,7 @@ end
 
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function varargout = compute_area(HX,fluidH,fluidC,H,C,mH,mC,hH2,hC1,mode,hout,varargin)
+function varargout = compute_area(HX,H,C,mH,mC,hH2,hC1,mode,hout,varargin)
 %COMPUTE_AREA Solve the TQ and TA diagrams diagrams of a two-stream
 %counter-flow heat exchanger.
 %
@@ -724,6 +750,11 @@ NX = HX.NX;
 % Compute mass fluxes
 [C, H, HX] = shell_and_tube_geom(C, H, HX);
 
+% Set initial conditions for iteration procedure
+% Pressures
+H.p = ones(NX+1,1)*H.pin;
+C.p = ones(NX+1,1)*C.pin;
+
 % Compute enthalpy arrays from hH1 (outlet guess value) and hH2 and hC1
 % (fixed inlet values)
 H.h = linspace(hH1,hH2,NX+1)';
@@ -741,9 +772,9 @@ for iI = 1:NI
     
     % UPDATE PROPERTIES
     % Cold stream
-    C = stream_update(fluidC,C,2);
+    C = stream_update(C,2);
     % Hot stream
-    H = stream_update(fluidH,H,2);
+    H = stream_update(H,2);
     
     % COMPUTE AVERAGED TEMPERATURE ARRAYS
     H.T_AV = 0.5*(H.T(1:NX) + H.T(2:NX+1));
@@ -789,29 +820,33 @@ for iI = 1:NI
     % Compute arrays of pressure loss
     Dp_H = - 2*H.G^2*Cf_H.*v_H.*dL./H.D;
     Dp_C = - 2*C.G^2*Cf_C.*v_C.*dL./C.D;
+    
+    % In a situation where H.h(NX+1)==H.h(1) (i.e. no heat exchange), the
+    % code above results in dAC=0, AC=0 and Dp_H=NaN, Dp_C=NaN. If so, set
+    % Dp_H and Dp_C to zero and proceed.
     if any(isnan([Dp_H;Dp_C]))
-        Dp_H = zeros(size(Dp_H));
-        Dp_C = zeros(size(Dp_C));
+        if abs(H.h(NX+1)-H.h(1)) < 10*eps(H.h(1))
+            Dp_H = zeros(size(Dp_H));
+            Dp_C = zeros(size(Dp_C));
+        else
+            error('NaN value found in hex_func!')
+        end
     end
-    % Update pressure profiles
-    for i=NX+1:-1:2
-        H.p(i-1) = H.p(i) + Dp_H(i-1);
+    
+    % Update pressure profiles. Assume a linear profile (to avoid computing
+    % a slow 'for loop') and limit max pressure loss to 80%.
+    DppH = abs(sum(Dp_H))/H.pin;
+    DppC = abs(sum(Dp_C))/C.pin;
+    if DppH > 0.8
+        DppH = 0.8;
+        warning('DpH exceeds 80%!');
     end
-    for i=1:NX
-        C.p(i+1) = C.p(i) + Dp_C(i);
+    if DppC > 0.8
+        DppC = 0.8;
+        warning('DpC exceeds 80%!');
     end
-    % Artificially avoid pressures below 20% of p_in and set error flag if
-    % needed
-    cond1 = C.p < 0.2*C.pin;
-    cond2 = H.p < 0.2*H.pin;
-    C.p(cond1) = 0.2*C.pin;
-    H.p(cond2) = 0.2*H.pin;
-    if any(cond1)
-        warning('DpC exceeds 20%!');
-    end
-    if any(cond2)
-        warning('DpH exceeds 20%!');
-    end
+    H.p  = linspace(H.pin*(1-DppH),H.pin,NX+1)';
+    C.p  = linspace(C.pin,C.pin*(1-DppC),NX+1)';
     
     % Update convergence array
     CON = [AC; H.p; C.p]; % initial value
@@ -832,7 +867,7 @@ for iI = 1:NI
             plot(QS./QS(end),C.T,'b'); hold off;
             xlabel('Cumulative heat transfer')
             ylabel('Temperature')
-            legend([fluidH.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[fluidC.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
+            legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
             
             figure(11)
             plot(QS./QS(end),H.p/H.pin,'r-'); hold on
@@ -840,7 +875,7 @@ for iI = 1:NI
             ylim([0.90 1])
             xlabel('Cummulative heat transfer')
             ylabel('Relative pressure, p/p0')
-            legend([fluidH.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[fluidC.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
+            legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
             
             fprintf(1,'\n\n*** Successful convergence after %d iterations***\n',iI);
             keyboard
@@ -864,7 +899,7 @@ end
 % large for selected operating conditions).
 solution = C.A - AC;
 % Control physically impossible solutions
-if any(DT_AV <= 0)
+if impossible
     solution = - C.A;
 end
 
