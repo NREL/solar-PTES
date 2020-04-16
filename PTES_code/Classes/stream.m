@@ -5,12 +5,14 @@ classdef stream
     properties
         % General variables
         name
+        read
         handle
+        HEOS
         Tin     {mustBePositive}
         Tout    {mustBePositive}
         pin     {mustBePositive}
         pout    {mustBePositive}
-        mdot    {mustBePositive}
+        mdot
         Cp_mean {mustBePositive}
         % Arrays in HEX sections (sides)
         T       {mustBePositive}
