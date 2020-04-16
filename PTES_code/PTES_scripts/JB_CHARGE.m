@@ -28,6 +28,7 @@ else
         gas.state(iL,ii).mdot = Load.mdot(iL) ;
         
         % For inventory control, assume that the pressure scales with the off-design mass flow rate
+        %gas.state(iL,ii).p = CCMP.Pin * Load.mdot(iL) / CCMP.mdot0 ;
         gas.state(iL,ii).p = gas.state(iL,ii).p * Load.mdot(iL) / CCMP.mdot0 ;
         [gas] = update(gas,[iL,ii],1);
     end  
@@ -60,6 +61,7 @@ for counter=1:max_iter
         % COOL (gas-liquid)
         fluidH.state(iL,iH).T = HT.A(iL).T; fluidH.state(iL,iH).p = HT.A(iL).p;
         [fluidH] = update(fluidH,[iL,iH],1);
+
         [HX(ihx_hot(iN)),gas,iG,fluidH,iH] = set_hex(HX(ihx_hot(iN)),iL,gas,iG,fluidH,iH,1,1.0);
         iH=iH+1;
     end    
@@ -68,8 +70,12 @@ for counter=1:max_iter
     [HX(ihx_reg),gas,iG,~,~] = set_hex(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
         
     % REJECT HEAT (external HEX)
-    T_aim = environ.T0;
-    [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,1.0,ploss);
+    if ~design_mode
+        T_aim = environ.T0 + T0_inc;
+    else
+        T_aim = environ.T0;
+    end
+    [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
     
     for iN = 1:Ne_ch
         % EXPAND
@@ -80,6 +86,7 @@ for counter=1:max_iter
         % HEAT (gas-liquid)
         fluidC.state(iL,iC).T = CT.A(iL).T; fluidC.state(iL,iC).p = CT.A(iL).p;
         [fluidC] = update(fluidC,[iL,iC],1);
+
         [HX(ihx_cld(iN)),fluidC,iC,gas,iG] = set_hex(HX(ihx_cld(iN)),iL,fluidC,iC,gas,iG,2,1.0);
         iC=iC+1;
     end
@@ -89,7 +96,7 @@ for counter=1:max_iter
     
     % Determine convergence and proceed
     C = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-    
+
     if (all(abs((C(C~=0) - C_0(C~=0))./C(C~=0))*100 < 1e-3) || counter==max_iter) % is charge cycle converged?
 
         % Close working fluid streams
@@ -131,14 +138,16 @@ for counter=1:max_iter
 %             fprintf('pEND: %13.8f \n\n',gas.state(iL,iG).p/1e5)
 %             fprintf('T1:   %13.8f \n',gas.state(iL,1).T)
 %             fprintf('TEND: %13.8f \n\n',gas.state(iL,iG).T)
-            gas.state(iL,1).p = gas.state(iL,1).p - 0.10 * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
-            gas.state(iL,1).T = gas.state(iL,1).T + 0.10 * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
-            
+            % Reduce smoothing factor with number of iterations
+            smooth = 0.10;% / double(counter)^1 
+            gas.state(iL,1).p = gas.state(iL,1).p - smooth * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
+            gas.state(iL,1).T = gas.state(iL,1).T + smooth * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
+                      
             gas.state(iL,1).mdot = Load.mdot(iL);
             [gas] = update(gas,[iL,1],1);
             
         else
-            gas.state(iL,1) = gas.state(iL,iG);
+            gas.state(iL,1) = gas.state(iL,iG); 
         end
         
         C_0 = C;

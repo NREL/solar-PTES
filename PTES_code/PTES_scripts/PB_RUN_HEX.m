@@ -1,5 +1,5 @@
 % Charging function
-function [obj, TS, TF, iCYC] = PB_RUN (obj, Npb, fld, iCYC, mode)
+function [obj, TS, TF, fld, iF, iCYC] = PB_RUN_HEX (obj, Npb, fld, indF, environ, iCYC, mode)
 
 Lend = false;
 i    = 1 ;
@@ -8,6 +8,7 @@ time = 0 ;
 
 switch mode
     case 'chg'
+        % Move this into initialize
         if obj(Npb).Ltext
             Tx   = obj(Npb).TD + obj(Npb).textC * (obj(Npb).TC - obj(Npb).TD) ;
         end
@@ -34,6 +35,15 @@ end
 HF0 = RP1('PT_INPUTS',1e5,T0,'H',fld) ;
 SF0 = RP1('PT_INPUTS',1e5,T0,'S',fld) ;
 
+        
+% Fluid inlet
+fld.state(indF(1),indF(2)).T = obj(1).TC ;
+fld.state(indF(1),indF(2)).p = obj(1).Pin ;
+
+% Update fluid
+[fld] = update(fld,[indF(1),indF(2)],1);
+indF(2) = indF(2) + 1 ;
+
 while ~Lend
     
     if mod(i,100) == 0
@@ -42,6 +52,8 @@ while ~Lend
     
     % Step forward one time step
     for j = 1 : Npb
+
+        
         obj(Npb) = PB_TIMESTEP(obj(Npb), fld, mode) ;
         %obj(Npb) = PB_TIMESTEP_IDEAL(obj(Npb), fld, mode) ;
         
@@ -60,8 +72,24 @@ while ~Lend
         %obj(Npb).Hflux(iCYC, 2) = obj(Npb).Hflux(iCYC, 2) + Mout * (obj(Npb).cF *(obj.TF(end,1)-T0));
         obj(Npb).Sflux(iCYC, 2) = obj(Npb).Sflux(iCYC, 2) + Mout * (RP1('PT_INPUTS',obj.P(end),obj.TF(end,1),'S',fld) - SF0) ;
             
+        % Fluid outlet
+        fld.state(indF(1),indF(2)).T = obj(Npb).TF(obj.NX,1) ;
+        fld.state(indF(1),indF(2)).p = obj(Npb).P(obj.NX,1) ;
+        
+        % Update fluid
+        [fld] = update(fld,[indF(1),indF(2)],1);
+        
+        % Now put through a heat exchanger
+        % If hot packed bed - reject heat
+        T_aim = T0;
+        iE = 1 ;
+        %[fld,environ,indF(2),iE] = hex_set(fld,indF,environ,[indF(1),iE],T_aim,eff,ploss);
+        [fld,environ,~,iE] = hex_set(fld,indF,environ,[indF(1),iE],T_aim,1.0,0.01);
+        
+        % If cold packed bed - add heat (electric heater)
+        
+        
     end
-    
     
     % Check whether to end charging
     if obj(Npb).Ltime
@@ -84,6 +112,9 @@ while ~Lend
     i = i + 1 ;
     time = time + obj.dt ;
 end
+
+indF(2) = indF(2) + 1 ;
+iF      = indF(2) ;
 
 for j = 1 : Npb
     [obj(Npb), obj(Npb).H(iCYC), obj(Npb).S(iCYC)] = PB_ENERGY(obj(Npb), fld) ; % Evaluate energy in packed bed at end of charge

@@ -84,7 +84,11 @@ classdef compexp_class
                 obj.eta(iL) = obj.eta0 ;
                 obj.pr(iL)  = 1 ;
             else
-                obj = compexp_offdesign (obj , state, iL , 1) ;
+                if strcmp(fluid.name,'Water')
+                    obj = compexp_offdesign (obj , state, iL , aim, 2) ;
+                else
+                    obj = compexp_offdesign (obj , state, iL , aim, 1) ;
+                end
             end
             etaI = obj.eta(iL) ;     
             
@@ -224,7 +228,7 @@ classdef compexp_class
                 h2 = h1 + eta^n*(h2_is - h1);
                 % Update until convergence
                 err = zeros(1,20);
-                for i1 = 1:20
+                for i1 = 1:50
                     h2_0  = h2;
                     rho2  = RP1('HmassP_INPUTS',h2,p2,'D',fluid);
                     xi    = log(rho2/rho1)/log(p2/p1); %assumes rho = K*p^xi along polytropic compression/expansion
@@ -265,7 +269,7 @@ classdef compexp_class
         
         % Calculate the off-design performance of the compressor given how
         % the mass flow or pressure ratio deviate from the design point
-        function [obj, Nr, mr] = compexp_offdesign(obj,state,iL,mode)
+        function [obj, Nr, mr] = compexp_offdesign(obj,state,iL,paim,mode)
             % iL is the current timestep
             % Mode 1: Map based on Zhang and Cai 2002
             
@@ -313,7 +317,7 @@ classdef compexp_class
                     end
                 elseif obj.type == "exp"
                     switch mode
-                        case 1
+                        case 1 % Axial gas machines
                             mr = (obj.mdot(iL) / obj.mdot0) * (T1/obj.Tin)^0.5 * (obj.Pin/P1) ; % Reduced mass
                             Nr = (obj.N(iL) / obj.N0) * (T1/obj.Tin)^0.5 ; % Reduced speed
                             
@@ -330,7 +334,40 @@ classdef compexp_class
                             end
                             obj.eta(iL) = obj.eta0 *(1-t2*(1-Nr)^2)*(Nr/mr)*(2-Nr/mr) ;
                             
-                        case 2
+                        case 2 % Axial steam machines
+                            % Estimate what exit pressure should be based on Stodola's ellipse
+                            pout0 = obj.Pin / obj.pr0 ;
+                            pout = P1 * sqrt(1.-(1. - (pout0/obj.Pin)^2)*(obj.mdot(iL) / obj.mdot0)^2);
+                            
+                            obj.eta(iL) = obj.eta0 ; % Assume this by default
+                            
+                            % How does outlet presssure compare to paim?
+                            if paim < pout
+                                pout = paim ;
+                                obj.pr(iL) = (P1 / paim) / obj.pr0 ; % Reduce pout and pr accordingly
+                                
+                                % Calculate mass from Stodola
+                                mout = obj.mdot0 * sqrt ( (1. - (pout/P1)^2)/(1. - (pout0/obj.Pin)^2)) ;
+                                if mout > obj.mdot0 % If an increased mass is required, specify this
+                                    obj.mdot(iL) = mout ; 
+                                elseif mout < obj.mdot0 %If a reduced mass is required, use the original mass but reduce the efficiency
+                                    obj.eta(iL) = obj.eta0 * (1. - 0.191 + 0.409*mout/obj.mdot0 - 0.218*(mout/obj.mdot0)^2) ; % Correlation from Patnode thesis, p.68
+                                end
+                            end
+                            
+                            if pout < paim
+                                pout = paim ; % paim is minimum outlet pressure
+                                obj.pr(iL) = (P1 / paim) / obj.pr0 ; % Reduce pout and pr accordingly
+                                
+                                % Calculate mass from Stodola
+                                mout = obj.mdot0 * sqrt ( (1. - (pout/P1)^2)/(1. - (pout0/obj.Pin)^2)) ;
+                                if mout > obj.mdot0 % If an increased mass is required, specify this
+                                    obj.mdot(iL) = mout ; 
+                                elseif mout < obj.mdot0 %If a reduced mass is required, use the original mass but reduce the efficiency
+                                    obj.eta(iL) = obj.eta0 * (1. - 0.191 + 0.409*mout/obj.mdot0 - 0.218*(mout/obj.mdot0)^2) ; % Correlation from Patnode thesis, p.68
+                                end
+                            end
+                        case 3
                             error('Not implemented')
                     end
                     

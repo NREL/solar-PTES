@@ -334,7 +334,7 @@ end
 WL_matrix = [ WL_PTES_chg ; WL_PTES_dis ; ];
 Total_loss = sum(WL_matrix(:));
 
-% Calculate tank stats
+% Calculate tank stats - volumes and masses
 for ii = 1 : Nhot
     HT(ii) = tank_stats(HT(ii)) ;
 end
@@ -436,35 +436,39 @@ if WM == 1
     switch Load.mode
         case {0,1,3,4,6}
             fprintf(1,'CHARGE\n');
-            fprintf(1,'Average power input:     %8.1f MW\n',W_in_chg/t_chg/1e6);
-            fprintf(1,'Total charge time:       %8.1f h\n',t_chg/3600);
-            fprintf(1,'Energy(el) input:        %8.1f MWh\n',W_in_chg/fact);
-            fprintf(1,'Heat to hot tanks:       %8.1f MWh\n',QH_chg/fact);
-            fprintf(1,'Heat from cold tanks:    %8.1f MWh\n',QC_chg/fact);
-            fprintf(1,'DH working fluid:        %8.1f MWh\n',DH_chg/fact);
-            fprintf(1,'Heat rejected:           %8.1f MWh\n',QE_chg/fact);
-            fprintf(1,'NET:                     %8.1f MWh\n\n',Net_chg/fact);
+            fprintf(1,'Average power input:     %8.2f MW\n',W_in_chg/t_chg/1e6);
+            fprintf(1,'Total charge time:       %8.2f h\n',t_chg/3600);
+            fprintf(1,'Energy(el) input:        %8.2f MWh\n',W_in_chg/fact);
+            fprintf(1,'Heat to hot tanks:       %8.2f MWh\n',QH_chg/fact);
+            fprintf(1,'Heat from cold tanks:    %8.2f MWh\n',QC_chg/fact);
+            fprintf(1,'DH working fluid:        %8.2f MWh\n',DH_chg/fact);
+            fprintf(1,'Heat rejected:           %8.2f MWh\n',QE_chg/fact);
+            fprintf(1,'NET:                     %8.2f MWh\n\n',Net_chg/fact);
     end
     
     switch Load.mode
         case {0,2,3,4,5,6}
             fprintf(1,'DISCHARGE\n');
-            fprintf(1,'Average power output:    %8.1f MW\n',W_out_dis/t_dis/1e6);
-            fprintf(1,'Total discharge time:    %8.1f h\n',t_dis/3600);
-            fprintf(1,'Energy(el) output:       %8.1f MWh\n',W_out_dis/fact);
-            fprintf(1,'Heat from hot tanks:     %8.1f MWh\n',QH_dis/fact);
-            fprintf(1,'Heat to cold tanks:      %8.1f MWh\n',QC_dis/fact);
-            fprintf(1,'DH working fluid:        %8.1f MWh\n',DH_dis/fact);
-            fprintf(1,'Heat rejected:           %8.1f MWh\n',QE_dis/fact);
-            fprintf(1,'NET:                     %8.1f MWh\n\n',Net_dis/fact);
+            fprintf(1,'Average power output:    %8.2f MW\n',W_out_dis/t_dis/1e6);
+            fprintf(1,'Total discharge time:    %8.2f h\n',t_dis/3600);
+            fprintf(1,'Energy(el) output:       %8.2f MWh\n',W_out_dis/fact);
+            fprintf(1,'Heat from hot tanks:     %8.2f MWh\n',QH_dis/fact);
+            fprintf(1,'Heat to cold tanks:      %8.2f MWh\n',QC_dis/fact);
+            fprintf(1,'DH working fluid:        %8.2f MWh\n',DH_dis/fact);
+            fprintf(1,'Heat rejected:           %8.2f MWh\n',QE_dis/fact);
+            fprintf(1,'NET:                     %8.2f MWh\n\n',Net_dis/fact);
     end
     
     switch Load.mode
         case 3
-            fprintf(1,'DISCHARGE Efficiencies\n');
-            fprintf(1,'Rankine cycle average efficiency:           %8.1f %%\n',HEeff*100);
-            fprintf(1,'Rankine cycle efficiency NO cold stores:    %8.1f %%\n',HEeffNC*100);
-            fprintf(1,'Rankine cycle efficiency using cold stores: %8.1f %%\n\n',HEeffRC*100);
+            fprintf(1,'DISCHARGE DETAILS:\n');
+            fprintf(1,'Rankine cycle average power output:          %8.2f MW\n',W_out_dis/t_dis/1e6);
+            fprintf(1,'Rankine cycle power output NO cold stores:   %8.2f MW\n',W_out_disNC/(t_dis-t_disRC)/1e6);
+            fprintf(1,'Rankine cycle power output WITH cold stores: %8.2f MW\n',W_out_disRC/t_disRC/1e6);
+            
+            fprintf(1,'Rankine cycle average efficiency:            %8.2f %%\n',HEeff*100);
+            fprintf(1,'Rankine cycle efficiency NO cold stores:     %8.2f %%\n',HEeffNC*100);
+            fprintf(1,'Rankine cycle efficiency using cold stores:  %8.2f %%\n\n',HEeffRC*100);
         case 6
             fprintf(1,'EFFICIENCIES\n');
             fprintf(1,'Solar conversion efficiency:     %8.1f %%\n',SOLeff*100);
@@ -495,7 +499,7 @@ if WM == 1
         case 1
             fprintf(1,'Exergetic efficiency:                %8.1f %%\n',chi_tot*100);
             fprintf(1,'Exergetic efficiency (cold reject):  %8.1f %%\n',chi_hot*100);
-            fprintf(1,'Coefficient of Performance:           %8.2f\n\n',COP);
+            fprintf(1,'Coefficient of Performance:           %8.3f\n\n',COP);
             fprintf(1,'Exergy density (hot tanks):          %9.2f kWh/m3\n',rhoE);
         case {2,5}
             fprintf(1,'Exergetic efficiency:      %7.1f %%\n',chi_tot*100);
@@ -511,15 +515,15 @@ end
 % temperature. If stores are above T0 when discharged, then they must be
 % returned to their original temp or greater. If stores are below T0 when
 % discharged, then they must be returned to original temp or lower.
-if Load.mode == any([0,4,6])
+if any(Load.mode ==[0,4,6])
     problem = 0 ;
     
     % Hot tanks
     for ii = 1 : Nhot
        if HT(ii).A(1).T >= T0
-           if HT(ii).A(4).T < HT(ii).A(1).T - 1.0; problem = 1 ; end
+           if HT(ii).A(end).T < HT(ii).A(1).T - 1.0; problem = 1 ; end
        else
-           if HT(ii).A(4).T > HT(ii).A(1).T + 1.0; problem = 1 ; end
+           if HT(ii).A(end).T > HT(ii).A(1).T + 1.0; problem = 1 ; end
        end
     end
     if problem
@@ -529,9 +533,9 @@ if Load.mode == any([0,4,6])
     % Cold tanks
     for ii = 1 : Ncld
        if CT(ii).A(1).T >= T0
-           if CT(ii).A(4).T < CT(ii).A(1).T - 1.0; problem = 1 ; end
+           if CT(ii).A(end).T < CT(ii).A(1).T - 1.0; problem = 1 ; end
        else
-           if CT(ii).A(4).T > CT(ii).A(1).T + 1.0; problem = 1 ; end
+           if CT(ii).A(end).T > CT(ii).A(1).T + 1.0; problem = 1 ; end
        end
     end
     if problem

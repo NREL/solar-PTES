@@ -34,6 +34,7 @@ else
         gas.state(iL,ii).mdot = Load.mdot(iL) ;
         
         % For inventory control, assume that the pressure scales with the off-design mass flow rate
+        %gas.state(iL,ii).p = (DEXP.Pin/DEXP.pr0) * Load.mdot(iL) / DEXP.mdot0 ;
         gas.state(iL,ii).p = gas.state(iL,ii).p * Load.mdot(iL) / DEXP.mdot0 ;
         
         [gas] = update(gas,[iL,ii],1);
@@ -52,8 +53,12 @@ for counter = 1:max_iter
     for iN = 1:Nc_dis
         % REJECT HEAT (external HEX)
         % REPLACE THIS WITH hex_func call?
-        T_aim = environ.T0;
-        [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,1.0,ploss);
+        if ~design_mode
+            T_aim = environ.T0 + T0_inc;
+        else
+            T_aim = environ.T0;
+        end
+        [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
         
         switch Load.mode
             case 0 % PTES
@@ -127,8 +132,8 @@ for counter = 1:max_iter
 %              fprintf('TEND: %13.8f \n\n',gas.state(iL,iG).T)
             % Adjust inlet pressure to try to reach convergence. The
             % 'smoothing' factor has to be quite small (<0.1, say) for this to be stable
-            gas.state(iL,1).p = gas.state(iL,1).p - 0.10 * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
-            gas.state(iL,1).T = gas.state(iL,1).T + 0.10 * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
+            gas.state(iL,1).p = gas.state(iL,1).p - 0.05 * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
+            gas.state(iL,1).T = gas.state(iL,1).T + 0.05 * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
             gas.state(iL,1).mdot = Load.mdot(iL);
             [gas] = update(gas,[iL,1],1);
             

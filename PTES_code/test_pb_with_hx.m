@@ -26,14 +26,32 @@ load_coolprop
 
 tic
 
+% Other inputs
+% Heat rejection streams
+% Set atmospheric conditions and cycle parameters
+T0      = 30 + 273.15;  % ambient temp, K
+p0      = 1e5;          % ambient pressure, Pa
+
+stH       = 8 ;
+Load.time = [stH;stH;].*3600;      % time spent in each load period, s
+Load.type = ["chg";"dis"];    % type of load period
+Load.mdot = [10;10];      % working fluid mass flow rate, kg/s
+
+Load.num  = numel(Load.time);
+Load.ind  = 1:Load.num;
+
+environ = environment_class(T0,p0,Load.num,10);
+
 % Fluid
 FSname = 'MineralOil';  % fluid name
-fluidS = fluid_class(FSname,'SF','TAB',NaN,1,30); % Storage fluid
+fluidS = fluid_class(FSname,'SF','TAB',NaN,Load.num,30); % Storage fluid
 Nhot = 1 ;
-PACKED_BED_INPUTS_ORIG
+% Packed bed inputs
+PACKED_BED_INPUTS_orig
 
 i    = 1 ;
 iCYC = 1 ;
+iF   = 1 ;
 Lcyc = false ;
 den  = 0.0 ;
 en_prev = 0.0 ;
@@ -45,8 +63,8 @@ iCYC = iCYC + 1;
 
 while ~Lcyc 
     
-    [pbH, TsC, TfC, iCYC] = PB_RUN(pbH, Nhot, fluidS, iCYC, 'chg');
-    [pbH, TsD, TfD, iCYC] = PB_RUN(pbH, Nhot, fluidS, iCYC, 'dis');
+    [pbH, TsC, TfC, fluidS, iF, iCYC] = PB_RUN_HEX(pbH, Nhot, fluidS, [iCYC,iF], environ, iCYC, 'chg');
+    %[pbH, TsD, TfD, iCYC] = PB_RUN(pbH, Nhot, fluidS, iCYC, 'dis');
     fprintf(1,'COMPLETED CYCLE %5i\n\n',i) ;
     
     den     = 100.0 * abs(pbH(1).H(1) - en_prev) / en_prev ;
