@@ -2,7 +2,7 @@
 T0      = 25 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 25e5;         % top pressure, Pa
-PRch    = 2.5;          % charge pressure ratio
+PRch    = 3.0;          % charge pressure ratio
 PRr     = 1.18;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
@@ -87,7 +87,7 @@ Load.ind  = 1:Load.num;
 
 % Hot storage tanks
 fHname  = 'SolarSalt';  % fluid name
-TH_dis0 = 350 + 273.15; % initial temperature of discharged hot fluid, K
+TH_dis0 = 250 + 273.15; % initial temperature of discharged hot fluid, K
 MH_dis0 = 1e9;          % initial mass of discharged hot fluid, kg
 TH_chg0 = 570 + 273.15; % initial temperature of charged hot fluid, K
 MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg

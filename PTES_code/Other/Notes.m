@@ -454,3 +454,29 @@ end
 OKpnts = ~isnan(Apnt); %keep all
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% See how the heat exchanger length and the Reynolds numbers of each side
+% of the HX evolve as the value of Af changes, using the compute_pressure
+% function. (the lines below were originally part of set_hex_geom2)
+
+f1 = @(Af) compute_pressure(HX,iL,Af,0);
+plot_function(f1,Afmin,Afmax,100,31,'semilogx');
+Af = logspace(log10(Af_min),log10(Af_max),100);
+L  = ones(1,100);
+ReH = ones(1,100);
+ReC = ones(1,100);
+for i=1:100
+    [~,HXt] = compute_pressure(HX,iL,Af(i),0);
+    L(i)    = HXt.L;
+    ReH(i)  = mean(HXt.H(iL).Re);
+    ReC(i)  = mean(HXt.C(iL).Re);
+end
+figure(32)
+yyaxis left
+loglog(Af,L)
+yyaxis right
+loglog(Af,ReH,Af,ReC)
+legend({'Length','ReH','ReC'})
+keyboard
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

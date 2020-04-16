@@ -31,7 +31,7 @@ ylabel(ytext)
 legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
 
 if ~isempty(AS)
-    % Plot TA diagram
+    % Plot T-A diagram
     figure(fignum+1)
     plot(AS./AS(end),H.T-K,'r'); hold on;
     plot(AS./AS(end),C.T-K,'b'); hold off;
@@ -39,7 +39,7 @@ if ~isempty(AS)
     ylabel(ytext)
     legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
     
-    % Plot pA diagram
+    % Plot p-A diagram
     figure(fignum+2)
     plot(AS./AS(end),H.p/H.pin*100,'r'); hold on;
     plot(AS./AS(end),C.p/C.pin*100,'b'); hold off;
@@ -47,7 +47,7 @@ if ~isempty(AS)
     ylabel('Normalised pressure [$\%$]')
     legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
     
-    % Plot pA diagram
+    % Plot Re-A diagram
     figure(fignum+3)
     semilogy(AS./AS(end),H.Re,'r'); hold on;
     semilogy(AS./AS(end),C.Re,'b'); hold off;
