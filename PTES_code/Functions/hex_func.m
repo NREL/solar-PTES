@@ -87,8 +87,8 @@ TC1 = stateC.T;
 pC1 = stateC.p;
 hC1 = stateC.h;
 sC1 = stateC.s;
-mH = stateH.mdot;
-mC = stateC.mdot;
+mH  = stateH.mdot;
+mC  = stateC.mdot;
 
 % Declare the two fluid streams
 H = stream; H.mdot = mH; H.name = fluidH.name;
@@ -99,6 +99,8 @@ H.shape = HX.shape;
 C.shape = HX.shape;
 H.pin = pH2;
 C.pin = pC1;
+H.hin = hH2;
+C.hin = hC1;
 
 % Obtain minimum hot fluid temperature, and maximum cold fluid temperature
 if strcmp(fluidH.read,'CP')
@@ -390,6 +392,26 @@ switch model
                 opt = optimset('TolX',(hH2-hH1_min)/1e12,'Display','notify');
                 hH1 = fzero(f1,[hH1_min,hH2],opt);
                 
+            case 3
+                % Set outlet conditions of cold fluid. Assume small effect
+                % of pressure loss when computing outlet enthalpy from the
+                % objective outlet temperature.
+                TC2 = par;
+                hC2 = RP1('PT_INPUTS',pC1,TC2,'H',fluidC);
+                
+                % Compute preliminary QMAX (hot outlet cannot be colder
+                % than cold inlet) and set boundaries accordingly
+                QMAX0 = mH*(hH2 - hH1_min);
+                mCmax = QMAX0/(hC2 - hC1)*(1.01); %necessary to find root
+                mCmin = mCmax/1e6;
+                
+                % Find value of mC for which computed area equals specified area
+                f1  = @(mC) hex_compute_area(HX,iL,'hC2',hC2,'mC',mC);
+                %plot_function(f1,mCmin,mCmax,20,30)
+                %keyboard
+                opt = optimset('TolX',(mCmax-mCmin)/1e12,'Display','notify');
+                mC  = fzero(f1,[mCmin,mCmax],opt);
+                
             case 4
                 % Set outlet conditions of hot fluid. Assume small effect
                 % of pressure loss when computing outlet enthalpy from the
@@ -400,8 +422,8 @@ switch model
                 % Compute preliminary QMAX (cold outlet cannot be hotter
                 % than hot inlet) and set boundaries accordingly
                 QMAX0 = mC*(hC2_max - hC1);
-                mHmin = eps(mC);
                 mHmax = QMAX0/(hH2 - hH1)*(1.01); %necessary to find root
+                mHmin = mHmax/1e6;
                 
                 % Find value of mH for which computed area equals specified area
                 f1  = @(mH) hex_compute_area(HX,iL,'hH1',hH1,'mH',mH);
@@ -429,13 +451,15 @@ switch model
                 opt = optimset('TolX',(mCmax-mCmin)/1e12,'Display','notify');
                 mC = fzero(f1,[mCmin,mCmax],opt);
                 
-            case 3
-                error(['Operation mode 3 has not been implemented yet',...
-                    'for the geometry-based heat exchanger model']);
         end
         
         % Obtain output parameters for converged solution
-        [~,HX] = hex_compute_area(HX,iL,'hH1',hH1);
+        switch mode
+            case {0,1,2,4,5}
+                [~,HX] = hex_compute_area(HX,iL,'hH1',hH1);
+            case 3
+                [~,HX] = hex_compute_area(HX,iL,'hC2',hC2);
+        end
         
         % Extract outlet conditions
         hH1 = HX.H.h(1);

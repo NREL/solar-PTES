@@ -79,10 +79,12 @@ switch scenario
         F2.state(iL,i2).mdot = 10;
         
         % Set hex_mode and stage_type
-        hex_mode = 0;
-        par = 1.10;
+        %hex_mode = 0;
+        %par = 1.10;
         %hex_mode = 4;
         %par = 300+273;
+        hex_mode = 3;
+        par = 450+273;
         
     case 3        
         % CO2

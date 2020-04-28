@@ -25,7 +25,7 @@ switch mode
     case 'hH1'
         hH1 = par;
     case 'hC2'
-        error('not implemented yet')
+        hC2 = par;
     case 'Af'
         Af = par;
     otherwise
@@ -63,8 +63,8 @@ C   = HX.C(iL);
 mH  = H.mdot;
 mC  = C.mdot;
 NX  = HX.NX;
-hH2 = H.h(end);
-hC1 = C.h(1);
+hH2 = H.hin;
+hC1 = C.hin;
 
 switch mode
     case 'Af'
@@ -98,13 +98,15 @@ end
 H.G = mH/H.Af;
 C.G = mC/C.Af;
 
+% Compute enthalpy arrays from guess outlet values
 switch mode
     case 'hH1'
-        % Compute enthalpy arrays from hH1 (outlet guess value) and hH2 and hC1
-        % (fixed inlet values)
         H.h = linspace(hH1,hH2,NX+1)';
-        QS  = mH*(H.h - hH1);
-        C.h = hC1 + QS/mC;
+        C.h = hC1 + (H.h - hH1)*mH/mC;
+    case 'hC2'
+        C.h = linspace(hC1,hC2,NX+1)';
+        H.h = hH2 - (hC2 - C.h)*mC/mH;
+        %keyboard
 end
 
 % Set initial conditions for iteration procedure
@@ -114,9 +116,9 @@ C.p = ones(NX+1,1)*C.pin;
 % Heat flux
 switch mode
     case {'hH1','hC2'}
-        q   = ones(NX+1,1)*(C.h(NX+1)-C.h(1))/C.A;
+        q = ones(NX+1,1)*(C.h(NX+1)-C.h(1))/C.A;
     case 'Af'
-        q   = ones(NX+1,1)*100; %guess
+        q = ones(NX+1,1)*100; %guess
 end
 
 % Create array to check convergence. First element is computed heat

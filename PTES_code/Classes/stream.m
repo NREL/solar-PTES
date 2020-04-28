@@ -12,6 +12,8 @@ classdef stream
         Tout    {mustBePositive}
         pin     {mustBePositive}
         pout    {mustBePositive}
+        hin
+        hout
         mdot
         Cp_mean {mustBePositive}
         % Arrays in HEX sections (sides)
