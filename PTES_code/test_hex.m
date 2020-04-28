@@ -38,7 +38,7 @@ load_coolprop
 % 3 = CO2 and Water
 % 4 = Steam and MEG
 % 5 = sCO2 and sCO2
-scenario = 4;
+scenario = 2;
 
 % Save figures?
 save_figures = 0;
@@ -105,7 +105,7 @@ switch scenario
         % Water
         F1 = fluid_class('Water','WF','CP','TTSE',1,5);
         F1.state(iL,i2).p = 0.1*1e5;
-        F1.state(iL,i2).T = 322;
+        F1.state(iL,i2).T = 350;
         F1.state(iL,i2).mdot = 10;
         
         % MEG
@@ -217,7 +217,7 @@ HX = hx_class(name, stage_type, 4, NX, 2, 2, model, par1, par2, par3, par4);
 % Run heat exchanger model under design conditions
 [HX,~,~,~,~] = hex_func(HX,iL,F1,i1,F2,i2,hex_mode,par);
 
-% Make plots
+%% Make plots
 plot_hex(HX,1,10,'C');
 
 % Compare specifications from set_hex_geom with numerical results

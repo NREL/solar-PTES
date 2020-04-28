@@ -95,6 +95,8 @@ H = stream; H.mdot = mH; H.name = fluidH.name;
 C = stream; C.mdot = mC; C.name = fluidC.name;
 H.read = fluidH.read; H.handle = fluidH.handle; H.HEOS = fluidH.HEOS;
 C.read = fluidC.read; C.handle = fluidC.handle; C.HEOS = fluidC.HEOS;
+H.shape = HX.shape;
+C.shape = HX.shape;
 H.pin = pH2;
 C.pin = pC1;
 
@@ -382,7 +384,7 @@ switch model
                 hH1_min = hH2 - QMAX0/mH;
                 
                 % Find value of hH1 for which computed area equals specified area
-                f1 = @(hH1) compute_area(HX,H,C,mH,mC,hH2,hC1,'hH1',hH1);
+                f1 = @(hH1) hex_compute_area(HX,iL,'hH1',hH1);
                 %plot_function(f1,hH1_min,hH2,100,31);
                 %keyboard
                 opt = optimset('TolX',(hH2-hH1_min)/1e12,'Display','notify');
@@ -402,7 +404,7 @@ switch model
                 mHmax = QMAX0/(hH2 - hH1)*(1.01); %necessary to find root
                 
                 % Find value of mH for which computed area equals specified area
-                f1  = @(mH) compute_area(HX,H,C,mH,mC,hH2,hC1,'hH1',hH1);
+                f1  = @(mH) hex_compute_area(HX,iL,'hH1',hH1,'mH',mH);
                 opt = optimset('TolX',(mHmax-mHmin)/1e12,'Display','notify');
                 mH  = fzero(f1,[mHmin,mHmax],opt);
                 
@@ -421,8 +423,9 @@ switch model
                 
                 % Find value of mC for which computed area equals specified area
                 %keyboard
-                f1  = @(mC) compute_area(HX,H,C,mH,mC,hH2,hC1,'hH1',hH1);
+                f1  = @(mC) hex_compute_area(HX,iL,'hH1',hH1,'mC',mC);
                 %plot_function(f1,mCmin,mCmax,5,15,'semilogx');
+                %keyboard
                 opt = optimset('TolX',(mCmax-mCmin)/1e12,'Display','notify');
                 mC = fzero(f1,[mCmin,mCmax],opt);
                 
@@ -432,19 +435,13 @@ switch model
         end
         
         % Obtain output parameters for converged solution
-        [C,H,QS,AS] = compute_area(HX,H,C,mH,mC,hH2,hC1,'hH1',hH1);
+        [~,HX] = hex_compute_area(HX,iL,'hH1',hH1);
         
-        % Save outlet conditions
-        hH1 = H.h(1);
-        pH1 = H.p(1);
-        hC2 = C.h(NX+1);
-        pC2 = C.p(NX+1);
-        
-        % Save variables into HX structure
-        HX.C(iL)  = C;
-        HX.H(iL)  = H;
-        HX.QS(iL,:) = QS;
-        HX.AS = AS;
+        % Extract outlet conditions
+        hH1 = HX.H.h(1);
+        pH1 = HX.H.p(1);
+        hC2 = HX.C.h(NX+1);
+        pC2 = HX.C.p(NX+1);
 end
 
 % Update states
@@ -462,7 +459,7 @@ TC2 = stateC.T;
 CpHmean = (hH2 - hH1)/(TH2-TH1);
 CpCmean = (hC2 - hC1)/(TC2-TC1);
 Cmin  = min([mC*CpCmean,mH*CpHmean]);
-dQ    = QS(2:NX+1)-QS(1:NX);
+dQ    = [HX.QS(iL,2:NX+1)-HX.QS(iL,1:NX)]';
 DT_AV = 0.5*(HX.H(iL).T(1:NX)+HX.H(iL).T(2:NX+1)) - 0.5*(HX.C(iL).T(1:NX)+HX.C(iL).T(2:NX+1));
 UA    = sum(dQ./DT_AV);
 NTU   = UA/Cmin;
@@ -704,217 +701,6 @@ elseif nargout == 5
     varargout{5} = QS;
 else
     error('Incorrect number of outputs')
-end
-
-end
-
-function varargout = compute_area(HX,H,C,mH,mC,hH2,hC1,mode,hout,varargin)
-%COMPUTE_AREA Solve the TQ and TA diagrams diagrams of a two-stream
-%counter-flow heat exchanger.
-%
-%   For a given fluid outlet enthalpy (hH1 or hC2), compute the TQ diagram,
-%   the properties of the fluids at each point and the corresponding heat
-%   transfer area of the heat exchanger. Compare that to the reference heat
-%   transfer area and return the difference between the two.
-%
-%   The "mode" string controls which enthalpy outlet "hout" is specified,
-%   either mode='hH1' or mode='hC2'.
-%
-%   The optional input, "varargin", contains the logical argument
-%   "visualise". If "visualise" is set to true, the compute_area function
-%   pauses at the end of the internal iteration procedure and plots the
-%   result.
-
-% Select mode and assing value of known enthalpy outlet
-switch mode
-    case 'hH1'
-        hH1 = hout;
-    case 'hC2'
-        error('not implemented yet')
-    otherwise
-        error('not implemented')
-end
-
-% Check and assign variable inputs
-if isempty(varargin)
-    visualise = 0;
-elseif length(varargin)==1
-    visualise = varargin{1};
-else
-    error('not implemented')
-end
-
-% Extract parameters
-NX = HX.NX;
-
-% Compute mass fluxes
-[C, H, HX] = shell_and_tube_geom(C, H, HX);
-
-% Set initial conditions for iteration procedure
-% Pressures
-H.p = ones(NX+1,1)*H.pin;
-C.p = ones(NX+1,1)*C.pin;
-
-% Compute enthalpy arrays from hH1 (outlet guess value) and hH2 and hC1
-% (fixed inlet values)
-H.h = linspace(hH1,hH2,NX+1)';
-QS  = mH*(H.h - hH1);
-C.h = hC1 + QS/mC;
-
-% Create array to check convergence. First element is computed heat
-% transfer area. Later come the pressure points along each stream
-CON_0 = [0; H.p; C.p]; % initial value
-NI    = 50;
-RES   = zeros(1,NI); % residuals
-TOL   = 1e-3;
-impossible = false; %indicades impossible situation
-for iI = 1:NI
-    
-    % UPDATE PROPERTIES
-    % Cold stream
-    C = stream_update(C,2);
-    % Hot stream
-    H = stream_update(H,2);
-    
-    % COMPUTE AVERAGED TEMPERATURE ARRAYS
-    H.T_AV = 0.5*(H.T(1:NX) + H.T(2:NX+1));
-    C.T_AV = 0.5*(C.T(1:NX) + C.T(2:NX+1));
-    DT_AV  = H.T_AV - C.T_AV;
-    
-    % Break loop if H.T < C.T at any point
-    if any(H.T <= C.T)
-        impossible = true;
-        AC = Inf;
-        %warning(['impossible condition reached.',...
-        %    'breaking loop and proceeding'])
-        break
-    end
-    
-    % COMPUTE HEAT TRANSFER COEFFICIENTS
-    % Cold stream
-    C.Re = C.D*C.G./C.mu;
-    [C.Cf,C.St] = developed_flow(C.Re,C.Pr,HX.shape);
-    C.ht  = C.G*C.Cp.*C.St;
-    % Hot stream
-    H.Re = H.D*H.G./H.mu;
-    [H.Cf,H.St] = developed_flow(H.Re,H.Pr,HX.shape);
-    H.ht  = H.G*H.Cp.*H.St;
-    % Overall heat transfer coefficient (based on cold side heat transfer area).
-    % Neglects wall thermal resistance and axial conduction.
-    UlC  = 1./(C.A./(H.A*H.ht) + 1./C.ht);
-    UlC_AV = 0.5*(UlC(1:NX) + UlC(2:NX+1));
-    
-    % COMPUTE HEAT TRANSFER AREA (cold side)
-    dQ  = (H.h(2:NX+1) - H.h(1:NX))*mH;
-    dAC = dQ./(UlC_AV.*DT_AV);
-    AC  = sum(dAC);
-    
-    % COMPUTE PRESSURE PROFILES
-    % Create averaged arrays of Cf and v
-    Cf_H = 0.5*(H.Cf(1:NX) + H.Cf(2:NX+1));
-    v_H  = 0.5*(H.v(1:NX)  + H.v(2:NX+1));
-    Cf_C = 0.5*(C.Cf(1:NX) + C.Cf(2:NX+1));
-    v_C  = 0.5*(C.v(1:NX)  + C.v(2:NX+1));
-    % Obtain dL from dAC and AC
-    dL = dAC/AC*HX.L;
-    % Compute arrays of pressure loss
-    Dp_H = - 2*H.G^2*Cf_H.*v_H.*dL./H.D;
-    Dp_C = - 2*C.G^2*Cf_C.*v_C.*dL./C.D;
-    
-    % In a situation where H.h(NX+1)==H.h(1) (i.e. no heat exchange), the
-    % code above results in dAC=0, AC=0 and Dp_H=NaN, Dp_C=NaN. If so, set
-    % Dp_H and Dp_C to zero and proceed.
-    if any(isnan([Dp_H;Dp_C]))
-        if abs(H.h(NX+1)-H.h(1)) < 10*eps(H.h(1))
-            Dp_H = zeros(size(Dp_H));
-            Dp_C = zeros(size(Dp_C));
-        else
-            error('NaN value found in hex_func!')
-        end
-    end
-    
-    % Update pressure profiles. Assume a linear profile (to avoid computing
-    % a slow 'for loop') and limit max pressure loss to 80%.
-    DppH = abs(sum(Dp_H))/H.pin;
-    DppC = abs(sum(Dp_C))/C.pin;
-    if DppH > 0.8
-        DppH = 0.8;
-        warning('DpH exceeds 80%!');
-    end
-    if DppC > 0.8
-        DppC = 0.8;
-        warning('DpC exceeds 80%!');
-    end
-    H.p  = linspace(H.pin*(1-DppH),H.pin,NX+1)';
-    C.p  = linspace(C.pin,C.pin*(1-DppC),NX+1)';
-    
-    % Update convergence array
-    CON = [AC; H.p; C.p]; % initial value
-    
-    % Compute residual
-    RES(iI) = max(abs((CON - CON_0)./CON));
-    
-    if (RES(iI)>TOL)
-        if visualise
-            fprintf(1,'\n iteration = %d, RES = %.6f',iI,RES(iI));
-        end
-        CON_0 = CON;
-    else
-        if visualise
-            % Make plots
-            figure(10)
-            plot(QS./QS(end),H.T,'r'); hold on;
-            plot(QS./QS(end),C.T,'b'); hold off;
-            xlabel('Cumulative heat transfer')
-            ylabel('Temperature')
-            legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
-            
-            figure(11)
-            plot(QS./QS(end),H.p/H.pin,'r-'); hold on
-            plot(QS./QS(end),C.p/C.pin,'b-'); hold off
-            ylim([0.90 1])
-            xlabel('Cummulative heat transfer')
-            ylabel('Relative pressure, p/p0')
-            legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
-            
-            fprintf(1,'\n\n*** Successful convergence after %d iterations***\n',iI);
-            keyboard
-        end
-        break
-    end
-    
-end
-if all([iI>=NI,RES(iI)>TOL,~impossible])
-    figure()
-    semilogy(1:iI,RES(1:iI))
-    xlabel('Iteration')
-    ylabel('Convergence residual')
-    error('Convergence not reached after %d iterations***\n',iI);
-end
-
-% If the value of 'solution' is negative, it means that the computed area
-% is larger than the actual area (heat exchanger too small to achieve
-% selected operating conditions). If the value of 'solution' is positive,
-% the computed area is smaller than the actual area (heat exchanger too
-% large for selected operating conditions).
-solution = C.A - AC;
-% Control physically impossible solutions
-if impossible
-    solution = - C.A;
-end
-
-if nargout == 1
-    varargout{1} = solution;
-else
-    % Compute cumulative heat transfer area (cold side)
-    AS = zeros(size(QS));
-    for i=1:(length(AS)-1)
-        AS(i+1) = AS(i) + dAC(i);
-    end
-    varargout{1} = C;
-    varargout{2} = H;
-    varargout{3} = QS;
-    varargout{4} = AS;
 end
 
 end
