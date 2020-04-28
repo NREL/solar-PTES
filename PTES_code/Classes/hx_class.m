@@ -31,6 +31,7 @@ classdef hx_class
        
        QS       % Cumulative heat transfer
        AS       % Heat transfer area
+       Ul       % Local overall heat transfer coefficient
        LMTD     % Why not
        Cmin 
        UA
@@ -369,7 +370,7 @@ classdef hx_class
                case 24
                    % Natural gas fired primary heat exchanger
                    % From Weiland et al 2019. Valid up to 715 C and 230-275 bar, 10-50 MWth
-                   COST = 6.329e5 * (obj.QS(end,1)/1e6) ^ 0.6 ;
+                   COST = 6.329e5 * (obj.QS(1,end)/1e6) ^ 0.6 ;
                    if max(obj.H(1).T) > 550 + 273.15
                        COST = COST * (1 + 5.4e-5 * (max(obj.H(1).T) - 550 - 273.15)^2) ;
                    end

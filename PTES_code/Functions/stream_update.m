@@ -13,6 +13,7 @@ switch mode
         [S.k]   = RP1('PT_INPUTS',S.p,S.T,'CONDUCTIVITY',S);
         [S.mu]  = RP1('PT_INPUTS',S.p,S.T,'VISCOSITY',S);
         [S.Pr]  = RP1('PT_INPUTS',S.p,S.T,'PRANDTL',S);
+        [S.x]   = RP1('PT_INPUTS',S.p,S.T,'Q',S);
         
     case 2 %Enthalpy and pressure are known
         [S.T]   = RP1('HmassP_INPUTS',S.h,S.p,'T',S);
@@ -20,9 +21,38 @@ switch mode
         [S.k]   = RP1('HmassP_INPUTS',S.h,S.p,'CONDUCTIVITY',S);
         [S.mu]  = RP1('HmassP_INPUTS',S.h,S.p,'VISCOSITY',S);
         [S.Pr]  = RP1('HmassP_INPUTS',S.h,S.p,'PRANDTL',S);
+        [S.x]   = RP1('HmassP_INPUTS',S.h,S.p,'Q',S);
         
     otherwise
         error('not implemented')
+end
+
+% Check if any values fall inside the two-phase region. If so,
+% extract properties corresponding to the saturated liquid
+% condition for that pressure.
+itp = 0<=S.x & S.x<=1;
+if any(itp)
+    % Allocate arrays
+    S.hLG  = zeros(size(S.p));
+    S.rhoL = zeros(size(S.p));
+    S.rhoG = zeros(size(S.p));
+    S.kL   = zeros(size(S.p));
+    S.muL  = zeros(size(S.p));
+    S.PrL  = zeros(size(S.p));
+    
+    % Enthalpy of vaporisation
+    [S.hLG(itp)] = RP1('PQ_INPUTS',S.p(itp),1.0*ones(size(S.p(itp))),'H',S)...
+        -RP1('PQ_INPUTS',S.p(itp),0.0*ones(size(S.p(itp))),'H',S);
+    
+    % Density at saturated conditions
+    [S.rhoL(itp)] = RP1('PQ_INPUTS',S.p(itp),0.0*ones(size(S.p(itp))),'D',S);
+    [S.rhoG(itp)] = RP1('PQ_INPUTS',S.p(itp),1.0*ones(size(S.p(itp))),'D',S);
+    
+    % Conductivity, viscosity and Prandtl numbers at saturated
+    % liquid conditions
+    [S.kL(itp)]   = RP1('PQ_INPUTS',S.p(itp),0.0*ones(size(S.p(itp))),'CONDUCTIVITY',S);
+    [S.muL(itp)]  = RP1('PQ_INPUTS',S.p(itp),0.0*ones(size(S.p(itp))),'VISCOSITY',S);
+    [S.PrL(itp)]  = RP1('PQ_INPUTS',S.p(itp),0.0*ones(size(S.p(itp))),'PRANDTL',S);
 end
 
 % Compute derived properties

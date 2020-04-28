@@ -17,6 +17,7 @@ classdef stream
         % Arrays in HEX sections (sides)
         T       {mustBePositive}
         p       {mustBePositive}
+        x  % vapour quality
         Cp      
         h       
         s       
@@ -29,11 +30,20 @@ classdef stream
         Cf      
         St      
         ht %heat transfer coeff
+        % Arrays for the two-phase region
+        hLG  % latent heat of vaporisation
+        rhoL % density of saturated liquid
+        rhoG % density of saturated vapour
+        kL   % conductivity of saturated liquid
+        muL  % viscosity of saturated liquid
+        PrL  % Prandtl of saturated liquid
+        q    % heat flux
         % Averaged arrays (in sections centers)
         T_AV    {mustBePositive}
         rho_AV  {mustBePositive}
         Cp_AV   {mustBePositive}
         % Geometry
+        shape
         A       {mustBePositive}
         Af      {mustBePositive}
         Ax      {mustBePositive}

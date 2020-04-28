@@ -22,13 +22,16 @@ else
     error('C_or_K must be set to either "C" or "K"');
 end
 
+% Set legend
+L = {[valid_name(H.name,2),', ',sprintf('%.1f',H.pin/1e5),' bar'],[valid_name(C.name,2),', ',sprintf('%.1f',C.pin/1e5),' bar']};
+
 % Plot TQ diagram
 figure(fignum)
 plot(QS./QS(end),H.T-K,'r'); hold on;
 plot(QS./QS(end),C.T-K,'b'); hold off;
 xlabel('Normalised cumulative heat transfer')
 ylabel(ytext)
-legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
+legend(L,'Location','Best')
 
 if ~isempty(AS)
     % Plot T-A diagram
@@ -37,7 +40,7 @@ if ~isempty(AS)
     plot(AS./AS(end),C.T-K,'b'); hold off;
     xlabel('Normalised cumulative heat transfer area')
     ylabel(ytext)
-    legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
+    legend(L,'Location','Best')
     
     % Plot p-A diagram
     figure(fignum+2)
@@ -45,7 +48,7 @@ if ~isempty(AS)
     plot(AS./AS(end),C.p/C.pin*100,'b'); hold off;
     xlabel('Normalised cumulative heat transfer area')
     ylabel('Normalised pressure [$\%$]')
-    legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
+    legend(L,'Location','Best')
     
     % Plot Re-A diagram
     figure(fignum+3)
@@ -53,7 +56,19 @@ if ~isempty(AS)
     semilogy(AS./AS(end),C.Re,'b'); hold off;
     xlabel('Normalised cumulative heat transfer area')
     ylabel('Reynolds number')
-    legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],[C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
+    legend(L,'Location','Best')
+
+    % Plot ht-Q diagram
+    figure(fignum+4)
+    semilogy(QS./QS(end),H.ht, 'r'); hold on;
+    semilogy(QS./QS(end),C.ht, 'b'); hold on;
+    semilogy(QS./QS(end),H.ht/2, 'r--'); hold on;
+    semilogy(QS./QS(end),HX.Ul,'k-.'); hold off;
+    xlabel('Normalised cumulative heat transfer')
+    ylabel('Heat transfer coefficient [$\mathrm{W/m^2/K}$]')
+    legend([L(:)',{'Overall'}],'Location','Best')
+    legend([L(:)',{'Minimum','Overall'}],'Location','Best')
+    ylim([40 3000])
 end
 
 end
