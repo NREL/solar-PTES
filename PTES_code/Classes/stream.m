@@ -16,9 +16,9 @@ classdef stream
         hout
         mdot
         Cp_mean {mustBePositive}
-        % Arrays in HEX sections (sides)
-        T       {mustBePositive}
-        p       {mustBePositive}
+        % Arrays in HEX section corners
+        T
+        p
         x  % vapour quality
         Cp      
         h       
@@ -32,18 +32,29 @@ classdef stream
         Cf      
         St      
         ht %heat transfer coeff
-        % Arrays for the two-phase region
-        hLG  % latent heat of vaporisation
-        rhoL % density of saturated liquid
-        rhoG % density of saturated vapour
-        kL   % conductivity of saturated liquid
-        muL  % viscosity of saturated liquid
-        PrL  % Prandtl of saturated liquid
-        q    % heat flux
-        % Averaged arrays (in sections centers)
+        
+        %%% Arrays for the two-phase region
+        % Saturated liquid
+        rhoL
+        kL
+        muL
+        PrL
+        % Saturated vapour
+        rhoG
+        kG
+        muG
+        PrG
+        % Latent heat of vaporisation
+        hLG
+        % Heat flux
+        q
+        %%%
+        
+        % Averaged arrays (in section centers)
         T_AV    {mustBePositive}
         rho_AV  {mustBePositive}
         Cp_AV   {mustBePositive}
+        dpdL
         % Geometry
         shape
         A       {mustBePositive}

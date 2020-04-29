@@ -219,9 +219,7 @@ HX = hx_class(name, stage_type, 4, NX, 2, 2, model, par1, par2, par3, par4);
 % Run heat exchanger model under design conditions
 [HX,~,~,~,~] = hex_func(HX,iL,F1,i1,F2,i2,hex_mode,par);
 
-%% Make plots
-plot_hex(HX,1,10,'C');
-
+%% SUMMARY
 % Compare specifications from set_hex_geom with numerical results
 if strcmp(HX.model,'geom')    
     fprintf(1,'\n      Specification  Result\n')
@@ -229,6 +227,9 @@ if strcmp(HX.model,'geom')
     fprintf(1,'DppH    = %8.5f   %9.5f\n',ploss,HX.DppH)
     fprintf(1,'DppC    = %8.5f   %9.5f\n',ploss,HX.DppC)
 end
+
+% Make plots
+plot_hex(HX,1,10,'C');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %{

@@ -42,19 +42,19 @@ if ~isempty(AS)
     ylabel(ytext)
     legend(L,'Location','Best')
     
-    % Plot p-A diagram
+    % Plot p-Q diagram
     figure(fignum+2)
-    plot(AS./AS(end),H.p/H.pin*100,'r'); hold on;
-    plot(AS./AS(end),C.p/C.pin*100,'b'); hold off;
-    xlabel('Normalised cumulative heat transfer area')
+    plot(QS./QS(end),H.p/H.pin*100,'r'); hold on;
+    plot(QS./QS(end),C.p/C.pin*100,'b'); hold off;
+    xlabel('Normalised cumulative heat transfer')
     ylabel('Normalised pressure [$\%$]')
     legend(L,'Location','Best')
     
-    % Plot Re-A diagram
+    % Plot Re-Q diagram
     figure(fignum+3)
-    semilogy(AS./AS(end),H.Re,'r'); hold on;
-    semilogy(AS./AS(end),C.Re,'b'); hold off;
-    xlabel('Normalised cumulative heat transfer area')
+    semilogy(QS./QS(end),H.Re,'r'); hold on;
+    semilogy(QS./QS(end),C.Re,'b'); hold off;
+    xlabel('Normalised cumulative heat transfer')
     ylabel('Reynolds number')
     legend(L,'Location','Best')
 
@@ -62,13 +62,21 @@ if ~isempty(AS)
     figure(fignum+4)
     semilogy(QS./QS(end),H.ht, 'r'); hold on;
     semilogy(QS./QS(end),C.ht, 'b'); hold on;
-    semilogy(QS./QS(end),H.ht/2, 'r--'); hold on;
+    %semilogy(QS./QS(end),H.ht/2, 'r--'); hold on;
     semilogy(QS./QS(end),HX.Ul,'k-.'); hold off;
     xlabel('Normalised cumulative heat transfer')
     ylabel('Heat transfer coefficient [$\mathrm{W/m^2/K}$]')
     legend([L(:)',{'Overall'}],'Location','Best')
-    legend([L(:)',{'Minimum','Overall'}],'Location','Best')
-    ylim([40 3000])
+    %legend([L(:)',{'Minimum','Overall'}],'Location','Best')
+    %ylim([40 3000])
+    
+    % Plot dpdL-Q diagram
+    figure(fignum+5)
+    semilogy(QS./QS(end),-H.dpdL, 'r'); hold on;
+    semilogy(QS./QS(end),-C.dpdL, 'b'); hold off;
+    xlabel('Normalised cumulative heat transfer')
+    ylabel('Pressure gradient [Pa/m]')
+    legend(L,'Location','Best')
 end
 
 end

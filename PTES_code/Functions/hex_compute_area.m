@@ -180,15 +180,11 @@ for iI = 1:NI
     
     % COMPUTE PRESSURE PROFILES
     % Create averaged arrays of Cf and v
-    Cf_H = 0.5*(H.Cf(1:NX) + H.Cf(2:NX+1));
-    v_H  = 0.5*(H.v(1:NX)  + H.v(2:NX+1));
-    Cf_C = 0.5*(C.Cf(1:NX) + C.Cf(2:NX+1));
-    v_C  = 0.5*(C.v(1:NX)  + C.v(2:NX+1));
     % Obtain dL from dAC and AC
     dL = dA/A*HX.L;
     % Compute arrays of pressure loss
-    Dp_H = - 2*H.G^2*Cf_H.*v_H.*dL./H.D;
-    Dp_C = - 2*C.G^2*Cf_C.*v_C.*dL./C.D;
+    Dp_H = 0.5*(H.dpdL(1:NX) + H.dpdL(2:NX+1)).*dL;
+    Dp_C = 0.5*(C.dpdL(1:NX) + C.dpdL(2:NX+1)).*dL;
     
     % In a situation where H.h(NX+1)==H.h(1) (i.e. no heat exchange), the
     % code above results in dAC=0, AC=0 and Dp_H=NaN, Dp_C=NaN. If so, set

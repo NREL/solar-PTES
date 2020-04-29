@@ -14,94 +14,93 @@ switch mode
         [S.mu]  = RP1('PT_INPUTS',S.p,S.T,'VISCOSITY',S);
         [S.Pr]  = RP1('PT_INPUTS',S.p,S.T,'PRANDTL',S);
         [S.x]   = RP1('PT_INPUTS',S.p,S.T,'Q',S);
+        error('not implemented');
         
     case 2 %Enthalpy and pressure are known
-        [S.T]   = RP1('HmassP_INPUTS',S.h,S.p,'T',S);
-        [S.rho] = RP1('HmassP_INPUTS',S.h,S.p,'D',S);
-        [S.k]   = RP1('HmassP_INPUTS',S.h,S.p,'CONDUCTIVITY',S);
-        [S.mu]  = RP1('HmassP_INPUTS',S.h,S.p,'VISCOSITY',S);
-        [S.Pr]  = RP1('HmassP_INPUTS',S.h,S.p,'PRANDTL',S);
-        [S.x]   = RP1('HmassP_INPUTS',S.h,S.p,'Q',S);
+        
+        % Preallocate arrays
+        sz    = size(S.p);
+        S.T   = zeros(sz);
+        S.rho = zeros(sz);
+        S.k   = zeros(sz);
+        S.mu  = zeros(sz);
+        S.Pr  = zeros(sz);
+        
+        % Detect points falling inside the two-phase region
+        S.x = RP1('HmassP_INPUTS',S.h,S.p,'Q',S);
+        tp  = 0<=S.x & S.x<=1; % two-phase index
+        sp  = ~tp; % single-phase index
+        
+        % Obtain properties. Obtain values of T and rho for all points.
+        S.T   = RP1('HmassP_INPUTS',S.h,S.p,'T',S);
+        S.rho = RP1('HmassP_INPUTS',S.h,S.p,'D',S);
+        
+        % Obtain values of k, mu and Pr only for points in single-phase
+        % regions. Set other points to NaN.
+        S.k(sp)  = RP1('HmassP_INPUTS',S.h(sp),S.p(sp),'CONDUCTIVITY',S);
+        S.mu(sp) = RP1('HmassP_INPUTS',S.h(sp),S.p(sp),'VISCOSITY',S);
+        S.Pr(sp) = RP1('HmassP_INPUTS',S.h(sp),S.p(sp),'PRANDTL',S);
+        S.k(tp)  = NaN;
+        S.mu(tp) = NaN;
+        S.Pr(tp) = NaN;
         
     otherwise
         error('not implemented')
 end
 
-% Check if any values fall inside the two-phase region. If so,
-% extract properties corresponding to the saturated liquid
-% condition for that pressure.
-itp = 0<=S.x & S.x<=1;
-if any(itp)
-    % Allocate arrays
-    S.hLG  = zeros(size(S.p));
-    S.rhoL = zeros(size(S.p));
-    S.rhoG = zeros(size(S.p));
-    S.kL   = zeros(size(S.p));
-    S.muL  = zeros(size(S.p));
-    S.PrL  = zeros(size(S.p));
+% Any any values falling inside the two-phase region, extract properties
+% corresponding to the saturated liquid and gas conditions at that
+% pressure.
+if any(tp)
+    % Set size of arrays
+    sz = size(S.p(tp));
+    
+    % Saturated liquid
+    S.rhoL = RP1('PQ_INPUTS',S.p(tp),0.0*ones(sz),'D',S);
+    S.kL   = RP1('PQ_INPUTS',S.p(tp),0.0*ones(sz),'CONDUCTIVITY',S);
+    S.muL  = RP1('PQ_INPUTS',S.p(tp),0.0*ones(sz),'VISCOSITY',S);
+    S.PrL  = RP1('PQ_INPUTS',S.p(tp),0.0*ones(sz),'PRANDTL',S);
+    
+    % Saturated gas
+    S.rhoG = RP1('PQ_INPUTS',S.p(tp),1.0*ones(sz),'D',S);
+    S.kG   = RP1('PQ_INPUTS',S.p(tp),1.0*ones(sz),'CONDUCTIVITY',S);
+    S.muG  = RP1('PQ_INPUTS',S.p(tp),1.0*ones(sz),'VISCOSITY',S);
+    S.PrG  = RP1('PQ_INPUTS',S.p(tp),1.0*ones(sz),'PRANDTL',S);
     
     % Enthalpy of vaporisation
-    [S.hLG(itp)] = RP1('PQ_INPUTS',S.p(itp),1.0*ones(size(S.p(itp))),'H',S)...
-        -RP1('PQ_INPUTS',S.p(itp),0.0*ones(size(S.p(itp))),'H',S);
+    S.hLG  = RP1('PQ_INPUTS',S.p(tp),1.0*ones(sz),'H',S)...
+        -RP1('PQ_INPUTS',S.p(tp),0.0*ones(sz),'H',S);
+end
+
+% CORRECT NULL COOLPROP VALUES (this seems to happen close to the
+% saturation curve)
+nul = S.k == 0;
+if any(nul)
+    % Determine phase
+    Pcrit = RP1(0,0,0,'Pcrit',S);
+    Tsat  = RP1('PQ_INPUTS',S.p,0.0*ones(size(S.p)),'T',S);
+    scrit = S.p > Pcrit;
+    liq   = ~scrit & S.T < Tsat;
+    gas   = ~scrit & S.T > Tsat;
     
-    % Density at saturated conditions
-    [S.rhoL(itp)] = RP1('PQ_INPUTS',S.p(itp),0.0*ones(size(S.p(itp))),'D',S);
-    [S.rhoG(itp)] = RP1('PQ_INPUTS',S.p(itp),1.0*ones(size(S.p(itp))),'D',S);
-    
-    % Conductivity, viscosity and Prandtl numbers at saturated
-    % liquid conditions
-    [S.kL(itp)]   = RP1('PQ_INPUTS',S.p(itp),0.0*ones(size(S.p(itp))),'CONDUCTIVITY',S);
-    [S.muL(itp)]  = RP1('PQ_INPUTS',S.p(itp),0.0*ones(size(S.p(itp))),'VISCOSITY',S);
-    [S.PrL(itp)]  = RP1('PQ_INPUTS',S.p(itp),0.0*ones(size(S.p(itp))),'PRANDTL',S);
+    % Fill null values with closest saturated value
+    if any(nul&liq)
+        S.k(nul&liq)  = RP1('PQ_INPUTS',S.p(nul&liq),0.0*ones(size(S.p(nul&liq))),'CONDUCTIVITY',S);
+        S.mu(nul&liq) = RP1('PQ_INPUTS',S.p(nul&liq),0.0*ones(size(S.p(nul&liq))),'VISCOSITY',S);
+        S.Pr(nul&liq) = RP1('PQ_INPUTS',S.p(nul&liq),0.0*ones(size(S.p(nul&liq))),'PRANDTL',S);
+    end
+    if any(nul&gas)
+        S.k(nul&gas)  = RP1('PQ_INPUTS',S.p(nul&gas),1.0*ones(size(S.p(nul&gas))),'CONDUCTIVITY',S);
+        S.mu(nul&gas) = RP1('PQ_INPUTS',S.p(nul&gas),1.0*ones(size(S.p(nul&gas))),'VISCOSITY',S);
+        S.Pr(nul&gas) = RP1('PQ_INPUTS',S.p(nul&gas),1.0*ones(size(S.p(nul&gas))),'PRANDTL',S);
+    end
+    if any(nul&scrit)
+        error('not implemented')
+    end
 end
 
 % Compute derived properties
 S.v  = 1./S.rho;
 S.Cp = S.Pr.*S.k./S.mu;
-
-%%% TO BE IMPROVED
-%%% ------------->
-% CORRECT OUTLIERS FROM mu, k, Cp AND Pr ARRAYS. NOTE: THIS IS A PATCH
-% CURRENTLY USED TO BE ABLE TO RUN THE CODE WITHOUT CRASHING WHEN A HEX IS
-% OPERATING WITH A TWO-PHASE FLOW STREAM. HOWEVER, THIS IS CURRENTLY
-% PHYSICALLY INCORRECT (Cp and Pr are not well defined inside the
-% saturation curve) AND MUST BE ADDRESSED PROPERLY.
-cond1 = S.mu == 0;
-if any(cond1)
-    S.mu(cond1) = NaN;
-    S.mu = fillmissing(S.mu,'nearest');
-end
-cond2 = S.k == 0;
-if any(cond2)
-    S.k(cond2) = NaN;
-    S.k  = fillmissing(S.k,'nearest');
-end
-Cp_mean = median(S.Cp);
-Pr_mean = median(S.Pr);
-cond3 = S.Cp <= 0 | S.Cp > 100*Cp_mean | S.Cp < Cp_mean/100 | isnan(S.Cp);
-cond4 = S.Pr <= 0 | S.Pr > 100*Pr_mean | S.Pr < Pr_mean/100 | isnan(S.Pr);
-if any([cond3;cond4])
-    %{
-    figure(31)
-    plot(S.T)
-    figure(32)
-    semilogy(S.Pr)
-    figure(33)
-    semilogy(S.Cp)
-    %}
-    Cp_mean = median(S.Cp(~cond3));
-    S.Cp(cond3) = Cp_mean;
-    Pr_mean = median(S.Pr(~cond4));
-    S.Pr(cond4) = Pr_mean;
-    %{
-    figure(34)
-    semilogy(S.Pr)
-    figure(35)
-    semilogy(S.Cp)
-    keyboard
-    %}
-end
-%%% <--------------
-
 end
 
