@@ -106,6 +106,8 @@ switch HX.model
             return
         end
         
+        iL = [];
+        
         % Size the heat exchanger for the first load period during which it
         % was employed
         for i = 1:length(HX.H)
@@ -113,6 +115,9 @@ switch HX.model
                 iL = i;
                 break
             end
+        end
+        if isempty(iL)
+            return
         end
         
         % Employ the compute_pressure function to determine for which
