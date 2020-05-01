@@ -97,67 +97,61 @@ classdef hx_class
            
            switch model
                case 'eff'
-                   if length(varargin)~=2
+                   if length(varargin)~=4
                        error('incorrect number of inputs');
                    end
                    obj.eff   = varargin{1};
-                   obj.ploss = varargin{2};
-                   %obj.D1    = varargin{3};
                case 'UA'
-                   if length(varargin)~=2
+                   if length(varargin)~=4
                        error('incorrect number of inputs');
                    end
                    obj.UA    = varargin{1};
-                   obj.ploss = varargin{2};
-                   %obj.D1    = varargin{3};
                case 'DT'
-                   if length(varargin)~=2
-                       error('incorrect number of inputs');
-                   end
-                   obj.DT    = varargin{1};
-                   obj.ploss = varargin{2};
-                   %obj.D1    = varargin{3};
-               case 'geom'
                    if length(varargin)~=4
                        error('incorrect number of inputs');
                    end
                    obj.DT    = varargin{1};
-                   obj.ploss = varargin{2};
-                   obj.D1    = varargin{3};
-                   obj.shape = varargin{4};
+               case 'geom'
+                   if length(varargin)~=4
+                       error('incorrect number of inputs');
+                   end
+                   obj.eff   = varargin{1};
                otherwise
                    error('not implemented')
            end
+           obj.ploss = varargin{2};
+           obj.D1    = varargin{3};
+           obj.shape = varargin{4};
            
-            obj.name       = name ;
-            obj.stage_type = stage_type ;
-            obj.model      = model ;
-            obj.NX         = Ngrid ;
-            
-            % Loss data          
-            % Two columns. First for hot side. Second for cold side.
-            obj.w    = zeros(numPeriods,2) ;
-            obj.q    = zeros(numPeriods,2) ;
-            obj.Dh   = zeros(numPeriods,2) ;
-            obj.sirr = zeros(numPeriods,2) ;
-                        
-            obj.W    = zeros(numPeriods,2) ;
-            obj.Q    = zeros(numPeriods,2) ;
-            obj.DH   = zeros(numPeriods,2) ;
-            obj.Sirr = zeros(numPeriods,2) ;
-            
-            % Property data
-            %obj.H    = zeros(Nsave, 1) ;
-            %obj.C    = zeros(Nsave, 1) ;
-                        
-            obj.QS    = zeros(Nsave,Ngrid+1) ;
-            
-            obj.Lgeom_set = false ;
-            
-            obj.hx_cost = econ_class(cost_mode, 0.2, 5, 0.2) ;
-            
+           obj.name       = name ;
+           obj.stage_type = stage_type ;
+           obj.model      = model ;
+           obj.NX         = Ngrid ;
+           
+           % Loss data
+           % Two columns. First for hot side. Second for cold side.
+           obj.w    = zeros(numPeriods,2) ;
+           obj.q    = zeros(numPeriods,2) ;
+           obj.Dh   = zeros(numPeriods,2) ;
+           obj.sirr = zeros(numPeriods,2) ;
+           
+           obj.W    = zeros(numPeriods,2) ;
+           obj.Q    = zeros(numPeriods,2) ;
+           obj.DH   = zeros(numPeriods,2) ;
+           obj.Sirr = zeros(numPeriods,2) ;
+           
+           % Property data
+           %obj.H    = zeros(Nsave, 1) ;
+           %obj.C    = zeros(Nsave, 1) ;
+           
+           obj.QS    = zeros(Nsave,Ngrid+1) ;
+           
+           obj.Lgeom_set = false ;
+           
+           obj.hx_cost = econ_class(cost_mode, 0.2, 5, 0.2) ;
+           
        end
-        
+       
        
        % Calculate the HX cost
        % Costs come from Q2 report unless otherwise stated

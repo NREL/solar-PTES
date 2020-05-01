@@ -244,7 +244,7 @@ end
 % Options for specifying heat exchanger geometry
 % This will probably be expanded over time
 for i = 1 : length(HX)
-   HX(i).LestA = true ;
+   %HX(i).LestA = true ;
    HX(i).D1    = 0.025 ;
 end
 

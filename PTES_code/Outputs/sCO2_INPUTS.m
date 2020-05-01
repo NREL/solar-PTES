@@ -213,29 +213,29 @@ gas = fluid_class('CarbonDioxide','WF','CP','TTSE',Load.num,30);
 
 % Heat exchangers set up to match Ty's work
 if Load.mode == 5
-    HX(1) = hx_class('hot', 'hex', 'eff', 0.879, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-    HX(2) = hx_class('cold', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-    HX(3) = hx_class('regen', 'regen', 'eff', 0.968, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-    HX(4) = hx_class('regen', 'regen', 'eff', 0.937, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
+    HX(1) = hx_class('hot',   'hex',   25, 100, Load.num, Load.num, 'eff', 0.879, ploss) ; % Hot heat exchanger
+    HX(2) = hx_class('cold',  'hex',   25, 100, Load.num, Load.num, 'eff',   eff, ploss) ; % Hot heat exchanger
+    HX(3) = hx_class('regen', 'regen', 25, 100, Load.num, Load.num, 'eff', 0.968, ploss) ; % Hot heat exchanger
+    HX(4) = hx_class('regen', 'regen', 25, 100, Load.num, Load.num, 'eff', 0.937, ploss) ; % Hot heat exchanger
 elseif Load.mode ==6
-    HX(1) = hx_class('hot', 'hex', 'eff', eff, ploss, 0, 100, Load.num, Load.num) ; % Hot heat exchanger
-    HX(2) = hx_class('hot', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-    HX(3) = hx_class('cold', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Cold heat exchanger
-    HX(4) = hx_class('regen', 'regen', 'eff', eff, ploss, 0, 100, Load.num, Load.num) ; % Recuperator exchanger
-    HX(5) = hx_class('regen', 'regen', 'eff', eff, ploss, 0, 100, Load.num, Load.num) ; % Recuperator heat exchanger    
+    HX(1) = hx_class('hot',   'hex',    0, 100, Load.num, Load.num, 'eff', eff, ploss) ; % Hot heat exchanger
+    HX(2) = hx_class('hot',   'hex',   25, 100, Load.num, Load.num, 'eff', eff, ploss) ; % Hot heat exchanger
+    HX(3) = hx_class('cold',  'hex',   25, 100, Load.num, Load.num, 'eff', eff, ploss) ; % Cold heat exchanger
+    HX(4) = hx_class('regen', 'regen',  0, 100, Load.num, Load.num, 'eff', eff, ploss) ; % Recuperator exchanger
+    HX(5) = hx_class('regen', 'regen',  0, 100, Load.num, Load.num, 'eff', eff, ploss) ; % Recuperator heat exchanger    
 else
     iHX = 1 ; % Heat exchanger counter
     for ii = 1 : Nhot
-        HX(iHX) = hx_class('hot', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
+        HX(iHX) = hx_class('hot', 'hex', 25, 100, Load.num, Load.num, 'eff', eff, ploss) ; % Hot heat exchanger
         iHX = iHX + 1 ;
     end
     for ii = 1 : Ncld
-        HX(iHX) = hx_class('cold', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
+        HX(iHX) = hx_class('cold', 'hex', 25, 100, Load.num, Load.num, 'eff', eff, ploss) ; % Hot heat exchanger
         iHX = iHX + 1 ;
     end
     if (Nhot < 2) && (Ncld < 2) && (Nrcp > 0)
         for ii = 1 : Nrcp
-            HX(iHX) = hx_class('regen', 'regen', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
+            HX(iHX) = hx_class('regen', 'regen', 25, 100, Load.num, Load.num, 'eff', eff, ploss) ; % Hot heat exchanger
             iHX = iHX + 1 ;
         end
     end
@@ -244,7 +244,7 @@ end
 % Options for specifying heat exchanger geometry
 % This will probably be expanded over time
 for i = 1 : length(HX)
-   HX(i).LestA = true ;
+   %HX(i).LestA = true ;
    HX(i).D1    = 0.025 ;
 end
 

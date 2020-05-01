@@ -38,7 +38,7 @@ load_coolprop
 % 3 = CO2 and Water
 % 4 = Steam and MEG
 % 5 = sCO2 and sCO2
-scenario = 2;
+scenario = 5;
 
 % Save figures?
 save_figures = 0;
@@ -170,40 +170,32 @@ switch model
         par4  = [];
         
     case 'geom'
-        DT    = 10;
-        ploss = 0.01;
-        D1    = 0.02;
-        par1  = DT;
-        par2  = ploss;
-        par3  = D1;
-        par4  = 'circular';
-        
-        %{
-        % Specify HEX geometry
-        % Obtain geometric parameters based on performance objectives,
-        % using analytical solutions.
+        % Specify HEX geometry based on performance objectives
         switch scenario
             case 1
                 % For comparisson with analytical results
-                NTU   = 10;
+                eff   = 0.95;
                 ploss = 0.01;
-                D     = 2e-2;
+                D1    = 2e-2;
             case 5
                 % For comparisson with scaling model (Hoopes2016)
                 %NTU   = 4.45;
                 %ploss = 0.03;
                 %D     = 2e-2;
                 % For comparisson with numerical model (Hoopes2016)
-                NTU   = 4.5;
-                ploss = 0.03;
-                D     = 1.00e-3;
+                eff   = 0.95;
+                ploss = 0.025;
+                D1    = 1.00e-3;
             otherwise
-                NTU   = 5;
+                eff   = 0.95;
                 ploss = 0.01;
-                D     = 1e-2;                
+                D1    = 0.02;                
         end
-        [HX]  = set_hex_geom(HX,iL,F1,i1,F2,i2,hex_mode,par,NTU,ploss,D);
-        %}
+        
+        par1  = eff;
+        par2  = ploss;
+        par3  = D1;
+        par4  = 'circular';
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -223,7 +215,7 @@ HX = hx_class(name, stage_type, 4, NX, 2, 2, model, par1, par2, par3, par4);
 % Compare specifications from set_hex_geom with numerical results
 if strcmp(HX.model,'geom')    
     fprintf(1,'\n      Specification  Result\n')
-    fprintf(1,'DTmin   = %8.3f   %9.3f\n',DT,min(HX.H.T-HX.C.T))
+    fprintf(1,'Eff     = %8.3f   %9.3f\n',eff,1-min(HX.H.T-HX.C.T)/(HX.H.T(end)-HX.C.T(1)))
     fprintf(1,'DppH    = %8.5f   %9.5f\n',ploss,HX.DppH)
     fprintf(1,'DppC    = %8.5f   %9.5f\n',ploss,HX.DppC)
 end
@@ -244,7 +236,7 @@ switch scenario
         %mdot2 = F2.state(iL,i1).mdot*ones(size(mdot1));
     case 5
         % Load data from Hoopes2016
-        data = load('Validation.csv');
+        data  = load('Validation.csv');
         mdot1 = data(:,1)';
         mdot2 = mdot1;
     otherwise
@@ -345,9 +337,9 @@ end
 switch scenario
     case 5 % Compare numerical results with data from Hoopes2016
         % Compute errors
-        DTmax  = TH2 - TC1;
-        errTH1 = abs(num_TH1-273.15 - data(:,3)')/DTmax*100;
-        errTC2 = abs(num_TC2-273.15 - data(:,4)')/DTmax*100;
+        DTmax   = TH2 - TC1;
+        errTH1  = abs(num_TH1-273.15 - data(:,3)')/DTmax*100;
+        errTC2  = abs(num_TC2-273.15 - data(:,4)')/DTmax*100;
         errDppH = abs(num_pH1 - data(:,5)'*1e5)./pH2*100;
         errDppC = abs(num_pC2 - data(:,6)'*1e5)./pC1*100;
         

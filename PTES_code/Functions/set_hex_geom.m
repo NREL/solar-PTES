@@ -1,197 +1,146 @@
-function [HX] = set_hex_geom(HX, iL, fluidH, iH, fluidC, iC, mode, par, NTUmin, ploss_max, D)
-% Obtain the heat exchanger geometry based on the performance objectives
-% specified by NTUmin and ploss_max.
+function [HX] = set_hex_geom(HX, varargin)
+%SET_HEX Determine the geometry of a heat exchanger
+%
+%   There are two scenarios when this is required:
+%
+%   1) The heat exchangers are defined in 'geom' mode so geometry is
+%   required. The geometry is obtained to satisfy the performance
+%   objectives set by DT and ploss.
+%
+%   2) The heat exchanger was already solved using the 'eff' or 'DT' modes
+%   but the geometry should now be estimated for economic calculations.
+%
+%   Note that SET_HEX has the same inputs as HEX_FUNC, which is used in the
+%   first scenario.
+%
+%   The sizing procedure follows the steps below:
+%
+%   (a) To simplify things, assume that both sides have the same hydraulic
+%   diameter and cross-sectional area (this leads to slightly sub-optimal
+%   designs and conservative cost estimates, but seems necessary to speed
+%   things up at run-time while obtaining geometries that accurately match
+%   the performance objectives)
+%
+%   (b) For a given hydraulic diameter, iterate over different values of
+%   Af.
+%
+%   (c) For each value of Af, obtain in the following order: G1 and G2, Re1
+%   and Re2, St2 and St2, Cf1 and Cf2, and the overall heat transfer
+%   coefficient at each heat exchanger section.
+%
+%   (d) Compute required heat transfer area and total pressures loss.
 
-% Things to be improved:
-% (1) Accurate computation of Nussel number for tube bundle (see
-% developed_flow function) according to square/trilateral lattice
-% configuration.
-% (2) Minimum D2 value according to lattice configuration.
-% (3) Introduction of tube thickness if metal volume is wanted
-
-if isempty(HX.UA0)
-    % Use hex_func to obtain the thermal profiles for the specified NTU.
-    % First, run with 'eff'=1.0 to obtain approximate Cmin.
-    model0 = HX.model;
-    eff0   = HX.eff;
-    UA0    = HX.UA;
-    HX.model = 'eff';
-    HX.eff   = 1.0;
-    HX.ploss = ploss_max;
-    [HX,~,~,~,~] = hex_func(HX,iL,fluidH,iH,fluidC,iC,mode,par);
-    % Now use Cmin to compute UA and update profiles.
-    HX.model = 'UA';
-    HX.UA    = HX.Cmin*NTUmin;
-    [HX,~,~,~,~] = hex_func(HX,iL,fluidH,iH,fluidC,iC,mode,par);
-    % Reset parameters
-    HX.model = model0; HX.eff=eff0; HX.UA=UA0;
-    %plot_hex(HX,1,'C')
+% Select inputs according to HX.model
+switch HX.model
+    case 'geom'
+        if nargin~=8
+            error('incorrect number of inputs')
+        end
+        iL     = varargin{1};
+        fluidH = varargin{2};
+        iH     = varargin{3};
+        fluidC = varargin{4};
+        iC     = varargin{5};
+        mode   = varargin{6};
+        par    = varargin{7};
+        
+    case {'eff','DT'}
+        if nargin~=1
+            error('incorrect number of inputs')
+        end
+        
+    otherwise
+        error('not implemented')
 end
 
-% Declare the two fluid streams
-SH = stream; SH.name = fluidH.name;
-SC = stream; SC.name = fluidC.name;
-SH.read = fluidH.read; SH.handle = fluidH.handle; SH.HEOS = fluidH.HEOS;
-SC.read = fluidC.read; SC.handle = fluidC.handle; SC.HEOS = fluidC.HEOS;
-SH.pin  = HX.H(iL).pin;
-SC.pin  = HX.C(iL).pin;
-
-% Import properties from HX structure
-SH.h = HX.H(iL).h;
-SH.p = HX.H(iL).pin*ones(size(SH.h));
-SH.mdot = HX.H(iL).mdot;
-SH = stream_update(SH,2);
-SC.h = HX.C(iL).h;
-SC.p = HX.C(iL).pin*ones(size(SC.h));
-SC.mdot = HX.C(iL).mdot;
-%keyboard
-SC = stream_update(SC,2);
-%keyboard
-
-% Determine which one is the "weak" stream (the one likely to present
-% higher thermo-hydraulic losses for a given value of G). Sizing will start
-% from that stream. Thermo-hydraulic losses are found to be proportional to
-% the factor v/p. More specifically, (Dp/p)/Ntu = G^2/2 * Cf/St * v/p, with
-% Cf/St ~ 2*Pr^2/3.
-LF_H = mean(SH.v./SH.p.*SH.Pr.^(2/3)); %"loss factor" hot stream
-LF_C = mean(SC.v./SC.p.*SC.Pr.^(2/3)); %"loss factor" cold stream
-if LF_H > LF_C
-    % Hot stream is "weak" stream. Cold stream is "strong" stream
-    SW = SH;
-    SS = SC;
-else
-    % Cold stream is "weak" stream. Hot stream is "strong" stream
-    SW = SC;
-    SS = SH;
+% This function should only be called if the geometry has not been set.
+if HX.Lgeom_set
+    error('The heat exchanger geometry has already been set!')
 end
 
-% Set the minimum number of transfer units that each stream should have to
-% obtain the specified overall NTU
-Ntu_min = 2*NTUmin;
-
-
-%%% DESIGN FIRST STREAM %%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Set pre-specified hydraulic diameter
-SW.D = D;
-
-% Obtain the maximum mass flux that satisfies the Ntu and ploss
-% requirements. Make an initial guess assuming Cf/St=2*Pr^2/3;
-SW.G = sqrt(mean( 2*SW.p./SW.v * ploss_max/Ntu_min .* 1./(2*SW.Pr.^(2/3)) ));
-
-max_iter = 100;
-tol = 1e-6;
-for i=1:max_iter
-    % Keep track of initial value (or value from previous iteration)
-    G1_0 = SW.G;
-    
-    % Compute Cf and St
-    SW.Re = SW.G*SW.D./SW.mu;
-    [SW.Cf, SW.St] = developed_flow(SW.Re,SW.Pr,'circular');
-    
-    % Update the value of G
-    SW.G = sqrt(mean( 2*SW.p./SW.v * ploss_max/Ntu_min .* SW.St./SW.Cf ));
-    
-    % Check convergence
-    condition = abs((SW.G - G1_0)/G1_0*100) < tol;
-    if condition
-        % Converged
-        break
-    end
-end
-if all([i>=max_iter,~condition])
-    error('Convergence not found')
-end
-
-% Compute heat transfer area, tube length and flow area
-SW.A  = SW.mdot*Ntu_min/(SW.G*mean(SW.St));
-SW.L  = SW.D*SW.A*SW.G/(4*SW.mdot);
-SW.Af = SW.mdot/SW.G;
-
-
-%%% DESIGN SECOND STREAM %%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Set L2=L1 (i.e. counter-flow) and A2=A1 (i.e. thin tubes)
-SS.L = SW.L;
-SS.A = SW.A;
-
-% Find the optimal hydraulic diameter that minimises losses on the second
-% stream
-fun = @(D) stream_losses(D,SS);
-xmin = SW.D/100;
-xmax = SW.D*100;
-%plot_function(fun,xmin,xmax,100,30,'loglog')
-%options = optimset('Display','notify','TolX',0.01*xmin,...
-%    'FunValCheck','on','AlwaysHonorConstraints','bounds');
-options = optimset('Display','notify','TolX',0.01*xmin);
-SS.D = fminbnd(fun,xmin,xmax,options);
-
-% Compute mass flux
-SS.G = 4*SS.L*SS.mdot / (SS.A*SS.D);
-
-% Compute Cf and St
-SS.Re = SS.G*SS.D./SS.mu;
-[SS.Cf, SS.St] = developed_flow(SS.Re,SS.Pr,'circular');
-
-% Compute flow area
-SS.Af = SS.mdot/SS.G;
-
-% Check results
-% Ntu1   = 4*SW.L/SW.D*mean(SW.St)
-% Ntu2   = 4*SS.L/SS.D*mean(SS.St)
-% ploss1 = mean(Ntu1*SW.G^2*SW.v.*(SW.Cf./SW.St)./(2*SW.p))
-% ploss2 = mean(Ntu2*SS.G^2*SS.v.*(SS.Cf./SS.St)./(2*SS.p))
-% keyboard
-
-% Export results into HX structure
-HX.shape = 'circular';
-HX.L     = SW.L;       % Tube length, m
-HX.AfT   = SW.Af + SS.Af; % Total flow area, m2
-if mean(SW.p) > mean(SS.p)
-    HX.D1    = SW.D;        % Tube diameter, m
-    HX.AfR   = SS.Af/SW.Af; % Ratio of flow areas (shell/tube)
-else
-    HX.D1    = SS.D;        % Tube diameter, m
-    HX.AfR   = SW.Af/SS.Af; % Ratio of flow areas (shell/tube)
+% Set geometry according to scenario
+switch HX.model
+    case 'geom'
+        
+        % The design process is done twice because the pressure loss of
+        % only one of the channels (the channel with the largest pressure
+        % loss) is known a priory.
+        for i0=1:2
+            % Use hex_func to obtain temperature profiles. Temporarily set
+            % HX.model to 'eff' in order to achieve this.
+            HX.model = 'eff';
+            [HX,~] = hex_func(HX, iL, fluidH, iH, fluidC, iC, mode, par);
+            HX.model = 'geom';
+            
+            % Employ the compute_pressure function to determine for which
+            % value of Af the pressure loss is the same as the objective.
+            % Check whether f1 changes sign over interval. If it doesn't,
+            % choose Af that is closest to zero.
+            f1 = @(Af) hex_compute_area(HX,iL,'Af',Af,0);
+            Afmin = 1e-3;
+            Afmax = 1e+3;
+            f1min = f1(Afmin) ;
+            f1max = f1(Afmax) ;
+            if f1min*f1max >= 0
+                if abs(f1min) < abs(f1max)
+                    Af0 = Afmin ;
+                else
+                    Af0 = Afmax ;
+                end
+            else
+                opt = optimset('TolX',Afmin/1e3,'Display','notify');
+                Af0 = fzero(f1,[Afmin,Afmax],opt);
+            end
+            [~,HX] = f1(Af0);
+            
+            % Update the 'design' values of ploss (either plossH0 = ploss
+            % or plossC0 = ploss, with the other one being lower) and
+            % repeat design process once.
+            HX.plossH0 = HX.DppH(iL);
+            HX.plossC0 = HX.DppC(iL);
+        end
+        
+    case {'eff','DT'}
+        
+        if strcmp(HX.name,'rej')
+            return
+        end
+        
+        % Size the heat exchanger for the first load period during which it
+        % was employed
+        for i = 1:length(HX.H)
+            if ~isempty(HX.H(i).T)
+                iL = i;
+                break
+            end
+        end
+        
+        % Employ the compute_pressure function to determine for which
+        % value of Af the pressure loss is the same as the objective.
+        % Check whether f1 changes sign over interval. If it doesn't,
+        % choose Af that is closest to zero.
+        f1 = @(Af) hex_compute_area(HX,iL,'Af',Af,0);
+        Afmin = 1e-3;
+        Afmax = 1e+3;
+        f1min = f1(Afmin) ;
+        f1max = f1(Afmax) ;
+        if f1min*f1max >= 0
+            if abs(f1min) < abs(f1max)
+                Af0 = Afmin ;
+            else
+                Af0 = Afmax ;
+            end
+        else
+            opt = optimset('TolX',Afmin/1e4,'Display','notify');
+            Af0 = fzero(f1,[Afmin,Afmax],opt);
+        end
+        [~,HX] = f1(Af0);
+        
+    otherwise
+        error('not implemented')
 end
 
-end
-
-
-%%% SUPPORT FUNCTIONS %%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function out = stream_losses(D,S)
-% For a given value of hydraulic diameter (D), compute the addition of the
-% non-dimensional thermal loss and non-dimensional pressure loss
-% corresponding to one heat exchanger stream. The S structure must contain
-% the following geometrical parameters: length (L), mass flow rate (mdot)
-% and heat transfer area (A); and the following thermophysical properties:
-% dynamic viscosity (mu), Prandtl number (Pr), specific volume (v) and
-% pressure (p).
-
-% Compute mass flux
-S.G = 4*S.L*S.mdot / (S.A*D);
-
-% Compute the Reynolds number, friction coefficient and Stanton number
-S.Re = S.G*D./S.mu;
-[S.Cf, S.St] = developed_flow(S.Re,S.Pr,'circular');
-
-% Compute thermal loss factor (TL = 1/Ntu)
-Ntu = 4*S.L/D*mean(S.St);
-TL  = 1/Ntu;
-
-% Compute pressure loss factor (PL = Dp/p)
-PL = 2*S.G^2*mean(S.Cf.*S.v./S.p)*S.L/D;
-
-% Add the thermal and the pressure loss factors
-out = PL + TL;
-%keyboard
-
-% if any([TL > 1/Ntu_min, PL > ploss_max])
-%     out = 1000*out;
-% end
+% Note that geometry is now set
+HX.Lgeom_set = true;
 
 end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -20,6 +20,10 @@ function [HX, fluidH, iH, fluidC, iC] = hex_func(HX, iL, fluidH, iH, fluidC, iC,
 %   loss are specified
 %   If model = 'geom, the heat exchanger geometry is specified
 
+% Set inlet temperatures (nomenclature: cold inlet is position 1, hot inlet
+% is position 2)
+TH2 = fluidH.state(iL,iH).T;
+TC1 = fluidC.state(iL,iC).T;
 
 % Extract parameters from HX structure according to selected model
 model = HX.model;
@@ -31,27 +35,23 @@ switch model
         ploss  = HX.ploss;
         
     case 'eff'
-        eff    = HX.eff;
-        ploss  = HX.ploss;
+        eff      = HX.eff;
+        ploss    = HX.ploss;
         
     case 'UA'
         UA_ref = HX.UA;
         ploss  = HX.ploss;
+        warning('this operation mode be discontinued')
         
     case 'geom'
         % Set heat exchanger geometry (first time only)
         if ~HX.Lgeom_set
-            [HX] = set_hex_geom2(HX, iL, fluidH, iH, fluidC, iC, mode, par);
+            [HX] = set_hex_geom(HX, iL, fluidH, iH, fluidC, iC, mode, par);
         end
         
     otherwise
         error('Invalid heat exchanger model')
 end
-
-% Set inlet temperatures (nomenclature: cold inlet is position 1, hot inlet
-% is position 2)
-TH2 = fluidH.state(iL,iH).T;
-TC1 = fluidC.state(iL,iC).T;
 
 % Check which one is fluidH and which is fluidC and swap them if necessary
 if TC1 > TH2 % swap needed
@@ -192,7 +192,9 @@ switch model
         switch model
             case 'eff'
                 compare = 'DTmin';
-                ref = 0;
+                %ref = 0;
+                model = 'DT';
+                ref   = (1-eff)*(TH2-TC1);
             case 'UA'
                 compare = 'UA';
                 ref = UA_ref;
@@ -375,10 +377,14 @@ switch model
         
     case 'geom'
         
+        % Import streams
+        HX.H(iL) = H;
+        HX.C(iL) = C;
+        
         % Import mH and mC into stream objects (one of these might still be
         % set to 0 at this stage -unknown-, depending on the mode)
-        H.mdot = mH;
-        C.mdot = mC;
+        HX.H(iL).mdot = mH;
+        HX.C(iL).mdot = mC;
         
         switch mode
             case {0,1,2}
@@ -411,6 +417,7 @@ switch model
                 %keyboard
                 opt = optimset('TolX',(mCmax-mCmin)/1e12,'Display','notify');
                 mC  = fzero(f1,[mCmin,mCmax],opt);
+                HX.C(iL).mdot = mC;
                 
             case 4
                 % Set outlet conditions of hot fluid. Assume small effect
@@ -429,6 +436,7 @@ switch model
                 f1  = @(mH) hex_compute_area(HX,iL,'hH1',hH1,'mH',mH);
                 opt = optimset('TolX',(mHmax-mHmin)/1e12,'Display','notify');
                 mH  = fzero(f1,[mHmin,mHmax],opt);
+                HX.H(iL).mdot = mH;
                 
             case 5
                 % Set outlet conditions of hot fluid. Assume small effect
@@ -450,6 +458,7 @@ switch model
                 %keyboard
                 opt = optimset('TolX',(mCmax-mCmin)/1e12,'Display','notify');
                 mC = fzero(f1,[mCmin,mCmax],opt);
+                HX.C(iL).mdot = mC;
                 
         end
         
@@ -462,10 +471,10 @@ switch model
         end
         
         % Extract outlet conditions
-        hH1 = HX.H.h(1);
-        pH1 = HX.H.p(1);
-        hC2 = HX.C.h(NX+1);
-        pC2 = HX.C.p(NX+1);
+        hH1 = HX.H(iL).h(1);
+        pH1 = HX.H(iL).p(1);
+        hC2 = HX.C(iL).h(NX+1);
+        pC2 = HX.C(iL).p(NX+1);
 end
 
 % Update states
@@ -483,7 +492,7 @@ TC2 = stateC.T;
 CpHmean = (hH2 - hH1)/(TH2-TH1);
 CpCmean = (hC2 - hC1)/(TC2-TC1);
 Cmin  = min([mC*CpCmean,mH*CpHmean]);
-dQ    = [HX.QS(iL,2:NX+1)-HX.QS(iL,1:NX)]';
+dQ    = HX.QS(iL,2:NX+1)'-HX.QS(iL,1:NX)';
 DT_AV = 0.5*(HX.H(iL).T(1:NX)+HX.H(iL).T(2:NX+1)) - 0.5*(HX.C(iL).T(1:NX)+HX.C(iL).T(2:NX+1));
 UA    = sum(dQ./DT_AV);
 NTU   = UA/Cmin;

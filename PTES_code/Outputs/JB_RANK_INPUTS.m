@@ -17,8 +17,14 @@ Ran_TbotC   = 273.15+20; %when discharging against the cold stores
 
 % Set component parameters
 eta   = 0.90;  % polytropic efficiency
+
+% Set heat exchanger parameters
 eff   = 0.97;  % heat exchanger effectiveness
 ploss = 0.01;  % pressure loss in HEXs
+HX_model = 'eff' ;
+HX_D1    = 0.002; %hydraulic diameter
+HX_shape = 'circular'; %channel shape
+HX_NX    = 100; % number of sections for HEX algorithm
 
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
@@ -46,7 +52,7 @@ switch Load.mode
             % This is the actual load profile that the plant meets
             Load.time = [stH;stH].*3600;      % time spent in each load period, s
             Load.type = ["chg";"dis"];    % type of load period
-            Load.mdot = [8.*fac;8.*fac];      % working fluid mass flow rate, kg/s
+            Load.mdot = [3.*fac;3.*fac];      % working fluid mass flow rate, kg/s
             T0_inc    = 0.0 ; % Increase in ambient temperature
         else
             Load = Design_Load ;
