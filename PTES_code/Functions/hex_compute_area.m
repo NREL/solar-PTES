@@ -1,14 +1,30 @@
 function varargout = hex_compute_area(HX,iL,mode,par,varargin)
-%COMPUTE_AREA Solve the TQ and TA diagrams diagrams of a two-stream
-%counter-flow heat exchanger.
+%HEX_COMPUTE_AREA Solve the TQ and TA diagrams of a two-stream counter-flow
+%heat exchanger.
 %
-%   For a given fluid outlet enthalpy (hH1 or hC2), compute the TQ diagram,
-%   the properties of the fluids at each point and the corresponding heat
-%   transfer area of the heat exchanger. Compare that to the reference heat
-%   transfer area and return the difference between the two.
+%   There are three modes of operation, controled by the 'mode' argument.
 %
-%   The "mode" string controls which enthalpy outlet (par) is specified,
-%   either mode='hH1' or mode='hC2'.
+%   In modes 'hH1' and 'hC2', the geometry of the heat exchanger is known
+%   and the outlet enthalpy of one of the two fluids is specified (in the
+%   'par' argument). The outlet enthalpy is used to compute the TQ diagram,
+%   the properties of the fluids at each point and the required heat
+%   transfer area of the heat exchanger. The computed heat transfer area is
+%   compared to the reference heat transfer area and the difference between
+%   the two is returned as output argument. This disagreement between areas
+%   is employed by the iteration procedure of the calling function to find
+%   the correct value of 'hH1' or 'hC2' for that geometry.
+%
+%   In mode 'Af', the geometry of the heat exchanger is not know yet, and
+%   is to be created according to the performance objectives (effectiveness
+%   and pressure loss). Because the effectiveness is specified, the TQ
+%   diagram is known by the calling function. The calling function calls
+%   HEX_COMPUTE_AREA while iterating over different 'Af' values. The value
+%   of 'Af' (stored in the 'par' argument) is used to compute the mass
+%   flux, the Re, St and Cf values at each point and generate a geometry
+%   that satisfies the given TQ diagram. Then, the predicted pressure
+%   losses are compared to the specified pressure loss and the difference
+%   is returned as output argument (to be used by the iteration procedure
+%   of the calling function) untill the correct value of 'Af' is found.
 %
 %   The optional inputs, "varargin", contain 'mC', 'mH' and the logical
 %   argument "visualise". If "visualise" is set to true, the compute_area
@@ -19,6 +35,8 @@ function varargout = hex_compute_area(HX,iL,mode,par,varargin)
 %   hex_compute_area(HX,iL,'hH1',hH1,true)
 %   hex_compute_area(HX,iL,'hH1',hH1,'mH',mH)
 %   hex_compute_area(HX,iL,'hH1',hH1,'mC',mC,true)
+%   hex_compute_area(HX,iL,'hC2',hC2,'mC',mC)
+%   hex_compute_area(HX,iL,'Af',Af,0)
 
 % Select mode and assing value of par
 switch mode
@@ -54,7 +72,7 @@ switch length(varargin)
         end
         
     otherwise
-    error('not implemented')
+        error('not implemented')
 end
 
 % Extract parameters
@@ -66,18 +84,19 @@ NX  = HX.NX;
 hH2 = H.hin;
 hC1 = C.hin;
 
+% In the 'Af' mode, assume equal hydraulic diameters and flow areas
 switch mode
     case 'Af'
-    % Assume equal hydraulic diameters and flow areas
-    HX.D2  = HX.D1;
-    HX.Af1 = Af/2;
-    HX.Af2 = Af/2;
-    HX.AfT = HX.Af1+HX.Af2;
-    HX.AfR = HX.Af2/HX.Af1;
+        HX.D2  = HX.D1;
+        HX.Af1 = Af/2;
+        HX.Af2 = Af/2;
+        HX.AfT = HX.Af1+HX.Af2;
+        HX.AfR = HX.Af2/HX.Af1;
 end
 
-% Determine which fluid flows inside the pipes and set hydraulic diameters
-% and flow areas
+% Determine which fluid flows inside the pipes and set hydraulic diameters,
+% flow areas and heat transfer areas (the latter are still unknown in 'Af'
+% mode)
 if H.pin > C.pin
     H.D  = HX.D1;
     H.Af = HX.Af1;
@@ -106,7 +125,6 @@ switch mode
     case 'hC2'
         C.h = linspace(hC1,hC2,NX+1)';
         H.h = hH2 - (hC2 - C.h)*mC/mH;
-        %keyboard
 end
 
 % Set initial conditions for iteration procedure
@@ -228,15 +246,17 @@ for iI = 1:NI
         CON_0 = CON;
     else
         if visualise
-            % Make plots
+            % Make TQ plot
             figure(10)
             plot(QS./QS(end),H.T,'r'); hold on;
             plot(QS./QS(end),C.T,'b'); hold off;
             xlabel('Cumulative heat transfer')
             ylabel('Temperature')
             legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],...
-                [C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
+                [C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],...
+                'Location','Best')
             
+            % Make pQ plot
             figure(11)
             plot(QS./QS(end),H.p/H.pin,'r-'); hold on
             plot(QS./QS(end),C.p/C.pin,'b-'); hold off
@@ -244,9 +264,12 @@ for iI = 1:NI
             xlabel('Cummulative heat transfer')
             ylabel('Relative pressure, p/p0')
             legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],...
-                [C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],'Location','Best')
+                [C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],...
+                'Location','Best')
             
-            fprintf(1,'\n\n*** Successful convergence after %d iterations***\n',iI);
+            formatSpec = ['\n\n*** Successful convergence in ',...
+                'hex_compute_area inner loop after %d iterations***\n'];
+            fprintf(formatSpec,iI);
             keyboard
         end
         break
@@ -263,11 +286,12 @@ end
 
 switch mode
     case {'hH1','hC2'}
-        % If the value of 'solution' is negative, it means that the computed area
-        % is larger than the actual area (heat exchanger too small to achieve
-        % selected operating conditions). If the value of 'solution' is positive,
-        % the computed area is smaller than the actual area (heat exchanger too
-        % large for selected operating conditions).
+        % If the value of 'solution' is negative, it means that the
+        % computed area is larger than the actual area (heat exchanger too
+        % small to achieve selected operating conditions). If the value of
+        % 'solution' is positive, the computed area is smaller than the
+        % actual area (heat exchanger too large for selected operating
+        % conditions).
         solution = C.A - A;
         % Control physically impossible solutions
         if impossible
@@ -275,10 +299,11 @@ switch mode
         end
         
     case 'Af'
-        % Compare ploss and max_ploss and return the difference. If the value of
-        % 'solution' is positive, it means that the pressure loss in one of the two
-        % streams is larger than the set objective (indicating that the flow area
-        % might be too small), and vice-versa.
+        % Compare ploss and max_ploss and return the difference. If the
+        % value of 'solution' is positive, it means that the pressure loss
+        % in one of the two streams is larger than the set objective
+        % (indicating that the flow area might be too small), and
+        % vice-versa.
         if impossible
             max_ploss = 1.0;
         else
