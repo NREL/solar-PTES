@@ -18,7 +18,7 @@ multi_run  = 0; % run cycle several times with different parameters?
 optimise   = 0; % optimise cycle?
 make_plots = 1; % make plots?
 save_figs  = 0; % save figures at the end?
-make_hex_plots = 1; % make plots of heat exchangers?
+make_hex_plots = 0; % make plots of heat exchangers?
 
 if (Nc_ch > 1 || Ne_ch > 1) && (Ncld > 1 || Nhot > 1)
     error('Have not implemented multiple compressions/expansions AND multiple storage tanks in series')
@@ -34,7 +34,7 @@ switch PBmode
             CT  = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank
         else
             for ii = 1 : Ncld
-                fluidC(ii)  = fluid_class(char(fCname(ii,:)),'SF','TAB',NaN,Load.num,30);
+                fluidC(ii)  = fluid_class(char(fCname(ii,:)),'SF','TAB',NaN,Load.num,30); %#ok<*SAGROW>
                 CT(ii)      = double_tank_class(fluidC(ii),TC_dis0(ii),p0,MC_dis0(ii),TC_chg0(ii),p0,MC_chg0(ii),T0,Load.num+1); %cold double tank
             end
         end

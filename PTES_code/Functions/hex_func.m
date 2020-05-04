@@ -2,8 +2,9 @@ function [HX, fluidH, iH, fluidC, iC] = hex_func(HX, iL, fluidH, iH, fluidC, iC,
 % COMPUTE HEAT EXCHANGER OUTLET CONDITIONS
 %   Description
 %   TC1 and TH2 are the cold and hot temperature inlets (known)
-%   TC2 and TH1 are the cold and hot temperature outlets (unknown)
-%   
+%   TC2 and TH1 are the cold and hot temperature outlets (unknown in modes
+%   0, 1 and 2)
+%
 %   There is five modes of operation:
 %   In mode == 0, the two mass flow rates (mH and mC) must be known, and
 %   the parameter "par" is unused
@@ -12,11 +13,11 @@ function [HX, fluidH, iH, fluidC, iC] = hex_func(HX, iL, fluidH, iH, fluidC, iC,
 %   In mode == 3, TC2 is specified (TC2=par) and mC (unknown) is computed
 %   In mode == 4, TH1 is specified (TH1=par) and mH (unknown) is computed
 %   In mode == 5, TH1 is specified (TH1=par) and mC (unknown) is computed
-%   
+%
 %   The HX object/structure can operate according to three different models
 %   If model = 'eff', the heat exchanger effectiveness and pressure loss
 %   are specified
-%   If model = 'UA', the overall heat transfer coefficient and pressure
+%   If model = 'DT', the pinch point temperature difference and pressure
 %   loss are specified
 %   If model = 'geom, the heat exchanger geometry is specified
 
@@ -37,11 +38,6 @@ switch model
     case 'eff'
         eff      = HX.eff;
         ploss    = HX.ploss;
-        
-    case 'UA'
-        UA_ref = HX.UA;
-        ploss  = HX.ploss;
-        warning('this operation mode be discontinued')
         
     case 'geom'
         % Set heat exchanger geometry (first time only)
@@ -184,7 +180,7 @@ end
 
 % Run algorithm according to the different models and operation modes
 switch model
-    case {'eff','UA','DT'}
+    case {'eff','DT'}
         
         % Set options for matlab root-finders (if needed)
         options = []; %optimset('Display','iter');
@@ -192,15 +188,11 @@ switch model
         switch model
             case 'eff'
                 compare = 'DTmin';
-                %ref = 0;
-                model = 'DT';
-                ref   = (1-eff)*(TH2-TC1);
-            case 'UA'
-                compare = 'UA';
-                ref = UA_ref;
+                ref     = (1-eff)*(TH2-TC1);
+                
             case 'DT'
                 compare = 'DTmin';
-                ref = DT;
+                ref     = DT;
         end
         
         % Set outlet pressures
@@ -224,33 +216,27 @@ switch model
                 QMAX0 = min([mC*(hC2_max - hC1),mH*(hH2 - hH1_min)])*(1.01); %necessary to find root
                 hH1_min = hH2 - QMAX0/mH;
                 
-                % Find value of hH1 for which DTmin=ref or UA=ref
+                % Find value of hH1 for which DTmin=ref
                 f1  = @(hH1) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,compare,ref);
                 %{
                 plot_function(f1,hH1_min,hH2,100,11);
-                symlog(gca,'y')                
+                symlog(gca,'y')
                 f2  = @(hH1) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,compare,ref,true);
                 plot_function(f2,hH1_min,hH2,100,11);
                 %}
                 hH1 = fzero(f1,[hH1_min,hH2],options);
                 
                 % Compute total heat transfer
-                switch model
-                    case 'eff'
-                        QMAX = mH*(hH2 - hH1);
-                        QT   = QMAX*eff;
-                    case {'DT','UA'}
-                        QT   = mH*(hH2 - hH1);
-                end
+                QT  = mH*(hH2 - hH1);
                 
                 % Determine outlet enthalpies
                 hC2 = hC1 + QT/mC;
-                hH1 = hH2 - QT/mH;                
+                hH1 = hH2 - QT/mH;
                 
             case 3
                 % Set outlet conditions of cold fluid
                 TC2 = par;
-                hC2 = RP1('PT_INPUTS',pC2,TC2,'H',fluidC);   
+                hC2 = RP1('PT_INPUTS',pC2,TC2,'H',fluidC);
                 
                 % Compute preliminary QMAX (hot outlet cannot be colder than cold
                 % inlet) and set boundaries accordingly
@@ -258,7 +244,7 @@ switch model
                 mCmin = mH*eps;
                 mCmax = QMAX0/(hC2 - hC1)*(1.01); %necessary to find root
                 
-                % Find value of mC for which DTmin=ref or UA=ref
+                % Find value of mC for which DTmin=ref
                 f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hC2',hC2,compare,ref);
                 %{
                 plot_function(f1,mCmin,mCmax,100,11);
@@ -280,16 +266,11 @@ switch model
                     mC = fzero(f1,[mCmin,mCmax],options);
                 end
                 
-                % Compute total heat transfer (and update mC if necessary)
-                switch model
-                    case 'eff'
-                        QMAX = mC*(hC2 - hC1);
-                        QT   = QMAX*eff;
-                        mC = QT/(hC2 - hC1);
-                    case {'DT','UA'}
-                        QT   = mC*(hC2 - hC1);
-                end
+                % Store new mC value into stateC structure
                 stateC.mdot = mC;
+                
+                % Compute total heat transfer
+                QT  = mC*(hC2 - hC1);
                 
                 % Update outlet conditions of hot fluid
                 hH1 = hH2 - QT/mH;
@@ -305,7 +286,7 @@ switch model
                 mHmin = eps(mC);
                 mHmax = QMAX0/(hH2 - hH1)*(1.01); %necessary to find root
                 
-                % Find value of mH for which DTmin=ref or UA=ref
+                % Find value of mH for which DTmin=ref
                 f1 = @(mH) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,compare,ref);
                 %{
                 plot_function(f1,mHmin,mHmax,100,11)
@@ -314,16 +295,11 @@ switch model
                 %}
                 mH = fzero(f1,[mHmin,mHmax],options);
                 
-                % Compute total heat transfer (and update mH if necessary)
-                switch model
-                    case 'eff'
-                        QMAX = mH*(hH2 - hH1);
-                        QT   = QMAX*eff;
-                        mH   = QT/(hH2 - hH1);
-                    case {'UA','DT'}
-                        QT   = mH*(hH2 - hH1);
-                end
+                % Store new mH value into stateH structure
                 stateH.mdot = mH;
+                
+                % Compute total heat transfer
+                QT  = mH*(hH2 - hH1);
                 
                 % Update outlet enthalpy of cold fluid
                 hC2 = hC1 + QT/mC;
@@ -331,15 +307,15 @@ switch model
             case 5
                 % Set outlet conditions of hot fluid
                 TH1 = par;
-                hH1 = RP1('PT_INPUTS',pH1,TH1,'H',fluidH);                
+                hH1 = RP1('PT_INPUTS',pH1,TH1,'H',fluidH);
                 
                 % Compute total heat transfer and compute mCmin and mCmax
                 % accordingly
-                QT  = mH*(hH2-hH1);
+                QT    = mH*(hH2-hH1);
                 mCmin = QT/(hC2_max - hC1)*(0.99);
                 mCmax = mCmin*1e3; %necessary to find root
                 
-                % Find value of mC for which DTmin=ref or UA=ref
+                % Find value of mC for which DTmin=ref
                 f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,compare,ref);
                 %{
                 plot_function(f1,mCmin,mCmax,100,11);
@@ -348,13 +324,9 @@ switch model
                 %}
                 mC = fzero(f1,[mCmin,mCmax],options);
                 
-                % Update value of mC according to effectiveness value (this
-                % will also affect the cold enthalpy outlet)
-                if strcmp(model,'eff')
-                    mC = mC/eff;
-                end
+                % Store new mC value into stateC structure
                 stateC.mdot = mC;
-                                
+                
                 % Update outlet conditions of cold fluid
                 hC2 = hC1 + QT/mC;
         end

@@ -118,10 +118,12 @@ if Load.mode == 2
 end
 
 % Heat exchangers
-% If the heat exchanger was employed with the 'eff' mode, the required
-% geometry is computed now
+% If the heat exchanger was employed with the 'eff' or 'DT' modes, the
+% required geometry is computed now
 for ii = 1 : numel(HX)
-    HX(ii)   = set_hex_geom(HX(ii));
+    if any(strcmp(HX(ii).model,{'eff','DT'}))
+        HX(ii)   = set_hex_geom(HX(ii)); %#ok<*SAGROW>
+    end
     HX(ii)   = HX_cost(HX(ii), CEind) ;
     cap_cost = cap_cost + HX(ii).hx_cost.COST ;
     cap_sens = cap_sens + cost_sens(HX(ii).hx_cost, Nsens) ;
