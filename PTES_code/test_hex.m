@@ -212,7 +212,7 @@ HX = hx_class(name, stage_type, 4, NX, 2, 2, model, par1, par2, par3, par4);
 [HX,~,~,~,~] = hex_func(HX,iL,F1,i1,F2,i2,hex_mode,par);
 
 %% SUMMARY
-% Compare specifications from set_hex_geom with numerical results
+% Compare specifications from hex_set_geom with numerical results
 if strcmp(HX.model,'geom')    
     fprintf(1,'\n      Specification  Result\n')
     fprintf(1,'Eff     = %8.3f   %9.3f\n',eff,1-min(HX.H.T-HX.C.T)/(HX.H.T(end)-HX.C.T(1)))

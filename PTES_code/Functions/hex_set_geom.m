@@ -1,21 +1,21 @@
-function [HX] = set_hex_geom(HX, varargin)
-%SET_HEX_GEOM Determine the geometry of a heat exchanger
+function [HX] = hex_set_geom(HX, varargin)
+%HEX_SET_GEOM Determine the geometry of a heat exchanger
 %
 %   There are two scenarios when this is required:
 %
 %   1) The heat exchangers are defined in 'geom' mode so geometry is
 %   required. The geometry is obtained to satisfy the performance
-%   objectives set by DT and ploss. In this scenario, SET_HEX_GEOM has the
+%   objectives set by DT and ploss. In this scenario, HEX_SET_GEOM has the
 %   same inputs as HEX_FUNC but only returns the HX structure, i.e.:
 %
-%   [HX] = SET_HEX_GEOM(HX, iL, fluidH, iH, fluidC, iC, mode, par)
+%   [HX] = HEX_SET_GEOM(HX, iL, fluidH, iH, fluidC, iC, mode, par)
 %
 %   2) The heat exchanger was already solved using the 'eff' or 'DT' modes
 %   but the geometry should now be estimated for economic calculations. In
-%   this scenario, SET_HEX_GEOM only has one input and one output, which
+%   this scenario, HEX_SET_GEOM only has one input and one output, which
 %   are the HX structure, i.e.:
 %
-%   [HX] = SET_HEX_GEOM(HX)
+%   [HX] = HEX_SET_GEOM(HX)
 %
 %   The sizing procedure follows the steps below:
 %

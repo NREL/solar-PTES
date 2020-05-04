@@ -122,7 +122,7 @@ end
 % required geometry is computed now
 for ii = 1 : numel(HX)
     if any(strcmp(HX(ii).model,{'eff','DT'}))
-        HX(ii)   = set_hex_geom(HX(ii)); %#ok<*SAGROW>
+        HX(ii)   = hex_set_geom(HX(ii)); %#ok<*SAGROW>
     end
     HX(ii)   = HX_cost(HX(ii), CEind) ;
     cap_cost = cap_cost + HX(ii).hx_cost.COST ;

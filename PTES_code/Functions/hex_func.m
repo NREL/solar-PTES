@@ -42,7 +42,7 @@ switch model
     case 'geom'
         % Set heat exchanger geometry (first time only)
         if ~HX.Lgeom_set
-            [HX] = set_hex_geom(HX, iL, fluidH, iH, fluidC, iC, mode, par);
+            [HX] = hex_set_geom(HX, iL, fluidH, iH, fluidC, iC, mode, par);
         end
         
     otherwise
@@ -50,18 +50,19 @@ switch model
 end
 
 % Check which one is fluidH and which is fluidC and swap them if necessary
+swap = 0;
 if TC1 > TH2 % swap needed
+    error(['Swap not implemented for hx_class and hex_set_geom. Make sure',...
+        ' that fluidH is fluidH and fluidC is fluidC when calling hex_func'])
+    %{
     swap = 1;
-    error(strcat('swap not implemented for hx_class and set_hex_geom.',...
-        'make sure that fluidH is fluidH and fluidC is fluidC when calling hex_func'))
     fluidH0 = fluidH;
     fluidH  = fluidC;
     fluidC  = fluidH0;
     iH0 = iH;
     iH  = iC;
     iC  = iH0;
-else
-    swap = 0;
+    %}
 end
 
 % Import fluid.state and fluid.stage
