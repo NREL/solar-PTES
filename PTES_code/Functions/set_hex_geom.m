@@ -1,34 +1,44 @@
 function [HX] = set_hex_geom(HX, varargin)
-%SET_HEX Determine the geometry of a heat exchanger
+%SET_HEX_GEOM Determine the geometry of a heat exchanger
 %
 %   There are two scenarios when this is required:
 %
 %   1) The heat exchangers are defined in 'geom' mode so geometry is
 %   required. The geometry is obtained to satisfy the performance
-%   objectives set by DT and ploss.
+%   objectives set by DT and ploss. In this scenario, SET_HEX_GEOM has the
+%   same inputs as HEX_FUNC but only returns the HX structure, i.e.:
+%
+%   [HX] = SET_HEX_GEOM(HX, iL, fluidH, iH, fluidC, iC, mode, par)
 %
 %   2) The heat exchanger was already solved using the 'eff' or 'DT' modes
-%   but the geometry should now be estimated for economic calculations.
+%   but the geometry should now be estimated for economic calculations. In
+%   this scenario, SET_HEX_GEOM only has one input and one output, which
+%   are the HX structure, i.e.:
 %
-%   Note that SET_HEX has the same inputs as HEX_FUNC, which is used in the
-%   first scenario.
+%   [HX] = SET_HEX_GEOM(HX)
 %
 %   The sizing procedure follows the steps below:
 %
-%   (a) To simplify things, assume that both sides have the same hydraulic
-%   diameter and cross-sectional area (this leads to slightly sub-optimal
-%   designs and conservative cost estimates, but seems necessary to speed
-%   things up at run-time while obtaining geometries that accurately match
-%   the performance objectives)
+%   (a) In the first scenario, call HEX_FUNC with the 'eff' model to obtain
+%   the temperature profiles. In the second scenario, skip this step.
 %
-%   (b) For a given hydraulic diameter, iterate over different values of
+%   (b) To simplify things, it is assumed that both sides have the same
+%   hydraulic diameter and cross-sectional area (this leads to slightly
+%   sub-optimal designs and conservative cost estimates, but is necessary
+%   to speed things up at run-time while obtaining geometries that
+%   accurately match the performance objectives)
+%
+%   (c) For a given hydraulic diameter, iterate over different values of
 %   Af.
 %
-%   (c) For each value of Af, obtain in the following order: G1 and G2, Re1
+%   (d) For each value of Af, obtain in the following order: G1 and G2, Re1
 %   and Re2, St2 and St2, Cf1 and Cf2, and the overall heat transfer
 %   coefficient at each heat exchanger section.
 %
-%   (d) Compute required heat transfer area and total pressures loss.
+%   (e) Compute the required heat transfer area and the pressure loss.
+%
+%   (f) Convergence is reached when pressure loss meets the objective.
+
 
 % Select inputs according to HX.model
 switch HX.model
