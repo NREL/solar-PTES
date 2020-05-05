@@ -4,6 +4,7 @@ iH = 1;  % keeps track of the Hot fluid stream number
 iC = 1;  % keeps track of the Cold fluid stream number
 iE = 1;  % keeps track of the Environment (heat rejection) stream number
 iA = 1;  % keeps track of the Air (heat rejection) stream number
+iPMP = 1 ; % Keeps track of which pump is being used
 
 % Regenerator cold inlet
 iReg1 = 1; % index regenerator hot inlet
@@ -66,7 +67,9 @@ for counter = 1:max_iter
                 fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p; %#ok<*SAGROW>
                 [fluidC] = update(fluidC,[iL,iC],1);
                 [HX(ihx_cld(iN)),gas,iG,fluidC,iC] = set_hex(HX(ihx_cld(iN)),iL,gas,iG,fluidC,iC,1,1.0);
-                iC=iC+1;
+                % Now calculate pump requirements for moving fluidC
+                [DPMP(iPMP),fluidC,iC] = compexp_func (DPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
+                iC=iC+1; iPMP=iPMP+1;
             case 1 % Heat engine only
         end
         
@@ -85,7 +88,9 @@ for counter = 1:max_iter
         [fluidH] = update(fluidH,[iL,iH],1);
         Taim = THmin;
         [HX(ihx_hot(iN)),fluidH,iH,gas,iG] = set_hex(HX(ihx_hot(iN)),iL,fluidH,iH,gas,iG,2,1.0);
-        iH=iH+1;
+        % Now calculate pump requirements for moving fluidH
+        [DPMP(iPMP),fluidH,iH] = compexp_func (DPMP(iPMP),iL,fluidH,iH,'Paim',fluidH.state(iL,1).p,1);
+        iH=iH+1; iPMP=iPMP+1;
         
         % EXPAND
         PRe_dis = (gas.state(iL,iG).p/pbot)^(1/(Ne_dis+1-iN));  % stage expansion pressure ratio
@@ -107,8 +112,8 @@ for counter = 1:max_iter
         air = count_Nstg(air);
         
         % Close storage fluid streams
-        iH_out = 1:2:(iH-1); iH_in  = iH_out + 1;
-        iC_out = 1:2:(iC-1); iC_in  = iC_out + 1;
+        iH_out = 1:3:(iH-1); iH_in  = iH_out + 2;
+        iC_out = 1:3:(iC-1); iC_in  = iC_out + 2;
         for i=iH_in, fluidH.stage(iL,i).type = 'end'; end
         for i=iC_in, fluidC.stage(iL,i).type = 'end'; end
         fluidH = count_Nstg(fluidH);
@@ -142,7 +147,7 @@ for counter = 1:max_iter
         end
         
         D_0 = D;
-        iG=1;iH=1;iHc=1;iC=1;iE=1;
+        iG=1;iH=1;iHc=1;iC=1;iE=1;iPMP=1;
     end
 end
 if counter==max_iter

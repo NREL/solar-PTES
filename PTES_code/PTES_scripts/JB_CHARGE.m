@@ -4,6 +4,7 @@ iH = 1;  % keeps track of the Hot fluid stream number
 iC = 1;  % keeps track of the Cold fluid stream number
 iE = 1;  % keeps track of the heat rejection stream number
 iA = 1;  % keeps track of the Air (heat rejection) stream number
+iPMP = 1 ; % Keeps track of which pump is being used
 
 % Regenerator inlet indices
 iReg1 = 1 + Nc_ch*2;         % index hot regenerator inlet (after compression + cooling)
@@ -63,7 +64,10 @@ for counter=1:max_iter
         [fluidH] = update(fluidH,[iL,iH],1);
 
         [HX(ihx_hot(iN)),gas,iG,fluidH,iH] = set_hex(HX(ihx_hot(iN)),iL,gas,iG,fluidH,iH,1,1.0);
-        iH=iH+1;
+        
+        % Now calculate pump requirements for moving fluidH
+        [CPMP(iPMP),fluidH,iH] = compexp_func (CPMP(iPMP),iL,fluidH,iH,'Paim',fluidH.state(iL,1).p,1);
+        iH=iH+1; iPMP=iPMP+1;
     end    
         
     % REGENERATE (gas-gas)
@@ -88,7 +92,8 @@ for counter=1:max_iter
         [fluidC] = update(fluidC,[iL,iC],1);
 
         [HX(ihx_cld(iN)),fluidC,iC,gas,iG] = set_hex(HX(ihx_cld(iN)),iL,fluidC,iC,gas,iG,2,1.0);
-        iC=iC+1;
+        [CPMP(iPMP),fluidC,iC] = compexp_func (CPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
+        iC=iC+1; iPMP=iPMP+1;
     end
     
     % REGENERATE (gas-gas)
@@ -109,8 +114,8 @@ for counter=1:max_iter
         air = count_Nstg(air);
         
         % Close storage fluid streams
-        iH_out = 1:2:(iH-1); iH_in  = iH_out + 1;
-        iC_out = 1:2:(iC-1); iC_in  = iC_out + 1;
+        iH_out = 1:3:(iH-1); iH_in  = iH_out + 2;
+        iC_out = 1:3:(iC-1); iC_in  = iC_out + 2;
         for i=iH_in, fluidH.stage(iL,i).type = 'end'; end
         for i=iC_in, fluidC.stage(iL,i).type = 'end'; end
         fluidH = count_Nstg(fluidH);
@@ -139,7 +144,7 @@ for counter=1:max_iter
 %             fprintf('T1:   %13.8f \n',gas.state(iL,1).T)
 %             fprintf('TEND: %13.8f \n\n',gas.state(iL,iG).T)
             % Reduce smoothing factor with number of iterations
-            smooth = 0.10;% / double(counter)^1 
+            smooth = 0.10;% / double(counter)^0.2 ; 
             gas.state(iL,1).p = gas.state(iL,1).p - smooth * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
             gas.state(iL,1).T = gas.state(iL,1).T + smooth * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
                       
@@ -151,7 +156,7 @@ for counter=1:max_iter
         end
         
         C_0 = C;
-        iG=1; iH=1; iC=1; iE=1;
+        iG=1; iH=1; iC=1; iE=1; iPMP=1;
         
     end
 end

@@ -113,6 +113,7 @@ for counter=1:max_iter
     iC = 1;  % keeps track of the Cold fluid stream number
     iE = 1;  % keeps track of the Environment (heat rejection) stream number
     iA = 1;  % keeps track of the Air (heat rejection) stream number
+    iPMP = 1 ; % Keeps track of which pump is being used
     
     % EXPAND (1-->2)
     [DEXP(1),steam,iG] = compexp_func (DEXP(1),iL,steam,iG,'Paim',Ran_pmid1,design_mode) ;
@@ -148,7 +149,8 @@ for counter=1:max_iter
     Taim = HT.A(iL).T;
     %[HX(ihx_JB+1),fluidH,iH,steam,iG] = set_hex(HX(ihx_JB+1),iL,fluidH,iH,steam,iG,4,Taim);
     [HX(ihx_JB+1),fluidH,iH,steam,iG] = hex_func(HX(ihx_JB+1),iL,fluidH,iH,steam,iG,4,Taim);
-    iH = iH + 1;
+    [DPMP(iPMP),fluidH,iH] = compexp_func (DPMP(iPMP),iL,fluidH,iH,'Paim',fluidH.state(iL,1).p,1);
+    iH=iH+1; iPMP=iPMP+1;
     
     % EXPAND (4-->5)
     [DEXP(2),steam,iG] = compexp_func (DEXP(2),iL,steam,iG,'Paim',Ran_pmid2,design_mode) ;
@@ -199,7 +201,8 @@ for counter=1:max_iter
         T_aim = RP1('PQ_INPUTS',steam.state(iL,iG).p,0.0,'T',steam) - 1; %wet saturated
         %[HX(ihx_JB+2),steam,iG,fluidC,iC] = set_hex(HX(ihx_JB+2),iL,steam,iG,fluidC,iC,5,T_aim);
         [HX(ihx_JB+2),steam,iG,fluidC,iC] = hex_func(HX(ihx_JB+2),iL,steam,iG,fluidC,iC,5,T_aim);
-        iC=iC+1;
+        [DPMP(iPMP),fluidC,iC] = compexp_func (DPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
+        iC=iC+1; iPMP=iPMP+1;
     else
         % REJECT HEAT (external HEX) (7-->8)
         T_aim = Ran_Tbot - 1;
@@ -234,7 +237,8 @@ for counter=1:max_iter
     Taim = HT.A(iL).T;
     %[HX(ihx_JB+4),fluidH,iH,steam,iG] = set_hex(HX(ihx_JB+4),iL,fluidH,iH,steam,iG,4,Taim);
     [HX(ihx_JB+4),fluidH,iH,steam,iG] = hex_func(HX(ihx_JB+4),iL,fluidH,iH,steam,iG,4,Taim);
-    iH = iH + 1;
+    [DPMP(iPMP),fluidH,iH] = compexp_func (DPMP(iPMP),iL,fluidH,iH,'Paim',fluidH.state(iL,1).p,1);
+    iH=iH+1; iPMP=iPMP+1;
     
     % Determine convergence and proceed
     A = [[steam.state(iL,:).T];[steam.state(iL,:).p]];
@@ -247,13 +251,13 @@ for counter=1:max_iter
         steam = count_Nstg(steam);
         
         % Close air (heat rejection) streams
-        iA_out = 1:3:(iA-1); iA_in  = iA_out + 2;
+        iA_out = 1:5:(iA-1); iA_in  = iA_out + 2;
         for i=iA_in, air.stage(iL,i).type = 'end'; end
         air = count_Nstg(air);
         
         % Close storage fluid streams
-        iH_out = 1:2:(iH-1); iH_in  = iH_out + 1;
-        iC_out = 1:2:(iC-1); iC_in  = iC_out + 1;
+        iH_out = 1:3:(iH-1); iH_in  = iH_out + 2;
+        iC_out = 1:3:(iC-1); iC_in  = iC_out + 2;
         for i=iH_in, fluidH.stage(iL,i).type = 'end'; end
         for i=iC_in, fluidC.stage(iL,i).type = 'end'; end
         fluidH = count_Nstg(fluidH);
@@ -261,10 +265,10 @@ for counter=1:max_iter
         
         % Uncomment these lines to print states
         
-        print_states(steam,iL,1:steam.Nstg(iL)+1,Load);
-        print_states(air,iL,1:air.Nstg(iL)+1,Load);
-        print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
-        print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);
+        %print_states(steam,iL,1:steam.Nstg(iL)+1,Load);
+        %print_states(air,iL,1:air.Nstg(iL)+1,Load);
+        %print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
+        %print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);
         %keyboard
         
         
@@ -299,7 +303,7 @@ end
 % compute the end of discharge time (stop when one tank becomes empty)
 [MdotH] = total_mdot(fluidH, iL, iH_out);
 t_disH  = HT.B(iL).M/MdotH;
-[MdotC] = total_mdot(fluidC, iL, iH_out);
+[MdotC] = total_mdot(fluidC, iL, iC_out);
 t_disC  = CT.B(iL).M/MdotC;
 Load.time(iL) = min([Load.time(iL),t_disH,t_disC])*(1-1e-6);
 

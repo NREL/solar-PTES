@@ -3,7 +3,7 @@ Load = Load0;
 
 % Reset fluid states and stages
 gas = reset_fluid(gas);
-if Load.mode==3
+if any(Load.mode==[3,7])
     steam = reset_fluid(steam);
 end
 
@@ -96,7 +96,7 @@ switch Load.mode
         
         CEXP(1:Ne_ch) = compexp_class('exp', 'poly', 13, eta, Load.num) ; % Charging expanders
         DCMP(1:Ne_ch) = compexp_class('comp', 'poly', 4, eta, Load.num) ; % Discharging compressors
-    case 3 % JB (charge) + Rankine (discharge)
+    case {3,7} % JB (charge) + Rankine (discharge)
         % Charging components
         CCMP(1:Nc_ch) = compexp_class('comp', 'poly', 4, eta, Load.num) ; % Charging compressors
         CEXP(1:Ne_ch) = compexp_class('exp', 'poly', 13, eta, Load.num) ; % Charging expanders
@@ -155,7 +155,7 @@ switch Load.mode
         end
         
         
-    case 3
+    case {3,7}
         % Call HX classes for ideal-gas PTES heat pump with Rankine cycle discharge
         ihx_JB  = ihx_cld(end);
         HX(ihx_hot)  = hx_class('hot',  'hex',   JB_HX_model, eff, ploss,  1, NX, Load.num, Load.num) ; % Hot heat exchanger
@@ -173,6 +173,10 @@ end
 % Fans --> NOT SURE WHAT cost_mode should be selected in this case
 CFAN(1:10) = compexp_class('comp', 'isen', 40, 0.5, Load.num) ;
 DFAN(1:10) = compexp_class('comp', 'isen', 40, 0.5, Load.num) ;
+
+% Fluid pumps --> NOT SURE WHAT cost_mode should be selected in this case
+CPMP(1:10) = compexp_class('pump', 'isen', 40, 0.8, Load.num) ;
+DPMP(1:10) = compexp_class('pump', 'isen', 40, 0.8, Load.num) ;
 
 % Put design case load cycles in load for the first iteration.
 if Loffdesign

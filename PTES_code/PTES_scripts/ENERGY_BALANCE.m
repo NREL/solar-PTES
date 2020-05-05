@@ -14,7 +14,7 @@ switch Load.mode
     case {0,1,2,4,5,6}
         NC = Ne_ch ;
         NE = Nc_ch ;
-    case 3
+    case {3,7}
         NC = 3 ;
         NE = 3 ;
 end
@@ -39,6 +39,14 @@ for ii = 1:length(CFAN)
 end
 for ii = 1:length(DFAN)
     DFAN(ii) = compexp_energy(DFAN(ii),Load.time)  ;
+end
+
+% FLUID PUMPS
+for ii = 1:length(CPMP)
+    CPMP(ii) = compexp_energy(CPMP(ii),Load.time)  ;
+end
+for ii = 1:length(DPMP)
+    DPMP(ii) = compexp_energy(DPMP(ii),Load.time)  ;
 end
 
 % Adds up the contributions of the several stages to compute an energy
@@ -132,6 +140,52 @@ for iL=1:Load.num
         QE_dis     = QE_dis     +    sum([air.stage(iL,:).Dh]  .*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));      
     end
     
+    % Compute contributions from pumping storage fluids
+    if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
+        for i = 1 : nH
+            W_in_chg   = W_in_chg   -    sum([fluidH.stage(iL,:).w]   .*[fluidH.state(iL,1:(end-1)).mdot]*Load.time(iL));
+            % Have to add heat contributions only for stages where pumping occurs
+            for i0=1:fluidH.Nstg(iL)
+                if strcmp(fluidH.stage(iL,i0).type,'pump')
+                    QE_chg     = QE_chg     +    fluidH.stage(iL,i0).Dh * fluidH.state(iL,i0).mdot*Load.time(iL);
+                    W_lost_chg = W_lost_chg + T0*fluidH.stage(iL,i0).sirr * fluidH.state(iL,i0).mdot * Load.time(iL);
+                end
+            end
+        end
+        for i = 1 : nC
+            W_in_chg   = W_in_chg   -    sum([fluidC.stage(iL,:).w].*[fluidC.state(iL,1:(end-1)).mdot]*Load.time(iL));
+            % Have to add heat contributions only for stages where pumping occurs
+            for i0=1:fluidC.Nstg(iL)
+                if strcmp(fluidC.stage(iL,i0).type,'pump')
+                    QE_chg     = QE_chg     +    fluidC.stage(iL,i0).Dh * fluidC.state(iL,i0).mdot*Load.time(iL);
+                    W_lost_chg = W_lost_chg + T0*fluidC.stage(iL,i0).sirr * fluidC.state(iL,i0).mdot * Load.time(iL);
+                end
+            end
+        end
+    elseif any(strcmp(Load.type(iL),{'dis','disCO2','ran','rcmpCO2','disTSCO2'}))
+        for i = 1 : nH
+            W_out_dis  = W_out_dis  +    sum([fluidH.stage(iL,:).w].*[fluidH.state(iL,1:(end-1)).mdot]*Load.time(iL));
+            % Have to add heat contributions only for stages where pumping occurs
+            for i0=1:fluidH.Nstg(iL)
+                if strcmp(fluidH.stage(iL,i0).type,'pump')
+                    QE_dis     = QE_dis     +    fluidH.stage(iL,i0).Dh * fluidH.state(iL,i0).mdot*Load.time(iL);
+                    W_lost_dis = W_lost_dis + T0*fluidH.stage(iL,i0).sirr * fluidH.state(iL,i0).mdot * Load.time(iL);
+                end
+            end
+        end
+        for i = 1 : nC
+            W_out_dis  = W_out_dis  +    sum([fluidC.stage(iL,:).w]   .*[fluidC.state(iL,1:(end-1)).mdot]*Load.time(iL));
+            %QE_dis     = QE_dis     +    sum([fluidC.stage(iL,:).Dh] .* [fluidC.state(iL,1:(end-1)).mdot]*Load.time(iL));
+            % Have to add heat contributions only for stages where pumping occurs
+            for i0=1:fluidC.Nstg(iL)
+                if strcmp(fluidC.stage(iL,i0).type,'pump')
+                    %QE_dis     = QE_dis     +    fluidC.stage(iL,i0).Dh * fluidC.state(iL,i0).mdot*Load.time(iL);
+                    W_lost_dis = W_lost_dis + T0*fluidC.stage(iL,i0).sirr * fluidC.state(iL,i0).mdot * Load.time(iL);
+                end
+            end   
+        end
+    end
+    
 end
 
 W_out_disNC = W_out_dis - W_out_disRC ;
@@ -169,7 +223,7 @@ for iL=1:Load.num
     if any(strcmp(Load.type(iL),{'chg','chgCO2','dis','disCO2','rcmpCO2','chgTSCO2','disTSCO2'}))
         for i0=1:gas.Nstg(iL)
             switch gas.stage(iL,i0).type
-                case 'comp'
+                case {'comp','pump'}
                     i1 = 1;
                 case 'exp'
                     i1 = 2;
@@ -183,7 +237,7 @@ for iL=1:Load.num
                 otherwise
                     error('unknown stage type');
             end
-            if any(strcmp(gas.stage(iL,i0).type,{'comp','exp','hex','regen','hex_reject','mixing'}))
+            if any(strcmp(gas.stage(iL,i0).type,{'comp','pump','exp','hex','regen','hex_reject','mixing'}))
                 if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
                     WL_PTES_chg(i1) = WL_PTES_chg(i1) + gas.stage(iL,i0).sirr*T0*gas.state(iL,i0).mdot*Load.time(iL);
                 end
@@ -196,7 +250,7 @@ for iL=1:Load.num
     if strcmp(Load.type(iL),'ran')
         for i0=1:steam.Nstg(iL)
             switch steam.stage(iL,i0).type
-                case 'comp'
+                case {'comp','pump'}
                     i1 = 1;
                 case 'exp'
                     i1 = 2;
@@ -210,14 +264,14 @@ for iL=1:Load.num
                 otherwise
                     error('unknown stage type');
             end
-            if any(strcmp(steam.stage(iL,i0).type,{'comp','exp','hex','regen','hex_reject','mixing'}))
+            if any(strcmp(steam.stage(iL,i0).type,{'comp','pump','exp','hex','regen','hex_reject','mixing'}))
                 WL_PTES_dis(i1) = WL_PTES_dis(i1) + steam.stage(iL,i0).sirr*T0*steam.state(iL,i0).mdot*Load.time(iL);
             end
         end
     end
     for i0=1:air.Nstg(iL)
         switch air.stage(iL,i0).type
-            case 'comp'
+            case {'comp','pump'}
                 i1 = 1;
             case 'exp'
                 i1 = 2;
@@ -231,12 +285,49 @@ for iL=1:Load.num
             otherwise
                 error('unknown stage type');
         end
-        if any(strcmp(air.stage(iL,i0).type,{'comp','exp','hex','regen','hex_reject','mixing'}))
+        if any(strcmp(air.stage(iL,i0).type,{'comp','pump','exp','hex','regen','hex_reject','mixing'}))
             if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
                 WL_PTES_chg(i1) = WL_PTES_chg(i1) + air.stage(iL,i0).sirr*T0*air.state(iL,i0).mdot*Load.time(iL);
             end
             if any(strcmp(Load.type(iL),{'dis','disCO2','ran','rcmpCO2','disTSCO2'}))
                 WL_PTES_dis(i1) = WL_PTES_dis(i1) + air.stage(iL,i0).sirr*T0*air.state(iL,i0).mdot*Load.time(iL);
+            end
+        end
+        
+    end
+    
+    for i0=1:fluidC.Nstg(iL)
+        switch fluidC.stage(iL,i0).type
+            case {'pump'}
+                i1 = 1;
+            case {'0','split','comp','exp','hex','regen','hex_reject','mixing','end'}
+            otherwise
+                error('unknown stage type');
+        end
+        if any(strcmp(fluidC.stage(iL,i0).type,{'pump'}))
+            if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
+                WL_PTES_chg(i1) = WL_PTES_chg(i1) + fluidC.stage(iL,i0).sirr*T0*fluidC.state(iL,i0).mdot*Load.time(iL);
+            end
+            if any(strcmp(Load.type(iL),{'dis','disCO2','ran','rcmpCO2','disTSCO2'}))
+                WL_PTES_dis(i1) = WL_PTES_dis(i1) + fluidC.stage(iL,i0).sirr*T0*fluidC.state(iL,i0).mdot*Load.time(iL);
+            end
+        end
+    end
+    
+    for i0=1:fluidH.Nstg(iL)
+        switch fluidH.stage(iL,i0).type
+            case {'pump'}
+                i1 = 1;
+            case {'0','split','comp','exp','hex','regen','hex_reject','mixing','end'}
+            otherwise
+                error('unknown stage type');
+        end
+        if any(strcmp(fluidH.stage(iL,i0).type,{'pump'}))
+            if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
+                WL_PTES_chg(i1) = WL_PTES_chg(i1) + fluidH.stage(iL,i0).sirr*T0*fluidH.state(iL,i0).mdot*Load.time(iL);
+            end
+            if any(strcmp(Load.type(iL),{'dis','disCO2','ran','rcmpCO2','disTSCO2'}))
+                WL_PTES_dis(i1) = WL_PTES_dis(i1) + fluidH.stage(iL,i0).sirr*T0*fluidH.state(iL,i0).mdot*Load.time(iL);
             end
         end
     end
@@ -273,7 +364,7 @@ switch Load.mode
         
         WL_PTES_chg(5) = WL_PTES_chg(5) + AT.WL_chg ;
 
-    case {2,5} % Heat engine only
+    case {2,5,7} % Heat engine only
         WL_PTES_dis(5) = HT.WL_dis + AT.WL_dis ;
         WL_PTES_dis(7) = HT.A(end).B - HT.A(1).B + HT.B(end).B - HT.B(1).B;
 end
@@ -389,7 +480,7 @@ switch Load.mode
         for ii = 1:Nhot; vol = vol + HT(ii).tank_volA + HT(ii).tank_volB ; end
         rhoE = Exergy_into_hot_tanks/fact/vol*1e3; %kWh/m3
         
-    case {2,5} % Heat engine only
+    case {2,5,7} % Heat engine only
         Heat_from_tanks   = (HT.A(2).H - HT.A(end).H) + (HT.B(2).H - HT.B(end).H);
         Exergy_from_tanks = (HT.A(2).B - HT.A(end).B) + (HT.B(2).B - HT.B(end).B);
         Heat_rejected = QE_dis;
@@ -417,7 +508,7 @@ end
 switch Load.mode
     case {0,1,3,4,6}
         Exergy_in = W_in_chg;
-    case {2,5}
+    case {2,5,7}
         Exergy_in = Exergy_from_tanks;
 end
 WL_comp    = sum(WL_matrix(:,1))/Exergy_in*100;
@@ -447,7 +538,7 @@ if WM == 1
     end
     
     switch Load.mode
-        case {0,2,3,4,5,6}
+        case {0,2,3,4,5,6,7}
             fprintf(1,'DISCHARGE\n');
             fprintf(1,'Average power output:    %8.2f MW\n',W_out_dis/t_dis/1e6);
             fprintf(1,'Total discharge time:    %8.2f h\n',t_dis/3600);
@@ -460,7 +551,7 @@ if WM == 1
     end
     
     switch Load.mode
-        case 3
+        case {3}
             fprintf(1,'DISCHARGE DETAILS:\n');
             fprintf(1,'Rankine cycle average power output:          %8.2f MW\n',W_out_dis/t_dis/1e6);
             fprintf(1,'Rankine cycle power output NO cold stores:   %8.2f MW\n',W_out_disNC/(t_dis-t_disRC)/1e6);
@@ -501,7 +592,7 @@ if WM == 1
             fprintf(1,'Exergetic efficiency (cold reject):  %8.1f %%\n',chi_hot*100);
             fprintf(1,'Coefficient of Performance:           %8.3f\n\n',COP);
             fprintf(1,'Exergy density (hot tanks):          %9.2f kWh/m3\n',rhoE);
-        case {2,5}
+        case {2,5,7}
             fprintf(1,'Exergetic efficiency:      %7.1f %%\n',chi_tot*100);
             fprintf(1,'First law efficiency:      %7.1f %%\n\n',EFF*100);
             fprintf(1,'Exergy density:            %8.2f kWh/m3\n',rhoE);

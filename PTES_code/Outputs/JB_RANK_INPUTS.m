@@ -22,7 +22,7 @@ ploss = 0.01;  % pressure loss in HEXs
 
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
-Ne_ch = 1; % number of expansions during charge
+Ne_ch = 2; % number of expansions during charge
 nH    = max([2,Nc_ch]); % number of hot fluid streams
 nC    = Ne_ch;          % number of cold fluid streams
 
@@ -34,8 +34,8 @@ Nhot = 1; % number of hot stores. Not implemented for >2
 switch Load.mode
     case 0 % PTES
         fac = 100.0; % This can be used to more easily set the mass flow to obtain a desired power output
-        stH = 8 ;
-        ee  = 1;%0.6031 ;
+        stH = 10 ;
+        ee  = 0.6091 ;
         % This is the load scenario the plant is designed for
         Design_Load      = Load ;
         Design_Load.time = [stH/ee;stH].*3600;  % time spent in each load period, s
@@ -87,14 +87,14 @@ switch Load.mode
         end
         
     case 3 % JB charge, Rankine discharge
-        fac = 1.0 ; % This can be used to more easily set the mass flow to obtain a desired power output 
+        fac = 100.0 ; % This can be used to more easily set the mass flow to obtain a desired power output 
         
         % This is the load scenario the plant is designed for
         Design_Load      = Load ;
         Design_Load.time = [10;4;10;10].*3600;          % time spent in each load period, s
         Design_Load.type = ["chg";"str";"ran";"ran"];   % type of load period
-        Design_Load.mdot = [10*fac;0;1*fac;1*fac];      % working fluid mass flow rate, kg/s
-        Design_Load.options.useCold = [0,0,0,0];        % Use cold stores during Rankine discharge? This should be set to 0 for design cases of retrofits.
+        Design_Load.mdot = [10*fac;0;1.0*fac;1.0*fac];      % working fluid mass flow rate, kg/s
+        Design_Load.options.useCold = [0,0,1,0];        % Use cold stores during Rankine discharge? This should be set to 0 for design cases of retrofits.
         
         if Loffdesign
             % This is the actual load profile that the plant meets
@@ -102,6 +102,27 @@ switch Load.mode
             Load.type = ["chg";"str";"ran";"ran"];  % type of load period
             Load.mdot = [10*fac;0;1*fac;1*fac];     % working fluid mass flow rate, kg/s
             Load.options.useCold = [0,0,1,0];        % Use cold stores during Rankine discharge?
+            T0_inc    = 0.0 ; % Increase in ambient temperature
+        else
+            Load = Design_Load ;
+        end
+        
+    case 7 % Electric heater charge, Rankine discharge
+        fac = 1.0 ; % This can be used to more easily set the mass flow to obtain a desired power output 
+        
+        % This is the load scenario the plant is designed for
+        Design_Load      = Load ;
+        Design_Load.time = [10;4;10].*3600;          % time spent in each load period, s
+        Design_Load.type = ["sol";"str";"ran"];      % type of load period
+        Design_Load.mdot = [10*fac;0;1*fac];         % working fluid mass flow rate, kg/s
+        Design_Load.options.useCold = [0,0,0];       % Use cold stores during Rankine discharge? This should be set to 0 for design cases of retrofits.
+        
+        if Loffdesign
+            % This is the actual load profile that the plant meets
+            Load.time = [10;4;10].*3600;         % time spent in each load period, s
+            Load.type = ["sol";"str";"ran"];     % type of load period
+            Load.mdot = [10*fac;0;1*fac];        % working fluid mass flow rate, kg/s
+            Load.options.useCold = [0,0,0];      % Use cold stores during Rankine discharge?
             T0_inc    = 0.0 ; % Increase in ambient temperature
         else
             Load = Design_Load ;
@@ -116,7 +137,7 @@ Load.ind  = 1:Load.num;
 switch PBmode
     case 0
         fHname  = 'SolarSalt';  % fluid name
-        TH_dis0 = 350 + 273.15; % initial temperature of discharged hot fluid, K
+        TH_dis0 = 300 + 273.15; % initial temperature of discharged hot fluid, K
         MH_dis0 = 1e9;          % initial mass of discharged hot fluid, kg
         TH_chg0 = 570 + 273.15; % initial temperature of charged hot fluid, K
         MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
@@ -176,7 +197,7 @@ gas = fluid_class('Nitrogen','WF','CP','BICUBIC&HEOS',Load.num,30);
 % 
 % gas      = fluid_class('Nitrogen','WF','IDL',dat,Load.num,30);
 
-if Load.mode==3
+if any(Load.mode==[3,7])
     % 'TTSE' interpolation is NOT recommended for steam when reading values
     % close to the saturation curve. Use 'HEOS' or 'BICUBIC&HEOS'
     steam = fluid_class('Water','WF','CP','BICUBIC&HEOS',Load.num,30);

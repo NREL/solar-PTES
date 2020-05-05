@@ -9,8 +9,10 @@
 % In v2 we no longer assume that both steam and PCM are changing phase at
 % the same time. They may have variable temperatures.
 %
+% In v3, unsteady steam terms seem to be small - try a new steam routine
+%
 % Author: Josh McTigue, Pau Farres-Antunez
-% 7 April 2020
+% 17 April 2020
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -39,7 +41,7 @@ load_coolprop
 dp    = 0.1 ; % Pipe diameter
 do    = 0.5 ; % Outer pipe diameter
 Lp    = 1.0 ; % Pipe length
-U     = 1e4 ; % Overall heat transfer coefficient, W/m2K
+U     = 1e2 ; % Overall heat transfer coefficient, W/m2K
 
 % STEAM
 steam = fluid_class('Water','WF','CP','HEOS',2,30);
@@ -52,7 +54,7 @@ mdot0 = 5.0;  % Mass flow rate, kg/s
 
 % PCM
 Tpm   = Tsat - 15 ; % Melting point of PCM
-Tp0   = Tsat - 20 ; % Initial temperature of PCM
+Tp0   = Tsat - 16 ; % Initial temperature of PCM
 xp0   = 0.0 ;
 cpl   = 2.5e3 ;     % Specific heat capacity of liquid PCM
 cps   = 1.5e3 ;     % Specific heat capacity of solid PCM
@@ -62,12 +64,12 @@ Lpcm  = 2e6 ;       % Latent heat of PCM
 cp0   = cps;
 rhop0 = rhops ;
 
-dTm   = 0.05 ;           % Melting temperature range of PCM
+dTm   = 1.00 ;           % Melting temperature range of PCM
 cpm   = Lpcm / (2.*dTm) ; % specific heat capacity of PCM while melting/freezing
 rhopm = 0.5 * (rhopl + rhops) ;
 
 % GRID AND TIME STEPS
-CFL   = 0.1 ; % Courant-Freidrich-Lewy number
+CFL   = 100. ; % Courant-Freidrich-Lewy number
 Nx    = 100 ; % Number of gridsteps
 tN    = 4*3600;  % Duration of simultion, s 
 
@@ -133,6 +135,7 @@ for n = 1 : Nt
     % constants
     ap = U * Apcm * dt ./ (rhop(:,2) .* cp(:,2)) ;
     as = U * Ar * dt;
+    fuck = 0.0 ;
     
     % Steam conditions at the pipe inlet
     rhos(1,1) = rhos0 ;
@@ -162,15 +165,9 @@ for n = 1 : Nt
     
     %*** PREDICTOR STEP ***%
     for i = 2 : Nx
-        % Guess steam density
-        rhos(i,1) = 0.5 * (rhos(i,2) + rhos(i-1,1)) ;
-                
-        % Continuity equation
-        PC = (rhos(i,2) - rhos(i,1)) * dx / dt ; % Predictor-Continuity
-        Gs(i,1) = Gs(i-1,1);% + PC ;
         
         % PCM energy equation
-        Tsguess = 0.5 * (Ts(i,2) + Ts(i-1,2)) ;
+        Tsguess = 0.5 * (Ts(i,2) + Ts(i-1,2)) ; % Steam temp probably doesn't change quickly - particularly when changing phase!
         Tp(i,1) = (Tp(i,2) + ap(i) * Tsguess) / (1. + ap(i)) ;
         PP = Tp(i,1) - Tp(i,2) ; % Predictor-PCM
         
@@ -189,13 +186,10 @@ for n = 1 : Nt
         end
         
         % Steam energy equation
-        s1 = rhos(i,2) * hs(i,2) ;
-        s2 = Gs(i-1,1) * hs(i-1,1) * dt / dx ;
-        s3 = U * Ar * (Tp(i,1) - Tsguess) * dt ;
-        s4 = rhos(i,1) + Gs(i,1) * dt / dx ;
-        
-        hs(i,1) = (s1 + s2 + s3) / s4 ;
-        PS      = hs(i,1) - hs(i,2) ; % Predictor-Steam
+        s1 = U * Ar * (Tp(i,1) - Tsguess) * dx / Gs(i-1,1) ;
+        s2 = fuck*(rhos(i-1,1) * hs(i-1,1) - rhos(i-1,2) * hs(i-1,2)) * dx / (dt * Gs(i-1,1)) ;
+        PS      = s1 - s2 ; % Predictor-Steam
+        hs(i,1) = hs(i-1,1) + PS ;
                 
         % Calculate steam properties
         if hs(i,1) > hv % steam
@@ -213,6 +207,11 @@ for n = 1 : Nt
             rhos(i,1) = 1./vs ;
         end
         
+        % Now estimate G from mass continuity equation
+        PC = (rhos(i,2) - rhos(i,1)) * dx / dt ; % Predictor-Continuity
+        Gs(i,1) = Gs(i-1,1);% + PC ;
+        
+        
     end
     
     % Now have updated estimates of rhos, Ts, Tp. Update others:
@@ -220,10 +219,6 @@ for n = 1 : Nt
                 
     % *** CORRECTOR STEP *** %
     for i = 2 : Nx
-        
-        % Continuity equation
-        CC      = (rhos(i,2) - rhos(i,1)) * dx / dt ; % Corrector-Continuity
-        Gs(i,1) = Gs(i-1,1);% + 0.5 * (PC + CC) ;
         
         % PCM energy equation
         CP = (Tp(i,2) + ap(i) * Ts(i,1)) / (1. + ap(i)) - Tp(i,2) ; % Corrector-PCM
@@ -244,13 +239,11 @@ for n = 1 : Nt
         end
         
         % Steam energy equation
-        s1 = rhos(i,2) * hs(i,2) ;
-        s2 = Gs(i-1,1) * hs(i-1,1) * dt / dx ;
-        s3 = U * Ar * (Tp(i,1) - Ts(i,1)) * dt ;
-        s4 = rhos(i,1) + Gs(i,1) * dt / dx ;
+        s1 = U * Ar * (Tp(i,1) - Ts(i,1)) * dx / Gs(i-1,1) ;
+        s2 = fuck*(rhos(i-1,1) * hs(i-1,1) - rhos(i-1,2) * hs(i-1,2)) * dx / (dt * Gs(i-1,1)) ;
+        CS = s1 - s2 ; % Corrector-Steam
         
-        CS      = (s1 + s2 + s3) / s4 - hs(i,2) ; % Corrector-Steam
-        hs(i,1) =  hs(i,2) + 0.5 * (PS + CS) ;        
+        hs(i,1) =  hs(i-1,1) + 0.5 * (PS + CS) ;        
         
         % Calculate steam properties
         if hs(i,1) > hv % steam
@@ -268,10 +261,14 @@ for n = 1 : Nt
             rhos(i,1) = 1./vs ;
         end
         
+        % Continuity equation
+        CC      = (rhos(i,2) - rhos(i,1)) * dx / dt ; % Corrector-Continuity
+        Gs(i,1) = Gs(i-1,1);% + 0.5 * (PC + CC) ;
+        
         
     end
     
-    if n == 100
+    if n == 1
         keyboard
     end
         

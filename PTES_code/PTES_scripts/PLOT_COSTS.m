@@ -111,7 +111,7 @@ switch Load.mode
         xtickangle(45)
         legend({'Compressors','Expanders','Source Tank','Sink Tank','Fluid','Heat exchangers','Other'},'Location','Best')
         
-    case 2
+    case {2,7}
         names = {'Electric Heater','Discharge machine','Hot tanks','Cold tanks','Hot HX','Cold HX','Recuperators','Motor-generator'};
         Cmatrix = zeros(8,7) ;
         

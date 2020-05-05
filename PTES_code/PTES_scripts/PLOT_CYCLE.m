@@ -86,5 +86,18 @@ switch Load.mode
         legend(pl1,'charge','Location','best');
         figure(2); hold off;
         legend(pl2,'discharge','Location','best');
+        
+    case 7 %EH-charge, Rankine Discharge
+        
+        % Plot states in Ts diagram      
+        pl2 = plot_Ts_diag(steam,Load,'ran',2,100,'k:','k:s',true,true);
+        
+        % Plot storage tank temperatures
+        plot_T_storage(HT,Load,'ran',2,{'r','r'},true,NameArray,ValueArray);
+        plot_T_storage(CT,Load,'ran',2,{'b','b'},true,NameArray,ValueArray);
+        
+        % Set legends
+        figure(2); hold off;
+        legend(pl2,'discharge','Location','best');
                 
 end

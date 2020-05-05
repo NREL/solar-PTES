@@ -49,6 +49,12 @@ switch fluid.read
                 x  = fluid.TAB(:,1); %temperature
                 xq = input2;
                 
+            case 'PSmass_INPUTS'
+                % Tabulated data is pressure independent at the moment. Only
+                % input2 (entropy) is used.
+                x  = fluid.TAB(:,4); %entropy
+                xq = input2;
+                
             otherwise
                 error('not implemented')
         end

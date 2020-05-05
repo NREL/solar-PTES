@@ -81,11 +81,16 @@ classdef compexp_class
             
             % Extract eta, pr for this time period
             if design_mode
-                obj.eta(iL) = obj.eta0 ;
-                obj.pr(iL)  = 1 ;
+                obj.eta(iL)  = obj.eta0 ;
+                obj.mdot(iL) = obj.mdot0 ;
+                obj.pr(iL)   = 1 ;
             else
                 if strcmp(fluid.name,'Water')
                     obj = compexp_offdesign (obj , state, iL , aim, 2) ;
+                elseif strcmp(obj.type,'pump')
+                    obj.eta(iL)  = obj.eta0 ;
+                    obj.mdot(iL) = state.mdot ;
+                    obj.pr(iL)   = 1 ;
                 else
                     obj = compexp_offdesign (obj , state, iL , aim, 1) ;
                 end
@@ -118,6 +123,8 @@ classdef compexp_class
                 mode = 4 ;
             elseif strcmp(obj.type,'comp') && strcmp(obj.aim_mode,'Paim') && strcmp(obj.eff_mode,'isen')
                 mode = 5 ;
+            elseif strcmp(obj.type,'pump') && strcmp(obj.aim_mode,'Paim') && strcmp(obj.eff_mode,'isen')
+                mode = 6 ;
             else
                 error('Not implemented')
             end
@@ -137,6 +144,9 @@ classdef compexp_class
             elseif (mode==1 || mode==2 || mode==4) %expander
                 n = -1;
                 stage.type = 'exp';
+            elseif (mode==6) %pump
+                n = 1;
+                stage.type = 'pump';
             else
                 error('***Mode not implemented***')
             end
@@ -178,6 +188,12 @@ classdef compexp_class
                 h2   = nested_compexp_is(fluid,h1,s1,p2,etaI,n);
             end
             
+            % Pump. Final pressure specified (isentropic efficiency)
+            if mode==6
+               p2 = aim ;
+               h2 = pump_is(obj.mdot(iL), h1, rho1, p1, p2, etaI) ;
+            end
+            
             % Update state
             state.h = h2;
             state.p = p2;
@@ -209,7 +225,7 @@ classdef compexp_class
                 obj.Pin   = p1 ;
                 
                 % Design pressure ratio
-                if strcmp(obj.type,'comp')
+                if strcmp(obj.type,'comp') || strcmp(obj.type,'pump')
                     obj.pr0 = p2 / p1 ;
                 else
                     obj.pr0 = p1 / p2 ;
@@ -263,6 +279,12 @@ classdef compexp_class
                 else
                     error('n must be either 1 or -1')
                 end
+            end
+            
+            % Calculate the work input to a pump Q = dP * vol flow rate / eta
+            function h2 = pump_is(mdot, h1, rho1, p1, p2, eta) 
+                work = (p2 - p1) * mdot / (rho1 * eta) ;
+                h2   = h1 + work ;
             end
             
         end

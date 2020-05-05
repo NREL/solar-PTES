@@ -30,7 +30,7 @@ Lretro = true ;
 
 % Compressors and expanders
 for ii = 1 : length(CCMP)
-    if Load.mode == 2
+    if any(Load.mode == [2,7])
         CCMP(ii).cmpexp_cost.COST = 0.01 ;
     else
         CCMP(ii) = compexp_econ(CCMP(ii), CEind, false, 0)  ;
@@ -48,7 +48,7 @@ for ii = 1 : length(DEXP)
     cap_sens = cap_sens + cost_sens(DEXP(ii).cmpexp_cost, Nsens) ;
 end
 for ii = 1 : length(CEXP)
-    if Load.mode == 2
+    if any(Load.mode == [2,7])
         CEXP(ii).cmpexp_cost.COST = 0.01 ;
     else
         CEXP(ii) = compexp_econ(CEXP(ii), CEind, false, 0)  ;
@@ -90,6 +90,9 @@ if Load.mode == 2
     end
     powOUT  = -(WINdis - WOUTdis) / 1e3 ; % This is only correct for JB PTES.
     GEN.gen_cost.COST = 1.85e6 * (powOUT / 1.18e4)^0.94 ; % Really need to make a class .... just for this
+    
+elseif Load.mode == 7
+    GEN.gen_cost.COST = 0.01 ;
 else
     WINch = 0.; WOUTch = 0.;
     for ii = 1 : Nc_ch
@@ -100,18 +103,19 @@ else
     end
     powIN  = (WINch - WOUTch) / 1e3 ; % This is only correct for JB PTES.
     GEN.gen_cost.COST = 1.85e6 * (powIN / 1.18e4)^0.94 ; % Really need to make a class .... just for this
+    
 end
 cap_cost = cap_cost + GEN.gen_cost.COST ;
 cap_sens = cap_sens + cost_sens(GEN.gen_cost, Nsens) ;
-
 % Electric heater
-if Load.mode == 2
+if any(Load.mode == [2,7])
    Leh = true ; % Is there an electric heater to charge the hot tanks?
    if Leh
       % Heat from hot tanks
       QH = ((HT.A(2).H - HT.A(end).H) + (HT.B(2).H - HT.B(end).H))/(t_dis*1e6) ; % This equals heat added by electric heater
       EH.eh_cost = econ_class(1, 0.2, 5, 0.2) ;
-      EH.eh_cost.COST = 75e3 * QH ^ 0.9 ; % Correlation from Benato et al. 2017
+      %EH.eh_cost.COST = 75e3 * QH ^ 0.9 ; % Correlation from Benato et al. 2017
+      EH.eh_cost.COST = 475e3 * QH ; 
       cap_cost = cap_cost + EH.eh_cost.COST ;
       cap_sens = cap_sens + cost_sens(EH.eh_cost, Nsens) ;
    end
@@ -127,7 +131,7 @@ end
 % Hot tank cost and hot fluid cost
 for ii = 1 : Nhot
     fluidH(ii).cost = 1.0 ; % Specify in input file in class constructor
-    if Lretro && Load.mode == 3
+    if Lretro && any(Load.mode == [3,7])
         HT(ii).tankA_cost.COST = 0.01 ;
         HT(ii).tankB_cost.COST = 0.01 ;
         HT(ii).fluid_cost.COST = 0.01 ;
@@ -145,8 +149,8 @@ end
 
 % Cold tank cost and cold fluid cost
 for ii = 1 : Ncld
-   fluidC(ii).cost = 1.0 ; % Specify in input file in class constructor
-   if Load.mode == 2
+   fluidC(ii).cost = 0.56 ; % Specify in input file in class constructor
+   if any(Load.mode == [2,7])
        CT(ii).tankA_cost.COST = 0.01 ;
        CT(ii).tankB_cost.COST = 0.01 ;
        CT(ii).fluid_cost.COST = 0.01 ;
@@ -182,7 +186,7 @@ Cdata = calc_lcos(Cdata, Win, Wout, Load.time, Nsens) ;
 
 % Write out some results
 switch Load.mode
-    case {0,1,2,3,4,5,6}
+    case {0,1,2,3,4,5,6,7}
         fprintf(1,'ECONOMIC RESULTS:\n');
         fprintf(1,'Capital cost:                  %8.1f M$\n',Cdata.cap_costM/1e6);
         fprintf(1,'     Standard deviation:       %8.1f M$\n\n',Cdata.cap_costSD/1e6);

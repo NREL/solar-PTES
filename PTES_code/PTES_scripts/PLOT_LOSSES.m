@@ -8,7 +8,7 @@ switch Load.mode
         names = {'Heat pump'};
         b = bar(WL_matrix./W_in_chg*100,'stacked');
         set(gca, 'XTick', 1, 'XTickLabel', names, 'TickLabelInterpreter', 'latex')
-    case {2,5}
+    case {2,5,7}
         names = {'Heat engine'};
         b = bar(WL_matrix./Exergy_from_tanks*100,'stacked');
         set(gca, 'XTick', 2, 'XTickLabel', names, 'TickLabelInterpreter', 'latex')

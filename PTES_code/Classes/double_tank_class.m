@@ -340,7 +340,8 @@ classdef double_tank_class
                  case 6
                      % Storage tank cost based on Couper
                      % Up to 11 million gallons for field constructed tanks
-                     % These costs seem ridiculously high!
+                     % These costs seem ridiculously high! Looks like there
+                     % is a typo in the book 1218 --> 1.218
                      
                      % Maximum tank volume is 50e3 m3. 
                      m3toGAL = 264.172 ;
@@ -353,21 +354,21 @@ classdef double_tank_class
                      if volA > maxV
                          nA    = floor(volA / maxV); % Number of maxV tanks
                          vA    = mod(volA / maxV,1)  ; % Remaining volume
-                         Acost = nA * CF * 1218 * exp(11.662-0.6104 * log(maxV) + 0.04536 * (log(maxV)^2)) ;
+                         Acost = nA * CF * 1.218 * exp(11.662-0.6104 * log(maxV) + 0.04536 * (log(maxV)^2)) ;
                          
-                         Acost = Acost + CF * 1218 * exp(11.662-0.6104 * log(vA) + 0.04536 * (log(vA)^2)) ;
+                         Acost = Acost + CF * 1.218 * exp(11.662-0.6104 * log(vA) + 0.04536 * (log(vA)^2)) ;
                      else
-                         Acost = CF * 1218 * exp(11.662-0.6104 * log(volA) + 0.04536 * (log(volA)^2)) ;
+                         Acost = CF * 1.218 * exp(11.662-0.6104 * log(volA) + 0.04536 * (log(volA)^2)) ;
                      end
                      
                      if volB > maxV
                          nB    = floor(volB / maxV); % Number of maxV tanks
                          vB    = mod(volB / maxV,1)  ; % Remaining volume
-                         Bcost = nB * CF * 1218 * exp(11.662-0.6104 * log(maxV) + 0.04536 * (log(maxV)^2)) ;
+                         Bcost = nB * CF * 1.218 * exp(11.662-0.6104 * log(maxV) + 0.04536 * (log(maxV)^2)) ;
                          
-                         Bcost = Bcost + CF * 1218 * exp(11.662-0.6104 * log(vB) + 0.04536 * (log(vB)^2)) ;
+                         Bcost = Bcost + CF * 1.218 * exp(11.662-0.6104 * log(vB) + 0.04536 * (log(vB)^2)) ;
                      else
-                         Bcost = CF * 1218 * exp(11.662-0.6104 * log(volB) + 0.04536 * (log(volB)^2)) ;
+                         Bcost = CF * 1.218 * exp(11.662-0.6104 * log(volB) + 0.04536 * (log(volB)^2)) ;
                      end
                      
                      % Increase cost if pressurized
