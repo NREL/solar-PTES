@@ -23,17 +23,19 @@ function [A] = create_table(Mname)
 %   obj.TAB = create_table(Fname);
 %   pbH(ii).sld   = create_table(pbH(ii).Sname);
 
-% Set fileName according to the substance's name
-if strncmp(Mname,'INCOMP::',8) %skip first part of substance name
-    fileName  = strcat('./Data/',Mname(9:end),'.dat');
-else
-    fileName  = strcat('./Data/',Mname,'.dat');
-end
+% Set global TABS structure (which contains tabular information on various
+% fluids)
+global TABS
 
-% Check if file already exists. If it does, return control to invoking
-% function. Otherwise, create file and proceed.
+% Set fileName
+fileName  = strcat('./Data/',valid_name(Mname),'.dat');
+
+% Check if file already exists. If it does, load the table, save it into
+% the matrix A and into the global TABS structure, and return control to
+% invoking function. Otherwise, create file and proceed.
 if isfile(fileName)    
     A = load(fileName);
+    TABS.(valid_name(Mname)) = A;
     return
 else
     fileID = fopen(fileName,'w');
@@ -202,14 +204,17 @@ for i=1:(n-1)
     s(i+1)  = s(i) + (h(i+1) - h(i))/(0.5*(T(i+1) + T(i)));  % entropy  increase in isobaric process
 end
 
-%Save in a single matrix for printing to file
+% Save in a single matrix for printing to file
 A = [ T, h, rho, s, Cp, k, mu, Pr, Q];
 
-%Print to file
+% Print to file
 fprintf(fileID,'%%%7s %20s %20s %20s %20s %20s %20s %20s %11s\n',...
     'T[K]','h[J/kg]','rho[m3/kg]','s[J/(kg.K)]','Cp[J/kg/K]','k[W/m.K]','mu[Pa.s]','Pr[-]','Q[-]');
 fprintf(fileID,' %7.2f %20.12e %20.12e %20.12e %20.12e %20.12e %20.12e %20.12e %11.6f\n',A');
 fclose(fileID);
+
+% Save into global TABS structure
+TABS.(valid_name(Mname)) = A;
 
 end
 

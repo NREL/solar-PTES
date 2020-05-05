@@ -8,7 +8,10 @@ classdef hx_class
        
        eff      % Effectiveness
        ploss    % Pressure loss
+       DT       % Pinch-point temperature difference
        
+       plossH0  % Pressure loss, specific to hot side
+       plossC0  % Pressure loss, specific to cold side
        UA0      % Conductance, W/K - (design)
        NTU0     % Design NTU
        LMTD0    % Design LMTD
@@ -28,6 +31,7 @@ classdef hx_class
        
        QS       % Cumulative heat transfer
        AS       % Heat transfer area
+       Ul       % Local overall heat transfer coefficient
        LMTD     % Why not
        Cmin 
        UA
@@ -74,39 +78,80 @@ classdef hx_class
    end
    
    methods
-       function obj = hx_class(name, stage_type, model, eff, ploss, cost_mode, Ngrid, Nsave, numPeriods)
-            obj.name       = name ;
-            obj.stage_type = stage_type ;
-            obj.model      = model ;
-            obj.eff        = eff ;
-            obj.ploss      = ploss ;
-            
-            obj.NX         = Ngrid ;
-            
-            % Loss data          
-            % Two columns. First for hot side. Second for cold side.
-            obj.w    = zeros(numPeriods,2) ;
-            obj.q    = zeros(numPeriods,2) ;
-            obj.Dh   = zeros(numPeriods,2) ;
-            obj.sirr = zeros(numPeriods,2) ;
-                        
-            obj.W    = zeros(numPeriods,2) ;
-            obj.Q    = zeros(numPeriods,2) ;
-            obj.DH   = zeros(numPeriods,2) ;
-            obj.Sirr = zeros(numPeriods,2) ;
-            
-            % Property data
-            %obj.H    = zeros(Nsave, 1) ;
-            %obj.C    = zeros(Nsave, 1) ;
-                        
-            obj.QS    = zeros(Nsave,Ngrid+1) ;
-            
-            obj.Lgeom_set = false ;
-            
-            obj.hx_cost = econ_class(cost_mode, 0.2, 5, 0.2) ;
-            
+       function obj = hx_class(name, stage_type, cost_mode, Ngrid, Nsave, numPeriods, model, varargin)
+           % There are four possible ways to construct a hx, depending on
+           % the selected hx model.
+           %
+           % If model is 'eff',
+           % eff = varargin{1}, ploss = varargin{2} and D1 = varargin{3}.
+           %
+           % If model is 'UA',
+           % UA  = varargin{1}, ploss = varargin{2} and D1 = varargin{3}.
+           %
+           % If model is 'DT',
+           % DT  = varargin{1}, ploss = varargin{2} and D1 = varargin{3}.
+           %
+           % If model is 'geom',
+           % DT  = varargin{1}, ploss = varargin{2}, D1 = varargin{3} and
+           % shape = varargin{4}.
+           
+           switch model
+               case 'eff'
+                   if length(varargin)~=4
+                       error('incorrect number of inputs');
+                   end
+                   obj.eff   = varargin{1};
+               case 'UA'
+                   if length(varargin)~=4
+                       error('incorrect number of inputs');
+                   end
+                   obj.UA    = varargin{1};
+               case 'DT'
+                   if length(varargin)~=4
+                       error('incorrect number of inputs');
+                   end
+                   obj.DT    = varargin{1};
+               case 'geom'
+                   if length(varargin)~=4
+                       error('incorrect number of inputs');
+                   end
+                   obj.eff   = varargin{1};
+               otherwise
+                   error('not implemented')
+           end
+           obj.ploss = varargin{2};
+           obj.D1    = varargin{3};
+           obj.shape = varargin{4};
+           
+           obj.name       = name ;
+           obj.stage_type = stage_type ;
+           obj.model      = model ;
+           obj.NX         = Ngrid ;
+           
+           % Loss data
+           % Two columns. First for hot side. Second for cold side.
+           obj.w    = zeros(numPeriods,2) ;
+           obj.q    = zeros(numPeriods,2) ;
+           obj.Dh   = zeros(numPeriods,2) ;
+           obj.sirr = zeros(numPeriods,2) ;
+           
+           obj.W    = zeros(numPeriods,2) ;
+           obj.Q    = zeros(numPeriods,2) ;
+           obj.DH   = zeros(numPeriods,2) ;
+           obj.Sirr = zeros(numPeriods,2) ;
+           
+           % Property data
+           %obj.H    = zeros(Nsave, 1) ;
+           %obj.C    = zeros(Nsave, 1) ;
+           
+           obj.QS    = zeros(Nsave,Ngrid+1) ;
+           
+           obj.Lgeom_set = false ;
+           
+           obj.hx_cost = econ_class(cost_mode, 0.2, 5, 0.2) ;
+           
        end
-        
+       
        
        % Calculate the HX cost
        % Costs come from Q2 report unless otherwise stated
@@ -319,7 +364,7 @@ classdef hx_class
                case 24
                    % Natural gas fired primary heat exchanger
                    % From Weiland et al 2019. Valid up to 715 C and 230-275 bar, 10-50 MWth
-                   COST = 6.329e5 * (obj.QS(end,1)/1e6) ^ 0.6 ;
+                   COST = 6.329e5 * (obj.QS(1,end)/1e6) ^ 0.6 ;
                    if max(obj.H(1).T) > 550 + 273.15
                        COST = COST * (1 + 5.4e-5 * (max(obj.H(1).T) - 550 - 273.15)^2) ;
                    end

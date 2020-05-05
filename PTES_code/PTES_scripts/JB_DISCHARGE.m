@@ -49,7 +49,7 @@ for counter = 1:max_iter
     fprintf(1,['Discharging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
     
     % REGENERATE (gas-gas)
-    [HX(ihx_reg),gas,iG,~,~] = set_hex(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
+    [HX(ihx_reg),gas,iG,~,~] = hex_func(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
     
     for iN = 1:Nc_dis
         % REJECT HEAT (external HEX)
@@ -66,8 +66,8 @@ for counter = 1:max_iter
                 % COOL (gas-liquid)
                 fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p; %#ok<*SAGROW>
                 [fluidC] = update(fluidC,[iL,iC],1);
-                [HX(ihx_cld(iN)),gas,iG,fluidC,iC] = set_hex(HX(ihx_cld(iN)),iL,gas,iG,fluidC,iC,1,1.0);
-                % Now calculate pump requirements for moving fluidC
+
+                [HX(ihx_cld(iN)),gas,iG,fluidC,iC] = hex_func(HX(ihx_cld(iN)),iL,gas,iG,fluidC,iC,1,1.0);
                 [DPMP(iPMP),fluidC,iC] = compexp_func (DPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
                 iC=iC+1; iPMP=iPMP+1;
             case 1 % Heat engine only
@@ -80,15 +80,15 @@ for counter = 1:max_iter
     end
     
     % REGENERATE (gas-gas)
-    [HX(ihx_reg),~,~,gas,iG] = set_hex(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
+    [HX(ihx_reg),~,~,gas,iG] = hex_func(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
     
     for iN = 1:Ne_dis
         % HEAT (gas-fluid)
         fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p; THmin = HT.A(1).T;
         [fluidH] = update(fluidH,[iL,iH],1);
         Taim = THmin;
-        [HX(ihx_hot(iN)),fluidH,iH,gas,iG] = set_hex(HX(ihx_hot(iN)),iL,fluidH,iH,gas,iG,2,1.0);
-        % Now calculate pump requirements for moving fluidH
+
+        [HX(ihx_hot(iN)),fluidH,iH,gas,iG] = hex_func(HX(ihx_hot(iN)),iL,fluidH,iH,gas,iG,2,1.0);
         [DPMP(iPMP),fluidH,iH] = compexp_func (DPMP(iPMP),iL,fluidH,iH,'Paim',fluidH.state(iL,1).p,1);
         iH=iH+1; iPMP=iPMP+1;
         

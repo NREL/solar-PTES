@@ -4,6 +4,9 @@ function [output1] = RP1(input_pair,input1,input2,out1,fluid)
 %   RP1 supports three different modes, 'CP' (obtain properties from
 %   CoolProp), 'TAB' (tabular interpolation) and 'IDL' (ideal gas).
 
+% Obtain access to global structure TABS
+global TABS
+
 switch fluid.read
     case 'CP' % Obtain properties from CoolProp
         
@@ -35,18 +38,20 @@ switch fluid.read
         
     case 'TAB' % Use tabular interpolation
         
+        TAB = TABS.(valid_name(fluid.name));
+        
         % Obtain x array and query points (xq)
         switch input_pair
             case 'HmassP_INPUTS'
                 % Tabulated data is pressure independent at the moment. Only
                 % input1 (enthalpy) is used.
-                x  = fluid.TAB(:,2); %enthalpy
+                x  = TAB(:,2); %enthalpy
                 xq = input1;
                 
             case 'PT_INPUTS'
                 % Tabulated data is pressure independent at the moment. Only
                 % input2 (temperature) is used.
-                x  = fluid.TAB(:,1); %temperature
+                x  = TAB(:,1); %temperature
                 xq = input2;
                 
             case 'PSmass_INPUTS'
@@ -62,23 +67,23 @@ switch fluid.read
         % Obtain y array
         switch out1
             case {'T'}                  % temperature
-                y = fluid.TAB(:,1);
+                y = TAB(:,1);
             case {'H','HMASS','Hmass'}  % mass specific enthalpy
-                y = fluid.TAB(:,2);
+                y = TAB(:,2);
             case {'D','DMASS','Dmass'}  % mass density
-                y = fluid.TAB(:,3);
+                y = TAB(:,3);
             case {'S','SMASS','Smass'}  % mass specific entropy
-                y = fluid.TAB(:,4);
+                y = TAB(:,4);
             case {'C','CPMASS','Cpmass'}             % isobaric specific heat capacity
-                y = fluid.TAB(:,5);
+                y = TAB(:,5);
             case {'CONDUCTIVITY','L','conductivity'} % thermal conductivity
-                y = fluid.TAB(:,6);
+                y = TAB(:,6);
             case {'VISCOSITY','V','viscosity'}       % dynamic viscosity
-                y = fluid.TAB(:,7);
+                y = TAB(:,7);
             case {'PRANDTL','Prandtl'}  % Prandtl number
-                y = fluid.TAB(:,8);
+                y = TAB(:,8);
             case {'Q'}                  % vapour quality
-                y = fluid.TAB(:,9);
+                y = TAB(:,9);
             otherwise
                 error('not implemented')
         end

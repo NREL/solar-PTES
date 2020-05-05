@@ -9,11 +9,12 @@
 
 %%% START PROGRAM %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Clear Workspace variables
+% Clear Workspace and global variables
 clear;
+clear global;
 
 % Enter debugging mode if an error occurs
-%dbstop if error
+dbstop if error
 %dbclear all
 
 % Determine Operating System

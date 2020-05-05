@@ -147,7 +147,6 @@ for counter=1:max_iter
     fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p;
     [fluidH] = update(fluidH,[iL,iH],1);
     Taim = HT.A(iL).T;
-    %[HX(ihx_JB+1),fluidH,iH,steam,iG] = set_hex(HX(ihx_JB+1),iL,fluidH,iH,steam,iG,4,Taim);
     [HX(ihx_JB+1),fluidH,iH,steam,iG] = hex_func(HX(ihx_JB+1),iL,fluidH,iH,steam,iG,4,Taim);
     [DPMP(iPMP),fluidH,iH] = compexp_func (DPMP(iPMP),iL,fluidH,iH,'Paim',fluidH.state(iL,1).p,1);
     iH=iH+1; iPMP=iPMP+1;
@@ -199,7 +198,6 @@ for counter=1:max_iter
         fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p; %#ok<*SAGROW>
         [fluidC] = update(fluidC,[iL,iC],1);
         T_aim = RP1('PQ_INPUTS',steam.state(iL,iG).p,0.0,'T',steam) - 1; %wet saturated
-        %[HX(ihx_JB+2),steam,iG,fluidC,iC] = set_hex(HX(ihx_JB+2),iL,steam,iG,fluidC,iC,5,T_aim);
         [HX(ihx_JB+2),steam,iG,fluidC,iC] = hex_func(HX(ihx_JB+2),iL,steam,iG,fluidC,iC,5,T_aim);
         [DPMP(iPMP),fluidC,iC] = compexp_func (DPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
         iC=iC+1; iPMP=iPMP+1;
@@ -208,7 +206,6 @@ for counter=1:max_iter
         T_aim = Ran_Tbot - 1;
         %[steam,environ,iG,iE] = hex_set(steam,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
         air.state(iL,1).T = T0; air.state(iL,1).p = p0; air = update(air,[iL,1],1);
-        %[HX(ihx_JB+3), steam, iG, air, iA] = set_hex(HX(ihx_JB+3),iL,steam,iG,air,iA,5,T_aim);
         [HX(ihx_JB+3), steam, iG, air, iA] = hex_func(HX(ihx_JB+3),iL,steam,iG,air,iA,5,T_aim);
         [DFAN(1),air,iA] = compexp_func (DFAN(1),iL,air,iA,'Paim',p0,1);
     end
@@ -235,7 +232,6 @@ for counter=1:max_iter
     fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p; %#ok<*SAGROW>
     [fluidH] = update(fluidH,[iL,iH],1);
     Taim = HT.A(iL).T;
-    %[HX(ihx_JB+4),fluidH,iH,steam,iG] = set_hex(HX(ihx_JB+4),iL,fluidH,iH,steam,iG,4,Taim);
     [HX(ihx_JB+4),fluidH,iH,steam,iG] = hex_func(HX(ihx_JB+4),iL,fluidH,iH,steam,iG,4,Taim);
     [DPMP(iPMP),fluidH,iH] = compexp_func (DPMP(iPMP),iL,fluidH,iH,'Paim',fluidH.state(iL,1).p,1);
     iH=iH+1; iPMP=iPMP+1;

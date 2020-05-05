@@ -63,15 +63,15 @@ for counter=1:max_iter
         fluidH.state(iL,iH).T = HT.A(iL).T; fluidH.state(iL,iH).p = HT.A(iL).p;
         [fluidH] = update(fluidH,[iL,iH],1);
 
-        [HX(ihx_hot(iN)),gas,iG,fluidH,iH] = set_hex(HX(ihx_hot(iN)),iL,gas,iG,fluidH,iH,1,1.0);
-        
+        [HX(ihx_hot(iN)),gas,iG,fluidH,iH] = hex_func(HX(ihx_hot(iN)),iL,gas,iG,fluidH,iH,1,1.0);
         % Now calculate pump requirements for moving fluidH
         [CPMP(iPMP),fluidH,iH] = compexp_func (CPMP(iPMP),iL,fluidH,iH,'Paim',fluidH.state(iL,1).p,1);
-        iH=iH+1; iPMP=iPMP+1;
+        iH=iH+1;iPMP=iPMP+1;
+
     end    
         
     % REGENERATE (gas-gas)
-    [HX(ihx_reg),gas,iG,~,~] = set_hex(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
+    [HX(ihx_reg),gas,iG,~,~] = hex_func(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
         
     % REJECT HEAT (external HEX)
     if ~design_mode
@@ -91,13 +91,14 @@ for counter=1:max_iter
         fluidC.state(iL,iC).T = CT.A(iL).T; fluidC.state(iL,iC).p = CT.A(iL).p;
         [fluidC] = update(fluidC,[iL,iC],1);
 
-        [HX(ihx_cld(iN)),fluidC,iC,gas,iG] = set_hex(HX(ihx_cld(iN)),iL,fluidC,iC,gas,iG,2,1.0);
+        [HX(ihx_cld(iN)),fluidC,iC,gas,iG] = hex_func(HX(ihx_cld(iN)),iL,fluidC,iC,gas,iG,2,1.0);
         [CPMP(iPMP),fluidC,iC] = compexp_func (CPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
         iC=iC+1; iPMP=iPMP+1;
+
     end
     
     % REGENERATE (gas-gas)
-    [HX(ihx_reg),~,~,gas,iG] = set_hex(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
+    [HX(ihx_reg),~,~,gas,iG] = hex_func(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
     
     % Determine convergence and proceed
     C = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
