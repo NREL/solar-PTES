@@ -2,7 +2,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Call the correct input file
-Load.mode  = 3 ;
+Load.mode  = 4 ;
 Loffdesign = 0 ; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
 PBmode     = 0 ; % Liquid stores = 0; Packed beds = 1; Heat exchangers between power cycle and a storage fluid, which then passes through packed beds = 2
 
@@ -12,6 +12,14 @@ switch Load.mode
     case {4, 5, 6} % sCO2-PTES type cycles
         sCO2_INPUTS
 end
+
+% Set heat exchanger parameters
+eff      = 0.97;  % heat exchanger effectiveness
+ploss    = 0.01;  % pressure loss in HEXs
+HX_model = 'eff' ;
+HX_D1    = 0.002; %hydraulic diameter
+HX_shape = 'circular'; %channel shape
+HX_NX    = 100; % number of sections for HEX algorithm
 
 % Code options
 multi_run  = 0; % run cycle several times with different parameters?

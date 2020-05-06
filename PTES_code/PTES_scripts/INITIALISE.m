@@ -49,8 +49,8 @@ if setTmax
     else
         Gama = RP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CPMASS',gas)/RP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CVMASS',gas);
     end
-    PR_estim = ((Tmax/T1)^((Gama*eta)/(Gama-1)))^Nc_ch;
-    pbot = pmax/PR_estim;
+    PRestim = ((Tmax/T1)^((Gama*eta)/(Gama-1)))^Nc_ch;
+    pbot = pmax/PRestim;
 else
     Tmax = T1 * PRch ^((Gama-1)/(Gama*eta))^(1/Nc_ch) ;
 end
@@ -58,9 +58,9 @@ end
 % Cold temperatures
 T3 = TC_dis0(1) ;
 if setTmax
-    TC_chg0(1) = T3 / (PR_estim ^((Gama-1)*eta/(Gama))^(1/Ne_ch)) ;
+    TC_chg0(1) = T3 / (PRestim ^((Gama-1)*eta/(Gama))^(1/Ne_ch)) ;
 else
-    TC_chg0(1) = T3 / (PR_ch ^((Gama-1)*eta/(Gama))^(1/Ne_ch)) ;
+    TC_chg0(1) = T3 / (PRch ^((Gama-1)*eta/(Gama))^(1/Ne_ch)) ;
 end
 
 switch PBmode
@@ -164,7 +164,40 @@ switch Load.mode
         HX(ihx_JB+2) = hx_class('cold', 'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff, 0.1/100, HX_D1, HX_shape) ; % Condenser
         HX(ihx_JB+3) = hx_class('rej',  'regen', 0, HX_NX, Load.num, Load.num, 'eff', eff, 0.1/100, HX_D1, HX_shape) ; % Air-cooled condenser
         HX(ihx_JB+4) = hx_class('hot',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Boiler
+        
+    case 4
+        iHX = 1 ; % Heat exchanger counter
+    for ii = 1 : Nhot
+        HX(iHX) = hx_class('hot', 'hex', 25, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        iHX = iHX + 1 ;
+    end
+    for ii = 1 : Ncld
+        HX(iHX) = hx_class('cold', 'hex', 25, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        iHX = iHX + 1 ;
+    end
+    if (Nhot < 2) && (Ncld < 2) && (Nrcp > 0)
+        for ii = 1 : Nrcp
+            HX(iHX) = hx_class('regen', 'regen', 25, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+            iHX = iHX + 1 ;
+        end
+    end
+    
+    case 5
+        % Heat exchangers set up to match Ty's work
+        HX(1) = hx_class('hot',   'hex',   25, HX_NX, Load.num, Load.num, 'eff', 0.879, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        HX(2) = hx_class('cold',  'hex',   25, HX_NX, Load.num, Load.num, 'eff',   eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        HX(3) = hx_class('regen', 'regen', 25, HX_NX, Load.num, Load.num, 'eff', 0.968, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        HX(4) = hx_class('regen', 'regen', 25, HX_NX, Load.num, Load.num, 'eff', 0.937, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        
+    case 6
+        HX(1) = hx_class('hot',   'hex',    0, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        HX(2) = hx_class('hot',   'hex',   25, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        HX(3) = hx_class('cold',  'hex',   25, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Cold heat exchanger
+        HX(4) = hx_class('regen', 'regen',  0, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Recuperator exchanger
+        HX(5) = hx_class('regen', 'regen',  0, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Recuperator heat exchanger    
+        
 end
+
 
 % Fans --> NOT SURE WHAT cost_mode should be selected in this case
 CFAN(1:10) = compexp_class('comp', 'isen', 40, 0.5, Load.num) ;

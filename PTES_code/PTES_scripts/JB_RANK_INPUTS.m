@@ -15,16 +15,8 @@ Ran_pbotMIN = 0.05e5 ; % If condenser pressure decreases below this, the final s
 Ran_Tbot0   = T0+15; %when discharging against the environment. This sets design condenser pressure.
 Ran_TbotC   = 273.15+20; %when discharging against the cold stores
 
-% Set component parameters
+% Set compressor/expander parameters
 eta   = 0.90;  % polytropic efficiency
-
-% Set heat exchanger parameters
-eff   = 0.97;  % heat exchanger effectiveness
-ploss = 0.01;  % pressure loss in HEXs
-HX_model = 'eff' ;
-HX_D1    = 0.002; %hydraulic diameter
-HX_shape = 'circular'; %channel shape
-HX_NX    = 100; % number of sections for HEX algorithm
 
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge

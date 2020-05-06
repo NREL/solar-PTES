@@ -50,7 +50,7 @@ for ix = 1:1
             if all([icrv,ipnt] == 1), WM=1; else, WM=0; end
             
             % Set multi_run variables
-            if multi_run==1, SET_MULTI_RUN; end            
+            if multi_run==1, SET_MULTI_RUN; end
             
             % Reinitialise arrays (gas, fluids and tanks) to zero and do
             % other preliminary tasks
@@ -132,7 +132,7 @@ toc %stop timer
 
 %%% MAKE PLOTS %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if make_plots    
+if make_plots
     PLOT_CYCLE
     PLOT_LOSSES
     PLOT_COSTS
