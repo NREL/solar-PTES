@@ -59,7 +59,7 @@ while 1
             ind = 1.0 ; % Check this
     end
     p_aim = gas.state(iL,iRCMP).p*PRdis*(1-ploss)^ind;
-    [RCMP,gas,~] = compexp_func (RCMP,iL,gas,iRCMP,'Paim',p_aim) ;
+    [RCMP,gas,~] = compexp_func (RCMP,iL,gas,iRCMP,'Paim',p_aim,design_mode) ;
     gas.stage(iL,iRCMP+1).type = 'comp'; % This seems to be necessary to get recompressor written and plotted
     gas.stage(iL,iRCMP+2).type = 'comp';% This seems to be necessary to get recompressor written and plotted
     
@@ -99,7 +99,7 @@ while 1
                 
         % COMPRESS
         p_aim = gas.state(iL,iG).p*PRc_dis;
-        [DCMP(iN),gas,iG] = compexp_func (DCMP(iN),iL,gas,iG,'Paim',p_aim) ; 
+        [DCMP(iN),gas,iG] = compexp_func (DCMP(iN),iL,gas,iG,'Paim',p_aim,design_mode) ; 
     end
     
     % REGENERATE (gas-gas)
@@ -123,7 +123,7 @@ while 1
         % EXPAND
         PRe_dis = (gas.state(iL,iG).p/pbot)^(1/(Ne_dis+1-iN));  % expansion pressure ratio
         p_aim = gas.state(iL,iG).p/PRe_dis;
-        [DEXP(iN),gas,iG] = compexp_func (DEXP(iN),iL,gas,iG,'Paim',p_aim) ; 
+        [DEXP(iN),gas,iG] = compexp_func (DEXP(iN),iL,gas,iG,'Paim',p_aim,design_mode) ; 
     end
     
     % Determine convergence and proceed

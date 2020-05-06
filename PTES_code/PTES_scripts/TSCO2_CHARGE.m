@@ -85,7 +85,7 @@ while 1
     
     % COMPRESS
     T_aim = TH_chg0(2);
-    [CCMP(1),gas,iG] = compexp_func (CCMP(1),iL,gas,iG,'Taim',T_aim) ;
+    [CCMP(1),gas,iG] = compexp_func (CCMP(1),iL,gas,iG,'Taim',T_aim,design_mode) ;
     ptop  = gas.state(iL,iG).p;
     
     % COOL (gas-liquid)
@@ -107,7 +107,7 @@ while 1
     % EXPAND
     PRe = (gas.state(iL,iG).p/pbot)^(1/(Ne_ch+1-iN)); % stage expansion pressure ratio
     p_aim = gas.state(iL,iG).p/PRe;
-    [CEXP(1),gas,iG] = compexp_func (CEXP(1),iL,gas,iG,'Paim',p_aim) ;
+    [CEXP(1),gas,iG] = compexp_func (CEXP(1),iL,gas,iG,'Paim',p_aim,design_mode) ;
     
     % HEAT (gas-liquid)
     fluidC.state(iL,iC).T = CT.A(iL).T; fluidC.state(iL,iC).p = CT.A(iL).p;
