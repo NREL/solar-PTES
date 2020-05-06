@@ -13,6 +13,14 @@ switch Load.mode
         sCO2_INPUTS
 end
 
+% Set heat exchanger parameters
+eff      = 0.97;  % heat exchanger effectiveness
+ploss    = 0.01;  % pressure loss in HEXs
+HX_model = 'eff' ;
+HX_D1    = 0.002; %hydraulic diameter
+HX_shape = 'circular'; %channel shape
+HX_NX    = 100; % number of sections for HEX algorithm
+
 % Code options
 multi_run  = 0; % run cycle several times with different parameters?
 optimise   = 0; % optimise cycle?

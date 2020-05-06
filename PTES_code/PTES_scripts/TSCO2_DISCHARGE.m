@@ -71,7 +71,7 @@ while 1
     
     % COMPRESS
     p_aim = gas.state(iL,iG).p*PRc_dis;
-    [DCMP(1),gas,iG] = compexp_func (DCMP(1),iL,gas,iG,'Paim',p_aim) ;
+    [DCMP(1),gas,iG] = compexp_func (DCMP(1),iL,gas,iG,'Paim',p_aim,design_mode) ;
     
     % REGENERATE (gas-gas)
     % Split flow. Part goes through low-temp recuperator. Part goes
@@ -109,7 +109,7 @@ while 1
         % EXPAND
         PRe_dis = (gas.state(iL,iG).p/pbot)^(1/(Ne_dis+1-iN));  % expansion pressure ratio
         p_aim = gas.state(iL,iG).p/PRe_dis;
-        [DEXP(iN),gas,iG] = compexp_func (DEXP(iN),iL,gas,iG,'Paim',p_aim) ; 
+        [DEXP(iN),gas,iG] = compexp_func (DEXP(iN),iL,gas,iG,'Paim',p_aim,design_mode) ; 
     end
     
     % Determine convergence and proceed

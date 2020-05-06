@@ -83,7 +83,7 @@ if any(itp)
             
             % Compute reduced pressure
             Pcrit = RP1(0,0,0,'Pcrit',S);
-            pr    = S.p/Pcrit; %reduced pressure
+            pr    = 0.5*(S.p(1:end-1) + S.p(2:end))/Pcrit; %reduced pressure
             
             % Apply correlation
             htTP = htL.*( (1-x).^0.8 + (3.8*x.^0.76.*(1-x).^0.04)./(pr.^0.38));

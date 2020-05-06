@@ -50,11 +50,11 @@ while 1
         % COMPRESS
         if setTmax
             T_aim = Tmax;
-            [CCMP(iN),gas,iG] = compexp_func (CCMP(iN),iL,gas,iG,'Taim',T_aim) ; 
+            [CCMP(iN),gas,iG] = compexp_func (CCMP(iN),iL,gas,iG,'Taim',T_aim,design_mode) ; 
         else
             PRc = (pmax/gas.state(iL,iG).p)^(1/(Nc_ch+1-iN));
             p_aim = gas.state(iL,iG).p*PRc;
-            [CCMP(iN),gas,iG] = compexp_func (CCMP(iN),iL,gas,iG,'Paim',p_aim) ; 
+            [CCMP(iN),gas,iG] = compexp_func (CCMP(iN),iL,gas,iG,'Paim',p_aim,design_mode) ; 
         end
         ptop  = gas.state(iL,iG).p;
         
@@ -96,7 +96,7 @@ while 1
         % EXPAND
         PRe = (gas.state(iL,iG).p/pbot)^(1/(Ne_ch+1-iN)); %expansion pressure ratio
         p_aim = gas.state(iL,iG).p/PRe;
-        [CEXP(iN),gas,iG] = compexp_func (CEXP(iN),iL,gas,iG,'Paim',p_aim) ; 
+        [CEXP(iN),gas,iG] = compexp_func (CEXP(iN),iL,gas,iG,'Paim',p_aim,design_mode) ; 
         
         % HEAT (gas-liquid)
         for ii = 1 : Ncld
