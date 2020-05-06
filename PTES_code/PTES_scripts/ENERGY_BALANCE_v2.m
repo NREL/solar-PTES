@@ -10,15 +10,6 @@ for ii = 1:length(CEXP)
     CEXP(ii) = compexp_energy(CEXP(ii),Load.time)  ;
 end
 
-switch Load.mode
-    case {0,1,2,4,5,6}
-        NC = Ne_ch ;
-        NE = Nc_ch ;
-    case {3,7}
-        NC = 3 ;
-        NE = 3 ;
-end
-
 for ii = 1:length(DCMP)
     DCMP(ii) = compexp_energy(DCMP(ii),Load.time)  ;
 end
@@ -27,12 +18,19 @@ for ii = 1:length(DEXP)
 end
 
 % Recompressor if specified for sCO2 cycle
-if Load.mode == 4 || Load.mode == 5 || Load.mode == 6
+if any(Load.mode == [4,5,6])
     if Lrcmp
         RCMP = compexp_energy(RCMP,Load.time)  ;
     end
 end
 
+% Total energy flows for heat exchangers
+for ii = 1:length(HX)
+    HX(ii) = hx_energy(HX(ii),Load.time)  ;
+end
+
+
+% PARASITIC LOSSES
 % FANS
 for ii = 1:length(CFAN)
     CFAN(ii) = compexp_energy(CFAN(ii),Load.time)  ;
@@ -49,14 +47,21 @@ for ii = 1:length(DPMP)
     DPMP(ii) = compexp_energy(DPMP(ii),Load.time)  ;
 end
 
-% Total energy flows for heat exchangers
-for ii = 1:length(HX)
-    HX(ii) = hx_energy(HX(ii),Load.time)  ;
+% Require similar routines for mixers/seperators etc.
+
+switch Load.mode
+    case {0,1,2,4,5,6}
+        NC = Ne_ch ;
+        NE = Nc_ch ;
+    case {3,7}
+        NC = 3 ;
+        NE = 3 ;
 end
 
-% Adds up the contributions of the several stages to compute an energy
-% balance
+% Adds up the contributions of the several stages to compute an energy balance
+% SIGN CONVENTION. Work out is positive. Heat in is positive.
 W_in_chg   = 0;
+W_para_chg = 0; % Parasitic work input - nice to seperate this out
 DH_chg     = 0;
 W_lost_chg = 0;
 QH_chg     = 0;  % heat to hot tanks
@@ -64,6 +69,7 @@ QH_dis     = 0;  % heat from hot tanks
 QE_chg     = 0;  % heat rejected to environment
 
 W_out_dis  = 0;
+W_para_dis = 0;  % Parasitic work input - nice to seperate this out
 DH_dis     = 0;
 W_lost_dis = 0;
 QC_chg     = 0;  % heat from cold tanks
@@ -71,127 +77,214 @@ QC_dis     = 0;  % heat to cold tanks
 QE_dis     = 0;  % heat rejected to environment
 
 W_out_disRC  = 0;
+W_para_disRC = 0;  % Parasitic work input - nice to seperate this out
 QC_disRC     = 0;  
 QH_disRC     = 0; 
-t_disRC   = 0;
+t_disRC      = 0;
 
 nH = numel(fluidH);
 nC = numel(fluidC);
+
+% Compute lost work on specific component types
+% The WL_PTES_chg and WL_PTES_dis arrays are divided in 7 elements:
+% 1: Losses in compressors
+% 2: Losses in expanders
+% 3: Losses in heat exchangers
+% 4: Losses due to heat exchange with the environment
+% 5: Mixing losses in storage tanks (liquids)
+% 6: Mixing losses of the working fluid
+% 7: Losses due to exergy leftover in tanks
+WL_PTES_chg = zeros(1,7);
+WL_PTES_dis = zeros(1,7);
+
 for iL=1:Load.num
     
+    % For charging load cycles, account for work, heat and irreversibilities
     if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
-        W_in_chg   = W_in_chg   -    sum([gas.stage(iL,:).w]   .*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
-        W_lost_chg = W_lost_chg + T0*sum([gas.stage(iL,:).sirr].*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
-        DH_chg     = DH_chg     +    sum([gas.stage(iL,:).Dh]  .*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
-        for i=1:nH
-            QH_chg = QH_chg + sum([fluidH(i).stage(iL,:).q].*[fluidH(i).state(iL,1:(end-1)).mdot]*Load.time(iL));
-        end
-        for i=1:nC
-            QC_chg = QC_chg - sum([fluidC(i).stage(iL,:).q].*[fluidC(i).state(iL,1:(end-1)).mdot]*Load.time(iL));
-        end
-        QE_chg = QE_chg + sum([environ.sink(iL,:).DHdot]*Load.time(iL));
         
-    elseif any(strcmp(Load.type(iL),{'dis','disCO2','rcmpCO2','disTSCO2'}))
-        W_out_dis  = W_out_dis  +    sum([gas.stage(iL,:).w]   .*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
-        W_lost_dis = W_lost_dis + T0*sum([gas.stage(iL,:).sirr].*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
-        DH_dis     = DH_dis     +    sum([gas.stage(iL,:).Dh]  .*[gas.state(iL,1:(end-1)).mdot]*Load.time(iL));
-        for i=1:nH
-            QH_dis = QH_dis - sum([fluidH(i).stage(iL,:).q].*[fluidH(i).state(iL,1:(end-1)).mdot]*Load.time(iL));
-        end
-        for i=1:nC
-            QC_dis = QC_dis + sum([fluidC(i).stage(iL,:).q].*[fluidC(i).state(iL,1:(end-1)).mdot]*Load.time(iL));
-        end
-        QE_dis = QE_dis + sum([environ.sink(iL,:).DHdot]*Load.time(iL));
-        
-        % Also calculate the solar heat input to one tank
-        if Load.mode == 6
-            QH_sol = -sum([fluidH(1).stage(iL,:).q].*[fluidH(1).state(iL,1:(end-1)).mdot]*Load.time(iL));
-            EX_sol = QH_sol - T0 * (fluidH(1).state(iL,1).s - fluidH(1).state(iL,2).s)*fluidH(1).state(iL,1).mdot*Load.time(iL);
+        % Work into cycle
+        for ii = 1:length(CCMP)
+            W_in_chg       = W_in_chg   + CCMP(ii).W ; 
+            WL_PTES_chg(1) = WL_PTES_chg(1) + T0 * CCMP(ii).Sirr(iL) ; 
         end
         
-    elseif strcmp(Load.type(iL),'ran')
-        W_out_dis  = W_out_dis  +    sum([steam.stage(iL,:).w]   .*[steam.state(iL,1:(end-1)).mdot]*Load.time(iL));
-        W_lost_dis = W_lost_dis + T0*sum([steam.stage(iL,:).sirr].*[steam.state(iL,1:(end-1)).mdot]*Load.time(iL));
-        DH_dis     = DH_dis     +    sum([steam.stage(iL,:).Dh]  .*[steam.state(iL,1:(end-1)).mdot]*Load.time(iL));
-        for i=1:nH
-            QH_dis = QH_dis - sum([fluidH(i).stage(iL,:).q].*[fluidH(i).state(iL,1:(end-1)).mdot]*Load.time(iL));
+        % Work out of cycle
+        for ii = 1:length(CEXP)
+            W_in_chg   = W_in_chg   + CEXP(ii).W ; 
+            WL_PTES_chg(2) = WL_PTES_chg(2) + T0 * CEXP(ii).Sirr(iL) ;
         end
-        for i=1:nC
-            QC_dis = QC_dis + sum([fluidC(i).stage(iL,:).q].*[fluidC(i).state(iL,1:(end-1)).mdot]*Load.time(iL));
-        end
-        QE_dis = QE_dis + sum([environ.sink(iL,:).DHdot]*Load.time(iL));
         
-        % Also calculate heat and work terms, and time, for when there is only cooling from cold store
-        if Load.options.useCold(iL) == 1
-            W_out_disRC  = W_out_disRC  +    sum([steam.stage(iL,:).w]   .*[steam.state(iL,1:(end-1)).mdot]*Load.time(iL));
-            for i=1:nH
-                QH_disRC = QH_disRC - sum([fluidH(i).stage(iL,:).q].*[fluidH(i).state(iL,1:(end-1)).mdot]*Load.time(iL));
+        % Parasitic work into cycle
+        for ii = 1:length(CFAN)
+            W_para_chg     = W_para_chg + CFAN(ii).W ; 
+            WL_PTES_chg(1) = WL_PTES_chg(1) + T0 * CFAN(ii).Sirr(iL) ;
+        end
+        for ii = 1:length(CPMP)
+            W_para_chg     = W_para_chg + CPMP(ii).W ; 
+            WL_PTES_chg(1) = WL_PTES_chg(1) + T0 * CPMP(ii).Sirr(iL) ;
+        end
+        
+        % Heat flows in and out of cycle
+        for ii = length(HX)
+            % Heat out of cycle into hot storage
+            if strcmp(HX(ii).name,'hot')
+                QH_chg = QH_chg + HX(ii).Q(iL,1) ;
             end
-            for i=1:nC
-                QC_disRC = QC_disRC + sum([fluidC(i).stage(iL,:).q].*[fluidC(i).state(iL,1:(end-1)).mdot]*Load.time(iL));
+            
+            % Heat into cycle from cold storage
+            if strcmp(HX(ii).name,'cold')
+                QC_chg = QC_chg + HX(ii).Q(iL,2) ;
             end
+            
+            % Heat out of cycle to the environment
+            if strcmp(HX(ii).name,'rej')
+                QE_chg = QE_chg + HX(ii).Q(iL,1) ;
+                WL_PTES_chg(4) = WL_PTES_chg(4) + T0 * HX(ii).Sirr(iL,2) ; % Loss due to heat exchange with environment
+            else
+                WL_PTES_chg(3) = WL_PTES_chg(3) + T0 * HX(ii).Sirr(iL,2) ; % Loss due to heat exchange
+            end
+            
+        end
+        
+        % Work lost in other components (mixers, seperators, work left in tanks, mixing losses)
+        % ...
+        
+    % For discharging load cycles, account for work, heat and irreversibilities
+    elseif any(strcmp(Load.type(iL),{'dis','ran','disCO2','rcmpCO2','disTSCO2'}))
+        % Work into cycle
+        for ii = 1:length(DCMP)
+            W_out_dis      = W_out_dis  + DCMP(ii).W ; 
+            WL_PTES_dis(1) = WL_PTES_dis(1) + T0 * DCMP(ii).Sirr(iL) ; 
+        end
+        
+        % Work out of cycle
+        for ii = 1:length(DEXP)
+            W_out_dis      = W_out_dis  + DEXP(ii).W ; 
+            WL_PTES_dis(2) = WL_PTES_dis(2) + T0 * DEXP(ii).Sirr(iL) ; 
+        end
+        if any(Load.mode == [4,5,6])
+            if Lrcmp
+                W_out_dis      = W_out_dis  + RCMP.W ;
+                WL_PTES_dis(1) = WL_PTES_dis(1) + T0 * RCMP.Sirr(iL) ; 
+            end
+        end
+        
+        % Parasitic work into cycle
+        for ii = 1:length(DFAN)
+            W_para_dis     = W_para_dis + DFAN(ii).W ; 
+            WL_PTES_dis(1) = WL_PTES_dis(1) + T0 * DFAN(ii).Sirr(iL) ; 
+        end
+        for ii = 1:length(DPMP)
+            W_para_dis     = W_para_dis + DPMP(ii).W ; 
+            WL_PTES_dis(1) = WL_PTES_dis(1) + T0 * DPMP(ii).Sirr(iL) ; 
+        end
+        
+        % Heat flows in and out of cycle
+        for ii = length(HX)
+            % Heat into cycle from hot storage
+            if strcmp(HX(ii).name,'hot')
+                QH_dis = QH_dis + HX(ii).Q(iL,2) ;
+            end
+            
+            % Heat out of cycle to cold storage
+            if strcmp(HX(ii).name,'cold')
+                QC_dis = QC_dis + HX(ii).Q(iL,1) ;
+            end
+            
+            % Heat out of cycle to the environment
+            if strcmp(HX(ii).name,'rej')
+                QE_dis = QE_dis + HX(ii).Q(iL,1) ;
+                WL_PTES_dis(4) = WL_PTES_dis(4) + T0 * HX(ii).Sirr(iL,2) ; % Loss due to heat exchange with environment
+            else
+                WL_PTES_dis(3) = WL_PTES_dis(3) + T0 * HX(ii).Sirr(iL,2) ; % Loss due to heat exchange
+            end
+            
+        end
+        
+        % Work lost in other components
+        % ....
+        
+        % Calculate heat and work terms seperately for a Rankine cycle that uses cooling
+        if strcmp(Load.type(iL),'ran') && Load.options.useCold(iL) == 1
+                       
+            % Work into cycle
+            for ii = 1:length(DCMP)
+                W_out_disRC = W_out_disRC + DCMP(ii).W ;
+            end
+            
+            % Work out of cycle
+            for ii = 1:length(DEXP)
+                W_out_disRC = W_out_disRC + DEXP(ii).W ;
+            end
+            
+            % Parasitic work into cycle
+            for ii = 1:length(DFAN)
+                W_para_disRC = W_para_disRC + DFAN(ii).W ;
+            end
+            for ii = 1:length(DPMP)
+                W_para_disRC = W_para_disRC + DPMP(ii).W ;
+            end
+            
+            % Heat flows in and out of cycle
+            for ii = length(HX)
+                % Heat into cycle from hot storage
+                if strcmp(HX(ii).name,'hot')
+                    QH_disRC = QH_disRC + HX(ii).Q(iL,2) ;
+                end
+                
+                % Heat out of cycle to cold storage
+                if strcmp(HX(ii).name,'cold')
+                    QC_disRC = QC_disRC + HX(ii).Q(iL,1) ;
+                end
+            end
+            
             t_disRC = t_disRC + Load.time(iL);
         end
-    end
     
-    % Compute contributions from ambient air streams (heat rejection)
-    if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
-        W_in_chg   = W_in_chg   -    sum([air.stage(iL,:).w]   .*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));
-        W_lost_chg = W_lost_chg + T0*sum([air.stage(iL,:).sirr].*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));
-        QE_chg     = QE_chg     +    sum([air.stage(iL,:).Dh]  .*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));        
-    elseif any(strcmp(Load.type(iL),{'dis','disCO2','ran','rcmpCO2','disTSCO2'}))
-        W_out_dis  = W_out_dis  +    sum([air.stage(iL,:).w]   .*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));
-        W_lost_dis = W_lost_dis + T0*sum([air.stage(iL,:).sirr].*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));
-        QE_dis     = QE_dis     +    sum([air.stage(iL,:).Dh]  .*[air.state(iL,1:(end-1)).mdot]*Load.time(iL));      
-    end
-    
-    % Compute contributions from pumping storage fluids
-    if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
-        for i = 1 : nH
-            W_in_chg   = W_in_chg   -    sum([fluidH.stage(iL,:).w]   .*[fluidH.state(iL,1:(end-1)).mdot]*Load.time(iL));
-            % Have to add heat contributions only for stages where pumping occurs
-            for i0=1:fluidH.Nstg(iL)
-                if strcmp(fluidH.stage(iL,i0).type,'pump')
-                    QE_chg     = QE_chg     +    fluidH.stage(iL,i0).Dh * fluidH.state(iL,i0).mdot*Load.time(iL);
-                    W_lost_chg = W_lost_chg + T0*fluidH.stage(iL,i0).sirr * fluidH.state(iL,i0).mdot * Load.time(iL);
-                end
-            end
-        end
-        for i = 1 : nC
-            W_in_chg   = W_in_chg   -    sum([fluidC.stage(iL,:).w].*[fluidC.state(iL,1:(end-1)).mdot]*Load.time(iL));
-            % Have to add heat contributions only for stages where pumping occurs
-            for i0=1:fluidC.Nstg(iL)
-                if strcmp(fluidC.stage(iL,i0).type,'pump')
-                    QE_chg     = QE_chg     +    fluidC.stage(iL,i0).Dh * fluidC.state(iL,i0).mdot*Load.time(iL);
-                    W_lost_chg = W_lost_chg + T0*fluidC.stage(iL,i0).sirr * fluidC.state(iL,i0).mdot * Load.time(iL);
-                end
-            end
-        end
-    elseif any(strcmp(Load.type(iL),{'dis','disCO2','ran','rcmpCO2','disTSCO2'}))
-        for i = 1 : nH
-            W_out_dis  = W_out_dis  +    sum([fluidH.stage(iL,:).w].*[fluidH.state(iL,1:(end-1)).mdot]*Load.time(iL));
-            % Have to add heat contributions only for stages where pumping occurs
-            for i0=1:fluidH.Nstg(iL)
-                if strcmp(fluidH.stage(iL,i0).type,'pump')
-                    QE_dis     = QE_dis     +    fluidH.stage(iL,i0).Dh * fluidH.state(iL,i0).mdot*Load.time(iL);
-                    W_lost_dis = W_lost_dis + T0*fluidH.stage(iL,i0).sirr * fluidH.state(iL,i0).mdot * Load.time(iL);
-                end
-            end
-        end
-        for i = 1 : nC
-            W_out_dis  = W_out_dis  +    sum([fluidC.stage(iL,:).w]   .*[fluidC.state(iL,1:(end-1)).mdot]*Load.time(iL));
-            %QE_dis     = QE_dis     +    sum([fluidC.stage(iL,:).Dh] .* [fluidC.state(iL,1:(end-1)).mdot]*Load.time(iL));
-            % Have to add heat contributions only for stages where pumping occurs
-            for i0=1:fluidC.Nstg(iL)
-                if strcmp(fluidC.stage(iL,i0).type,'pump')
-                    %QE_dis     = QE_dis     +    fluidC.stage(iL,i0).Dh * fluidC.state(iL,i0).mdot*Load.time(iL);
-                    W_lost_dis = W_lost_dis + T0*fluidC.stage(iL,i0).sirr * fluidC.state(iL,i0).mdot * Load.time(iL);
-                end
-            end   
-        end
+        
     end
     
 end
+
+% Add in losses from tanks (mixing and exergy left inside)
+switch Load.mode
+
+    case {0,3,4,6} % PTES, Rankine, or sCO2-PTES
+        
+        for ii = 1 : Nhot
+            WL_PTES_chg(5) = WL_PTES_chg(5) + HT(ii).WL_chg ;
+            WL_PTES_dis(5) = WL_PTES_dis(5) + HT(ii).WL_dis ;
+            WL_PTES_dis(7) = WL_PTES_dis(7) + HT(ii).A(end).B - HT(ii).A(1).B + HT(ii).B(end).B - HT(ii).B(1).B;
+        end
+        
+        for ii = 1 : Ncld
+            WL_PTES_chg(5) = WL_PTES_chg(5) + CT(ii).WL_chg ;
+            WL_PTES_dis(5) = WL_PTES_dis(5) + CT(ii).WL_dis ;
+            WL_PTES_dis(7) = WL_PTES_dis(7) + CT(ii).A(end).B - CT(ii).A(1).B + CT(ii).B(end).B - CT(ii).B(1).B;
+        end
+        
+        WL_PTES_chg(5) = WL_PTES_chg(5) + AT.WL_chg ;
+        WL_PTES_dis(5) = WL_PTES_dis(5) + AT.WL_dis ;
+
+    case 1 % Heat pump only
+        
+        for ii = 1 : Nhot
+            WL_PTES_chg(5) = WL_PTES_chg(5) + HT(ii).WL_chg ;
+        end
+           
+        for ii = 1 : Ncld
+            WL_PTES_chg(5) = WL_PTES_chg(5) + CT(ii).WL_chg ;
+        end
+        
+        WL_PTES_chg(5) = WL_PTES_chg(5) + AT.WL_chg ;
+
+    case {2,5,7} % Heat engine only
+        WL_PTES_dis(5) = HT.WL_dis + AT.WL_dis ;
+        WL_PTES_dis(7) = HT.A(end).B - HT.A(1).B + HT.B(end).B - HT.B(1).B;
+end
+
+
+
 
 W_out_disNC = W_out_dis - W_out_disRC ;
 QH_disNC = QH_dis - QH_disRC ;
@@ -212,6 +305,18 @@ t_dis = sum(Load.time(i_dis));
 ip1 = find(i_chg == 1,1,'first'); %index for printing (first charge period)
 ip2 = find(i_dis == 1,1,'first'); %index for printing (first discharge period)
 t_disNC = t_dis - t_disRC;
+
+
+
+% FIRST LAW ENERGY BALANCES AND ACCOUNTING
+
+
+% SECOND LAW ENERGY BALANCES AND ACCOUNTING
+
+
+
+%%% >> FROM HERE DOWN IS OLD CODE >> %%%
+
 
 % Compute lost work on specific component types
 % The WL_PTES_chg and WL_PTES_dis arrays are divided in 7 elements:

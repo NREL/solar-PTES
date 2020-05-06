@@ -152,6 +152,30 @@ classdef hx_class
            
        end
        
+       % Calculate the energy and entropy terms for the heat exchanger
+       function obj = hx_energy(obj , T)  
+           % T is the duration of the load cycle in seconds
+           
+           % Iterate through each load cycle
+           for i = 1 : numel(T)
+               
+               % This is temporary
+               if ~strcmp(obj.name,'rej')
+               % Hot streams
+               obj.W(i,1)    = obj.w(i,1)    * obj.H(i).mdot * T(i) ;
+               obj.Q(i,1)    = obj.q(i,1)    * obj.H(i).mdot * T(i) ;
+               obj.DH(i,1)   = obj.Dh(i,1)   * obj.H(i).mdot * T(i) ;
+               obj.Sirr(i,1) = obj.sirr(i,1) * obj.H(i).mdot * T(i) ;
+               
+               % Cold streams
+               obj.W(i,2)    = obj.w(i,2)    * obj.C(i).mdot * T(i) ;
+               obj.Q(i,2)    = obj.q(i,2)    * obj.C(i).mdot * T(i) ;
+               obj.DH(i,2)   = obj.Dh(i,2)   * obj.C(i).mdot * T(i) ;
+               obj.Sirr(i,2) = obj.sirr(i,2) * obj.C(i).mdot * T(i) ;
+               end
+           end
+       end
+       
        
        % Calculate the HX cost
        % Costs come from Q2 report unless otherwise stated

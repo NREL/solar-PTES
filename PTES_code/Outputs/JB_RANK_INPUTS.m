@@ -28,7 +28,7 @@ HX_NX    = 100; % number of sections for HEX algorithm
 
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
-Ne_ch = 2; % number of expansions during charge
+Ne_ch = 1; % number of expansions during charge
 nH    = max([2,Nc_ch]); % number of hot fluid streams
 nC    = Ne_ch;          % number of cold fluid streams
 
