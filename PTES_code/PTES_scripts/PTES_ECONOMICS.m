@@ -175,23 +175,40 @@ Cdata.cap_costSD   = std(Cdata.cap_sens) ;
 Cdata.cap_cost_lo  = Cdata.cap_costM - Cdata.cap_costSD ;
 Cdata.cap_cost_hi  = Cdata.cap_costM + Cdata.cap_costSD ;
 
-pow  = W_out_dis/t_dis/1e3 ;
-Wout = W_out_dis/(1e3*3600) ;
-Win  = W_in_chg/(1e3*3600) ;
+switch Load.mode
+    case {0,3,4,6}
+        pow  = W_net_dis/t_dis/1e3 ;
+        Wout = W_net_dis/(1e3*3600) ;
+        Win  = -W_net_chg/(1e3*3600) ;
 
-Cdata.cap_cost_pow = Cdata.cap_costM / pow ; % Cost, $ / kW
-Cdata.cap_cost_en  = Cdata.cap_costM / Wout ;  % Cost, $ / kWh
+        Cdata.cap_cost_pow = Cdata.cap_costM / pow ; % Cost, $ / kW
+        Cdata.cap_cost_en  = Cdata.cap_costM / Wout ;  % Cost, $ / kWh
 
-% ** Now calculate metrics such as the Levelized Cost of Storage **
-% Use FCR method - see Short and Packey
-Cdata = calc_fcr(Cdata) ;
+        % Use FCR method - see Short and Packey
+        Cdata = calc_fcr(Cdata) ;
 
-% Calculate the LCOS
-Cdata = calc_lcos(Cdata, Win, Wout, Load.time, Nsens) ;
+        % Calculate the LCOS
+        Cdata = calc_lcos(Cdata, Win, Wout, Load.time, Nsens) ;
+
+    case 1
+        pow  = -W_net_chg/t_chg/1e3 ;
+        Win  = -W_net_chg/(1e3*3600) ;
+        
+        Cdata.cap_cost_pow = Cdata.cap_costM / pow ; % Cost, $ / kW
+        Cdata.cap_cost_en  = Cdata.cap_costM / Win ;  % Cost, $ / kWh
+        
+    case {2,5,7}
+        pow  = W_net_dis/t_dis/1e3 ;
+        Wout = W_net_dis/(1e3*3600) ;
+        
+        Cdata.cap_cost_pow = Cdata.cap_costM / pow ; % Cost, $ / kW
+        Cdata.cap_cost_en  = Cdata.cap_costM / Wout ;  % Cost, $ / kWh
+
+end
 
 % Write out some results
 switch Load.mode
-    case {0,1,2,3,4,5,6,7}
+    case {0,3,4,6}
         fprintf(1,'ECONOMIC RESULTS:\n');
         fprintf(1,'Capital cost:                  %8.1f M$\n',Cdata.cap_costM/1e6);
         fprintf(1,'     Standard deviation:       %8.1f M$\n\n',Cdata.cap_costSD/1e6);
@@ -199,6 +216,12 @@ switch Load.mode
         fprintf(1,'Cost per unit energy:          %8.1f $/kWh-e\n\n',Cdata.cap_cost_en);
         fprintf(1,'Levelised cost of storage:     %8.3f $/kWh-e\n',Cdata.lcosM);
         fprintf(1,'     Standard deviation:       %8.3f $/kWh-e\n\n',Cdata.lcosSD);
+    case {1,2,5,7}
+        fprintf(1,'ECONOMIC RESULTS:\n');
+        fprintf(1,'Capital cost:                  %8.1f M$\n',Cdata.cap_costM/1e6);
+        fprintf(1,'     Standard deviation:       %8.1f M$\n\n',Cdata.cap_costSD/1e6);
+        fprintf(1,'Cost per unit power:           %8.1f $/kW-e\n',Cdata.cap_cost_pow);
+        fprintf(1,'Cost per unit energy:          %8.1f $/kWh-e\n\n',Cdata.cap_cost_en);
 end
 
 % Calculate the fixed charge rate and other economic factors

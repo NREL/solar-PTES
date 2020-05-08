@@ -1,6 +1,15 @@
 %%% SET INPUT VARIABLES %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Mode 0: Joule-Brayton PTES cycle
+% Mode 1: Joule-Brayton heat pump (charge only)
+% Mode 2: Joule-Brayton heat engine (discharge only)
+% Mode 3: Joule-Brayton heat pump with a steam-Rankine heat engine
+% Mode 4: sCO2 PTES cycle
+% Mode 5: sCO2 recompression cycle (discharge only)
+% Mode 6: sCO2 'time-shifted' recompression cycle
+% Mode 7: Steam-Rankine heat engine (discharge only)
+
 % Call the correct input file
 Load.mode  = 0 ;
 Loffdesign = 0 ; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.

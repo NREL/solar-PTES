@@ -33,19 +33,20 @@ switch Load.mode
     case 0 % PTES
         fac = 100.0; % This can be used to more easily set the mass flow to obtain a desired power output
         stH = 10 ;
-        ee  = 0.6091 ;
+        ee  = 1.;%0.6091 ;
         % This is the load scenario the plant is designed for
         Design_Load      = Load ;
         Design_Load.time = [stH/ee;stH].*3600;  % time spent in each load period, s
         Design_Load.type = ["chg";"dis"];    % type of load period
         Design_Load.mdot = [10*fac*ee;10*fac];  % working fluid mass flow rate, kg/s
+        T0_inc    = 5.0 ; % Increment above ambient temperature that gas is cooled to
         
         if Loffdesign
             % This is the actual load profile that the plant meets
             Load.time = [stH;stH].*3600;      % time spent in each load period, s
             Load.type = ["chg";"dis"];    % type of load period
-            Load.mdot = [3.*fac;3.*fac];      % working fluid mass flow rate, kg/s
-            T0_inc    = 0.0 ; % Increase in ambient temperature
+            Load.mdot = [8.*fac;8.*fac];      % working fluid mass flow rate, kg/s
+            T0_inc    = 5.0 ; % Increment above ambient temperature that gas is cooled to
         else
             Load = Design_Load ;
         end
@@ -56,6 +57,7 @@ switch Load.mode
         Design_Load.time = stH*3600;                  % time spent in each load period, s
         Design_Load.type = "chg";                     % type of load period
         Design_Load.mdot = 1000;                        % working fluid mass flow rate, kg/s
+        T0_inc           = 5.0 ; % Increase in ambient temperature
         
         if Loffdesign
             % This is the actual load profile that the plant meets
@@ -70,15 +72,16 @@ switch Load.mode
     case 2 % Heat engine (no cold tanks)
         
         Design_Load      = Load ;
-        Design_Load.time = [0,10].*3600;                  % time spent in each load period, s
+        Design_Load.time = [0;10].*3600;                  % time spent in each load period, s
         Design_Load.type = ["sol";"dis"];                     % type of load period
-        Design_Load.mdot = [0,10];                        % working fluid mass flow rate, kg/s
+        Design_Load.mdot = [0;10];                        % working fluid mass flow rate, kg/s
+        T0_inc           = 5;  % Increase in ambient temperature
         
         if Loffdesign
             % This is the actual load profile that the plant meets
-            Load.time = [0,10].*3600;      % time spent in each load period, s
+            Load.time = [0;10].*3600;      % time spent in each load period, s
             Load.type = ["sol";"dis"];    % type of load period
-            Load.mdot = [0,10];      % working fluid mass flow rate, kg/s
+            Load.mdot = [0;10];      % working fluid mass flow rate, kg/s
             T0_inc    = 0;  % Increase in ambient temperature
         else
             Load = Design_Load ;
@@ -94,13 +97,15 @@ switch Load.mode
         Design_Load.mdot = [10*fac;0;1.0*fac;1.0*fac];      % working fluid mass flow rate, kg/s
         Design_Load.options.useCold = [0,0,1,0];        % Use cold stores during Rankine discharge? This should be set to 0 for design cases of retrofits.
         
+        T0_inc    = 5.0 ; % Increase in ambient temperature
+        
         if Loffdesign
             % This is the actual load profile that the plant meets
             Load.time = [10;4;10;10].*3600;         % time spent in each load period, s
             Load.type = ["chg";"str";"ran";"ran"];  % type of load period
-            Load.mdot = [10*fac;0;1*fac;1*fac];     % working fluid mass flow rate, kg/s
+            Load.mdot = [8*fac;0;0.8*fac;0.8*fac];     % working fluid mass flow rate, kg/s
             Load.options.useCold = [0,0,1,0];        % Use cold stores during Rankine discharge?
-            T0_inc    = 0.0 ; % Increase in ambient temperature
+            T0_inc    = 5.0 ; % Increase in ambient temperature
         else
             Load = Design_Load ;
         end

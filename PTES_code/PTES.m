@@ -116,7 +116,8 @@ for ix = 1:1
             end
             
             % Compute energy balance
-            ENERGY_BALANCE
+            %ENERGY_BALANCE
+            ENERGY_BALANCE_v2
             
             % Evaluate the system cost
             PTES_ECONOMICS

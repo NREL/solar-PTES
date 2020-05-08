@@ -157,22 +157,23 @@ classdef hx_class
            % T is the duration of the load cycle in seconds
            
            % Iterate through each load cycle
-           for i = 1 : numel(T)
+           for i = 1 : numel(obj.H)
                
-               % This is temporary
-               if ~strcmp(obj.name,'rej')
-               % Hot streams
-               obj.W(i,1)    = obj.w(i,1)    * obj.H(i).mdot * T(i) ;
-               obj.Q(i,1)    = obj.q(i,1)    * obj.H(i).mdot * T(i) ;
-               obj.DH(i,1)   = obj.Dh(i,1)   * obj.H(i).mdot * T(i) ;
-               obj.Sirr(i,1) = obj.sirr(i,1) * obj.H(i).mdot * T(i) ;
-               
-               % Cold streams
-               obj.W(i,2)    = obj.w(i,2)    * obj.C(i).mdot * T(i) ;
-               obj.Q(i,2)    = obj.q(i,2)    * obj.C(i).mdot * T(i) ;
-               obj.DH(i,2)   = obj.Dh(i,2)   * obj.C(i).mdot * T(i) ;
-               obj.Sirr(i,2) = obj.sirr(i,2) * obj.C(i).mdot * T(i) ;
+               % Only evaluate if mdot is defined
+               if ~isempty(obj.H(i).mdot)
+                   % Hot streams
+                   obj.W(i,1)    = obj.w(i,1)    * obj.H(i).mdot * T(i) ;
+                   obj.Q(i,1)    = obj.q(i,1)    * obj.H(i).mdot * T(i) ;
+                   obj.DH(i,1)   = obj.Dh(i,1)   * obj.H(i).mdot * T(i) ;
+                   obj.Sirr(i,1) = obj.sirr(i,1) * obj.H(i).mdot * T(i) ;
+                   
+                   % Cold streams
+                   obj.W(i,2)    = obj.w(i,2)    * obj.C(i).mdot * T(i) ;
+                   obj.Q(i,2)    = obj.q(i,2)    * obj.C(i).mdot * T(i) ;
+                   obj.DH(i,2)   = obj.Dh(i,2)   * obj.C(i).mdot * T(i) ;
+                   obj.Sirr(i,2) = obj.sirr(i,2) * obj.C(i).mdot * T(i) ;
                end
+               
            end
        end
        

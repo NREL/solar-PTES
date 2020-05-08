@@ -53,13 +53,11 @@ for counter = 1:max_iter
     
     for iN = 1:Nc_dis
         % REJECT HEAT (external HEX)
-        % REPLACE THIS WITH hex_func call?
-        if ~design_mode
-            T_aim = environ.T0 + T0_inc;
-        else
-            T_aim = environ.T0;
-        end
-        [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
+        T_aim = environ.T0 + T0_inc;
+        
+        air.state(iL,1).T = T0; air.state(iL,1).p = p0; air = update(air,[iL,1],1);
+        [HX(ihx_rej), gas, iG, air, iA] = hex_func(HX(ihx_rej),iL,gas,iG,air,iA,5,T_aim);
+        [DFAN(1),air,iA] = compexp_func (DFAN(1),iL,air,iA,'Paim',p0,1);
         
         switch Load.mode
             case 0 % PTES
@@ -107,7 +105,7 @@ for counter = 1:max_iter
         gas = count_Nstg(gas);
         
         % Close air (heat rejection) streams
-        iA_out = 1:2:(iA-1); iA_in  = iA_out + 1;
+        iA_out = 1:3:(iA-1); iA_in  = iA_out + 2;
         for i=iA_in, air.stage(iL,i).type = 'end'; end
         air = count_Nstg(air);
         
@@ -147,7 +145,7 @@ for counter = 1:max_iter
         end
         
         D_0 = D;
-        iG=1;iH=1;iHc=1;iC=1;iE=1;iPMP=1;
+        iG=1;iH=1;iHc=1;iC=1;iE=1;iA=1;iPMP=1;
     end
 end
 if counter==max_iter
@@ -176,5 +174,5 @@ if Load.mode == 0
     CT = run_tanks(CT,iL,fluidC,iC_out,iC_in,Load,T0);
 end
 % Atmospheric tanks
-iA_out = 0; iA_in = 0;
+%iA_out = 0; iA_in = 0;
 AT = run_tanks(AT,iL,air,iA_out,iA_in,Load,T0);

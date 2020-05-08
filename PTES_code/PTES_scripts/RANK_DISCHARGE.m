@@ -131,7 +131,7 @@ for counter=1:max_iter
         
         x1 = DEXP(1).mdot0 - DEXP(2).mdot0 ;
     else
-        f1 = @(x1) dT_from_mix_obj(x1,steam,iL,iG,iSA,iP2,Ran_Tmid1-1);
+        f1 = @(x1) dT_from_mix_obj(x1,steam,iL,iG,iSA,iP2,Ran_Tmid1-1,MIX(1));
         %plot_function(f1,0.0,1.0,100,10)
         %TolX = 1e-6; %tolerance
         %options = optimset('TolX',TolX,'Display','iter');
@@ -173,11 +173,11 @@ for counter=1:max_iter
         if DEXP(3).pr(iL) > 1.0
             x2 = DEXP(2).mdot(iL) - DEXP(3).mdot(iL) ;
         else
-            f2 = @(x2) dT_from_mix_obj(x2,steam,iL,iG,iSB,iP1,Ran_Tmid2-1);
+            f2 = @(x2) dT_from_mix_obj(x2,steam,iL,iG,iSB,iP1,Ran_Tmid2-1,MIX(1));
             x2  = fzero(f2,[0.0,0.5]);
         end
     else
-        f2 = @(x2) dT_from_mix_obj(x2,steam,iL,iG,iSB,iP1,Ran_Tmid2-1);
+        f2 = @(x2) dT_from_mix_obj(x2,steam,iL,iG,iSB,iP1,Ran_Tmid2-1,MIX(1));
         %plot_function(f1,0.0,1.0,100,10)
         %TolX = 1e-6; %tolerance
         %options = optimset('TolX',TolX,'Display','iter');
@@ -215,14 +215,14 @@ for counter=1:max_iter
     [DCMP(1),steam,iG] = compexp_func (DCMP(1),iL,steam,iG,'Paim',p_aim,1);
     
     % MIX (9-->10)
-    [steam,iG,~] = mix_streams(steam,[iL,iG],[iL,iSB]);
+    [MIX(1),steam,iG,~] = mix_streams(MIX(1),steam,[iL,iG],[iL,iSB]);
     
     % COMPRESS (10-->11)
     p_aim = steam.state(iL,iSA).p;
     [DCMP(2),steam,iG] = compexp_func (DCMP(2),iL,steam,iG,'Paim',p_aim,1);
     
     % MIX (11-->12)
-    [steam,iG,~] = mix_streams(steam,[iL,iG],[iL,iSA]);
+    [MIX(2),steam,iG,~] = mix_streams(MIX(2),steam,[iL,iG],[iL,iSA]);
     
     % COMPRESS (12-->13)
     p_aim = Ran_ptop;
@@ -321,7 +321,7 @@ AT = run_tanks(AT,iL,air,iA_out,iA_in,Load,T0);
 
 %%% SUPPORT FUNCTIONS %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function err = dT_from_mix_obj(x1,steam,iL,i,iS,iP,T_obj)
+function err = dT_from_mix_obj(x1,steam,iL,i,iS,iP,T_obj,MIX)
 % Obtain the difference in temperature between objective and computed
 % values, after steam separation and feed water heating.
 
@@ -332,7 +332,7 @@ steam.state(iL,iP).mdot = steam.state(iL,i).mdot*(1-x1);
 [steam,~] = split_stream(steam,iL,i,iS,x1);
 
 % Mix stream at point iP with stream at point iS
-[steam,i,~] = mix_streams(steam,[iL,iP],[iL,iS]);
+[~,steam,i,~] = mix_streams(MIX,steam,[iL,iP],[iL,iS]);
 
 % Compare temperature with objective temperature
 T = steam.state(iL,i).T;

@@ -47,7 +47,11 @@ for ii = 1:length(DPMP)
     DPMP(ii) = compexp_energy(DPMP(ii),Load.time)  ;
 end
 
-% Require similar routines for mixers/seperators etc.
+% Require similar routines for mixers etc.
+% MIXERS
+for ii = 1:length(MIX)
+    MIX(ii) = misc_energy(MIX(ii),Load.time) ;
+end
 
 switch Load.mode
     case {0,1,2,4,5,6}
@@ -61,7 +65,8 @@ end
 % Adds up the contributions of the several stages to compute an energy balance
 % SIGN CONVENTION. Work out is positive. Heat in is positive.
 W_in_chg   = 0;
-W_para_chg = 0; % Parasitic work input - nice to seperate this out
+W_pmp_chg  = 0; % Parasitic work input - nice to seperate this out
+W_fan_chg  = 0; % Parasitic work input - nice to seperate this out
 DH_chg     = 0;
 W_lost_chg = 0;
 QH_chg     = 0;  % heat to hot tanks
@@ -69,7 +74,8 @@ QH_dis     = 0;  % heat from hot tanks
 QE_chg     = 0;  % heat rejected to environment
 
 W_out_dis  = 0;
-W_para_dis = 0;  % Parasitic work input - nice to seperate this out
+W_pmp_dis  = 0;  % Parasitic work input - nice to seperate this out
+W_fan_dis  = 0;  % Parasitic work input - nice to seperate this out
 DH_dis     = 0;
 W_lost_dis = 0;
 QC_chg     = 0;  % heat from cold tanks
@@ -77,7 +83,8 @@ QC_dis     = 0;  % heat to cold tanks
 QE_dis     = 0;  % heat rejected to environment
 
 W_out_disRC  = 0;
-W_para_disRC = 0;  % Parasitic work input - nice to seperate this out
+W_fan_disRC = 0;  % Parasitic work input - nice to seperate this out
+W_pmp_disRC = 0;  % Parasitic work input - nice to seperate this out
 QC_disRC     = 0;  
 QH_disRC     = 0; 
 t_disRC      = 0;
@@ -94,8 +101,9 @@ nC = numel(fluidC);
 % 5: Mixing losses in storage tanks (liquids)
 % 6: Mixing losses of the working fluid
 % 7: Losses due to exergy leftover in tanks
-WL_PTES_chg = zeros(1,7);
-WL_PTES_dis = zeros(1,7);
+% 8: Parasitic losses due to pumping fluid and heat rejection air.
+WL_PTES_chg = zeros(1,8);
+WL_PTES_dis = zeros(1,8);
 
 for iL=1:Load.num
     
@@ -104,28 +112,28 @@ for iL=1:Load.num
         
         % Work into cycle
         for ii = 1:length(CCMP)
-            W_in_chg       = W_in_chg   + CCMP(ii).W ; 
+            W_in_chg       = W_in_chg   + CCMP(ii).W(iL) ; 
             WL_PTES_chg(1) = WL_PTES_chg(1) + T0 * CCMP(ii).Sirr(iL) ; 
         end
         
         % Work out of cycle
         for ii = 1:length(CEXP)
-            W_in_chg   = W_in_chg   + CEXP(ii).W ; 
+            W_in_chg   = W_in_chg   + CEXP(ii).W(iL) ; 
             WL_PTES_chg(2) = WL_PTES_chg(2) + T0 * CEXP(ii).Sirr(iL) ;
         end
         
         % Parasitic work into cycle
         for ii = 1:length(CFAN)
-            W_para_chg     = W_para_chg + CFAN(ii).W ; 
-            WL_PTES_chg(1) = WL_PTES_chg(1) + T0 * CFAN(ii).Sirr(iL) ;
+            W_fan_chg      = W_fan_chg + CFAN(ii).W(iL) ; 
+            WL_PTES_chg(8) = WL_PTES_chg(8) + T0 * CFAN(ii).Sirr(iL) ;
         end
         for ii = 1:length(CPMP)
-            W_para_chg     = W_para_chg + CPMP(ii).W ; 
-            WL_PTES_chg(1) = WL_PTES_chg(1) + T0 * CPMP(ii).Sirr(iL) ;
+            W_pmp_chg      = W_pmp_chg + CPMP(ii).W(iL) ; 
+            WL_PTES_chg(8) = WL_PTES_chg(8) + T0 * CPMP(ii).Sirr(iL) ;
         end
         
         % Heat flows in and out of cycle
-        for ii = length(HX)
+        for ii = 1:length(HX)
             % Heat out of cycle into hot storage
             if strcmp(HX(ii).name,'hot')
                 QH_chg = QH_chg + HX(ii).Q(iL,1) ;
@@ -153,34 +161,34 @@ for iL=1:Load.num
     elseif any(strcmp(Load.type(iL),{'dis','ran','disCO2','rcmpCO2','disTSCO2'}))
         % Work into cycle
         for ii = 1:length(DCMP)
-            W_out_dis      = W_out_dis  + DCMP(ii).W ; 
+            W_out_dis      = W_out_dis  + DCMP(ii).W(iL) ; 
             WL_PTES_dis(1) = WL_PTES_dis(1) + T0 * DCMP(ii).Sirr(iL) ; 
         end
         
         % Work out of cycle
         for ii = 1:length(DEXP)
-            W_out_dis      = W_out_dis  + DEXP(ii).W ; 
+            W_out_dis      = W_out_dis  + DEXP(ii).W(iL) ; 
             WL_PTES_dis(2) = WL_PTES_dis(2) + T0 * DEXP(ii).Sirr(iL) ; 
         end
         if any(Load.mode == [4,5,6])
             if Lrcmp
-                W_out_dis      = W_out_dis  + RCMP.W ;
+                W_out_dis      = W_out_dis  + RCMP.W(iL) ;
                 WL_PTES_dis(1) = WL_PTES_dis(1) + T0 * RCMP.Sirr(iL) ; 
             end
         end
         
         % Parasitic work into cycle
         for ii = 1:length(DFAN)
-            W_para_dis     = W_para_dis + DFAN(ii).W ; 
-            WL_PTES_dis(1) = WL_PTES_dis(1) + T0 * DFAN(ii).Sirr(iL) ; 
+            W_fan_dis      = W_fan_dis + DFAN(ii).W(iL) ; 
+            WL_PTES_dis(8) = WL_PTES_dis(8) + T0 * DFAN(ii).Sirr(iL) ; 
         end
         for ii = 1:length(DPMP)
-            W_para_dis     = W_para_dis + DPMP(ii).W ; 
-            WL_PTES_dis(1) = WL_PTES_dis(1) + T0 * DPMP(ii).Sirr(iL) ; 
+            W_pmp_dis      = W_pmp_dis + DPMP(ii).W(iL) ; 
+            WL_PTES_dis(8) = WL_PTES_dis(8) + T0 * DPMP(ii).Sirr(iL) ; 
         end
         
         % Heat flows in and out of cycle
-        for ii = length(HX)
+        for ii = 1:length(HX)
             % Heat into cycle from hot storage
             if strcmp(HX(ii).name,'hot')
                 QH_dis = QH_dis + HX(ii).Q(iL,2) ;
@@ -202,31 +210,33 @@ for iL=1:Load.num
         end
         
         % Work lost in other components
-        % ....
+        for ii = 1:length(MIX)
+            WL_PTES_dis(6) = WL_PTES_dis(6) + T0 * MIX(ii).Sirr(iL,2) ;
+        end
         
         % Calculate heat and work terms seperately for a Rankine cycle that uses cooling
         if strcmp(Load.type(iL),'ran') && Load.options.useCold(iL) == 1
                        
             % Work into cycle
             for ii = 1:length(DCMP)
-                W_out_disRC = W_out_disRC + DCMP(ii).W ;
+                W_out_disRC = W_out_disRC + DCMP(ii).W(iL) ;
             end
             
             % Work out of cycle
             for ii = 1:length(DEXP)
-                W_out_disRC = W_out_disRC + DEXP(ii).W ;
+                W_out_disRC = W_out_disRC + DEXP(ii).W(iL) ;
             end
             
             % Parasitic work into cycle
             for ii = 1:length(DFAN)
-                W_para_disRC = W_para_disRC + DFAN(ii).W ;
+                W_fan_disRC = W_fan_disRC + DFAN(ii).W(iL) ;
             end
             for ii = 1:length(DPMP)
-                W_para_disRC = W_para_disRC + DPMP(ii).W ;
+                W_pmp_disRC = W_pmp_disRC + DPMP(ii).W(iL) ;
             end
             
             % Heat flows in and out of cycle
-            for ii = length(HX)
+            for ii = 1:length(HX)
                 % Heat into cycle from hot storage
                 if strcmp(HX(ii).name,'hot')
                     QH_disRC = QH_disRC + HX(ii).Q(iL,2) ;
@@ -283,16 +293,7 @@ switch Load.mode
         WL_PTES_dis(7) = HT.A(end).B - HT.A(1).B + HT.B(end).B - HT.B(1).B;
 end
 
-
-
-
-W_out_disNC = W_out_dis - W_out_disRC ;
-QH_disNC = QH_dis - QH_disRC ;
-QC_disNC = QC_dis - QC_disRC ;
-
 fact    = 1e6*3600; % J to MWh
-Net_chg = (+ W_in_chg  + QC_chg  - QH_chg  - DH_chg  - QE_chg);
-Net_dis = (- W_out_dis - QC_dis  + QH_dis  - DH_dis  - QE_dis);
 
 i_chg = Load.ind(any(Load.type == {'chg','chgCO2','chgTSCO2'},2));
 i_dis = Load.ind(any(Load.type == {'dis','disCO2','ran','rcmpCO2','disTSCO2'},2));
@@ -306,181 +307,127 @@ ip1 = find(i_chg == 1,1,'first'); %index for printing (first charge period)
 ip2 = find(i_dis == 1,1,'first'); %index for printing (first discharge period)
 t_disNC = t_dis - t_disRC;
 
-
-
 % FIRST LAW ENERGY BALANCES AND ACCOUNTING
-
+Net_chg = (- W_in_chg  + QC_chg  + QH_chg  + QE_chg);
+Net_dis = (- W_out_dis + QC_dis  + QH_dis  + QE_dis);
 
 % SECOND LAW ENERGY BALANCES AND ACCOUNTING
+WL_matrix = [ WL_PTES_chg ; WL_PTES_dis ; ];
+Total_loss = sum(WL_matrix(:));
 
-
-
-%%% >> FROM HERE DOWN IS OLD CODE >> %%%
-
-
-% Compute lost work on specific component types
-% The WL_PTES_chg and WL_PTES_dis arrays are divided in 7 elements:
-% 1: Losses in compressors
-% 2: Losses in expanders
-% 3: Losses in heat exchangers
-% 4: Losses due to heat exchange with the environment
-% 5: Mixing losses in storage tanks (liquids)
-% 6: Mixing losses of the working fluid
-% 7: Losses due to exergy leftover in tanks
-WL_PTES_chg = zeros(1,7);
-WL_PTES_dis = zeros(1,7);
-for iL=1:Load.num
-    if any(strcmp(Load.type(iL),{'chg','chgCO2','dis','disCO2','rcmpCO2','chgTSCO2','disTSCO2'}))
-        for i0=1:gas.Nstg(iL)
-            switch gas.stage(iL,i0).type
-                case {'comp','pump'}
-                    i1 = 1;
-                case 'exp'
-                    i1 = 2;
-                case {'hex','regen'}
-                    i1 = 3;
-                case 'hex_reject'
-                    i1 = 4;
-                case 'mixing'
-                    i1 = 6;
-                case {'0','split','end'}
-                otherwise
-                    error('unknown stage type');
-            end
-            if any(strcmp(gas.stage(iL,i0).type,{'comp','pump','exp','hex','regen','hex_reject','mixing'}))
-                if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
-                    WL_PTES_chg(i1) = WL_PTES_chg(i1) + gas.stage(iL,i0).sirr*T0*gas.state(iL,i0).mdot*Load.time(iL);
-                end
-                if any(strcmp(Load.type(iL),{'dis','disCO2','rcmpCO2','disTSCO2'}))
-                    WL_PTES_dis(i1) = WL_PTES_dis(i1) + gas.stage(iL,i0).sirr*T0*gas.state(iL,i0).mdot*Load.time(iL);
-                end
-            end
-        end
-    end
-    if strcmp(Load.type(iL),'ran')
-        for i0=1:steam.Nstg(iL)
-            switch steam.stage(iL,i0).type
-                case {'comp','pump'}
-                    i1 = 1;
-                case 'exp'
-                    i1 = 2;
-                case {'hex','regen'}
-                    i1 = 3;
-                case 'hex_reject'
-                    i1 = 4;
-                case 'mixing'
-                    i1 = 6;
-                case {'0','split','end'}
-                otherwise
-                    error('unknown stage type');
-            end
-            if any(strcmp(steam.stage(iL,i0).type,{'comp','pump','exp','hex','regen','hex_reject','mixing'}))
-                WL_PTES_dis(i1) = WL_PTES_dis(i1) + steam.stage(iL,i0).sirr*T0*steam.state(iL,i0).mdot*Load.time(iL);
-            end
-        end
-    end
-    for i0=1:air.Nstg(iL)
-        switch air.stage(iL,i0).type
-            case {'comp','pump'}
-                i1 = 1;
-            case 'exp'
-                i1 = 2;
-            case {'hex','regen'}
-                i1 = 3;
-            case 'hex_reject'
-                i1 = 4;
-            case 'mixing'
-                i1 = 6;
-            case {'0','split','end'}
-            otherwise
-                error('unknown stage type');
-        end
-        if any(strcmp(air.stage(iL,i0).type,{'comp','pump','exp','hex','regen','hex_reject','mixing'}))
-            if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
-                WL_PTES_chg(i1) = WL_PTES_chg(i1) + air.stage(iL,i0).sirr*T0*air.state(iL,i0).mdot*Load.time(iL);
-            end
-            if any(strcmp(Load.type(iL),{'dis','disCO2','ran','rcmpCO2','disTSCO2'}))
-                WL_PTES_dis(i1) = WL_PTES_dis(i1) + air.stage(iL,i0).sirr*T0*air.state(iL,i0).mdot*Load.time(iL);
-            end
-        end
-        
-    end
-    
-    for i0=1:fluidC.Nstg(iL)
-        switch fluidC.stage(iL,i0).type
-            case {'pump'}
-                i1 = 1;
-            case {'0','split','comp','exp','hex','regen','hex_reject','mixing','end'}
-            otherwise
-                error('unknown stage type');
-        end
-        if any(strcmp(fluidC.stage(iL,i0).type,{'pump'}))
-            if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
-                WL_PTES_chg(i1) = WL_PTES_chg(i1) + fluidC.stage(iL,i0).sirr*T0*fluidC.state(iL,i0).mdot*Load.time(iL);
-            end
-            if any(strcmp(Load.type(iL),{'dis','disCO2','ran','rcmpCO2','disTSCO2'}))
-                WL_PTES_dis(i1) = WL_PTES_dis(i1) + fluidC.stage(iL,i0).sirr*T0*fluidC.state(iL,i0).mdot*Load.time(iL);
-            end
-        end
-    end
-    
-    for i0=1:fluidH.Nstg(iL)
-        switch fluidH.stage(iL,i0).type
-            case {'pump'}
-                i1 = 1;
-            case {'0','split','comp','exp','hex','regen','hex_reject','mixing','end'}
-            otherwise
-                error('unknown stage type');
-        end
-        if any(strcmp(fluidH.stage(iL,i0).type,{'pump'}))
-            if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
-                WL_PTES_chg(i1) = WL_PTES_chg(i1) + fluidH.stage(iL,i0).sirr*T0*fluidH.state(iL,i0).mdot*Load.time(iL);
-            end
-            if any(strcmp(Load.type(iL),{'dis','disCO2','ran','rcmpCO2','disTSCO2'}))
-                WL_PTES_dis(i1) = WL_PTES_dis(i1) + fluidH.stage(iL,i0).sirr*T0*fluidH.state(iL,i0).mdot*Load.time(iL);
-            end
-        end
-    end
-    
+% Calculate tank stats - volumes and masses
+for ii = 1 : Nhot
+    HT(ii) = tank_stats(HT(ii)) ;
 end
+for ii = 1 : Ncld
+    CT(ii) = tank_stats(CT(ii)) ;
+end
+
+% Compute efficiencies, energy and power densities and errors
 switch Load.mode
-
     case {0,3,4,6} % PTES, Rankine, or sCO2-PTES
-        
+        Heat_in_tanks = 0;
         for ii = 1 : Nhot
-            WL_PTES_chg(5) = WL_PTES_chg(5) + HT(ii).WL_chg ;
-            WL_PTES_dis(5) = WL_PTES_dis(5) + HT(ii).WL_dis ;
-            WL_PTES_dis(7) = WL_PTES_dis(7) + HT(ii).A(end).B - HT(ii).A(1).B + HT(ii).B(end).B - HT(ii).B(1).B;
-        end
-        
+            Heat_in_tanks = Heat_in_tanks + (HT(ii).A(end).H - HT(ii).A(1).H) + (HT(ii).B(end).H - HT(ii).B(1).H) ;
+        end        
         for ii = 1 : Ncld
-            WL_PTES_chg(5) = WL_PTES_chg(5) + CT(ii).WL_chg ;
-            WL_PTES_dis(5) = WL_PTES_dis(5) + CT(ii).WL_dis ;
-            WL_PTES_dis(7) = WL_PTES_dis(7) + CT(ii).A(end).B - CT(ii).A(1).B + CT(ii).B(end).B - CT(ii).B(1).B;
+            Heat_in_tanks = Heat_in_tanks + (CT(ii).A(end).H - CT(ii).A(1).H) + (CT(ii).B(end).H - CT(ii).B(1).H);
         end
         
-        WL_PTES_chg(5) = WL_PTES_chg(5) + AT.WL_chg ;
-        WL_PTES_dis(5) = WL_PTES_dis(5) + AT.WL_dis ;
-
+        Heat_rejected = QE_chg + QE_dis + W_fan_chg + W_fan_dis ;
+        Total_Work_lost = W_in_chg + W_out_dis + W_fan_chg + W_pmp_chg + W_fan_dis + W_pmp_dis;
+        First_law_error = (-Heat_rejected + Heat_in_tanks + Total_Work_lost)/Total_Work_lost;
+        Second_law_error = (Total_loss + Total_Work_lost)/Total_Work_lost;
+        
+        W_net_chg = W_in_chg + W_fan_chg + W_pmp_chg ;
+        W_net_dis = W_out_dis + W_fan_dis + W_pmp_dis ;
+        
+        chi_PTES = -W_out_dis/W_in_chg;
+        chi_PTES_para = -W_net_dis / W_net_chg ;
+        
+        vol = 0.0; % Calculate storage volume
+        for ii = 1:Nhot; vol = vol + HT(ii).tank_volA + HT(ii).tank_volB ; end
+        for ii = 1:Ncld; vol = vol + CT(ii).tank_volA + CT(ii).tank_volB ; end
+        
+        rhoE = W_net_dis /fact/vol*1e3; %kWh/m3
+        
+        % Calculate some special metrics for certain cycles
+        if Load.mode == 3
+            
+            W_out_disNC = W_net_dis - (W_out_disRC + W_fan_disRC + W_pmp_disRC) ;
+            QH_disNC = QH_dis - QH_disRC ;
+            QC_disNC = QC_dis - QC_disRC ;
+            
+            HEeff   = W_net_dis / QH_dis ; % Heat engine average efficiency
+            HEeffRC = (W_out_disRC + W_fan_disRC + W_pmp_disRC) / QH_disRC ; % Efficiency for cycles where only cold tanks are used for condensing
+            HEeffNC = W_out_disNC / QH_disNC ; % Efficiency for cycles where cold tanks are NOT used for condensing
+        elseif Load.mode == 6
+            SOLeff  = W_net_dis / QH_sol ; % Solar conversion efficiency
+            HEeff   = W_net_dis / QH_dis ; % Heat engine efficiency
+            NETeff  = (W_net_dis - W_net_chg) / QH_sol ; % Net efficiency
+            EXeff   = W_net_dis / (W_net_chg + EX_sol) ; % Exergetic efficiency
+        end
+        
     case 1 % Heat pump only
+        Heat_into_tanks   = (HT.A(end).H - HT.A(1).H) + (HT.B(end).H - HT.B(1).H) + (CT.A(end).H - CT.A(1).H) + (CT.B(end).H - CT.B(1).H);
+        Exergy_into_tanks = (HT.A(end).B - HT.A(1).B) + (HT.B(end).B - HT.B(1).B) + (CT.A(end).B - CT.A(1).B) + (CT.B(end).B - CT.B(1).B);
         
-        for ii = 1 : Nhot
-            WL_PTES_chg(5) = WL_PTES_chg(5) + HT(ii).WL_chg ;
-        end
-           
-        for ii = 1 : Ncld
-            WL_PTES_chg(5) = WL_PTES_chg(5) + CT(ii).WL_chg ;
-        end
+        Heat_rejected = QE_chg + W_fan_chg ;
+        W_net_chg = W_in_chg + W_fan_chg + W_pmp_chg ;
+        Total_Work_lost = -W_net_chg - Exergy_into_tanks;
         
-        WL_PTES_chg(5) = WL_PTES_chg(5) + AT.WL_chg ;
-
+        First_law_error = (-Heat_rejected + Heat_into_tanks + W_net_chg)/W_net_chg;
+        Second_law_error = (Total_loss - Total_Work_lost)/Total_Work_lost;
+                
+        chi_tot               = Exergy_into_tanks/(W_in_chg);
+        chi_tot_para          = Exergy_into_tanks/(W_net_chg);
+        Exergy_into_hot_tanks = ((HT.A(end).B - HT.A(1).B) + (HT.B(end).B - HT.B(1).B));
+        chi_hot               = Exergy_into_hot_tanks/(W_in_chg);
+        chi_hot_para          = Exergy_into_hot_tanks/(W_net_chg);
+        COP                   = QH_chg/W_in_chg;
+        COP_para              = QH_chg/W_net_chg;
+        vol = 0.0; % Calculate storage volume
+        for ii = 1:Nhot; vol = vol + HT(ii).tank_volA + HT(ii).tank_volB ; end
+        rhoE = Exergy_into_hot_tanks/fact/vol*1e3; %kWh/m3
+        
     case {2,5,7} % Heat engine only
-        WL_PTES_dis(5) = HT.WL_dis + AT.WL_dis ;
-        WL_PTES_dis(7) = HT.A(end).B - HT.A(1).B + HT.B(end).B - HT.B(1).B;
+        Heat_from_tanks   = (HT.A(2).H - HT.A(end).H) + (HT.B(2).H - HT.B(end).H);
+        Exergy_from_tanks = (HT.A(2).B - HT.A(end).B) + (HT.B(2).B - HT.B(end).B);
+        
+        Heat_rejected = QE_dis + W_fan_dis ;
+        W_net_dis = W_out_dis + W_fan_dis + W_pmp_dis ;
+        Total_Work_lost = Exergy_from_tanks - W_net_dis;
+        
+        First_law_error = (Heat_from_tanks - W_net_dis + Heat_rejected)/(W_net_dis);
+        Second_law_error = (Total_loss + Total_Work_lost)/Total_Work_lost;
+        
+        chi_tot      = (W_out_dis)/Exergy_from_tanks;
+        chi_tot_para = (W_net_dis)/Exergy_from_tanks;
+        EFF          = W_out_dis/QH_dis;
+        EFF_para     = W_net_dis/QH_dis;
+        rhoE         = W_net_dis/fact/(HT.A(end).V)*1e3; %kWh/m3
 end
 
 
-% PRINT MAIN RESULTS ON SCREEN
+% Assume COLD rejection in heat pump mode!
+if Load.mode == 1
+    % Treat mixing_liquid loss and exergy of cold tanks as heat_reject
+    WL_matrix(1,4) = WL_matrix(1,5) + (Exergy_into_tanks - Exergy_into_hot_tanks);
+    WL_matrix(1,5) = 0;
+elseif Load.mode == 5 || Load.mode == 6
+    % Ignore tank losses from the solar tank
+    WL_matrix(1,5) = WL_matrix(1,5) - HT(1).WL_chg ;
+    WL_matrix(1,5) = WL_matrix(1,5) - HT(1).WL_dis ;
+    WL_matrix(2,7) = WL_matrix(2,7) - (HT(1).A(end).B - HT(1).A(1).B + HT(1).B(end).B - HT(1).B(1).B);
+end
+
+switch Load.mode
+    case {0,1,3,4,6}
+        Exergy_in = W_in_chg;
+    case {2,5,7}
+        Exergy_in = Exergy_from_tanks;
+end
+
 if WM==1
     fprintf(1,'\n\n');
     fprintf(1,'PTES CYCLE\n');
@@ -531,104 +478,6 @@ if WM==1
     fprintf(1,'\n');
 end
 
-% Compute total loss from a second law perspective
-WL_matrix = [ WL_PTES_chg ; WL_PTES_dis ; ];
-Total_loss = sum(WL_matrix(:));
-
-% Calculate tank stats - volumes and masses
-for ii = 1 : Nhot
-    HT(ii) = tank_stats(HT(ii)) ;
-end
-for ii = 1 : Ncld
-    CT(ii) = tank_stats(CT(ii)) ;
-end
-
-% Compute efficiencies, energy and power densities and errors
-switch Load.mode
-    case {0,3,4,6} % PTES, Rankine, or sCO2-PTES
-        Heat_in_tanks = 0;
-        for ii = 1 : Nhot
-            Heat_in_tanks = Heat_in_tanks + (HT(ii).A(end).H - HT(ii).A(1).H) + (HT(ii).B(end).H - HT(ii).B(1).H) ;
-        end        
-        for ii = 1 : Ncld
-            Heat_in_tanks = Heat_in_tanks + (CT(ii).A(end).H - CT(ii).A(1).H) + (CT(ii).B(end).H - CT(ii).B(1).H);
-        end
-        Heat_rejected = QE_chg + QE_dis;
-        Total_Work_lost = W_in_chg - W_out_dis;
-        First_law_error = (Heat_rejected + Heat_in_tanks - Total_Work_lost)/Total_Work_lost;
-        Second_law_error = (Total_loss - Total_Work_lost)/Total_Work_lost;
-        chi_PTES = W_out_dis/W_in_chg;
-        vol = 0.0; % Calculate storage volume
-        for ii = 1:Nhot; vol = vol + HT(ii).tank_volA + HT(ii).tank_volB ; end
-        for ii = 1:Ncld; vol = vol + CT(ii).tank_volA + CT(ii).tank_volB ; end
-        rhoE = W_out_dis/fact/vol*1e3; %kWh/m3
-        
-        % Calculate some special metrics for certain cycles
-        if Load.mode == 3
-            HEeff   = W_out_dis / QH_dis ; % Heat engine average efficiency
-            HEeffRC = W_out_disRC / QH_disRC ; % Efficiency for cycles where only cold tanks are used for condensing
-            HEeffNC = W_out_disNC / QH_disNC ; % Efficiency for cycles where cold tanks are NOT used for condensing
-        elseif Load.mode == 6
-            SOLeff  = W_out_dis / QH_sol ; % Solar conversion efficiency
-            HEeff   = W_out_dis / QH_dis ; % Heat engine efficiency
-            NETeff  = (W_out_dis - W_in_chg) / QH_sol ; % Net efficiency
-            EXeff   = W_out_dis / (W_in_chg + EX_sol) ; % Exergetic efficiency
-        end
-        
-    case 1 % Heat pump only
-        Heat_into_tanks   = (HT.A(end).H - HT.A(1).H) + (HT.B(end).H - HT.B(1).H) + (CT.A(end).H - CT.A(1).H) + (CT.B(end).H - CT.B(1).H);
-        Exergy_into_tanks = (HT.A(end).B - HT.A(1).B) + (HT.B(end).B - HT.B(1).B) + (CT.A(end).B - CT.A(1).B) + (CT.B(end).B - CT.B(1).B);
-        Heat_rejected = QE_chg;
-        Total_Work_lost = W_in_chg - Exergy_into_tanks;
-        First_law_error = (Heat_rejected + Heat_into_tanks - W_in_chg)/(W_in_chg);
-        Second_law_error = (Total_loss - Total_Work_lost)/Total_Work_lost;
-        chi_tot = Exergy_into_tanks/(W_in_chg);
-        Exergy_into_hot_tanks = ((HT.A(end).B - HT.A(1).B) + (HT.B(end).B - HT.B(1).B));
-        chi_hot = Exergy_into_hot_tanks/(W_in_chg);
-        COP = QH_chg/W_in_chg;
-        vol = 0.0; % Calculate storage volume
-        for ii = 1:Nhot; vol = vol + HT(ii).tank_volA + HT(ii).tank_volB ; end
-        rhoE = Exergy_into_hot_tanks/fact/vol*1e3; %kWh/m3
-        
-    case {2,5,7} % Heat engine only
-        Heat_from_tanks   = (HT.A(2).H - HT.A(end).H) + (HT.B(2).H - HT.B(end).H);
-        Exergy_from_tanks = (HT.A(2).B - HT.A(end).B) + (HT.B(2).B - HT.B(end).B);
-        Heat_rejected = QE_dis;
-        Total_Work_lost = Exergy_from_tanks - W_out_dis;
-        First_law_error = (Heat_from_tanks - W_out_dis - Heat_rejected)/(W_out_dis);
-        Second_law_error = (Total_loss - Total_Work_lost)/Total_Work_lost;
-        chi_tot = (W_out_dis)/Exergy_from_tanks;
-        EFF = W_out_dis/QH_dis;
-        rhoE = W_out_dis/fact/(HT.A(end).V)*1e3; %kWh/m3
-end
-
-
-% Assume COLD rejection in heat pump mode!
-if Load.mode == 1
-    % Treat mixing_liquid loss and exergy of cold tanks as heat_reject
-    WL_matrix(1,4) = WL_matrix(1,5) + (Exergy_into_tanks - Exergy_into_hot_tanks);
-    WL_matrix(1,5) = 0;
-elseif Load.mode == 5 || Load.mode == 6
-    % Ignore tank losses from the solar tank
-    WL_matrix(1,5) = WL_matrix(1,5) - HT(1).WL_chg ;
-    WL_matrix(1,5) = WL_matrix(1,5) - HT(1).WL_dis ;
-    WL_matrix(2,7) = WL_matrix(2,7) - (HT(1).A(end).B - HT(1).A(1).B + HT(1).B(end).B - HT(1).B(1).B);
-end
-
-switch Load.mode
-    case {0,1,3,4,6}
-        Exergy_in = W_in_chg;
-    case {2,5,7}
-        Exergy_in = Exergy_from_tanks;
-end
-WL_comp    = sum(WL_matrix(:,1))/Exergy_in*100;
-WL_exp     = sum(WL_matrix(:,2))/Exergy_in*100;
-WL_hexs    = sum(WL_matrix(:,3))/Exergy_in*100;
-WL_reject  = sum(WL_matrix(:,4))/Exergy_in*100;
-WL_mix_liq = sum(WL_matrix(:,5))/Exergy_in*100;
-WL_mix_gas = sum(WL_matrix(:,6))/Exergy_in*100;
-WL_tanks   = sum(WL_matrix(:,7))/Exergy_in*100;
-
 if WM == 1
     fprintf(1,'\n\n');
     fprintf(1,'FIRST LAW BALANCE\n');
@@ -637,26 +486,24 @@ if WM == 1
     switch Load.mode
         case {0,1,3,4,6}
             fprintf(1,'CHARGE\n');
-            fprintf(1,'Average power input:     %8.2f MW\n',W_in_chg/t_chg/1e6);
+            fprintf(1,'Average power input:     %8.2f MW\n',-W_net_chg/t_chg/1e6);
             fprintf(1,'Total charge time:       %8.2f h\n',t_chg/3600);
-            fprintf(1,'Energy(el) input:        %8.2f MWh\n',W_in_chg/fact);
-            fprintf(1,'Heat to hot tanks:       %8.2f MWh\n',QH_chg/fact);
+            fprintf(1,'Energy(el) input:        %8.2f MWh\n',-W_net_chg/fact);
+            fprintf(1,'Heat to hot tanks:       %8.2f MWh\n',-QH_chg/fact);
             fprintf(1,'Heat from cold tanks:    %8.2f MWh\n',QC_chg/fact);
-            fprintf(1,'DH working fluid:        %8.2f MWh\n',DH_chg/fact);
-            fprintf(1,'Heat rejected:           %8.2f MWh\n',QE_chg/fact);
+            fprintf(1,'Heat rejected:           %8.2f MWh\n',-(QE_chg+W_fan_chg)/fact);
             fprintf(1,'NET:                     %8.2f MWh\n\n',Net_chg/fact);
     end
     
     switch Load.mode
         case {0,2,3,4,5,6,7}
             fprintf(1,'DISCHARGE\n');
-            fprintf(1,'Average power output:    %8.2f MW\n',W_out_dis/t_dis/1e6);
+            fprintf(1,'Average power output:    %8.2f MW\n',W_net_dis/t_dis/1e6);
             fprintf(1,'Total discharge time:    %8.2f h\n',t_dis/3600);
-            fprintf(1,'Energy(el) output:       %8.2f MWh\n',W_out_dis/fact);
+            fprintf(1,'Energy(el) output:       %8.2f MWh\n',W_net_dis/fact);
             fprintf(1,'Heat from hot tanks:     %8.2f MWh\n',QH_dis/fact);
-            fprintf(1,'Heat to cold tanks:      %8.2f MWh\n',QC_dis/fact);
-            fprintf(1,'DH working fluid:        %8.2f MWh\n',DH_dis/fact);
-            fprintf(1,'Heat rejected:           %8.2f MWh\n',QE_dis/fact);
+            fprintf(1,'Heat to cold tanks:      %8.2f MWh\n',-QC_dis/fact);
+            fprintf(1,'Heat rejected:           %8.2f MWh\n',-(QE_dis+W_fan_dis)/fact);
             fprintf(1,'NET:                     %8.2f MWh\n\n',Net_dis/fact);
     end
     
@@ -680,10 +527,13 @@ if WM == 1
     
     switch Load.mode
         case {0,3,4,6}
-            fprintf(1,'COP:                     %8.2f \n',QH_chg/W_in_chg);
-            fprintf(1,'Heat engine efficiency:  %8.2f %%\n',W_out_dis/QH_dis*100);
-            fprintf(1,'Round trip efficiency:   %8.2f %%\n\n',chi_PTES*100);
-            fprintf(1,'Exergy density:          %9.2f kWh/m3\n',rhoE);
+            fprintf(1,'COP:                                 %8.2f \n',QH_chg/W_in_chg);
+            fprintf(1,'COP (including parasitics):          %8.2f \n',QH_chg/W_net_chg);
+            fprintf(1,'Heat engine efficiency:              %8.2f %%\n',W_out_dis/QH_dis*100);
+            fprintf(1,'Heat engine eff. (inc. parasitics):  %8.2f %%\n\n',W_net_dis/QH_dis*100);
+            fprintf(1,'Round trip efficiency:               %8.2f %%\n',chi_PTES*100);
+            fprintf(1,'Round trip eff. (inc. parasitics):   %8.2f %%\n\n',chi_PTES_para*100);
+            fprintf(1,'Exergy density:                      %8.2f kWh/m3\n\n',rhoE);
             
             fprintf(1,'STORAGE MEDIA\n');
             for ii = 1 : Nhot
@@ -698,14 +548,18 @@ if WM == 1
             end
             
         case 1
-            fprintf(1,'Exergetic efficiency:                %8.1f %%\n',chi_tot*100);
-            fprintf(1,'Exergetic efficiency (cold reject):  %8.1f %%\n',chi_hot*100);
-            fprintf(1,'Coefficient of Performance:           %8.3f\n\n',COP);
-            fprintf(1,'Exergy density (hot tanks):          %9.2f kWh/m3\n',rhoE);
+            fprintf(1,'Exergetic efficiency:                         %8.1f %%\n',-chi_tot*100);
+            fprintf(1,'Exergetic efficiency (inc. parasitics):       %8.1f %%\n',-chi_tot_para*100);
+            fprintf(1,'Exergetic efficiency (cold reject):           %8.1f %%\n',-chi_hot*100);
+            fprintf(1,'Coefficient of Performance:                   %8.3f\n',COP);
+            fprintf(1,'Coefficient of Performance (inc. parasitics): %8.3f\n\n',COP_para);
+            fprintf(1,'Exergy density (hot tanks):                   %8.3f kWh/m3\n',rhoE);
         case {2,5,7}
-            fprintf(1,'Exergetic efficiency:      %7.1f %%\n',chi_tot*100);
-            fprintf(1,'First law efficiency:      %7.1f %%\n\n',EFF*100);
-            fprintf(1,'Exergy density:            %8.2f kWh/m3\n',rhoE);
+            fprintf(1,'Exergetic efficiency:             %8.3f %%\n',chi_tot*100);
+            fprintf(1,'Exergetic eff. (inc. parasitics): %8.3f %%\n',chi_tot_para*100);
+            fprintf(1,'First law efficiency:             %8.3f %%\n',EFF*100);
+            fprintf(1,'First law eff. (inc. parasitics): %8.3f %%\n\n',EFF_para*100);
+            fprintf(1,'Exergy density:                   %8.3f kWh/m3\n\n',rhoE);
     end
     
     fprintf(1,'First law error:   %8.5f %%\n',First_law_error*100);

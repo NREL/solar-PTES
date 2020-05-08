@@ -143,7 +143,7 @@ switch Load.mode
                 % Call HX classes for ideal-gas PTES cycle
                 HX(ihx_hot)  = hx_class('hot',  'hex',   1, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
                 HX(ihx_reg)  = hx_class('regen','regen', 1, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Recuperator
-                HX(ihx_rej)  = hx_class('rej',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
+                HX(ihx_rej)  = hx_class('rej',  'hex',   1, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
                 HX(ihx_cld)  = hx_class('cold', 'hex',   1, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Cold heat exchanger
             case 1
                 HX(1) = hx_class('rej',  'hex',   2, 100, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
@@ -163,7 +163,7 @@ switch Load.mode
         HX(ihx_JB+2) = hx_class('cold', 'hex',   0, HX_NX, Load.num, Load.num, 'eff', eff, 0.1/100, HX_D1, HX_shape) ; % Condenser
         HX(ihx_JB+3) = hx_class('rej',  'regen', 0, HX_NX, Load.num, Load.num, 'eff', eff, 0.1/100, HX_D1, HX_shape) ; % Air-cooled condenser
         HX(ihx_JB+4) = hx_class('hot',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Boiler
-        
+                
     case 4
         iHX = 1 ; % Heat exchanger counter
     for ii = 1 : Nhot
@@ -205,6 +205,10 @@ DFAN(1:10) = compexp_class('comp', 'isen', 40, 0.5, Load.num) ;
 % Fluid pumps --> NOT SURE WHAT cost_mode should be selected in this case
 CPMP(1:10) = compexp_class('pump', 'isen', 40, 0.8, Load.num) ;
 DPMP(1:10) = compexp_class('pump', 'isen', 40, 0.8, Load.num) ;
+
+
+% Mixers may be required (e.g. in Rankine cycle)
+MIX(1:2)    = misc_class('mix',Load.num) ;
 
 % Put design case load cycles in load for the first iteration.
 if Loffdesign

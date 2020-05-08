@@ -29,14 +29,17 @@ switch Load.mode
         Load.time = [10;4;10].*3600;          % time spent in each load period, s
         Load.type = ["chgCO2";"str";"disCO2"]; % type of load period
         Load.mdot = [1000*fac;0;1000*fac];              % working fluid mass flow rate, kg/s
+        T0_inc    = 5.0 ; % Increment above ambient temperature that gas is cooled to
     case 5
         Load.time = [10;4;10].*3600;          % time spent in each load period, s
         Load.type = ["sol";"str";"rcmpCO2"]; % type of load period
         Load.mdot = [10;0;10];              % working fluid mass flow rate, kg/s
+        T0_inc    = 5.0 ; % Increment above ambient temperature that gas is cooled to
     case 6
         Load.time = [10;4;10].*3600;          % time spent in each load period, s
         Load.type = ["chgTSCO2";"str";"disTSCO2"]; % type of load period
         Load.mdot = [1000;0;1000];              % working fluid mass flow rate, kg/s
+        T0_inc    = 5.0 ; % Increment above ambient temperature that gas is cooled to
 end
 Load.num = numel(Load.time);
 Load.ind = 1:Load.num;

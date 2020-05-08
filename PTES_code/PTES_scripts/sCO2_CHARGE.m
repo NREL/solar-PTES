@@ -3,6 +3,7 @@ iG = 1;  % keeps track of the gas stage number
 iH = ones(1,Nhot);  % keeps track of the Hot fluid stream number
 iC = ones(1,Ncld); % keeps track of the Cold fluid stream number
 iE = 1;  % keeps track of the heat rejection stream number
+iA = 1; % Keeps track of air stream
 
 % Initial guess of charge conditions
 % Compressor inlet (regenerator hot outlet)
@@ -85,7 +86,7 @@ while 1
     % May wish to make cold store as cold as possible, or avoid rejecting
     % heat here to avoid the worst of the CO2 c_p variation
     if Lcld
-        T_aim = environ.T0 ;
+        T_aim = environ.T0 + T0_inc;
     else
         T_aim = gas.state(iL,iG).T - 0.1 ;
     end
@@ -166,3 +167,8 @@ for ii = 1 : Ncld
     iC_out = 1:2:(iC(ii)-1); iC_in  = iC_out + 1;
     [CT(ii)] = run_tanks(CT(ii),iL,fluidC(ii),iC_out,iC_in,Load,T0);
 end
+
+
+% Atmospheric tanks
+iA_out = 0; iA_in = 0;
+AT = run_tanks(AT,iL,air,iA_out,iA_in,Load,T0);

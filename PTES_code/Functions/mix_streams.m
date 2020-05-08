@@ -1,4 +1,4 @@
-function [stream,iM,iS] = mix_streams(stream,indM,indS)
+function [MIX,stream,iM,iS] = mix_streams(MIX,stream,indM,indS)
 
 % Two fluid streams are brought into thermal equilibrium. The second stream
 % is incorporated into the main stream.
@@ -59,6 +59,23 @@ stageS.sirr = 0; %avoid counting the lost work twice
 stageS.q    = 0;
 stageS.w    = 0;
 stageS.type = 'mixing';
+
+
+% Compute losses, but insert into misc_class
+% Main stream
+MIX.Dh(indM(1),1)   = stateM.h - h1_st;
+MIX.sirr(indM(1),1) = 0.0;%(stateM.mdot*Ds1 + stateS.mdot*Ds2)/stateM.mdot;
+MIX.q(indM(1),1)    = MIX.Dh(indM(1),1);
+MIX.w(indM(1),1)    = 0;
+MIX.mdot(indM(1),1) = stateM.mdot;
+
+% Cold stream
+MIX.Dh(indM(1),2)   = stateS.h - h2_st;
+MIX.sirr(indM(1),2) = (stateM.mdot*Ds1 + stateS.mdot*Ds2)/stateS.mdot;
+MIX.q(indM(1),2)    = MIX.Dh(indM(1),2);
+MIX.w(indM(1),2)    = 0;
+MIX.mdot(indM(1),2) = stateS.mdot;
+
 
 % Update mass flow rates (join streams after reaching equilibrium)
 stateM.mdot = Mdot;

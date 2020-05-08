@@ -74,13 +74,12 @@ for counter=1:max_iter
     [HX(ihx_reg),gas,iG,~,~] = hex_func(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
         
     % REJECT HEAT (external HEX)
-    if ~design_mode
-        T_aim = environ.T0 + T0_inc;
-    else
-        T_aim = environ.T0;
-    end
-    [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
+    T_aim = environ.T0 + T0_inc;
     
+    air.state(iL,1).T = T0; air.state(iL,1).p = p0; air = update(air,[iL,1],1);
+    [HX(ihx_rej), gas, iG, air, iA] = hex_func(HX(ihx_rej),iL,gas,iG,air,iA,5,T_aim);
+    [CFAN(1),air,iA] = compexp_func (CFAN(1),iL,air,iA,'Paim',p0,1);
+        
     for iN = 1:Ne_ch
         % EXPAND
         PRe = (gas.state(iL,iG).p/pbot)^(1/(Ne_ch+1-iN)); % stage expansion pressure ratio
@@ -110,7 +109,7 @@ for counter=1:max_iter
         gas = count_Nstg(gas);
         
         % Close air (heat rejection) streams
-        iA_out = 1:2:(iA-1); iA_in  = iA_out + 1;
+        iA_out = 1:3:(iA-1); iA_in  = iA_out + 2;
         for i=iA_in, air.stage(iL,i).type = 'end'; end
         air = count_Nstg(air);
         
@@ -157,7 +156,7 @@ for counter=1:max_iter
         end
         
         C_0 = C;
-        iG=1; iH=1; iC=1; iE=1; iPMP=1;
+        iG=1; iH=1; iC=1; iE=1; iA=1; iPMP=1;
         
     end
 end
@@ -171,5 +170,5 @@ HT = run_tanks(HT,iL,fluidH,iH_out,iH_in,Load,T0);
 % Cold tanks
 CT = run_tanks(CT,iL,fluidC,iC_out,iC_in,Load,T0);
 % Atmospheric tanks
-iA_out = 0; iA_in = 0;
+%iA_out = 0; iA_in = 0;
 AT = run_tanks(AT,iL,air,iA_out,iA_in,Load,T0);
