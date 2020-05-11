@@ -145,7 +145,8 @@ CON_0 = [0; H.p; C.p]; % initial value
 NI    = 50;
 RES   = zeros(1,NI); % residuals
 TOL   = 1e-3;
-impossible = false; %indicades impossible situation
+impossible_h = false; %indicates impossible situations (regarding h guess)
+impossible_p = false; %indicates impossible situations (regarding Dp loss)
 for iI = 1:NI
     
     % UPDATE PROPERTIES
@@ -163,7 +164,7 @@ for iI = 1:NI
     
     % Break loop if H.T < C.T at any point
     if any(H.T <= C.T)
-        impossible = true;
+        impossible_h = true;
         A = Inf;
         break
     end
@@ -222,12 +223,12 @@ for iI = 1:NI
     DppC = abs(sum(Dp_C))/C.pin;
     if DppH > 0.8
         DppH = 0.8;
-        impossible = true;
+        impossible_p = true;
         break
     end
     if DppC > 0.8
         DppC = 0.8;
-        impossible = true;
+        impossible_p = true;
         break
     end
     H.p  = linspace(H.pin*(1-DppH),H.pin,NX+1)';
@@ -276,7 +277,7 @@ for iI = 1:NI
     end
     
 end
-if all([iI>=NI,RES(iI)>TOL,~impossible])
+if all([iI>=NI,RES(iI)>TOL])
     figure()
     semilogy(1:iI,RES(1:iI))
     xlabel('Iteration')
@@ -294,7 +295,7 @@ switch mode
         % conditions).
         solution = C.A - A;
         % Control physically impossible solutions
-        if impossible
+        if impossible_h
             solution = - C.A;
         end
         
@@ -304,7 +305,7 @@ switch mode
         % in one of the two streams is larger than the set objective
         % (indicating that the flow area might be too small), and
         % vice-versa.
-        if impossible
+        if impossible_p
             max_ploss = 1.0;
         else
             max_ploss = max([DppH,DppC]);

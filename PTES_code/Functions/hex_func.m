@@ -390,7 +390,10 @@ switch model
                 %keyboard
                 opt = optimset('TolX',(mCmax-mCmin)/1e12,'Display','notify');
                 mC  = fzero(f1,[mCmin,mCmax],opt);
+                
+                % Store new mC value into HX and stateC structures
                 HX.C(iL).mdot = mC;
+                stateC.mdot   = mC;
                 
             case 4
                 % Set outlet conditions of hot fluid. Assume small effect
@@ -409,7 +412,10 @@ switch model
                 f1  = @(mH) hex_compute_area(HX,iL,'hH1',hH1,'mH',mH);
                 opt = optimset('TolX',(mHmax-mHmin)/1e12,'Display','notify');
                 mH  = fzero(f1,[mHmin,mHmax],opt);
+                
+                % Store new mH value into HX and stateH structures
                 HX.H(iL).mdot = mH;
+                stateH.mdot   = mH;
                 
             case 5
                 % Set outlet conditions of hot fluid. Assume small effect
@@ -421,17 +427,19 @@ switch model
                 % Compute total heat transfer and compute mCmin and mCmax
                 % accordingly
                 QT    = mH*(hH2-hH1);
-                mCmin = QT/(hC2_max - hC1)*1.01;
+                mCmin = QT/(hC2_max - hC1)*0.98;
                 mCmax = mCmin*100; %necessary to find root
                 
                 % Find value of mC for which computed area equals specified area
                 %keyboard
                 f1  = @(mC) hex_compute_area(HX,iL,'hH1',hH1,'mC',mC);
-                %plot_function(f1,mCmin,mCmax,5,15,'semilogx');
-                %keyboard
+                %plot_function(f1,mCmin,mCmax,10,15,'semilogx');
                 opt = optimset('TolX',(mCmax-mCmin)/1e12,'Display','notify');
                 mC = fzero(f1,[mCmin,mCmax],opt);
+                
+                % Store new mC value into HX and stateC structures
                 HX.C(iL).mdot = mC;
+                stateC.mdot   = mC;
                 
         end
         
@@ -500,12 +508,14 @@ DsC         = stateC.s - sC1;
 % Hot stream
 stageH.Dh   = stateH.h - hH2;
 stageH.sirr = (stateH.mdot*DsH + stateC.mdot*DsC)/stateH.mdot;
+%stageH.sirr = (vpa(stateH.mdot*DsH) + vpa(stateC.mdot*DsC))/stateH.mdot;
 stageH.q    = stageH.Dh;
 stageH.w    = 0;
 stageH.type = stage_type;
 % Cold stream
 stageC.Dh   = stateC.h - hC1;
 stageC.sirr = (stateC.mdot*DsC + stateH.mdot*DsH)/stateC.mdot;
+%stageC.sirr = (vpa(stateC.mdot*DsC) + vpa(stateH.mdot*DsH))/stateC.mdot;
 stageC.q    = stageC.Dh;
 stageC.w    = 0;
 stageC.type = stage_type;
@@ -529,12 +539,14 @@ DsC         = stateC.s - sC1;
 % Hot stream
 HX.Dh(iL,1)   = stateH.h - hH2;
 HX.sirr(iL,1) = (stateH.mdot*DsH + stateC.mdot*DsC)/stateH.mdot;
+%HX.sirr(iL,1) = (vpa(stateH.mdot*DsH) + vpa(stateC.mdot*DsC))/stateH.mdot;
 HX.q(iL,1)    = stageH.Dh;
 HX.w(iL,1)    = 0;
 
 % Cold stream
 HX.Dh(iL,2)   = stateC.h - hC1;
 HX.sirr(iL,2) = (stateC.mdot*DsC + stateH.mdot*DsH)/stateC.mdot;
+%HX.sirr(iL,2) = (vpa(stateC.mdot*DsC) + vpa(stateH.mdot*DsH))/stateC.mdot;
 HX.q(iL,2)    = stageC.Dh;
 HX.w(iL,2)    = 0;
 

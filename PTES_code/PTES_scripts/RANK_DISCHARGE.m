@@ -204,7 +204,6 @@ for counter=1:max_iter
     else
         % REJECT HEAT (external HEX) (7-->8)
         T_aim = Ran_Tbot - 1;
-        %[steam,environ,iG,iE] = hex_set(steam,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
         air.state(iL,1).T = T0; air.state(iL,1).p = p0; air = update(air,[iL,1],1);
         [HX(ihx_JB+3), steam, iG, air, iA] = hex_func(HX(ihx_JB+3),iL,steam,iG,air,iA,5,T_aim);
         [DFAN(1),air,iA] = compexp_func (DFAN(1),iL,air,iA,'Paim',p0,1);

@@ -74,9 +74,8 @@ for counter=1:max_iter
     [HX(ihx_reg),gas,iG,~,~] = hex_func(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
         
     % REJECT HEAT (external HEX)
-    T_aim = environ.T0 + T0_inc;
-    
-    air.state(iL,1).T = T0; air.state(iL,1).p = p0; air = update(air,[iL,1],1);
+    T_aim = environ.T0 + T0_inc;    
+    air.state(iL,iA).T = T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
     [HX(ihx_rej), gas, iG, air, iA] = hex_func(HX(ihx_rej),iL,gas,iG,air,iA,5,T_aim);
     [CFAN(1),air,iA] = compexp_func (CFAN(1),iL,air,iA,'Paim',p0,1);
         
@@ -122,10 +121,11 @@ for counter=1:max_iter
         fluidC = count_Nstg(fluidC);
         
         % Uncomment these lines to print states
-        %{
+        %%{
         print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
         print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
         print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);
+        print_states(air,iL,1:air.Nstg(iL)+1,Load);
         %keyboard
         %}
         
@@ -170,5 +170,4 @@ HT = run_tanks(HT,iL,fluidH,iH_out,iH_in,Load,T0);
 % Cold tanks
 CT = run_tanks(CT,iL,fluidC,iC_out,iC_in,Load,T0);
 % Atmospheric tanks
-%iA_out = 0; iA_in = 0;
 AT = run_tanks(AT,iL,air,iA_out,iA_in,Load,T0);

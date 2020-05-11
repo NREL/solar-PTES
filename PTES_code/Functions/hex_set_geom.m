@@ -112,10 +112,6 @@ switch HX.model
         
     case {'eff','DT'}
         
-        if strcmp(HX.name,'rej')
-            return
-        end
-        
         iL = [];
         
         % Size the heat exchanger for the first load period during which it
