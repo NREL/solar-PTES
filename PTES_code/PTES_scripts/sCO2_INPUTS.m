@@ -200,6 +200,40 @@ switch Nrcp
                 
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% COST MODES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+CCMPmode = 4 ; % Charging compressor cost mode
+CEXPmode = 13 ; % Charging expander cost mode
+DCMPmode = 4 ; % Discharging compressor cost mode
+DEXPmode = 13 ; % Discharging expander cost mode
+
+PMPmode = 40; % Pump cost mode
+FANmode = 40; % Fan cost mode
+
+hotHXmode = 1; % Heat exchanger - hot cost mode
+cldHXmode = 1; % Heat exchanger - cold cost mode
+rcpHXmode = 1; % Heat exchanger - recuperator cost mode
+rejHXmode = 2; % Heat exchanger - rejection cost mode
+
+HTmode.tankmode  = 5 ; % Cost mode for hot tank container cost
+HTmode.fld_cost  = 1 ; % Hot tank fluid cost, $/kg
+HTmode.ins_cost  = 1 ; % Insulation material, %/kg
+HTmode.ins_k     = 0.05 ; % Thermal conductivity of insulation
+HTmode.ins_rho   = 200 ; % Density of insulation
+HTmode.tau       = 100 ; % Number of days before all heat leaks out of tank
+HTmode.AR        = 1.0 ; % Aspect ratio (L/D) of tank
+HTmode.over_fac  = 1.1 ; % How much larger is inner tank volume than the fluid volume
+
+CTmode.tankmode  = 5 ; % Cost mode for cold tank container cost
+CTmode.fld_cost  = 1 ; % Cold tank fluid cost, $/kg
+CTmode.ins_cost  = 1 ; % Insulation material, %/kg
+CTmode.ins_k     = 0.05 ; % Thermal conductivity of insulation
+CTmode.tau       = 100 ; % Number of days before all heat leaks out of tank
+CTmode.ins_rho   = 200 ; % Density of insulation
+CTmode.AR        = 1.0 ; % Aspect ratio (L/D) of tank
+CTmode.over_fac  = 1.1 ; % How much larger is inner tank volume than the fluid volume
+
 
 % Set working fluids, storage fluids, and heat rejection streams. 'WF' or
 % 'SF' indicates working fluid or storage fluid. 'CP' or 'TAB' indicate

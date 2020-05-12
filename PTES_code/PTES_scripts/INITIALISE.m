@@ -91,15 +91,15 @@ Ne_dis = Nc_ch; % expansions during discharge
 % Construct compressor and expander classes
 switch Load.mode
     case {0,1,2} % Ideal gas Joule-Brayton PTES
-        CCMP(1:Nc_ch) = compexp_class('comp', 'poly', 4, eta, Load.num) ; % Charging compressors
-        DEXP(1:Nc_ch) = compexp_class('exp', 'poly', 13, eta, Load.num) ; % Discharging expanders
+        CCMP(1:Nc_ch) = compexp_class('comp', 'poly', CCMPmode, eta, Load.num) ; % Charging compressors
+        DEXP(1:Nc_ch) = compexp_class('exp', 'poly', DEXPmode, eta, Load.num) ; % Discharging expanders
         
-        CEXP(1:Ne_ch) = compexp_class('exp', 'poly', 13, eta, Load.num) ; % Charging expanders
-        DCMP(1:Ne_ch) = compexp_class('comp', 'poly', 4, eta, Load.num) ; % Discharging compressors
+        CEXP(1:Ne_ch) = compexp_class('exp', 'poly', CEXPmode, eta, Load.num) ; % Charging expanders
+        DCMP(1:Ne_ch) = compexp_class('comp', 'poly', DCMPmode, eta, Load.num) ; % Discharging compressors
     case {3,7} % JB (charge) + Rankine (discharge)
         % Charging components
-        CCMP(1:Nc_ch) = compexp_class('comp', 'poly', 4, eta, Load.num) ; % Charging compressors
-        CEXP(1:Ne_ch) = compexp_class('exp', 'poly', 13, eta, Load.num) ; % Charging expanders
+        CCMP(1:Nc_ch) = compexp_class('comp', 'poly', CCMPmode, eta, Load.num) ; % Charging compressors
+        CEXP(1:Ne_ch) = compexp_class('exp', 'poly', CEXPmode, eta, Load.num) ; % Charging expanders
         
         % Discharging components
         DCMP(1:3) = compexp_class('comp', 'isen', 0, eta, Load.num) ; % Discharging compressors
@@ -141,23 +141,23 @@ switch Load.mode
         switch PBmode
             case {0,2}
                 % Call HX classes for ideal-gas PTES cycle
-                HX(ihx_hot)  = hx_class('hot',  'hex',   1, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
-                HX(ihx_reg)  = hx_class('regen','regen', 1, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Recuperator
-                HX(ihx_rej)  = hx_class('rej',  'hex',   1, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
-                HX(ihx_cld)  = hx_class('cold', 'hex',   1, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Cold heat exchanger
+                HX(ihx_hot)  = hx_class('hot',  'hex',   hotHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+                HX(ihx_reg)  = hx_class('regen','regen', rcpHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Recuperator
+                HX(ihx_rej)  = hx_class('rej',  'hex',   rejHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
+                HX(ihx_cld)  = hx_class('cold', 'hex',   cldHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Cold heat exchanger
             case 1
-                HX(1) = hx_class('rej',  'hex',   2, 100, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
-                HX(2) = hx_class('rej',  'hex',   2, 100, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
+                HX(1) = hx_class('rej',  'hex',   rejHXmode, 100, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
+                HX(2) = hx_class('rej',  'hex',   rejHXmode, 100, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
         end
         
         
     case {3,7}
         % Call HX classes for ideal-gas PTES heat pump with Rankine cycle discharge
         ihx_JB  = ihx_cld(end);
-        HX(ihx_hot)  = hx_class('hot',  'hex',   1, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
-        HX(ihx_reg)  = hx_class('regen','regen', 1, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Recuperator
-        HX(ihx_rej)  = hx_class('rej',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
-        HX(ihx_cld)  = hx_class('cold', 'hex',   1, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Cold heat exchanger
+        HX(ihx_hot)  = hx_class('hot',  'hex',   hotHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        HX(ihx_reg)  = hx_class('regen','regen', rcpHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Recuperator
+        HX(ihx_rej)  = hx_class('rej',  'hex',   rejHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
+        HX(ihx_cld)  = hx_class('cold', 'hex',   cldHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Cold heat exchanger
         
         HX(ihx_JB+1) = hx_class('hot',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Reheat
         HX(ihx_JB+2) = hx_class('cold', 'hex',   0, HX_NX, Load.num, Load.num, 'eff', eff, 0.1/100, HX_D1, HX_shape) ; % Condenser
@@ -199,12 +199,12 @@ end
 
 
 % Fans --> NOT SURE WHAT cost_mode should be selected in this case
-CFAN(1:10) = compexp_class('comp', 'isen', 40, 0.5, Load.num) ;
-DFAN(1:10) = compexp_class('comp', 'isen', 40, 0.5, Load.num) ;
+CFAN(1:10) = compexp_class('comp', 'isen', FANmode, 0.5, Load.num) ;
+DFAN(1:10) = compexp_class('comp', 'isen', FANmode, 0.5, Load.num) ;
 
 % Fluid pumps --> NOT SURE WHAT cost_mode should be selected in this case
-CPMP(1:10) = compexp_class('pump', 'isen', 40, 0.8, Load.num) ;
-DPMP(1:10) = compexp_class('pump', 'isen', 40, 0.8, Load.num) ;
+CPMP(1:10) = compexp_class('pump', 'isen', PMPmode, 0.8, Load.num) ;
+DPMP(1:10) = compexp_class('pump', 'isen', PMPmode, 0.8, Load.num) ;
 
 
 % Mixers may be required (e.g. in Rankine cycle)

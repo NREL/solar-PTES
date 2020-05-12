@@ -17,15 +17,20 @@ classdef double_tank_class
         fluid_volB = 0;
         tank_volA  = 0;
         tank_volB  = 0;
+        ins_volA   = 0;
+        ins_volB   = 0;
         
         % Costs
-        tankA_cost = econ_class(0,0,0,0) ;
-        tankB_cost = econ_class(0,0,0,0) ;
-        fluid_cost = econ_class(1,0,0,0) ;
+        costdat % A structure containing information for tank costing
+        tankA_cost = econ_class(0,0,0,0) ; % Containment cost
+        tankB_cost = econ_class(0,0,0,0) ; % Containment cost
+        insA_cost  = econ_class(0,0,0,0) ; % Insulation cost
+        insB_cost  = econ_class(0,0,0,0) ; % Insulation cost
+        fluid_cost = econ_class(1,0,0,0) ; % Fluid cost
         
     end
     methods
-         function obj = double_tank_class(fluid,TA,pA,MA,TB,pB,MB,T0,num)
+         function obj = double_tank_class(fluid,TA,pA,MA,TB,pB,MB,T0,costdat,num)
              obj.name   = fluid.name;
              obj.job    = fluid.job;
              obj.read   = fluid.read;
@@ -45,8 +50,12 @@ classdef double_tank_class
              obj.WL_str = 0;
              obj.WL_dis = 0;
              
-             obj.tankA_cost = econ_class(5, 0.2, 5, 0.2) ;
-             obj.tankB_cost = econ_class(5, 0.2, 5, 0.2) ;
+             obj.costdat = costdat ;
+             
+             obj.tankA_cost = econ_class(costdat.tankmode, 0.2, 5, 0.2) ;
+             obj.tankB_cost = econ_class(costdat.tankmode, 0.2, 5, 0.2) ;
+             obj.insA_cost  = econ_class(1, 0.2, 5, 0.2) ;
+             obj.insB_cost  = econ_class(1, 0.2, 5, 0.2) ;
              obj.fluid_cost = econ_class(1, 0.2, 5, 0.2) ;
              
          end
@@ -180,14 +189,14 @@ classdef double_tank_class
          % it may not be clear what the total change in fluid mass is
          function [obj] = tank_stats(obj)
              
-             min_volA = 1e11;
-             min_masA = 1e11;
+             min_volA = 1e21;
+             min_masA = 1e21;
              
              max_volA = 0;
              max_masA = 0;
              
-             min_volB = 1e11;
-             min_masB = 1e11;
+             min_volB = 1e21;
+             min_masB = 1e21;
              
              max_volB = 0;
              max_masB = 0;
@@ -216,9 +225,49 @@ classdef double_tank_class
              obj.fluid_volB = max_volB - min_volB ;
              
              % Add on a bit of extra volume to calculate the tank volume
-             fact = 1.1 ;
-             obj.tank_volA = obj.fluid_volA * fact ;
-             obj.tank_volB = obj.fluid_volB * fact ;
+             obj.tank_volA = obj.fluid_volA * obj.costdat.over_fac ;
+             obj.tank_volB = obj.fluid_volB * obj.costdat.over_fac ;
+             
+             % TANK A: length, diameter, surface area
+             AD = (4. * obj.tank_volA / (pi * obj.costdat.AR)) ^ (1./3.) ;
+             AR = 0.5 * AD ;
+             AL = AD * obj.costdat.AR ;
+             AA = pi * AD * (AL + AD/4.) ;
+             
+             CF = RP1('PT_INPUTS',obj.A(1).p,obj.A(1).T,'CPMASS',obj) ;
+             tau = obj.costdat.tau * 24 * 3600 ; % convert from days to seconds
+             UA = obj.tank_volA * obj.A(1).rho * CF / (tau * AA) ; % Overall heat transfer coef
+             
+             % Insulation thickness and volume
+             tinsA = AR * (exp(obj.costdat.ins_k / (AR * UA)) - 1) ;
+             obj.ins_volA = pi * tinsA * (2 + tinsA) * AL ; % Side wall insulation
+             obj.ins_volA = obj.ins_volA + 2 * pi * tinsA * (AR + tinsA)^2 ; % Top and bottom insulation
+             
+             % New tank length, diameter, and volume
+             AL = AL + 2 * tinsA ;
+             AD = AD + 2 * tinsA ;
+             obj.tank_volA = 0.25 * pi * AL * AD^2 ;
+             
+             % TANK B: length, diameter, surface area
+             BD = (4. * obj.tank_volB / (pi * obj.costdat.AR)) ^ (1./3.) ;
+             BR = BD * 0.5 ;
+             BL = BD * obj.costdat.AR ;
+             BA = pi * BD * (BL + BD/4.) ;
+             
+             CF = RP1('PT_INPUTS',obj.B(1).p,obj.B(1).T,'CPMASS',obj) ;
+             tau = obj.costdat.tau * 24 * 3600 ; % convert from days to seconds
+             UB = obj.tank_volB * obj.B(1).rho * CF / (tau * BA) ; % Overall heat transfer coef
+             
+             % Insulation thickness and volume
+             tinsB = BR * (exp(obj.costdat.ins_k / (BR * UB)) - 1) ;
+             obj.ins_volB = pi * tinsB * (2 + tinsB) * BL ; % Side wall insulation
+             obj.ins_volB = obj.ins_volB + 2 * pi * tinsB * (BR + tinsB)^2 ; % Top and bottom insulation
+             
+             % New tank length, diameter, and volume
+             BL = BL + 2 * tinsB ;
+             BD = BD + 2 * tinsB ;
+             obj.tank_volB = 0.25 * pi * BL * BD^2 ;
+             
              
          end
          
@@ -392,16 +441,32 @@ classdef double_tank_class
                 
          end
          
-         % Calculate the cost of the fluid. cost_kg is the cost per kg of
-         % fluid
-         function [obj] = fld_cost(obj,cost_kg, CEind)
+         % Calculate the cost of the fluid. cost_kg is the cost per kg of fluid
+         function [obj] = fld_cost(obj, CEind)
              
              curr = 2019 ;
+             cost_kg = obj.costdat.fld_cost ;
              COST = obj.fluid_mass * cost_kg ;
              COST = COST * CEind(curr) / CEind(2019) ;
              
              obj.fluid_cost.COST = COST ;
              
+         end
+         
+         % Calculate the cost of the fluid. cost_kg is the cost per kg of fluid
+         function [obj] = ins_cost(obj, CEind)
+             
+             curr = 2019 ;
+             cost_kg = obj.costdat.ins_cost ;
+             
+             COST = obj.ins_volA * obj.costdat.ins_rho * cost_kg ;
+             COST = COST * CEind(curr) / CEind(2019) ;
+             obj.insA_cost.COST = COST ;
+             
+             COST = obj.ins_volB * obj.costdat.ins_rho * cost_kg ;
+             COST = COST * CEind(curr) / CEind(2019) ;
+             obj.insB_cost.COST = COST ;
+
          end
          
          

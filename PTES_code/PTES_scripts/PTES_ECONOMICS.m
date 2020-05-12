@@ -75,6 +75,31 @@ if Load.mode == 4 || Load.mode == 5 || Load.mode == 6
     end
 end
 
+% Pumps
+for ii = 1 : length(CPMP)
+    CPMP(ii) = compexp_econ(CPMP(ii), CEind, false, 0)  ;
+    cap_cost = cap_cost + CPMP(ii).cmpexp_cost.COST ;
+    cap_sens = cap_sens + cost_sens(CPMP(ii).cmpexp_cost, Nsens) ;
+end
+for ii = 1 : length(DPMP)
+    DPMP(ii) = compexp_econ(DPMP(ii), CEind, false, 0)  ;
+    cap_cost = cap_cost + DPMP(ii).cmpexp_cost.COST ;
+    cap_sens = cap_sens + cost_sens(DPMP(ii).cmpexp_cost, Nsens) ;
+end
+
+% FANS
+for ii = 1 : length(CFAN)
+    CFAN(ii) = compexp_econ(CFAN(ii), CEind, false, 0)  ;
+    cap_cost = cap_cost + CFAN(ii).cmpexp_cost.COST ;
+    cap_sens = cap_sens + cost_sens(CFAN(ii).cmpexp_cost, Nsens) ;
+end
+for ii = 1 : length(DFAN)
+    DFAN(ii) = compexp_econ(DFAN(ii), CEind, false, 0)  ;
+    cap_cost = cap_cost + DFAN(ii).cmpexp_cost.COST ;
+    cap_sens = cap_sens + cost_sens(DFAN(ii).cmpexp_cost, Nsens) ;
+end
+
+
 % Motor-generator. Assume this is just to provide the net work (i.e. don't
 % have a motor on the compressor and a separate generator on the expander)
 % This needs to be based on design values of the compressors and expanders
@@ -135,7 +160,6 @@ end
 
 % Hot tank cost and hot fluid cost
 for ii = 1 : Nhot
-    fluidH(ii).cost = 1.0 ; % Specify in input file in class constructor
     if Lretro && any(Load.mode == [3,7])
         HT(ii).tankA_cost.COST = 0.01 ;
         HT(ii).tankB_cost.COST = 0.01 ;
@@ -146,25 +170,26 @@ for ii = 1 : Nhot
         HT(ii).fluid_cost.COST = 0.01 ;
     else
         HT(ii) = tank_cost(HT(ii), CEind) ;
-        HT(ii) = fld_cost(HT(ii),fluidH(ii).cost, CEind) ;
+        HT(ii) = ins_cost(HT(ii), CEind) ;
+        HT(ii) = fld_cost(HT(ii), CEind) ;
     end
-    cap_cost = cap_cost + HT(ii).tankA_cost.COST + HT(ii).tankB_cost.COST + HT(ii).fluid_cost.COST ;
-    cap_sens = cap_sens + cost_sens(HT(ii).tankA_cost, Nsens) + cost_sens(HT(ii).tankB_cost, Nsens) + cost_sens(HT(ii).fluid_cost, Nsens) ;
+    cap_cost = cap_cost + HT(ii).tankA_cost.COST + HT(ii).tankB_cost.COST + HT(ii).fluid_cost.COST + HT(ii).insA_cost.COST + HT(ii).insB_cost.COST;
+    cap_sens = cap_sens + cost_sens(HT(ii).tankA_cost, Nsens) + cost_sens(HT(ii).tankB_cost, Nsens) + cost_sens(HT(ii).fluid_cost, Nsens) + cost_sens(HT(ii).insA_cost, Nsens) + cost_sens(HT(ii).insB_cost, Nsens);
 end
 
 % Cold tank cost and cold fluid cost
 for ii = 1 : Ncld
-   fluidC(ii).cost = 0.56 ; % Specify in input file in class constructor
    if any(Load.mode == [2,7])
        CT(ii).tankA_cost.COST = 0.01 ;
        CT(ii).tankB_cost.COST = 0.01 ;
        CT(ii).fluid_cost.COST = 0.01 ;
    else
        CT(ii) = tank_cost(CT(ii), CEind) ;
-       CT(ii) = fld_cost(CT(ii),fluidC(ii).cost, CEind) ;
+       CT(ii) = ins_cost(CT(ii), CEind) ;
+       CT(ii) = fld_cost(CT(ii), CEind) ;
    end
-   cap_cost = cap_cost + CT(ii).tankA_cost.COST + CT(ii).tankB_cost.COST + CT(ii).fluid_cost.COST ;
-   cap_sens = cap_sens + cost_sens(CT(ii).tankA_cost, Nsens) + cost_sens(CT(ii).tankB_cost, Nsens) + cost_sens(CT(ii).fluid_cost, Nsens) ;
+   cap_cost = cap_cost + CT(ii).tankA_cost.COST + CT(ii).tankB_cost.COST + CT(ii).fluid_cost.COST + CT(ii).insA_cost.COST + CT(ii).insB_cost.COST ;
+   cap_sens = cap_sens + cost_sens(CT(ii).tankA_cost, Nsens) + cost_sens(CT(ii).tankB_cost, Nsens) + cost_sens(CT(ii).fluid_cost, Nsens) + cost_sens(HT(ii).insA_cost, Nsens) + cost_sens(HT(ii).insB_cost, Nsens);
 end
 
 cap_cost           = cap_cost * (1 + Cdata.conting) * (1 + Cdata.indirect) ; 
