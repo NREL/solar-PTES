@@ -28,7 +28,7 @@ if PBmode == 0 || PBmode == 2
 end
 
 % Reset atmospheric tanks
-AT = reset_tanks(AT,T0,p0,huge,T0,p0,huge,T0);
+AT = reset_tanks(AT,T0,p0,0,T0,p0,0,T0);
 
 % Estimate cycle pressures and temperatures
 % Set bottom pressure line based on maximum pressure and pressure ratio

@@ -103,14 +103,17 @@ classdef double_tank_class
                  return
              end
              
-             Mdot_in  = 0; % Mass flow rate into sink tank
-             Hdot_in  = 0; % Enthalpy  flow into sink tank
-             Sdot_in  = 0; % Entropy   flow into sink tank (before mixing)
-             Mdot_out = 0; % Mass flow rate out of source tank
-             Hdot_out = 0; % Enthalpy  flow out of source tank
+             % Compute flow rates into and out of the tanks
+             Mdot_in  = 0; % Mass      flow rate into sink tank
+             Hdot_in  = 0; % Enthalpy  flow rate into sink tank
+             Sdot_in  = 0; % Entropy   flow rate into sink tank (before mixing)
+             Mdot_out = 0; % Mass      flow rate out of source tank
+             Hdot_out = 0; % Enthalpy  flow rate out of source tank
+             Sdot_out = 0; % Entropy   flow rate out of source tank
              for i = i_out
                  Mdot_out = Mdot_out + fluid.state(iL,i).mdot;
                  Hdot_out = Hdot_out + fluid.state(iL,i).h.*fluid.state(iL,i).mdot;
+                 Sdot_out = Sdot_out + fluid.state(iL,i).s.*fluid.state(iL,i).mdot;
              end
              for i = i_in
                  Mdot_in  = Mdot_in  + fluid.state(iL,i).mdot;
@@ -131,46 +134,73 @@ classdef double_tank_class
              mix_state   = update_state(mix_state,fluid,2);
              s_mix = mix_state.s; % entropy flow into sink tank (after mixing)
              
-             % Select sink tank and source tank depending on operation mode
-             if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
-                 SO1   = obj.A(iL);   %source tank
-                 SO2   = obj.A(iL+1); %source tank
-                 SI1   = obj.B(iL);   %sink tank
-                 SI2   = obj.B(iL+1); %sink tank
-             elseif any(strcmp(Load.type(iL),{'dis','ran','disCO2','rcmpCO2','disTSCO2'}))
-                 SI1   = obj.A(iL);   %sink tank
-                 SI2   = obj.A(iL+1); %sink tank
-                 SO1   = obj.B(iL);   %source tank
-                 SO2   = obj.B(iL+1); %source tank
-             end
              t = Load.time(iL);
              
-             % Update end conditions of source tank A
-             SO2.M = SO1.M - Mdot*t;
-             SO2.H = SO1.H - Hdot_out*t;
-             SO2.h = SO2.H/SO2.M;
-             SO2.p = SO1.p;
-             SO2   = update_tank_state(obj,SO2,T0,2);
+             switch obj.job
+                 case 'SF'
+                     % Select sink tank and source tank depending on operation mode
+                     if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
+                         SO1   = obj.A(iL);   %source tank
+                         SO2   = obj.A(iL+1); %source tank
+                         SI1   = obj.B(iL);   %sink tank
+                         SI2   = obj.B(iL+1); %sink tank
+                     elseif any(strcmp(Load.type(iL),{'dis','ran','disCO2','rcmpCO2','disTSCO2'}))
+                         SI1   = obj.A(iL);   %sink tank
+                         SI2   = obj.A(iL+1); %sink tank
+                         SO1   = obj.B(iL);   %source tank
+                         SO2   = obj.B(iL+1); %source tank
+                     end
+                     
+                     % Update end conditions of source tank A
+                     SO2.M = SO1.M - Mdot*t;
+                     SO2.H = SO1.H - Hdot_out*t;
+                     SO2.h = SO2.H/SO2.M;
+                     SO2.p = SO1.p;
+                     SO2   = update_tank_state(obj,SO2,T0,2);
+                     
+                     % Update end conditions of sink tank B
+                     SI2.M = SI1.M + Mdot*t;
+                     SI2.H = SI1.H + Hdot_in*t;
+                     SI2.h = SI2.H/SI2.M;
+                     SI2.p = SI1.p;
+                     SI2   = update_tank_state(obj,SI2,T0,2);
+                     
+                     % Compute entropy generation of mixing
+                     S_irr1 = (s_mix*Mdot - Sdot_in)*t; %mixing of streams before sink tank inlet
+                     S_irr2 = SI2.S - (SI1.S + s_mix*Mdot*t); %mixing of streams with fluid inside sink tank
+                     S_irr  = S_irr1 + S_irr2;
+                     if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
+                         obj.A(iL+1) = SO2;
+                         obj.B(iL+1) = SI2;
+                     elseif any(strcmp(Load.type(iL),{'dis','ran','disCO2','rcmpCO2','disTSCO2'}))
+                         obj.A(iL+1) = SI2;
+                         obj.B(iL+1) = SO2;
+                     end
+                     
+                 case 'ENV'
+                     
+                     % Atmospheric tanks remain unmodified, as they are
+                     % considered to be infinite
+                     obj.A(iL+1) = obj.A(iL);
+                     obj.B(iL+1) = obj.B(iL);
+                     
+                     % Compute entropy generation due to bringing the warm
+                     % air streams (which absorbed rejected heat) back to
+                     % ambient conditions: sirr = Ds - Dh/T0
+                     S_irr = (Sdot_out -  Sdot_in - (Hdot_out - Hdot_in)/T0)*t;
+                     
+                 otherwise
+                     error('not implemented')
+             end
              
-             % Update end conditions of sink tank B
-             SI2.M = SI1.M + Mdot*t;
-             SI2.H = SI1.H + Hdot_in*t;
-             SI2.h = SI2.H/SI2.M;
-             SI2.p = SI1.p;
-             SI2   = update_tank_state(obj,SI2,T0,2);             
-             
-             % Compute entropy generation of mixing
-             S_irr1 = (s_mix*Mdot - Sdot_in)*t; %mixing of streams before sink tank inlet
-             S_irr2 = SI2.S - (SI1.S + s_mix*Mdot*t); %mixing of streams with fluid inside sink tank
-             S_irr  = S_irr1 + S_irr2;
-             if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'})) 
-                 obj.A(iL+1) = SO2;
-                 obj.B(iL+1) = SI2;
+             if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
                  obj.WL_chg = obj.WL_chg + T0*S_irr;
              elseif any(strcmp(Load.type(iL),{'dis','ran','disCO2','rcmpCO2','disTSCO2'}))
-                 obj.A(iL+1) = SI2;
-                 obj.B(iL+1) = SO2;
                  obj.WL_dis = obj.WL_dis + T0*S_irr;
+             end
+             
+             if any([obj.WL_chg<0,obj.WL_dis<0])
+                 %keyboard
              end
          end
          

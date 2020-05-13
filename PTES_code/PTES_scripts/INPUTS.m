@@ -79,8 +79,7 @@ end
 % Set 'atmospheric' air tanks
 %air  = fluid_class('Air','ENV','CP','HEOS',Load.num,30);
 air  = fluid_class('Nitrogen','ENV','CP','BICUBIC&HEOS',Load.num,30);
-huge = max(Load.mdot)*3600*1e6; % represents a very large mass
-AT   = double_tank_class(air,T0,p0,huge,T0,p0,huge,T0,Load.num+1);
+AT   = double_tank_class(air,T0,p0,0,T0,p0,0,T0,Load.num+1);
 
 % Heat rejection streams
 environ = environment_class(T0,p0,Load.num,10);
