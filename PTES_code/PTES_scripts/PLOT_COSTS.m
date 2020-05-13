@@ -5,6 +5,7 @@ switch Load.mode
         Cmatrix = zeros(8,7) ;
         
         % Assign different types of costs to different places
+        % Compressors and expanders
         for ii = 1 : length(CCMP)
             Cmatrix(1,1) = Cmatrix(1,1) + CCMP(ii).cmpexp_cost.COST ;
         end
@@ -20,19 +21,38 @@ switch Load.mode
         for ii = 1 : length(DCMP)
             Cmatrix(2,1) = Cmatrix(2,1) + DCMP(ii).cmpexp_cost.COST ;
         end
-        
+
+        % Pumps and fans
+        for ii = 1 : length(CPMP)
+            Cmatrix(1,7) = Cmatrix(1,7) + CPMP(ii).cmpexp_cost.COST ;
+        end
+        for ii = 1 : length(DPMP)
+            Cmatrix(2,7) = Cmatrix(2,7) + DPMP(ii).cmpexp_cost.COST ;
+        end
+
+        for ii = 1 : length(CFAN)
+            Cmatrix(1,7) = Cmatrix(1,7) + CFAN(ii).cmpexp_cost.COST ;
+        end
+        for ii = 1 : length(DFAN)
+            Cmatrix(2,7) = Cmatrix(2,7) + DFAN(ii).cmpexp_cost.COST ;
+        end
+
         % Hot tank cost and hot fluid cost
         for ii = 1 : Nhot
             Cmatrix(3,3) = Cmatrix(3,3) + HT(ii).tankA_cost.COST ;    
             Cmatrix(3,4) = Cmatrix(3,4) + HT(ii).tankB_cost.COST ;    
-            Cmatrix(3,5) = Cmatrix(3,5) + HT(ii).fluid_cost.COST ;    
+            Cmatrix(3,5) = Cmatrix(3,5) + HT(ii).fluid_cost.COST ; 
+            Cmatrix(3,7) = Cmatrix(3,7) + HT(ii).insA_cost.COST ;
+            Cmatrix(3,7) = Cmatrix(3,7) + HT(ii).insB_cost.COST ;
         end
         
         % Cold tank cost and cold fluid cost
         for ii = 1 : Ncld
             Cmatrix(4,3) = Cmatrix(4,3) + CT(ii).tankA_cost.COST ;    
             Cmatrix(4,4) = Cmatrix(4,4) + CT(ii).tankB_cost.COST ;    
-            Cmatrix(4,5) = Cmatrix(4,5) + CT(ii).fluid_cost.COST ;    
+            Cmatrix(4,5) = Cmatrix(4,5) + CT(ii).fluid_cost.COST ;  
+            Cmatrix(4,7) = Cmatrix(4,7) + CT(ii).insA_cost.COST ;
+            Cmatrix(4,7) = Cmatrix(4,7) + CT(ii).insB_cost.COST ;
         end
         
         % Run through the heat exchangers and allocate them to columns

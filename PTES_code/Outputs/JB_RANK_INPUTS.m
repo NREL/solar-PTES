@@ -179,6 +179,44 @@ switch PBmode
         error('Not implemented')
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% COST MODES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+CCMPmode = 4 ; % Charging compressor cost mode
+CEXPmode = 13 ; % Charging expander cost mode
+DCMPmode = 4 ; % Discharging compressor cost mode
+DEXPmode = 13 ; % Discharging expander cost mode
+
+PMPmode = 20; % Pump cost mode
+FANmode = 30; % Fan cost mode
+
+hotHXmode = 1; % Heat exchanger - hot cost mode
+cldHXmode = 1; % Heat exchanger - cold cost mode
+rcpHXmode = 1; % Heat exchanger - recuperator cost mode
+rejHXmode = 2; % Heat exchanger - rejection cost mode
+
+HTmode.tankmode  = 5 ; % Cost mode for hot tank container cost
+HTmode.fld_cost  = 1 ; % Hot tank fluid cost, $/kg
+HTmode.ins_cost  = 15 ; % Insulation material, %/kg
+HTmode.ins_k     = 0.05 ; % Thermal conductivity of insulation
+HTmode.ins_rho   = 150 ; % Density of insulation
+HTmode.tau       = 200 ; % Number of days before all heat leaks out of tank
+HTmode.AR        = 1.0 ; % Aspect ratio (L/D) of tank
+HTmode.over_fac  = 1.1 ; % How much larger is inner tank volume than the fluid volume
+
+CTmode.tankmode  = 5 ; % Cost mode for cold tank container cost
+CTmode.fld_cost  = 0.56 ; % Cold tank fluid cost, $/kg
+CTmode.ins_cost  = 15 ; % Insulation material, %/kg
+CTmode.ins_k     = 0.05 ; % Thermal conductivity of insulation
+CTmode.ins_rho   = 150 ; % Density of insulation
+CTmode.tau       = 200 ; % Number of days before all heat leaks out of tank
+CTmode.AR        = 1.0 ; % Aspect ratio (L/D) of tank
+CTmode.over_fac  = 1.1 ; % How much larger is inner tank volume than the fluid volume
+
+ATmode.tankmode = 0 ;
+ATmode.fld_cost  = 0 ; % Cold tank fluid cost, $/kg
+ATmode.ins_cost  = 0 ; % Insulation material, %/kg
+
 % Set fluids. 'WF' or 'SF' indicates working fluid or storage fluid. 'CP'
 % or 'TAB' indicate CoolProp or Tabular reading modes. 'backend' is used by
 % CoolProp (either 'HEOS', 'TTSE' or 'BICUBIC&HEOS'). 'HEOS' is the most

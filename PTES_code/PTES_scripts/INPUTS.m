@@ -48,11 +48,11 @@ switch PBmode
         if Ncld == 1
             fluidC = fluid_class(fCname,'SF','TAB',NaN,Load.num,30); % Storage fluid
             %fluidC = fluid_class(fCname,'SF','CP','HEOS',Load.num,30); % Storage fluid
-            CT  = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank
+            CT  = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,CTmode,Load.num+1); %cold double tank
         else
             for ii = 1 : Ncld
                 fluidC(ii)  = fluid_class(char(fCname(ii,:)),'SF','TAB',NaN,Load.num,30); %#ok<*SAGROW>
-                CT(ii)      = double_tank_class(fluidC(ii),TC_dis0(ii),p0,MC_dis0(ii),TC_chg0(ii),p0,MC_chg0(ii),T0,Load.num+1); %cold double tank
+                CT(ii)      = double_tank_class(fluidC(ii),TC_dis0(ii),p0,MC_dis0(ii),TC_chg0(ii),p0,MC_chg0(ii),T0,CTmode,Load.num+1); %cold double tank
             end
         end
         
@@ -60,11 +60,11 @@ switch PBmode
         if Nhot == 1
             fluidH = fluid_class(fHname,'SF','TAB',NaN,Load.num,30); % Storage fluid
             %fluidH = fluid_class(fHname,'SF','CP','HEOS',Load.num,30);
-            HT  = double_tank_class(fluidH,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,Load.num+1); %hot double tank
+            HT  = double_tank_class(fluidH,TH_dis0,p0,MH_dis0,TH_chg0,p0,MH_chg0,T0,HTmode,Load.num+1); %hot double tank
         else
             for ii = 1 : Nhot
                 fluidH(ii)  = fluid_class(char(fHname(ii,:)),'SF','TAB',NaN,Load.num,30);
-                HT(ii)  = double_tank_class(fluidH(ii),TH_dis0(ii),p0,MH_dis0(ii),TH_chg0(ii),p0,MH_chg0(ii),T0,Load.num+1); %hot double tank
+                HT(ii)  = double_tank_class(fluidH(ii),TH_dis0(ii),p0,MH_dis0(ii),TH_chg0(ii),p0,MH_chg0(ii),T0,HTmode,Load.num+1); %hot double tank
             end
         end
         
@@ -79,7 +79,7 @@ end
 % Set 'atmospheric' air tanks
 %air  = fluid_class('Air','ENV','CP','HEOS',Load.num,30);
 air  = fluid_class('Nitrogen','ENV','CP','BICUBIC&HEOS',Load.num,30);
-AT   = double_tank_class(air,T0,p0,0,T0,p0,0,T0,Load.num+1);
+AT   = double_tank_class(air,T0,p0,0,T0,p0,0,T0,ATmode,Load.num+1);
 
 % Heat rejection streams
 environ = environment_class(T0,p0,Load.num,10);
