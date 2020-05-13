@@ -11,12 +11,12 @@ pmax    = CCMP.pr0 * CCMP.Pin ;
 % Worth resetting a few components
 % Reset cold tanks
 for ir = 1 : Ncld
-    CT(ir) = reset_tanks(CT(ir),TC_dis0(ir),10.*p0,MC_dis0(ir),TC_chg0(ir),10.*p0,MC_chg0(ir),T0);
+    CT(ir) = reset_tanks(CT(ir),TC_dis0(ir),p0,MC_dis0(ir),TC_chg0(ir),p0,MC_chg0(ir),T0);
 end
 
 % Reset hot tanks
 for ir = 1 : Nhot
-    HT(ir) = reset_tanks(HT(ir),TH_dis0(ir),10.*p0,MH_dis0(ir),TH_chg0(ir),10.*p0,MH_chg0(ir),T0);
+    HT(ir) = reset_tanks(HT(ir),TH_dis0(ir),p0,MH_dis0(ir),TH_chg0(ir),p0,MH_chg0(ir),T0);
 end
 
 % Reset atmospheric tanks

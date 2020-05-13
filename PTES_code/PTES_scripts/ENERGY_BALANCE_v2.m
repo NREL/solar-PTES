@@ -476,6 +476,13 @@ if WM==1
         end
     end
     fprintf(1,'\n');
+    % Print atmospheric tank
+    fprintf(1,'\nAtmospheric tank\n');
+    fprintf(1,'%10s %10s %13s %13s %13s %13s %8s ','A.T [K]','A.M [kg*1e6]','A.H [MWh]','B.T [K]','B.M [kg*1e6]','B.H [MWh]','state'); fprintf(1,'\n');
+    for i0=1:(Load.num+1)
+        fprintf(1,'%10.4g %13.3f %13.3f %10.4g %13.3f %13.3f %8d\n', AT.A(i0).T,AT.A(i0).M/1e6,AT.A(i0).B/fact,AT.B(i0).T,AT.B(i0).M/1e6,AT.B(i0).B/fact,i0)
+    end
+    fprintf(1,'\n');
 end
 
 if WM == 1
