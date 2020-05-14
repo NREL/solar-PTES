@@ -475,6 +475,8 @@ CpCmean = (hC2 - hC1)/(TC2-TC1);
 Cmin  = min([mC*CpCmean,mH*CpHmean]);
 dQ    = HX.QS(iL,2:NX+1)'-HX.QS(iL,1:NX)';
 DT_AV = 0.5*(HX.H(iL).T(1:NX)+HX.H(iL).T(2:NX+1)) - 0.5*(HX.C(iL).T(1:NX)+HX.C(iL).T(2:NX+1));
+DTmin = min(HX.H(iL).T - HX.C(iL).T);
+effDT = 1 - DTmin/(HX.H(iL).T(end) - HX.C(iL).T(1));
 UA    = sum(dQ./DT_AV);
 NTU   = UA/Cmin;
 DppH  = (pH2-pH1)/pH2;
@@ -485,19 +487,23 @@ dTb = HX.H(iL).T(end) - HX.C(iL).T(end) ;
 
 HX.H(iL).Cp_mean = CpHmean;
 HX.C(iL).Cp_mean = CpCmean;
-HX.Cmin(iL) = Cmin;
-HX.NTU(iL)  = NTU;
-HX.DppH(iL) = DppH;
-HX.DppC(iL) = DppC;
-HX.UA(iL)   = UA ;
-HX.LMTD(iL) = (dTa - dTb) / log(dTa / dTb) ;
+HX.Cmin(iL)  = Cmin;
+HX.NTU(iL)   = NTU;
+HX.DppH(iL)  = DppH;
+HX.DppC(iL)  = DppC;
+HX.UA(iL)    = UA ;
+HX.LMTD(iL)  = (dTa - dTb) / log(dTa / dTb) ;
+HX.DTmin(iL) = DTmin;
+HX.effDT(iL) = effDT;
 
 % If this is the first time that hex_func is called, save the initial
-% values UA0, NTU0 and LMTD0
+% values UA0, NTU0 and LMTD0. Also save iL0, corresponding to the load
+% period in which it is called for the first time.
 if isempty(HX.UA0)
-    HX.UA0 = HX.UA(iL) ;
-    HX.NTU0 = HX.NTU(iL) ;
+    HX.UA0   = HX.UA(iL) ;
+    HX.NTU0  = HX.NTU(iL) ;
     HX.LMTD0 = HX.LMTD(iL) ;
+    HX.iL0   = iL;
 end
 
 % *** DELETE EVENTUALLY >>>
@@ -539,14 +545,12 @@ DsC         = stateC.s - sC1;
 % Hot stream
 HX.Dh(iL,1)   = stateH.h - hH2;
 HX.sirr(iL,1) = (stateH.mdot*DsH + stateC.mdot*DsC)/stateH.mdot;
-%HX.sirr(iL,1) = (vpa(stateH.mdot*DsH) + vpa(stateC.mdot*DsC))/stateH.mdot;
 HX.q(iL,1)    = stageH.Dh;
 HX.w(iL,1)    = 0;
 
 % Cold stream
 HX.Dh(iL,2)   = stateC.h - hC1;
 HX.sirr(iL,2) = (stateC.mdot*DsC + stateH.mdot*DsH)/stateC.mdot;
-%HX.sirr(iL,2) = (vpa(stateC.mdot*DsC) + vpa(stateH.mdot*DsH))/stateC.mdot;
 HX.q(iL,2)    = stageC.Dh;
 HX.w(iL,2)    = 0;
 

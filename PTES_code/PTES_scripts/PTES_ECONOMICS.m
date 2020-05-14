@@ -249,6 +249,13 @@ switch Load.mode
         fprintf(1,'Cost per unit energy:          %8.1f $/kWh-e\n\n',Cdata.cap_cost_en);
 end
 
+% Print HEXs
+fprintf('Heat exchanger summary\n');
+fprintf('Charge:\n');
+print_hexs(HX,i_chg(1));
+fprintf('Discharge:\n');
+print_hexs(HX,i_dis(1));
+
 % Calculate the fixed charge rate and other economic factors
 % Calculations based on the model in SAM
 function obj = calc_fcr(obj)
