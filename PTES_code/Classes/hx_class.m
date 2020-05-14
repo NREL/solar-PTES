@@ -154,10 +154,10 @@ classdef hx_class
            obj.effDT= zeros(numPeriods,1);
            
            % Property data
-           %obj.H    = zeros(Nsave, 1) ;
-           %obj.C    = zeros(Nsave, 1) ;
+           obj.H(1:numPeriods) = stream;
+           obj.C(1:numPeriods) = stream;
            
-           obj.QS    = zeros(Nsave,Ngrid+1) ;
+           obj.QS   = zeros(Nsave,Ngrid+1) ;
            
            obj.Lgeom_set = false ;
            

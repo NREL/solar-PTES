@@ -251,10 +251,8 @@ end
 
 % Print HEXs
 fprintf('Heat exchanger summary\n');
-fprintf('Charge:\n');
-print_hexs(HX,i_chg(1));
-fprintf('Discharge:\n');
-print_hexs(HX,i_dis(1));
+print_hexs(HX,i_chg,'Charge:\n');
+print_hexs(HX,i_dis,'Discharge:\n');
 
 % Calculate the fixed charge rate and other economic factors
 % Calculations based on the model in SAM

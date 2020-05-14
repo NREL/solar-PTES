@@ -1,27 +1,51 @@
-function [] = print_hexs(HX,iL)
+function [] = print_hexs(HX,iL,varargin)
 %PRINT_HEXS Print a table summarising the main heat exchanger parameters
+
+if isempty(iL)
+    return
+else
+    iL = iL(1);
+end
+
+switch nargin
+    case 2
+    case 3
+        fprintf(varargin{1})
+    otherwise
+        error('not implemented')
+end
 
 rows   = length(HX);
 
-name   = {HX.name}';
+name   = cell(rows,1);
 fHname = cell(rows,1);
 fCname = cell(rows,1);
 DppH   = zeros(rows,1);
 DppC   = zeros(rows,1);
 DTmin  = zeros(rows,1);
 effDT  = zeros(rows,1);
-L      = [HX.L]';
-A      = [HX.A1]';
-Af     = [HX.Af1]';
+L      = zeros(rows,1);
+A      = zeros(rows,1);
+Af     = zeros(rows,1);
 COST   = zeros(rows,1);
 Sirr   = zeros(rows,1);
 for i = 1:length(HX)
+    name{i}   = HX(i).name;
     fHname{i} = valid_name(HX(i).H(iL).name,2);
     fCname{i} = valid_name(HX(i).C(iL).name,2);
     DppH(i)   = HX(i).DppH(iL);
     DppC(i)   = HX(i).DppC(iL);
     DTmin(i)  = HX(i).DTmin(iL);
     effDT(i)  = HX(i).effDT(iL);
+    if~isempty(HX(i).L)
+        L(i)      = HX(i).L;
+        A(i)      = HX(i).A1;
+        Af(i)     = HX(i).Af1;
+    else
+        L(i)      = 0;
+        A(i)      = 0;
+        Af(i)     = 0;
+    end
     COST(i)   = HX(i).hx_cost.COST;
     Sirr(i)   = sum(HX(i).Sirr(iL,:));
 end

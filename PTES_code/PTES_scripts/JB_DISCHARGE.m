@@ -55,7 +55,7 @@ for counter = 1:max_iter
         % REJECT HEAT (external HEX)
         T_aim = environ.T0 + T0_inc;
         
-        air.state(iL,1).T = T0; air.state(iL,1).p = p0; air = update(air,[iL,1],1);
+        air.state(iL,iA).T = T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
         [HX(ihx_rej), gas, iG, air, iA] = hex_func(HX(ihx_rej),iL,gas,iG,air,iA,5,T_aim);
         [DFAN(1),air,iA] = compexp_func (DFAN(1),iL,air,iA,'Paim',p0,1);
         

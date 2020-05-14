@@ -26,7 +26,7 @@ end
 eff      = 0.97;  % heat exchanger effectiveness
 ploss    = 0.01;  % pressure loss in HEXs
 HX_model = 'geom' ;
-HX_D1    = 0.002; %hydraulic diameter
+HX_D1    = 0.005; %hydraulic diameter
 HX_shape = 'circular'; %channel shape
 HX_NX    = 100; % number of sections for HEX algorithm
 
