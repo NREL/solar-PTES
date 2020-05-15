@@ -38,7 +38,8 @@ load_coolprop
 % 3 = CO2 and Water
 % 4 = Steam and MEG
 % 5 = sCO2 and sCO2
-scenario = 5;
+% 6 = Heat rejection unit (Nigroten and Nitrogen)
+scenario = 6;
 
 % Save figures?
 save_figures = 0;
@@ -139,6 +140,23 @@ switch scenario
         hex_mode = 0;
         par = 0;
         
+    case 6
+        % Nitrogen (WF)
+        F1 = fluid_class('Nitrogen','WF','CP','TTSE',1,5);
+        F1.state(1,i1).p = 10e5;
+        F1.state(1,i1).T = 100 + 273.15;
+        F1.state(1,i1).mdot = 1e3;
+        
+        % Nitrogen (ENV)
+        F2 = fluid_class('Nitrogen','ENV','CP','TTSE',1,5); % storage fluid       
+        F2.state(1,i2).p = 1e5;
+        F2.state(1,i2).T = 20 + 273.15;
+        F2.state(1,i2).mdot = 0;
+        
+        % Set hex_mode
+        hex_mode = 5;
+        par = F2.state(1,i2).T + 5;
+        
     otherwise
         error('not implemented')
 end
@@ -187,9 +205,9 @@ switch model
                 ploss = 0.025;
                 D1    = 1.00e-3;
             otherwise
-                eff   = 0.95;
+                eff   = 0.97;
                 ploss = 0.01;
-                D1    = 0.02;                
+                D1    = 0.005;                
         end
         
         par1  = eff;
@@ -202,7 +220,7 @@ end
 
 %%% CONSTRUCT HEAT EXCHANGER %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-HX = hx_class(name, stage_type, 4, NX, 2, 2, model, par1, par2, par3, par4);
+HX = hx_class(name, stage_type, 4, NX, 1, 1, model, par1, par2, par3, par4);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -215,7 +233,7 @@ HX = hx_class(name, stage_type, 4, NX, 2, 2, model, par1, par2, par3, par4);
 % Compare specifications from hex_set_geom with numerical results
 if strcmp(HX.model,'geom')    
     fprintf(1,'\n      Specification  Result\n')
-    fprintf(1,'Eff     = %8.3f   %9.3f\n',eff,1-min(HX.H.T-HX.C.T)/(HX.H.T(end)-HX.C.T(1)))
+    fprintf(1,'Eff     = %8.3f   %9.3f\n',eff,1-min(HX.H(1).T-HX.C(1).T)/(HX.H(1).T(end)-HX.C(1).T(1)))
     fprintf(1,'DppH    = %8.5f   %9.5f\n',ploss,HX.DppH)
     fprintf(1,'DppC    = %8.5f   %9.5f\n',ploss,HX.DppC)
 end

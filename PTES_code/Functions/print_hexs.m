@@ -41,12 +41,10 @@ for i = 1:length(HX)
         L(i)      = HX(i).L;
         A(i)      = HX(i).A1;
         Af(i)     = HX(i).Af1;
-    else
-        L(i)      = 0;
-        A(i)      = 0;
-        Af(i)     = 0;
     end
-    COST(i)   = HX(i).hx_cost.COST;
+    if~isempty(HX(i).hx_cost.COST)
+        COST(i)   = HX(i).hx_cost.COST;
+    end
     Sirr(i)   = sum(HX(i).Sirr(iL,:));
 end
 

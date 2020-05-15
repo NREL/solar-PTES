@@ -45,7 +45,7 @@ switch Load.mode
             % This is the actual load profile that the plant meets
             Load.time = [stH;stH].*3600;      % time spent in each load period, s
             Load.type = ["chg";"dis"];    % type of load period
-            Load.mdot = [8.*fac;8.*fac];      % working fluid mass flow rate, kg/s
+            Load.mdot = [10.*fac;10.*fac];      % working fluid mass flow rate, kg/s
             T0_inc    = 5.0 ; % Increment above ambient temperature that gas is cooled to
         else
             Load = Design_Load ;

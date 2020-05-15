@@ -20,7 +20,7 @@ for ir = 1 : Nhot
 end
 
 % Reset atmospheric tanks
-AT = reset_tanks(AT,T0,p0,huge,T0,p0,huge,T0);
+AT = reset_tanks(AT,T0,p0,0,T0,p0,0,T0);
 air  = fluid_class('Air','ENV','CP','HEOS',Load.num,30); % Reset this class.
 
 % Reset the Load parameter to be the off-design load cycle
