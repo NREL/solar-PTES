@@ -480,3 +480,13 @@ legend({'Length','ReH','ReC'})
 keyboard
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Doble-checking exergy losses only due to heat rejection
+for i=1:10
+    if strcmp(air.stage(1,i).type,'hex_reject')
+        WL_PTES_chg(5) = WL_PTES_chg(5) + T0*[air.stage(1,i).sirr].*[air.state(1,i).mdot]*t_chg;
+    end
+    if strcmp(air.stage(2,i).type,'hex_reject')
+        WL_PTES_dis(5) = WL_PTES_dis(5) + T0*[air.stage(2,i).sirr].*[air.state(2,i).mdot]*t_dis;
+    end
+end

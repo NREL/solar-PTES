@@ -1,4 +1,4 @@
-function [HX, fluidH, iH, fluidC, iC] = hex_func(HX, iL, fluidH, iH, fluidC, iC, mode, par)
+function [HX, fluidH, iH, fluidC, iC] = hex_func(HX, iL, fluidH, iH, fluidC, iC, mode, par, varargin)
 % COMPUTE HEAT EXCHANGER OUTLET CONDITIONS
 %   Description
 %   TC1 and TH2 are the cold and hot temperature inlets (known)
@@ -20,6 +20,29 @@ function [HX, fluidH, iH, fluidC, iC] = hex_func(HX, iL, fluidH, iH, fluidC, iC,
 %   If model = 'DT', the pinch point temperature difference and pressure
 %   loss are specified
 %   If model = 'geom, the heat exchanger geometry is specified
+%
+%   The optional argument 'varargin' contains the value of design_mode (1
+%   by default)
+
+switch nargin
+    case 8
+        design_mode = 1;
+    case 9
+        design_mode = varargin{1};
+    otherwise
+        error('incorrect number of inputs');
+end
+
+%{
+if design_mode == 1 && any(strcmp(HX.model,{'eff','DT'}))
+elseif design_mode == 1 && strcmp(HX.model,'geom')
+    HX.model = 'eff';
+elseif design_mode == 0
+    HX.model = 'geom';
+else
+    error('not implemented')
+end
+%}
 
 % Set inlet temperatures (nomenclature: cold inlet is position 1, hot inlet
 % is position 2)
@@ -313,17 +336,26 @@ switch model
                 % Compute total heat transfer and compute mCmin and mCmax
                 % accordingly
                 QT    = mH*(hH2-hH1);
-                mCmin = QT/(hC2_max - hC1)*(0.99);
-                mCmax = mCmin*1e3; %necessary to find root
+                mCmin = QT/(hC2_max - hC1)*(0.98);
+                mCmax = mCmin*100; %necessary to find root
                 
                 % Find value of mC for which DTmin=ref
                 f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,compare,ref);
                 %{
-                plot_function(f1,mCmin,mCmax,100,11);
+                plot_function(f1,mCmin,mCmax,1000,31,'semilogx');
                 symlog(gca,'y')
                 keyboard
                 %}
-                mC = fzero(f1,[mCmin,mCmax],options);
+                % Check whether f1 changes sign over interval. If they
+                % don't change sign, choose equal heat capacity ratios
+                f1min = f1(mCmin) ;
+                f1max = f1(mCmax) ;
+                if f1min*f1max >= 0
+                    warning('Selected outlet conditions might not agree with HX performance');
+                    mC = mH*CpHmean/CpCmean;
+                else
+                    mC = fzero(f1,[mCmin,mCmax],options);
+                end
                 
                 % Store new mC value into stateC structure
                 stateC.mdot = mC;
@@ -475,6 +507,8 @@ CpCmean = (hC2 - hC1)/(TC2-TC1);
 Cmin  = min([mC*CpCmean,mH*CpHmean]);
 dQ    = HX.QS(iL,2:NX+1)'-HX.QS(iL,1:NX)';
 DT_AV = 0.5*(HX.H(iL).T(1:NX)+HX.H(iL).T(2:NX+1)) - 0.5*(HX.C(iL).T(1:NX)+HX.C(iL).T(2:NX+1));
+DTmin = min(HX.H(iL).T - HX.C(iL).T);
+effDT = 1 - DTmin/(HX.H(iL).T(end) - HX.C(iL).T(1));
 UA    = sum(dQ./DT_AV);
 NTU   = UA/Cmin;
 DppH  = (pH2-pH1)/pH2;
@@ -485,19 +519,23 @@ dTb = HX.H(iL).T(end) - HX.C(iL).T(end) ;
 
 HX.H(iL).Cp_mean = CpHmean;
 HX.C(iL).Cp_mean = CpCmean;
-HX.Cmin(iL) = Cmin;
-HX.NTU(iL)  = NTU;
-HX.DppH(iL) = DppH;
-HX.DppC(iL) = DppC;
-HX.UA(iL)   = UA ;
-HX.LMTD(iL) = (dTa - dTb) / log(dTa / dTb) ;
+HX.Cmin(iL)  = Cmin;
+HX.NTU(iL)   = NTU;
+HX.DppH(iL)  = DppH;
+HX.DppC(iL)  = DppC;
+HX.UA(iL)    = UA ;
+HX.LMTD(iL)  = (dTa - dTb) / log(dTa / dTb) ;
+HX.DTmin(iL) = DTmin;
+HX.effDT(iL) = effDT;
 
 % If this is the first time that hex_func is called, save the initial
-% values UA0, NTU0 and LMTD0
+% values UA0, NTU0 and LMTD0. Also save iL0, corresponding to the load
+% period in which it is called for the first time.
 if isempty(HX.UA0)
-    HX.UA0 = HX.UA(iL) ;
-    HX.NTU0 = HX.NTU(iL) ;
+    HX.UA0   = HX.UA(iL) ;
+    HX.NTU0  = HX.NTU(iL) ;
     HX.LMTD0 = HX.LMTD(iL) ;
+    HX.iL0   = iL;
 end
 
 % *** DELETE EVENTUALLY >>>
@@ -539,14 +577,12 @@ DsC         = stateC.s - sC1;
 % Hot stream
 HX.Dh(iL,1)   = stateH.h - hH2;
 HX.sirr(iL,1) = (stateH.mdot*DsH + stateC.mdot*DsC)/stateH.mdot;
-%HX.sirr(iL,1) = (vpa(stateH.mdot*DsH) + vpa(stateC.mdot*DsC))/stateH.mdot;
 HX.q(iL,1)    = stageH.Dh;
 HX.w(iL,1)    = 0;
 
 % Cold stream
 HX.Dh(iL,2)   = stateC.h - hC1;
 HX.sirr(iL,2) = (stateC.mdot*DsC + stateH.mdot*DsH)/stateC.mdot;
-%HX.sirr(iL,2) = (vpa(stateC.mdot*DsC) + vpa(stateH.mdot*DsH))/stateC.mdot;
 HX.q(iL,2)    = stageC.Dh;
 HX.w(iL,2)    = 0;
 

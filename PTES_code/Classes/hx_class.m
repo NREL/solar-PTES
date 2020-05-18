@@ -15,6 +15,7 @@ classdef hx_class
        UA0      % Conductance, W/K - (design)
        NTU0     % Design NTU
        LMTD0    % Design LMTD
+       iL0      % First load period in which hx is called
        Hname    % Hot fluid name
        Cname    % Cold fluid name
        
@@ -34,6 +35,8 @@ classdef hx_class
        Ul       % Local overall heat transfer coefficient
        LMTD     % Why not
        Cmin 
+       DTmin
+       effDT
        UA
        NTU
        DppH
@@ -140,11 +143,21 @@ classdef hx_class
            obj.DH   = zeros(numPeriods,2) ;
            obj.Sirr = zeros(numPeriods,2) ;
            
-           % Property data
-           %obj.H    = zeros(Nsave, 1) ;
-           %obj.C    = zeros(Nsave, 1) ;
+           % Performance data
+           obj.Cmin = zeros(numPeriods,1);
+           obj.NTU  = zeros(numPeriods,1);
+           obj.DppH = zeros(numPeriods,1);
+           obj.DppC = zeros(numPeriods,1);
+           obj.UA   = zeros(numPeriods,1);
+           obj.LMTD = zeros(numPeriods,1);
+           obj.DTmin= zeros(numPeriods,1);
+           obj.effDT= zeros(numPeriods,1);
            
-           obj.QS    = zeros(Nsave,Ngrid+1) ;
+           % Property data
+           obj.H(1:numPeriods) = stream;
+           obj.C(1:numPeriods) = stream;
+           
+           obj.QS   = zeros(Nsave,Ngrid+1) ;
            
            obj.Lgeom_set = false ;
            

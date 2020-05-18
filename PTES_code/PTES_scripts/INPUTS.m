@@ -11,7 +11,7 @@
 % Mode 7: Steam-Rankine heat engine (discharge only)
 
 % Call the correct input file
-Load.mode  = 3 ;
+Load.mode  = 0 ;
 Loffdesign = 0 ; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
 PBmode     = 0 ; % Liquid stores = 0; Packed beds = 1; Heat exchangers between power cycle and a storage fluid, which then passes through packed beds = 2
 
@@ -25,8 +25,8 @@ end
 % Set heat exchanger parameters
 eff      = 0.97;  % heat exchanger effectiveness
 ploss    = 0.01;  % pressure loss in HEXs
-HX_model = 'eff' ;
-HX_D1    = 0.002; %hydraulic diameter
+HX_model = 'geom' ;
+HX_D1    = 0.005; %hydraulic diameter
 HX_shape = 'circular'; %channel shape
 HX_NX    = 100; % number of sections for HEX algorithm
 
@@ -79,8 +79,7 @@ end
 % Set 'atmospheric' air tanks
 %air  = fluid_class('Air','ENV','CP','HEOS',Load.num,30);
 air  = fluid_class('Nitrogen','ENV','CP','BICUBIC&HEOS',Load.num,30);
-huge = max(Load.mdot)*3600*1e6; % represents a very large mass
-AT   = double_tank_class(air,T0,p0,huge,T0,p0,huge,T0,ATmode,Load.num+1);
+AT   = double_tank_class(air,T0,p0,0,T0,p0,0,T0,ATmode,Load.num+1);
 
 % Heat rejection streams
 environ = environment_class(T0,p0,Load.num,10);
