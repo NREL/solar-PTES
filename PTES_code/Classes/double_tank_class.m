@@ -233,6 +233,7 @@ classdef double_tank_class
              AR = 0.5 * AD ;
              AL = AD * obj.costdat.AR ;
              AA = pi * AD * (AL + AD/4.) ;
+             AA = 8 * AA / 5;
              
              CF = RP1('PT_INPUTS',obj.A(1).p,obj.A(1).T,'CPMASS',obj) ;
              tau = obj.costdat.tau * 24 * 3600 ; % convert from days to seconds
