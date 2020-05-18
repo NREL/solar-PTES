@@ -15,6 +15,11 @@ switch Load.mode
         iReg2 = iReg1 + 1 + 2*Nc_dis; % index regenerator cold inlet (after regeneration + heat rejection + compression)    
 end
 
+%fprintf('Heat exchanger summary\n');
+%print_hexs(HX,1,'Charge:\n');
+%print_hexs(HX,2,'Discharge:\n');
+%keyboard
+
 % Compute PR_dis based on charge pressure ratio and PRr
 PRdis = PRr*PRch;
 
@@ -56,7 +61,7 @@ for counter = 1:max_iter
         T_aim = environ.T0 + T0_inc;
         
         air.state(iL,iA).T = T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
-        [HX(ihx_rej), gas, iG, air, iA] = hex_func(HX(ihx_rej),iL,gas,iG,air,iA,5,T_aim);
+        [HX(ihx_rejc(iN)), gas, iG, air, iA] = hex_func(HX(ihx_rejc(iN)),iL,gas,iG,air,iA,5,T_aim);
         [DFAN(1),air,iA] = compexp_func (DFAN(1),iL,air,iA,'Paim',p0,1);
         
         switch Load.mode
@@ -118,9 +123,12 @@ for counter = 1:max_iter
         fluidC = count_Nstg(fluidC);
         
         % Uncomment these lines to print states
+        %{
         print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
         print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
         print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);
+        print_states(air,iL,1:air.Nstg(iL)+1,Load);
+        %}
         
         % Exit loop
         break
@@ -174,5 +182,4 @@ if Load.mode == 0
     CT = run_tanks(CT,iL,fluidC,iC_out,iC_in,Load,T0);
 end
 % Atmospheric tanks
-%iA_out = 0; iA_in = 0;
 AT = run_tanks(AT,iL,air,iA_out,iA_in,Load,T0);

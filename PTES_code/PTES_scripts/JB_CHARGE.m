@@ -63,7 +63,7 @@ for counter=1:max_iter
         fluidH.state(iL,iH).T = HT.A(iL).T; fluidH.state(iL,iH).p = HT.A(iL).p;
         [fluidH] = update(fluidH,[iL,iH],1);
 
-        [HX(ihx_hot(iN)),gas,iG,fluidH,iH] = hex_func(HX(ihx_hot(iN)),iL,gas,iG,fluidH,iH,1,1.0);
+        [HX(ihx_hot(iN)),gas,iG,fluidH,iH] = hex_func(HX(ihx_hot(iN)),iL,gas,iG,fluidH,iH,1,1.0,design_mode);
         % Now calculate pump requirements for moving fluidH
         [CPMP(iPMP),fluidH,iH] = compexp_func (CPMP(iPMP),iL,fluidH,iH,'Paim',fluidH.state(iL,1).p,1);
         iH=iH+1;iPMP=iPMP+1;
@@ -71,12 +71,12 @@ for counter=1:max_iter
     end    
         
     % REGENERATE (gas-gas)
-    [HX(ihx_reg),gas,iG,~,~] = hex_func(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
-        
+    [HX(ihx_reg),gas,iG,~,~] = hex_func(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0,design_mode);
+    
     % REJECT HEAT (external HEX)
     T_aim = environ.T0 + T0_inc;    
     air.state(iL,iA).T = T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
-    [HX(ihx_rej), gas, iG, air, iA] = hex_func(HX(ihx_rej),iL,gas,iG,air,iA,5,T_aim);
+    [HX(ihx_rejc), gas, iG, air, iA] = hex_func(HX(ihx_rejc),iL,gas,iG,air,iA,5,T_aim,design_mode);
     [CFAN(1),air,iA] = compexp_func (CFAN(1),iL,air,iA,'Paim',p0,1);
         
     for iN = 1:Ne_ch
@@ -89,14 +89,14 @@ for counter=1:max_iter
         fluidC.state(iL,iC).T = CT.A(iL).T; fluidC.state(iL,iC).p = CT.A(iL).p;
         [fluidC] = update(fluidC,[iL,iC],1);
 
-        [HX(ihx_cld(iN)),fluidC,iC,gas,iG] = hex_func(HX(ihx_cld(iN)),iL,fluidC,iC,gas,iG,2,1.0);
+        [HX(ihx_cld(iN)),fluidC,iC,gas,iG] = hex_func(HX(ihx_cld(iN)),iL,fluidC,iC,gas,iG,2,1.0,design_mode);
         [CPMP(iPMP),fluidC,iC] = compexp_func (CPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
         iC=iC+1; iPMP=iPMP+1;
 
     end
     
     % REGENERATE (gas-gas)
-    [HX(ihx_reg),~,~,gas,iG] = hex_func(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
+    [HX(ihx_reg),~,~,gas,iG] = hex_func(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0,design_mode);
     
     % Determine convergence and proceed
     C = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
@@ -121,7 +121,7 @@ for counter=1:max_iter
         fluidC = count_Nstg(fluidC);
         
         % Uncomment these lines to print states
-        %%{
+        %{
         print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
         print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
         print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);

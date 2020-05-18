@@ -132,32 +132,61 @@ switch Load.mode
 end
 
 % Construct heat exchangers
-ihx_hot = 1:Nc_ch;
-ihx_reg = ihx_hot(end)+1;
-ihx_rej = ihx_reg(end)+1;
-ihx_cld = ihx_rej(end)+(1:Ne_ch);
 switch Load.mode
-    case {0,1,2}
+    case 0
+        % Call HX classes for ideal-gas PTES cycle
+        % First, set heat exchanger indeces
+        ihx_hot  = 1:Nc_ch;
+        ihx_reg  = ihx_hot(end)+1;        
+        ihx_cld  = ihx_reg(end)+(1:Ne_ch);
+        ihx_rejc = ihx_cld(end)+1;
+        ihx_rejd = ihx_rejc(end)+(1:Ne_ch);
+        
         switch PBmode
             case {0,2}
-                % Call HX classes for ideal-gas PTES cycle
                 HX(ihx_hot)  = hx_class('hot',  'hex',   hotHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
                 HX(ihx_reg)  = hx_class('regen','regen', rcpHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Recuperator
-                HX(ihx_rej)  = hx_class('rej',  'hex',   rejHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
                 HX(ihx_cld)  = hx_class('cold', 'hex',   cldHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Cold heat exchanger
+                HX(ihx_rejc) = hx_class('rej',  'hex',   rejHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit (charge)
+                HX(ihx_rejd) = hx_class('rej',  'hex',   rejHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit (discharge)
             case 1
                 HX(1) = hx_class('rej',  'hex',   rejHXmode, 100, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
                 HX(2) = hx_class('rej',  'hex',   rejHXmode, 100, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
         end
         
+    case 1
+        % Call HX classes for ideal-gas PTES heat pump
+        % First, set heat exchanger indeces
+        ihx_hot  = 1:Nc_ch;
+        ihx_reg  = ihx_hot(end)+1;
+        ihx_cld  = ihx_reg(end)+(1:Ne_ch);
+        ihx_rejc = ihx_cld(end)+1;
+        HX(ihx_hot)  = hx_class('hot',  'hex',   hotHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        HX(ihx_reg)  = hx_class('regen','regen', rcpHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Recuperator
+        HX(ihx_cld)  = hx_class('cold', 'hex',   cldHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Cold heat exchanger
+        HX(ihx_rejc) = hx_class('rej',  'hex',   rejHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit (charge)
+        
+    case 2
+        % Call HX classes for ideal-gas PTES heat engine
+        % First, set heat exchanger indeces
+        ihx_hot  = 1:Nc_ch;
+        ihx_reg  = ihx_hot(end)+1;
+        ihx_rejd = ihx_reg(end)+Ne_ch;
+        HX(ihx_hot)  = hx_class('hot',  'hex',   hotHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        HX(ihx_reg)  = hx_class('regen','regen', rcpHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Recuperator
+        HX(ihx_rejd) = hx_class('rej',  'hex',   rejHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit (discharge)
         
     case {3,7}
         % Call HX classes for ideal-gas PTES heat pump with Rankine cycle discharge
-        ihx_JB  = ihx_cld(end);
+        ihx_hot  = 1:Nc_ch;
+        ihx_reg  = ihx_hot(end)+1;
+        ihx_cld  = ihx_reg(end)+(1:Ne_ch);
+        ihx_rejc = ihx_cld(end)+1;
+        ihx_JB   = ihx_rejc(end);
         HX(ihx_hot)  = hx_class('hot',  'hex',   hotHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
         HX(ihx_reg)  = hx_class('regen','regen', rcpHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Recuperator
-        HX(ihx_rej)  = hx_class('rej',  'hex',   rejHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
         HX(ihx_cld)  = hx_class('cold', 'hex',   cldHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Cold heat exchanger
+        HX(ihx_rejc) = hx_class('rej',  'hex',   rejHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit (charge)
         
         HX(ihx_JB+1) = hx_class('hot',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Reheat
         HX(ihx_JB+2) = hx_class('cold', 'hex',   0, HX_NX, Load.num, Load.num, 'eff', eff, 0.1/100, HX_D1, HX_shape) ; % Condenser
