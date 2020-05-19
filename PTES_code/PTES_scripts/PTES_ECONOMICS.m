@@ -164,6 +164,8 @@ for ii = 1 : Nhot
         HT(ii).tankA_cost.COST = 0.01 ;
         HT(ii).tankB_cost.COST = 0.01 ;
         HT(ii).fluid_cost.COST = 0.01 ;
+        HT(ii).insA_cost.COST = 0.01 ;
+        HT(ii).insB_cost.COST = 0.01 ;
     elseif Lretro && Load.mode == 6 && ii == 1
         HT(ii).tankA_cost.COST = 0.01 ;
         HT(ii).tankB_cost.COST = 0.01 ;

@@ -484,7 +484,7 @@ classdef double_tank_class
              
          end
          
-         % Calculate the cost of the fluid. cost_kg is the cost per kg of fluid
+         % Calculate the cost of the insulation. cost_kg is the cost per kg of fluid
          function [obj] = ins_cost(obj, CEind)
              
              curr = 2019 ;
