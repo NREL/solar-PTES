@@ -7,7 +7,7 @@ PRr     = 1.18;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 1;            % set Tmax? (this option substitutes PRch)
-Tmax    = 700 + 273.15; % maximum temp at compressor outlet, K
+Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 
 % Set Rankine-specific parameters
 Ran_ptop    = 100e5;
@@ -139,10 +139,10 @@ Load.ind  = 1:Load.num;
 % Hot storage tanks
 switch PBmode
     case 0
-        fHname  = 'ChlorideSalt';  % fluid name
-        TH_dis0 = 500 + 273.15; % initial temperature of discharged hot fluid, K
+        fHname  = 'SolarSalt';  % fluid name
+        TH_dis0 = 300 + 273.15; % initial temperature of discharged hot fluid, K
         MH_dis0 = 1e9;          % initial mass of discharged hot fluid, kg
-        TH_chg0 = 700 + 273.15; % initial temperature of charged hot fluid, K
+        TH_chg0 = 570 + 273.15; % initial temperature of charged hot fluid, K
         MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
         
         % Cold storage tanks
