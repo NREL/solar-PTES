@@ -71,6 +71,10 @@ else
             Tbot  = 500;
             Ttop  = 880;
             
+        case 'ChlorideSalt' % Chloride salt mixture
+            Tbot = 450 + 273.15 ;
+            Ttop = 800 + 273.15 ;
+            
         case 'MineralOil' % Mineral oil
             Tbot  = 275;
             Ttop  = 600;
@@ -135,6 +139,17 @@ else
             rho(mid) = 2090 - 0.636.*T_C(mid);
             k(mid)   = 0.443 + 1.9e-4.*T_C(mid);
             mu(mid)  = 1e-3*( 22.714 - 0.120.*T_C(mid) + 2.281e-4.*T_C(mid).^2 - 1.474e-7.*T_C(mid).^3);
+            
+        case 'ChlorideSalt'
+            % Data provided by Craig Turchi, NREL for ternary mixture of
+            % NaCl-KCl-MgCl2 at 15.11-39.91-45.98 wt% respectively.
+            % Most data seems to have been obtained in range 450-700C, but
+            % correlations seem reasonable between 400C and 800C.
+            Cp(mid)  = 1e3 .* (1.284e-6 .* T(mid).^2 - 1.843e-3.*T(mid) + 1.661) ;
+            rho(mid) = (-5.878e-4 .* T(mid) + 1.974) .* 1e3 ;
+            k(mid)   = 7.1507e-7 .* T(mid).^2 - 1.0656e-3 .* T(mid) + 8.1121e-1 ;
+            mu(mid)  = (0.689069 .* exp(1224.729755 ./ T(mid))) .* 1e-3 ;
+            
             
         case 'MineralOil'
             % Data from Shell Heat Transfer Oil S2
