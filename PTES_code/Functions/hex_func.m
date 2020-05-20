@@ -1,4 +1,4 @@
-function [HX, fluidH, iH, fluidC, iC] = hex_func(HX, iL, fluidH, iH, fluidC, iC, mode, par, varargin)
+function [HX, fluidH, iH, fluidC, iC] = hex_func(HX, iL, fluidH, iH, fluidC, iC, mode, par)
 % COMPUTE HEAT EXCHANGER OUTLET CONDITIONS
 %   Description
 %   TC1 and TH2 are the cold and hot temperature inlets (known)
@@ -20,29 +20,7 @@ function [HX, fluidH, iH, fluidC, iC] = hex_func(HX, iL, fluidH, iH, fluidC, iC,
 %   If model = 'DT', the pinch point temperature difference and pressure
 %   loss are specified
 %   If model = 'geom, the heat exchanger geometry is specified
-%
-%   The optional argument 'varargin' contains the value of design_mode (1
-%   by default)
 
-switch nargin
-    case 8
-        design_mode = 1;
-    case 9
-        design_mode = varargin{1};
-    otherwise
-        error('incorrect number of inputs');
-end
-
-%{
-if design_mode == 1 && any(strcmp(HX.model,{'eff','DT'}))
-elseif design_mode == 1 && strcmp(HX.model,'geom')
-    HX.model = 'eff';
-elseif design_mode == 0
-    HX.model = 'geom';
-else
-    error('not implemented')
-end
-%}
 
 % Set inlet temperatures (nomenclature: cold inlet is position 1, hot inlet
 % is position 2)

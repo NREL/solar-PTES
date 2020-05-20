@@ -47,6 +47,19 @@ else
     end    
 end
 
+switch HX_model
+    case 'eff'
+    case 'geom'
+        % Set the heat exchanger models to 'eff' temporarily, to obtain
+        % approximated cycle points before using the 'geom' model 
+        HX_model_temp = 'eff';
+        for ihx=1:length(HX)
+            HX(ihx).model = HX_model_temp;
+        end
+    otherwise
+        error('not implemented')
+end
+
 % Set matrix of temperature and pressure points to test convergence
 D_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
 max_iter = 100;
@@ -61,7 +74,7 @@ for counter = 1:max_iter
         T_aim = environ.T0 + T0_inc;
         
         air.state(iL,iA).T = T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
-        [HX(ihx_rejc(iN)), gas, iG, air, iA] = hex_func(HX(ihx_rejc(iN)),iL,gas,iG,air,iA,5,T_aim);
+        [HX(ihx_rejd(iN)), gas, iG, air, iA] = hex_func(HX(ihx_rejd(iN)),iL,gas,iG,air,iA,5,T_aim);
         [DFAN(1),air,iA] = compexp_func (DFAN(1),iL,air,iA,'Paim',p0,1);
         
         switch Load.mode
@@ -103,8 +116,9 @@ for counter = 1:max_iter
     
     % Determine convergence and proceed
     D = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-
-    if all(abs((D(D~=0) - D_0(D~=0))./D(D~=0))*100 < 1e-3) || counter >= max_iter % is discharge cycle converged?
+    convergence = all(abs((D(D~=0) - D_0(D~=0))./D(D~=0))*100 < 1e-3);
+    
+    if (convergence && strcmp(HX_model_temp,HX_model)) || counter >= max_iter % is discharge cycle converged?
         % Close working fluid streams
         gas.stage(iL,iG).type = 'end';
         gas = count_Nstg(gas);
@@ -132,6 +146,19 @@ for counter = 1:max_iter
         
         % Exit loop
         break
+        
+    elseif convergence
+        % If convergence has been reach but HX_model_temp~=HX_model, set
+        % the heat exchanger models back to the original using the new
+        % converged state, and resume iteration
+        HX_model_temp = HX_model;
+        for ihx=1:length(HX)
+            HX(ihx).model = HX_model_temp;
+        end
+        gas.state(iL,1) = gas.state(iL,iG);        
+        D_0 = D;
+        iG=1;iH=1;iHc=1;iC=1;iE=1;iA=1;iPMP=1;
+        
     else
         % Set new initial conditions
         if ~design_mode
