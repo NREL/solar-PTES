@@ -35,6 +35,19 @@ else
     end  
 end
 
+switch HX_model
+    case 'eff'
+    case 'geom'
+        % Set the heat exchanger models to 'eff' temporarily, to obtain
+        % approximated cycle points before using the 'geom' model 
+        HX_model_temp = 'eff';
+        for ihx=1:length(HX)
+            HX(ihx).model = HX_model_temp;
+        end
+    otherwise
+        error('not implemented')
+end
+
 % Set matrix of temperature and pressure points to test convergence
 C_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
 max_iter=100;
@@ -63,7 +76,7 @@ for counter=1:max_iter
         fluidH.state(iL,iH).T = HT.A(iL).T; fluidH.state(iL,iH).p = HT.A(iL).p;
         [fluidH] = update(fluidH,[iL,iH],1);
 
-        [HX(ihx_hot(iN)),gas,iG,fluidH,iH] = hex_func(HX(ihx_hot(iN)),iL,gas,iG,fluidH,iH,1,1.0,design_mode);
+        [HX(ihx_hot(iN)),gas,iG,fluidH,iH] = hex_func(HX(ihx_hot(iN)),iL,gas,iG,fluidH,iH,1,1.0);
         % Now calculate pump requirements for moving fluidH
         [CPMP(iPMP),fluidH,iH] = compexp_func (CPMP(iPMP),iL,fluidH,iH,'Paim',fluidH.state(iL,1).p,1);
         iH=iH+1;iPMP=iPMP+1;
@@ -71,12 +84,12 @@ for counter=1:max_iter
     end    
         
     % REGENERATE (gas-gas)
-    [HX(ihx_reg),gas,iG,~,~] = hex_func(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0,design_mode);
+    [HX(ihx_reg),gas,iG,~,~] = hex_func(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
     
     % REJECT HEAT (external HEX)
     T_aim = environ.T0 + T0_inc;    
     air.state(iL,iA).T = T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
-    [HX(ihx_rejc), gas, iG, air, iA] = hex_func(HX(ihx_rejc),iL,gas,iG,air,iA,5,T_aim,design_mode);
+    [HX(ihx_rejc), gas, iG, air, iA] = hex_func(HX(ihx_rejc),iL,gas,iG,air,iA,5,T_aim);
     [CFAN(1),air,iA] = compexp_func (CFAN(1),iL,air,iA,'Paim',p0,1);
         
     for iN = 1:Ne_ch
@@ -89,19 +102,20 @@ for counter=1:max_iter
         fluidC.state(iL,iC).T = CT.A(iL).T; fluidC.state(iL,iC).p = CT.A(iL).p;
         [fluidC] = update(fluidC,[iL,iC],1);
 
-        [HX(ihx_cld(iN)),fluidC,iC,gas,iG] = hex_func(HX(ihx_cld(iN)),iL,fluidC,iC,gas,iG,2,1.0,design_mode);
+        [HX(ihx_cld(iN)),fluidC,iC,gas,iG] = hex_func(HX(ihx_cld(iN)),iL,fluidC,iC,gas,iG,2,1.0);
         [CPMP(iPMP),fluidC,iC] = compexp_func (CPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
         iC=iC+1; iPMP=iPMP+1;
 
     end
     
     % REGENERATE (gas-gas)
-    [HX(ihx_reg),~,~,gas,iG] = hex_func(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0,design_mode);
+    [HX(ihx_reg),~,~,gas,iG] = hex_func(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
     
     % Determine convergence and proceed
     C = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-
-    if (all(abs((C(C~=0) - C_0(C~=0))./C(C~=0))*100 < 1e-3) || counter==max_iter) % is charge cycle converged?
+    convergence = all(abs((C(C~=0) - C_0(C~=0))./C(C~=0))*100 < 1e-3);
+    
+    if (convergence && strcmp(HX_model_temp,HX_model)) || counter==max_iter % is charge cycle converged?
 
         % Close working fluid streams
         gas.stage(iL,iG).type = 'end';
@@ -131,6 +145,19 @@ for counter=1:max_iter
         
         % Exit loop
         break
+        
+    elseif convergence
+        % If convergence has been reach but HX_model_temp~=HX_model, set
+        % the heat exchanger models back to the original using the new
+        % converged state, and resume iteration
+        HX_model_temp = HX_model;
+        for ihx=1:length(HX)
+            HX(ihx).model = HX_model_temp;
+        end
+        gas.state(iL,1) = gas.state(iL,iG);
+        C_0 = C;
+        iG=1; iH=1; iC=1; iE=1; iA=1; iPMP=1;
+        
     else
         
         if ~design_mode
