@@ -37,6 +37,7 @@ end
 
 switch HX_model
     case 'eff'
+        HX_model_temp = 'eff';
     case 'geom'
         % Set the heat exchanger models to 'eff' temporarily, to obtain
         % approximated cycle points before using the 'geom' model 
