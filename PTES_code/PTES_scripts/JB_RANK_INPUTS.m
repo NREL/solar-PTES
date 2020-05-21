@@ -145,12 +145,24 @@ switch PBmode
         TH_chg0 = 570 + 273.15; % initial temperature of charged hot fluid, K
         MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
         
-        % Cold storage tanks
-        fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
-        TC_dis0 = T0;           % initial temperature of discharged cold fluid, K
-        MC_dis0 = 1e9;          % initial mass of discharged cold fluid, kg
-        TC_chg0 = T0-50;        % initial temperature of charged cold fluid, K
-        MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
+        switch Load.mode
+            case {0,1,2}
+                % Cold storage tanks
+                fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
+                TC_dis0 = T0;           % initial temperature of discharged cold fluid, K
+                MC_dis0 = 1e9;          % initial mass of discharged cold fluid, kg
+                TC_chg0 = T0-50;        % initial temperature of charged cold fluid, K
+                MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
+            case 3
+                % Cold storage tanks
+                fCname  = 'Water';      % cold fluid name
+                TC_dis0 = T0;           % initial temperature of discharged cold fluid, K
+                MC_dis0 = 1e9;          % initial mass of discharged cold fluid, kg
+                TC_chg0 = 273.15+1;     % initial temperature of charged cold fluid, K
+                MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
+                HTFname = 'INCOMP::MEG2[0.56]'; % secondary heat transfer fluid name
+                HTF     = fluid_class(HTFname,'SF','TAB',NaN,Load.num,30); % Storage fluid
+        end
     case 1
         % Hot storage - estimated temperatures
         TH_dis0 = T0;   % initial temperature of discharged hot fluid, K
@@ -175,7 +187,7 @@ switch PBmode
                Load.type(ii) = "disPB" ;
            end
         end
-    case 2
+    otherwise
         error('Not implemented')
 end
 

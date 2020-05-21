@@ -180,13 +180,15 @@ switch Load.mode
         % Call HX classes for ideal-gas PTES heat pump with Rankine cycle discharge
         ihx_hot  = 1:Nc_ch;
         ihx_reg  = ihx_hot(end)+1;
-        ihx_cld  = ihx_reg(end)+(1:Ne_ch);
-        ihx_rejc = ihx_cld(end)+1;
-        ihx_JB   = ihx_rejc(end);
+        ihx_rejc = ihx_reg(end)+1;
+        ihx_cld  = ihx_rejc(end)+(1:Ne_ch);
+        ihx_htf  = ihx_cld(end)+(1:Ne_ch);
+        ihx_JB   = ihx_htf(end);
         HX(ihx_hot)  = hx_class('hot',  'hex',   hotHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
         HX(ihx_reg)  = hx_class('regen','regen', rcpHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Recuperator
-        HX(ihx_cld)  = hx_class('cold', 'hex',   cldHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Cold heat exchanger
         HX(ihx_rejc) = hx_class('rej',  'hex',   rejHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit (charge)
+        HX(ihx_cld)  = hx_class('cold', 'hex',   cldHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Cold heat exchanger
+        HX(ihx_htf)  = hx_class('htf', 'hex',    cldHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Intermediate HTF loop
         
         HX(ihx_JB+1) = hx_class('hot',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Reheat
         HX(ihx_JB+2) = hx_class('cold', 'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Condenser
