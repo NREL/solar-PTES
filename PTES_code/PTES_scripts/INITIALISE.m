@@ -189,8 +189,8 @@ switch Load.mode
         HX(ihx_rejc) = hx_class('rej',  'hex',   rejHXmode, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit (charge)
         
         HX(ihx_JB+1) = hx_class('hot',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Reheat
-        HX(ihx_JB+2) = hx_class('cold', 'hex',   0, HX_NX, Load.num, Load.num, 'eff', eff, 0.1/100, HX_D1, HX_shape) ; % Condenser
-        HX(ihx_JB+3) = hx_class('rej',  'regen', 0, HX_NX, Load.num, Load.num, 'eff', eff, 0.1/100, HX_D1, HX_shape) ; % Air-cooled condenser
+        HX(ihx_JB+2) = hx_class('cold', 'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Condenser
+        HX(ihx_JB+3) = hx_class('rej',  'regen', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Air-cooled condenser
         HX(ihx_JB+4) = hx_class('hot',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Boiler
                 
     case 4

@@ -11,7 +11,7 @@
 % Mode 7: Steam-Rankine heat engine (discharge only)
 
 % Call the correct input file
-Load.mode  = 0 ;
+Load.mode  = 3 ;
 Loffdesign = 0 ; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
 PBmode     = 0 ; % Liquid stores = 0; Packed beds = 1; Heat exchangers between power cycle and a storage fluid, which then passes through packed beds = 2
 
