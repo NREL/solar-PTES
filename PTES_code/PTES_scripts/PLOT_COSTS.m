@@ -1,8 +1,8 @@
 figure(9)
 switch Load.mode
     case {0,3,4,5,6}
-        names = {'Charge machine','Discharge machine','Hot tanks','Cold tanks','Hot HX','Cold HX','Recuperators','Motor-generator'};
-        Cmatrix = zeros(8,7) ;
+        names = {'Charge machine','Discharge machine','Hot tanks','Cold tanks','Hot HX','Cold HX','Recuperators','Heat rejection','Motor-generator'};
+        Cmatrix = zeros(9,7) ;
         
         % Assign different types of costs to different places
         % Compressors and expanders
@@ -66,17 +66,17 @@ switch Load.mode
                case 'regen'
                    Cmatrix(7,6) = Cmatrix(7,6) + HX(ii).hx_cost.COST ;
                case 'rej'
-                   %matrix(8,6) = matrix(8,6) + HX(ii).hx_cost.COST ;
+                   Cmatrix(8,6) = Cmatrix(8,6) + HX(ii).hx_cost.COST ;
            end
         end
         
         % OTHER
         % Motor-generator
-        Cmatrix(8,7) = GEN.gen_cost.COST ;
+        Cmatrix(9,7) = GEN.gen_cost.COST ;
         
         
         b = bar(Cmatrix,'stacked');
-        set(gca, 'XTick', 1:8, 'XTickLabel', names, 'TickLabelInterpreter', 'latex')
+        set(gca, 'XTick', 1:9, 'XTickLabel', names, 'TickLabelInterpreter', 'latex')
         xtickangle(45)
         legend({'Compressors','Expanders','Source Tank','Sink Tank','Fluid','Heat exchangers','Other'},'Location','Best')
         

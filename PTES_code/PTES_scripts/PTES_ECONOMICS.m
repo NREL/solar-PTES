@@ -15,8 +15,8 @@ Cdata.deprec      = [0.20 0.32 0.20 0.14 0.14]  ; % Depreciation[0.20 0.32 0.192
 Cdata.annual_cost = [1.0 0.0 0.]; % Capital cost incurred in which years [0.80 0.10 0.10] ;
 Cdata.construc_IR = 0.0 ;         % Construction interest rate <- new assumption 25/1/17 to make CFF =1. SAM value -> % 0.08 ;
 Cdata.OnM         = 0.0225 ;      % Operations and maintenance cost as a fraction of total capital cost - see Georgiou et al 2018
-Cdata.conting     = 0.07 ;        % Contingency
-Cdata.indirect    = 0.25 ;        % Indirect costs
+Cdata.conting     = 0;%0.07 ;        % Contingency
+Cdata.indirect    = 0;%0.25 ;        % Indirect costs
 
 % Make array of chemical engineering cost indices
 CEind = create_CEindex() ;

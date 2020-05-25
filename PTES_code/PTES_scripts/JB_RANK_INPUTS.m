@@ -31,9 +31,9 @@ Nhot = 1; % number of hot stores. Not implemented for >2
 % Set parameters of Load structure
 switch Load.mode
     case 0 % PTES
-        fac = 100.0; % This can be used to more easily set the mass flow to obtain a desired power output
-        stH = 10 ;
-        ee  = 1.;%0.6091 ;
+        fac = 100.0/1.2794; % This can be used to more easily set the mass flow to obtain a desired power output
+        stH = 8 ;
+        ee  = 1.;%0.6042 ;
         % This is the load scenario the plant is designed for
         Design_Load      = Load ;
         Design_Load.time = [stH/ee;stH].*3600;  % time spent in each load period, s
@@ -193,7 +193,7 @@ FANmode = 30; % Fan cost mode
 hotHXmode = 1; % Heat exchanger - hot cost mode
 cldHXmode = 1; % Heat exchanger - cold cost mode
 rcpHXmode = 1; % Heat exchanger - recuperator cost mode
-rejHXmode = 2; % Heat exchanger - rejection cost mode
+rejHXmode = 1; % Heat exchanger - rejection cost mode
 
 HTmode.tankmode  = 5 ; % Cost mode for hot tank container cost
 HTmode.fld_cost  = 0.8 ; % Hot tank fluid cost, $/kg
