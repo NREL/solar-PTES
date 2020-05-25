@@ -103,6 +103,21 @@ else
     DEXP(3).eta0 = 0.9 * sqrt(Load.mdot(iL) / DEXP(1).mdot0) ;
     
 end
+
+switch HX_model
+    case 'eff'
+        HX_model_temp = 'eff';
+    case 'geom'
+        % Set the heat exchanger models to 'eff' temporarily, to obtain
+        % approximated cycle points before using the 'geom' model 
+        HX_model_temp = 'eff';
+        for ihx=1:length(HX)
+            HX(ihx).model = HX_model_temp;
+        end
+    otherwise
+        error('not implemented')
+end
+
 max_iter=100;
 for counter=1:max_iter
     fprintf(1,['Discharging RANKINE. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
@@ -237,8 +252,9 @@ for counter=1:max_iter
     
     % Determine convergence and proceed
     A = [[steam.state(iL,:).T];[steam.state(iL,:).p]];
-
-    if all(abs((A(A~=0) - A_0(A~=0))./A(A~=0))*100 < 1e-3) || counter==max_iter % is discharge cycle converged?
+    convergence = all(abs((A(A~=0) - A_0(A~=0))./A(A~=0))*100 < 1e-3);
+    
+    if (convergence && strcmp(HX_model_temp,HX_model)) || counter==max_iter % is discharge cycle converged?
         % Close working fluid streams
         steam.stage(iL,iG).type = 'end';
         steam.stage(iL,iSA+1).type = 'end';
@@ -269,6 +285,17 @@ for counter=1:max_iter
         
         % Exit loop
         break
+    elseif convergence
+        % If convergence has been reach but HX_model_temp~=HX_model, set
+        % the heat exchanger models back to the original using the new
+        % converged state, and resume iteration
+        HX_model_temp = HX_model;
+        for ihx=1:length(HX)
+            HX(ihx).model = HX_model_temp;
+        end
+        steam.state(iL,1) = steam.state(iL,iG);
+        A_0 = A;
+        
     else
         if ~design_mode
             

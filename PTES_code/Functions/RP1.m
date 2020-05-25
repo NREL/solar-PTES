@@ -17,11 +17,11 @@ switch fluid.read
         if strcmp(fluid.name,'Water')
             switch input_pair
                 case {'HmassP_INPUTS'}
-                    if any(input2<1e5)
+                    if any(input2<0.8*1e5)
                         handle = fluid.HEOS;
                     end
                 case {'PSmass_INPUTS','PT_INPUTS','PQ_INPUTS'}
-                    if any(input1<1e5)
+                    if any(input1<0.8*1e5)
                         handle = fluid.HEOS;
                     end
                 case {'QT_INPUTS'}
