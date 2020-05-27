@@ -153,18 +153,6 @@ classdef LIB_THERM
                         YT(:,i) = logspace(log10(yT(i)),log10(pcrit+dP),nsx*2)';
                     end
                     
-                    %{
-                    figure(2)
-                    semilogy(xL,yL,xG,yG,xL-dxL,yL,xG+dxG,yG); hold on;
-                    semilogy(XL,YL,'k.');
-                    semilogy(XG,YG,'k.');
-                    semilogy(XT,YT,'k.');
-                    hold off;
-                    xlabel('Enthalpy, J/kg/K')
-                    ylabel('Pressure, bar')
-                    keyboard
-                    %}
-                    
                     % Obtain thermophysical properties at each grid point.
                     np    = length(list);
                     TAB   = zeros([size(X),np]);
@@ -306,12 +294,6 @@ classdef LIB_THERM
                                     error('not implemented')
                             end
                         end
-                        %{
-                method_gi = 'linear';
-                [obj.XLr,obj.YLr,obj.FLr] = normalise_grid(obj.XL,obj.YL,obj.TABL,method_gi);
-                [obj.XGr,obj.YGr,obj.FGr] = normalise_grid(obj.XG,obj.YG,obj.TABG,method_gi);
-                [obj.XTr,obj.YTr,obj.FTr] = normalise_grid(obj.XT,obj.YT,obj.TABT,method_gi);
-                        %}
                     end
                     
                     % Obtain logical array corresponding to indices of the
@@ -343,16 +325,6 @@ classdef LIB_THERM
                     INGq = Xq <= XGq + obj.dxG & SHEATq & Yq <= obj.YG(end,1);
                     INTq = Xq >= obj.XT(1,1) & Xq <= obj.XT(1,end) & Yq >= obj.YT(1,1) & Yq <= obj.YT(end,1) & OUTq;
                     
-                    %{
-            figure(3)
-            semilogy(obj.X,obj.Y,'k.',obj.XL,obj.YL,'k.',obj.XG,obj.YG,'k.'); hold on;
-            semilogy(Xq(INLq),Yq(INLq),'rs')
-            semilogy(Xq(INGq),Yq(INGq),'bs')
-            semilogy(Xq(INTq),Yq(INTq),'ys')
-            hold off;
-            keyboard
-                    %}
-                    
                     VsatLq = zeros([size(XLq),length(out)]);
                     VsatGq = zeros([size(XGq),length(out)]);
                     for io = 1:length(out)
@@ -365,13 +337,6 @@ classdef LIB_THERM
                     Q      = ones(size(Xq)).*(-1);
                     Q(INq) = (Xq(INq) - XLq(INq))./(XGq(INq) - XLq(INq));
                     
-                    %{
-            % Obtain query points for normalised (rectangular) grids
-            [xqLr,yqLr] = map_grid(obj.XL,obj.YL,Xq(INLq),Yq(INLq),'h');
-            [xqGr,yqGr] = map_grid(obj.XG,obj.YG,Xq(INGq),Yq(INGq),'h');
-            [xqTr,yqTr] = map_grid(obj.XT,obj.YT,Xq(INTq),Yq(INTq),'v');
-                    %}
-                    
                     % Interpolate points outside saturation dome
                     results = zeros([size(Xq),length(out)]);
                     for io = 1:length(out)
@@ -380,13 +345,6 @@ classdef LIB_THERM
                         
                         Vq(OUTq) = obj.F{ind}(Xq(OUTq),Yq(OUTq));
                         
-                        %{
-                Vq(INLq) = obj.FLr{ind}(xqLr,yqLr);
-                Vq(INGq) = obj.FGr{ind}(xqGr,yqGr);
-                %Vq(INTq) = obj.FTr{ind}(xqTr,yqTr);
-                        %}
-                        
-                        %%{
                         VL = obj.TABL(:,:,ind);
                         Vq(INLq) = rtab_nest(obj.XL,obj.YL,VL,Xq(INLq),Yq(INLq),'h');
                         
@@ -395,8 +353,6 @@ classdef LIB_THERM
                         
                         VT = obj.TABT(:,:,ind);
                         Vq(INTq) = rtab_nest(obj.XT,obj.YT,VT,Xq(INTq),Yq(INTq),'v');
-                        %}
-                        
                         
                         % Compute points inside saturation dome using correlation
                         % with vapour quality
@@ -649,86 +605,6 @@ classdef LIB_THERM
                         error('not implemented')
                 end
             end
-        end
-        
-        function [Xr,Yr,Fr] = normalise_grid(X,Y,TAB,method)
-            % Maps a semi-rectangular grid into a regular grid
-            % contained between [0,1], and creates gridded
-            % interpolants.
-            xr = linspace(0,1,size(X,2));
-            yr = linspace(0,1,size(Y,1));
-            [Xr,Yr] = meshgrid(xr,yr);
-            
-            nV  = size(TAB,3);
-            Fr  = cell([1 nV]);
-            for iV=1:nV
-                V     = TAB(:,:,iV);
-                Fr{iV} = griddedInterpolant(Xr',Yr',V',method);
-            end
-            
-        end
-        
-        function [xqr,yqr] = map_grid(X,Y,xq,yq,mode)
-            % Mapping principle:
-            % Xr  = (X - X(:,1))./(X(:,end) - X(:,1));
-            % Yr  = (Y - Y(1,:))./(Y(end,:) - Y(1,:));
-            
-            %Y  = log10(Y);
-            %yq = log10(yq);
-            %y1 = log10(y1);
-            
-            method = 'linear';
-            
-            switch mode
-                case 'h'
-                    % Horizontally adapted grid (constant vertical
-                    % axis)
-                    
-                    % Select a 1D array from the Y matrix. Store as a
-                    % 1-column array.
-                    Y1D = Y(:,1);
-                    
-                    % Obtain initial and final positions of the x-axis
-                    % grid corresponding to each yq point
-                    xa  = interp1(Y1D,X(:,1),yq,method);
-                    xb  = interp1(Y1D,X(:,end),yq,method);
-                    
-                    figure(4)
-                    semilogy(X,Y,'k.'); hold on;
-                    semilogy(xq,yq,'r.');
-                    semilogy(xa,yq,'b.');
-                    semilogy(xb,yq,'y.');
-                    hold off;
-                    
-                    % Map xq and yq query points onto normalised
-                    % (regular) grid
-                    xqr = (xq - xa)./(xb - xa);
-                    yqr = (yq - Y1D(1))./(Y1D(end) - Y1D(1));
-                    
-                    keyboard
-                    
-                case 'v'
-                    % Vertically adapted grid (constant horizontal
-                    % axis)
-                    
-                    % Select a 1D array from the X matrix. Store as a
-                    % 1-column array.
-                    X1D = X(1,:);
-                    
-                    % Obtain initial and final positions of the y-axis
-                    % grid corresponding to each xq point
-                    ya  = interp1(X1D,Y(1,:),xq,method);
-                    yb  = interp1(X1D,Y(end,:),xq,method);
-                    
-                    % Map xq and yq query points onto normalised
-                    % (regular) grid
-                    xqr = (xq - X1D(1))./(X1D(end) - X1D(1));
-                    yqr = (yq - ya)./(yb - ya);
-                    
-                otherwise
-                    error('not implemented')
-            end
-            
         end
     end
 end
