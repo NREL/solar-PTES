@@ -20,7 +20,11 @@ switch fluid.read
                     if any(input2<0.8*1e5)
                         handle = fluid.HEOS;
                     end
-                case {'PSmass_INPUTS','PT_INPUTS','PQ_INPUTS'}
+                case {'PSmass_INPUTS','PT_INPUTS'}
+                    if any(input1<0.8*1e5)
+                        handle = fluid.HEOS;
+                    end
+                case {'PQ_INPUTS'}
                     if any(input1<0.8*1e5)
                         handle = fluid.HEOS;
                     end
