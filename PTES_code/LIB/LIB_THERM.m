@@ -262,6 +262,8 @@ classdef LIB_THERM
                     obj.tabG  = tabG;
                     obj.xG    = xs;
                     
+                    obj.pcrit = pcrit;
+                    
                 otherwise
                     error('not implemented')
             end
@@ -270,8 +272,28 @@ classdef LIB_THERM
         function [obj, results] = RLIB(obj, inputs, Xq, Yq, out)
             %RLIB Read library of thermophysical properties.
             
+            % Make sure that 'out' is a cell array
+            if ~iscell(out)
+                out = {out};
+            end
+            
+            % Obtain logical array corresponding to indices of the
+            % properties 'out' inside obj.list
+            ind = zeros(size(obj.list));
+            
+            for io = 1:length(out)
+                cond = strcmp(out{io},obj.list);
+                if ~any(cond)
+                    error('invalid property selected')
+                elseif any(ind & cond)
+                    error('repeated property')
+                else
+                    ind = ind | cond;
+                end
+            end
+            
             switch inputs
-                case 'HP'
+                case 'HmassP_INPUTS'
                     
                     % Create gridded interpolants
                     if isempty(obj.F)
@@ -293,20 +315,6 @@ classdef LIB_THERM
                                 otherwise
                                     error('not implemented')
                             end
-                        end
-                    end
-                    
-                    % Obtain logical array corresponding to indices of the
-                    % properties 'out' inside obj.list
-                    ind = zeros(size(obj.list));
-                    for io = 1:length(out)
-                        cond = strcmp(out{io},obj.list);
-                        if ~any(cond)
-                            error('invalid property selected')
-                        elseif any(ind & cond)
-                            error('repeated property')
-                        else
-                            ind = ind | cond;
                         end
                     end
                     
@@ -369,6 +377,78 @@ classdef LIB_THERM
                                 Vq(INq) = 1./(Q(INq)./VsatG(INq) + (1-Q(INq))./VsatL(INq));
                             case {'C','CONDUCTIVITY','VISCOSITY','PRANDTL'}
                                 Vq(INq) = NaN(size(Q(INq)));
+                            otherwise
+                                error('not implemented');
+                        end
+                        
+                        results(:,:,io) = Vq;
+                    end
+                    
+                case 'PQ_INPUTS'
+                    
+                    
+                    % Create gridded interpolants
+                    if isempty(obj.F)
+                        np     = length(obj.list);
+                        obj.fL = cell([1 np]);
+                        obj.fG = cell([1 np]);
+                        meth   = 'spline';
+                        for ip=1:np
+                            prop = obj.list{ip};
+                            switch prop
+                                case {'H','T','S','D','U','Q','C','CONDUCTIVITY','VISCOSITY','PRANDTL'}
+                                    vL = obj.tabL(:,ip);
+                                    vG = obj.tabG(:,ip);
+                                    obj.fL{ip} = griddedInterpolant(obj.xL,vL,meth);
+                                    obj.fG{ip} = griddedInterpolant(obj.xG,vG,meth);
+                                    
+                                otherwise
+                                    error('not implemented')
+                            end
+                        end
+                    end
+                    
+                    VsatLq = zeros([size(Xq),length(out)]);
+                    VsatGq = zeros([size(Xq),length(out)]);
+                    for io = 1:length(out)
+                        ind = strcmp(out{io},obj.list);
+                        VsatLq(:,:,ind) = obj.fL{ind}(Xq);
+                        VsatGq(:,:,ind) = obj.fG{ind}(Xq);
+                    end
+                    
+                    % Determine points that fall inside saturation dome
+                    SCRITq = Xq > obj.pcrit; % Super-critical
+                    INq    = 0 <= Yq & Yq <= 1 & ~SCRITq; % Inside 2-phase region
+                    OUTq   = ~INq;
+                    ATq    = 0 == Yq | Yq == 1; % Exactly AT the saturation curve
+                    if any(OUTq,'all')
+                        warning('Query point falls outside the limits of the table.')
+                    end
+                    
+                    % Fill in table of vapour quality
+                    Q = Yq;
+                    
+                    % Compute values of query points
+                    results = zeros([size(Xq),length(out)]);
+                    for io = 1:length(out)
+                        ind = strcmp(out{io},obj.list);
+                        Vq  = NaN(size(Xq));
+                        
+                        % Compute points inside saturation dome using correlation
+                        % with vapour quality
+                        VsatL = VsatLq(:,:,ind);
+                        VsatG = VsatGq(:,:,ind);
+                        switch out{io}
+                            case 'Q'
+                                Vq = Q;
+                            case 'T'
+                                Vq(INq) = VsatL(INq);
+                            case {'H','S','U'}
+                                Vq(INq) = Q(INq).*VsatG(INq) + (1-Q(INq)).*VsatL(INq);
+                            case 'D'
+                                Vq(INq) = 1./(Q(INq)./VsatG(INq) + (1-Q(INq))./VsatL(INq));
+                            case {'C','CONDUCTIVITY','VISCOSITY','PRANDTL'} % only valid for Q=0 and Q=1!
+                                Vq(ATq) = Q(ATq).*VsatG(ATq) + (1-Q(ATq)).*VsatL(ATq);
                             otherwise
                                 error('not implemented');
                         end

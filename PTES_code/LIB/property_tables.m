@@ -3,11 +3,6 @@
 % script (to add the paths and load CoolProp).
 
 
-% TO DO:
-% - Work on implementation. How to move beyond h-p? Find out why TTSE was
-% failing on PTES code!
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Clear variables
 clear;
@@ -16,20 +11,35 @@ clear;
 dbstop if error
 %dbclear all
 
-inputs = 'HP';
-%inputs = 'PQ';
+inputs = 'HmassP_INPUTS';
+%inputs = 'PQ_INPUTS';
 
 %%% CREATE TABLE %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-create = 1;
+create = 0;
+create_only = 1;
+
+switch create_only
+    case 1
+        tic
+        LIB.Water.HmassP_INPUTS = LIB_THERM('Water','HmassP_INPUTS',100);
+        toc
+        tic
+        LIB.Water.PQ_INPUTS     = LIB_THERM('Water','PQ_INPUTS',1e3);
+        toc
+        LIB.Water.name = 'Water';
+        save('./LIB/LIB/LIB.mat','LIB')
+        return
+end
+
 switch create
     case 1
         switch inputs
-            case 'HP'
+            case 'HmassP_INPUTS'
                 tic
                 % Create table
-                LIB.Water.HP   = LIB_THERM('Water','HmassP_INPUTS',50);
-                LIB.Water.name = LIB.Water.HP.name;
+                LIB.Water.(inputs) = LIB_THERM('Water','HmassP_INPUTS',50);
+                LIB.Water.name     = LIB.Water.(inputs).name;
                 
                 % Save library into a .mat file
                 save('./LIB/LIB/LIB.mat','LIB')
@@ -42,8 +52,8 @@ switch create
                 tic
                 % Create denser table for comparisson of interpolated values.
                 % Obtain exact values from Coolprop HEOS.
-                X  = LIB.Water.HP.X;
-                Y  = LIB.Water.HP.Y;
+                X  = LIB.Water.(inputs).X;
+                Y  = LIB.Water.(inputs).Y;
                 x  = X(1,:);
                 y  = Y(:,1)';
                 xmin = min(x);
@@ -64,11 +74,11 @@ switch create
                 end
                 toc
                 
-            case 'PQ'
+            case 'PQ_INPUTS'
                 tic
                 % Create table
-                LIB.Water.PQ   = LIB_THERM('Water','PQ_INPUTS',1e3);
-                LIB.Water.name = LIB.Water.PQ.name;
+                LIB.Water.(inputs) = LIB_THERM('Water','PQ_INPUTS',1e3);
+                LIB.Water.name = LIB.Water.(inputs).name;
                 
                 % Save library into a .mat file
                 save('./LIB/LIB/LIB.mat','LIB')
@@ -76,12 +86,12 @@ switch create
                 
                 % Set list of properties to extract
                 pq_list = {'H','T','S','D','U','C','CONDUCTIVITY','VISCOSITY','PRANDTL'};
-                list = pq_list(1:5);
+                list = pq_list;%(1:5);
                 
                 tic
                 % Create denser table for comparisson of interpolated values.
                 % Obtain exact values from Coolprop HEOS.
-                xL   = LIB.Water.PQ.xL;
+                xL   = LIB.Water.(inputs).xL;
                 num  = round(length(xL)/20);
                 xmin = min(xL);
                 xmax = max(xL);
@@ -134,7 +144,12 @@ for i0=1:1
 zcoolT = zeros([size(Xq),length(list)]);
 for ip=1:length(list)
     for ic=1:size(Xq,2)
-        zcoolT(:,ic,ip) = CP1('HmassP_INPUTS',Xq(:,ic),Yq(:,ic),list{ip},fluidT.handle);
+        switch inputs
+            case 'HP'
+                zcoolT(:,ic,ip) = CP1('HmassP_INPUTS',Xq(:,ic),Yq(:,ic),list{ip},fluidT.handle);
+            case 'PQ'
+                zcoolT(:,ic,ip) = CP1('PQ_INPUTS',Xq(:,ic),Yq(:,ic),list{ip},fluidT.handle);
+        end
     end
 end
 QT = zcoolT(:,:,5);
@@ -158,48 +173,69 @@ fprintf(1,'Median error = %10.1e %%\n',median(err2,'all','omitnan'))
 fprintf(1,'\n\n')
 
 % Plot grids
-Water = LIB.Water;
-X   = Water.HP.X;
-Y   = Water.HP.Y;
-XL  = Water.HP.XL;
-YL  = Water.HP.YL;
-XG  = Water.HP.XG;
-YG  = Water.HP.YG;
-XT  = Water.HP.XT;
-YT  = Water.HP.YT;
-xL  = Water.HP.xL;
-xG  = Water.HP.xG;
-yL  = Water.HP.yL;
-yG  = Water.HP.yG;
-dxL = Water.HP.dxL;
-dxG = Water.HP.dxG;
-figure(1)
-semilogy(xL,yL,'b',xG,yG,'b'); hold on;
-semilogy(xL-dxL,yL,xG+dxG,yG)
-semilogy(X,Y,'k.');
-semilogy(XL,YL,'k.');
-semilogy(XG,YG,'k.');
-semilogy(XT,YT,'k.');
-botm = 1.1;
-mark = max(err(:,:,:),[],3) > botm;
-semilogy(Xq(mark),Yq(mark),'rs');
-hold off;
-xlabel('Enthalpy, J/kg/K')
-ylabel('Pressure, bar')
-xlim([min(X,[],'all'),max(X,[],'all')])
-ylim([min(Y,[],'all'),max(Y,[],'all')])
-
-figure(2)
-semilogy(xL,yL,xG,yG,xL-dxL,yL,xG+dxG,yG); hold on;
-semilogy(X,Y,'k.',Xq,Yq,'r.');
-hold off;
-xlabel('Enthalpy, J/kg/K')
-ylabel('Pressure, bar')
-
-% Invert vertical axis for plotting
-err(:,:,:)  = err(end:-1:1,:,:);
-for i=1:length(list)
-    plot_error(err(:,:,i),[botm,10*botm],'Enthalpy','Pressure',10+i,list{i})
+switch inputs
+    case 'HmassP_INPUTS'
+        TAB = LIB.Water.(inputs);
+        X   = TAB.X;
+        Y   = TAB.Y;
+        XL  = TAB.XL;
+        YL  = TAB.YL;
+        XG  = TAB.XG;
+        YG  = TAB.YG;
+        XT  = TAB.XT;
+        YT  = TAB.YT;
+        xL  = TAB.xL;
+        xG  = TAB.xG;
+        yL  = TAB.yL;
+        yG  = TAB.yG;
+        dxL = TAB.dxL;
+        dxG = TAB.dxG;
+        figure(1)
+        semilogy(xL,yL,'b',xG,yG,'b'); hold on;
+        semilogy(xL-dxL,yL,xG+dxG,yG)
+        semilogy(X,Y,'k.');
+        semilogy(XL,YL,'k.');
+        semilogy(XG,YG,'k.');
+        semilogy(XT,YT,'k.');
+        botm = 1.1;
+        mark = max(err(:,:,:),[],3) > botm;
+        semilogy(Xq(mark),Yq(mark),'rs');
+        hold off;
+        xlabel('Enthalpy, J/kg/K')
+        ylabel('Pressure, bar')
+        xlim([min(X,[],'all'),max(X,[],'all')])
+        ylim([min(Y,[],'all'),max(Y,[],'all')])
+        
+        figure(2)
+        semilogy(xL,yL,xG,yG,xL-dxL,yL,xG+dxG,yG); hold on;
+        semilogy(X,Y,'k.',Xq,Yq,'r.');
+        hold off;
+        xlabel('Enthalpy, J/kg/K')
+        ylabel('Pressure, bar')
+        
+        % Invert vertical axis for plotting
+        err(:,:,:)  = err(end:-1:1,:,:);
+        for i=1:length(list)
+            plot_error(err(:,:,i),[botm,10*botm],'Enthalpy','Pressure',10+i,list{i})
+        end
+    case 'PQ_INPUTS'
+        TAB  = LIB.Water.(inputs);
+        xL   = TAB.xL;
+        xq   = Xq(1,:);
+        botm = 0.01;
+        mark = max(err(:,:,:),[],3) > botm;
+        figure(1)
+        loglog(xL,xL,'ks'); hold on;
+        loglog(xq,xq,'ro'); hold off;
+        figure(2)
+        semilogx(Xq,Yq,'k.'); hold on;
+        semilogx(Xq(mark),Yq(mark),'rs');
+        hold off;
+        for i=1:length(list)
+            plot_error(err(:,:,i),[botm,10*botm],'Pressure','Vapour quality',10+i,list{i})
+        end
+    otherwise
+        error('not implemented')
 end
 
 
