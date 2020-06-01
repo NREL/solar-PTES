@@ -223,6 +223,8 @@ classdef hx_class
                    % Shell and tube from Couper et al 3rd ed 2012 (2009
                    % costs). Have to choose material and pressure range.
                    % For 150 < A < 12e3 sqft
+                   nHX = 1 ; % Number of heat exchangers
+                   
                    if (obj.A1 == 0)
                        error('Have picked an unsuitable HX cost mode')
                    end
@@ -230,7 +232,13 @@ classdef hx_class
                    % Convert area to square feet
                    A = A * 3.28084^2 ;
                    
-                   COST = exp(8.821 - 0.30863 * log(A) + 0.0681 * (log(A))^2) ;
+                   maxA = 12e3 ;
+                   if A > maxA
+                       nHX = A / maxA ;
+                       A = maxA ;
+                   end                       
+                                      
+                   COST = 1.218 * nHX * exp(8.821 - 0.30863 * log(A) + 0.0681 * (log(A))^2) ;
                    
                    type = 'fixed head' ;
                    
@@ -254,9 +262,11 @@ classdef hx_class
                        f2 = 1.14 + 0.12088 * log(A) ;
                    end
                    
-                   mat = 'SS316' ;
+                   mat = 'CS' ;
                    
                    switch mat
+                       case 'CS'
+                           f3 = 1.0 ;
                        case 'SS316'
                            f3 = 0.86030 + 0.23296 * log(A) ;                            
                        case 'Nickel 200'
@@ -280,7 +290,7 @@ classdef hx_class
                    % Assumed to use 3/4 or 1 inch O.D. carbon steel tubes,
                    % 20 ft long, on square or triangular pitch, at
                    % pressures up to 100 psig
-                 
+                   nHX = 1 ; % Number of heat exchangers
                    if (obj.A1 == 0)
                        error('Have picked an unsuitable HX cost mode')
                    end
@@ -288,7 +298,13 @@ classdef hx_class
                    % Convert area to square feet
                    A = A * 3.28084^2 ;
                    
-                   type = 'floating head';
+                   maxA = 12e3 ;
+                   if A > maxA
+                       nHX = A / maxA ;
+                       A = maxA ;
+                   end                       
+                   
+                   type = 'fixed head';
                    
                    switch type
                        case 'floating head'
@@ -337,8 +353,37 @@ classdef hx_class
                     
                    f3 = d + (A/100)^e ;
                    
-                   COST = COST * f2 * f3 ;
-                   COST = COST * CEind(curr) / CEind(2017) ;    
+                   COST = COST * f2 * f3 * nHX;
+                   COST = COST * CEind(curr) / CEind(2017) ;  
+                   
+               case 5
+                   % Shell and tube. Data from Hall 1990, based on his 1986
+                   % work.
+                   if (obj.A1 == 0)
+                       error('Have picked an unsuitable HX cost mode')
+                   end
+                   A = 0.5 * (obj.A1 + obj.A2) ;
+                   
+                   mat = 'CS' ;
+                   
+                   switch mat
+                       case 'CS'
+                           fm = 1.0 ;
+                       case 'SS'
+                           fm = 1.7853 ;
+                       case 'Ti'
+                           fm = 5.876 ;
+                   end
+                   
+                   P = max(obj.H(1).pin,obj.C(1).pin) ; % Max pressure
+                   if P <= 10e5 
+                       fp = 1.0 ;
+                   else
+                       fp = 1. + 0.018347 * (P - 10e5) / 1e5 ;
+                   end
+                   
+                   COST = 30800 + 750 * fm * fp * A ^ 0.81 ; 
+                   COST = COST * CEind(curr) / CEind(1986) ;  
                
                case 10
                    % Plate-frame heat exchanger. Stainless and carbon steel
@@ -451,12 +496,28 @@ classdef hx_class
                    if (obj.A1 == 0)
                        error('Have picked an unsuitable HX cost mode')
                    end
+                   nHX  = 1 ;
+                   maxA = 500 ;
                    A = 0.5 * (obj.A1 + obj.A2) ;
                    % Convert area to kilo-square feet
                    A = (A * 3.28084^2)/1e3 ;
+                   if A > maxA
+                       nHX = A / maxA ;
+                       A   = maxA ;
+                   end
                    
-                   COST = 30 * A ^ 0.4 ;
+                   COST = nHX * 30 * A ^ 0.4 ;
                    COST = COST * 1e3 * CEind(curr) / CEind(2009) ;
+                   
+               case 34
+                   % From NETL 1998. Gives very large results.
+                   if (obj.A1 == 0)
+                       error('Have picked an unsuitable HX cost mode')
+                   end
+                   A = 0.5 * (obj.A1 + obj.A2) ;
+                   
+                   COST = 21126 + 210.28 * A ;
+                   COST = COST * CEind(curr) / CEind(1998) ;
                    
            end
            

@@ -395,6 +395,11 @@ classdef packbed_class
                                         
                     cyclic(3) = 100 * abs((StotH - StotHp) / StotHp) < error ;
                     cyclic(4) = 100 * abs((StotC - StotCp) / StotCp) < error ;
+                    100 * abs((hot.DH(1) - hot.DHprev(1)) / hot.DHprev(1))
+                    100 * abs((cold.DH(1) - cold.DHprev(1)) / cold.DHprev(1))
+                    100 * abs((StotH - StotHp) / StotHp)
+                    100 * abs((StotC - StotCp) / StotCp)
+                    cyclic
                     
                     if all(cyclic)
                         fprintf("\n\nSTEADY STATE OPERATION REACHED!\n\n");

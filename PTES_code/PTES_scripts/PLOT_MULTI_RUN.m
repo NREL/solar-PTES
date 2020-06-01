@@ -70,20 +70,21 @@ for icrv=1:Ncrv
 end
 
 % EXTRACT DATA INTO ARRAYS
-chi_mat  = var_extract('chi',Npnt,Ncrv);
-WL_1_mat = var_extract('WL_comp',   Npnt,Ncrv);
-WL_2_mat = var_extract('WL_exp',    Npnt,Ncrv);
-WL_3_mat = var_extract('WL_hexs',   Npnt,Ncrv);
-WL_4_mat = var_extract('WL_reject', Npnt,Ncrv);
-WL_5_mat = var_extract('WL_mix_liq',Npnt,Ncrv);
-WL_6_mat = var_extract('WL_mix_gas',Npnt,Ncrv);
-WL_7_mat = var_extract('WL_tanks',  Npnt,Ncrv);
-HEeff_mat   = var_extract('HEeff',  Npnt,Ncrv);
-HEeffRC_mat = var_extract('HEeffRC',Npnt,Ncrv);
-HEeffNC_mat = var_extract('HEeffNC',Npnt,Ncrv);
-t_dis_mat   = var_extract('t_dis',  Npnt,Ncrv);
-tdRC_mat    = var_extract('t_disRC',Npnt,Ncrv);
-tdNC_mat    = var_extract('t_disNC',Npnt,Ncrv);
+chi_mat  = var_extract('chi_PTES',Npnt,Ncrv);
+lcos_mat = var_extract('lcosM',Npnt,Ncrv);
+% WL_1_mat = var_extract('WL_comp',   Npnt,Ncrv);
+% WL_2_mat = var_extract('WL_exp',    Npnt,Ncrv);
+% WL_3_mat = var_extract('WL_hexs',   Npnt,Ncrv);
+% WL_4_mat = var_extract('WL_reject', Npnt,Ncrv);
+% WL_5_mat = var_extract('WL_mix_liq',Npnt,Ncrv);
+% WL_6_mat = var_extract('WL_mix_gas',Npnt,Ncrv);
+% WL_7_mat = var_extract('WL_tanks',  Npnt,Ncrv);
+% HEeff_mat   = var_extract('HEeff',  Npnt,Ncrv);
+% HEeffRC_mat = var_extract('HEeffRC',Npnt,Ncrv);
+% HEeffNC_mat = var_extract('HEeffNC',Npnt,Ncrv);
+% t_dis_mat   = var_extract('t_dis',  Npnt,Ncrv);
+% tdRC_mat    = var_extract('t_disRC',Npnt,Ncrv);
+% tdNC_mat    = var_extract('t_disNC',Npnt,Ncrv);
 
 
 % Exergetic efficiency
@@ -92,13 +93,27 @@ for icrv=1:Ncrv
     plot(Apnt,chi_mat(:,icrv)*100,stl{icrv}); hold on;
 end
 hold off;
-xlabel([Tpnt,' (when using cold tanks)',Upnt])
-ylabel('Averaged exergetic efficiency [$$\%$$]')
-ylim([55 60])
+xlabel([Tpnt,Upnt])
+ylabel('Roundtrip efficiency [$$\%$$]')
+ylim([20 80])
 legend(Lcrv,'Location','Best')
 grid on;
 
-%%{
+% LCOS
+figure(fignum+1);
+for icrv=1:Ncrv
+    plot(Apnt,lcos_mat(:,icrv),stl{icrv}); hold on;
+end
+hold off;
+xlabel([Tpnt,Upnt])
+ylabel('LCOS [$$\$$$/kWh]')
+ylim([0 0.5])
+legend(Lcrv,'Location','Best')
+grid on;
+
+
+
+%{
 % Efficiency Rankine cycle
 figure(fignum+1);
 yyaxis left
@@ -144,7 +159,7 @@ ylim([1.0 1.8])
 legend(L,'Location','Best')
 grid on;
 %}
-
+%{
 WL_mat = zeros(Npnt,7,Ncrv);
 for icrv=1:Ncrv
     WL_mat(:,:,icrv) = [WL_1_mat(:,icrv),WL_2_mat(:,icrv),WL_3_mat(:,icrv),WL_4_mat(:,icrv),WL_5_mat(:,icrv),WL_6_mat(:,icrv),WL_7_mat(:,icrv)];
@@ -178,7 +193,7 @@ for icrv=1:Ncrv
     end
     %}
 end
-
+%}
 switch save_multi_figs
     case 1
         formats = {'epsc'};

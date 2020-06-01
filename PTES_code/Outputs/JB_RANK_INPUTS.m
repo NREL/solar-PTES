@@ -31,8 +31,8 @@ Nhot = 1; % number of hot stores. Not implemented for >2
 % Set parameters of Load structure
 switch Load.mode
     case 0 % PTES
-        fac = 100.0/1.2794; % This can be used to more easily set the mass flow to obtain a desired power output
-        stH = 8 ;
+        fac = 10.0/1.2794; % This can be used to more easily set the mass flow to obtain a desired power output
+        stH = 10 ;
         ee  = 1.;%0.6042 ;
         % This is the load scenario the plant is designed for
         Design_Load      = Load ;
@@ -194,34 +194,36 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % COST MODES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-CCMPmode = 4 ; % Charging compressor cost mode
-CEXPmode = 13 ; % Charging expander cost mode
-DCMPmode = 4 ; % Discharging compressor cost mode
-DEXPmode = 13 ; % Discharging expander cost mode
+CCMPmode = [12,13,15,15] ; % Charging compressor cost mode
+CEXPmode = [41,42,43,44] ; % Charging expander cost mode
+DCMPmode = [12,13,15,15] ; % Discharging compressor cost mode
+DEXPmode = [41,42,43,44] ; % Discharging expander cost mode
 
-PMPmode = 20; % Pump cost mode
-FANmode = 30; % Fan cost mode
+PMPmode = [60,61,62]; % Pump cost mode
+FANmode = [71,70,71,72]; % Fan cost mode
 
-hotHXmode = 1; % Heat exchanger - hot cost mode
-cldHXmode = 1; % Heat exchanger - cold cost mode
-rcpHXmode = 1; % Heat exchanger - recuperator cost mode
-rejHXmode = 1; % Heat exchanger - rejection cost mode
+hotHXmode = [1,2,3,4,5,10,11]; % Heat exchanger - hot cost mode
+cldHXmode = [1,2,3,4,5,10,11]; % Heat exchanger - cold cost mode
+rcpHXmode = [1,2,3,4,5,10,11]; % Heat exchanger - recuperator cost mode
+rejHXmode = [30,31,32,33]; % Heat exchanger - rejection cost mode
 
-HTmode.tankmode  = 5 ; % Cost mode for hot tank container cost
-HTmode.fld_cost  = 0.8 ; % Hot tank fluid cost, $/kg
-HTmode.ins_cost  = 30 ; % Insulation material, %/kg
+GENmode = [2,1,3] ; % Motor-generator
+
+HTmode.tankmode  = [5,1,2,3,4,6] ; % Cost mode for hot tank container cost
+HTmode.fld_cost  = [0.8,0.5,1.3] ; % Hot tank fluid cost, $/kg
+HTmode.ins_cost  = [30,5,50] ; % Insulation material, %/kg
 HTmode.ins_k     = 0.08 ; % Thermal conductivity of insulation
 HTmode.ins_rho   = 150 ; % Density of insulation
-HTmode.tau       = 500 ; % Number of days before all heat leaks out of tank
+HTmode.tau       = 200 ; % Number of days before all heat leaks out of tank
 HTmode.AR        = 1.0 ; % Aspect ratio (L/D) of tank
 HTmode.over_fac  = 1.1 ; % How much larger is inner tank volume than the fluid volume
 
-CTmode.tankmode  = 5 ; % Cost mode for cold tank container cost
-CTmode.fld_cost  = 0.56 ; % Cold tank fluid cost, $/kg
-CTmode.ins_cost  = 30 ; % Insulation material, %/kg
+CTmode.tankmode  = [5,1,2,3,4,6] ; % Cost mode for cold tank container cost
+CTmode.fld_cost  = [0.56,0.1,1] ; % Cold tank fluid cost, $/kg
+CTmode.ins_cost  = [30,5,50] ; % Insulation material, %/kg
 CTmode.ins_k     = 0.08 ; % Thermal conductivity of insulation
 CTmode.ins_rho   = 150 ; % Density of insulation
-CTmode.tau       = 500 ; % Number of days before all heat leaks out of tank
+CTmode.tau       = 200 ; % Number of days before all heat leaks out of tank
 CTmode.AR        = 1.0 ; % Aspect ratio (L/D) of tank
 CTmode.over_fac  = 1.1 ; % How much larger is inner tank volume than the fluid volume
 

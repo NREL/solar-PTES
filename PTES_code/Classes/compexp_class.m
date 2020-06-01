@@ -408,7 +408,7 @@ classdef compexp_class
         end
                
         % Calculate the economic cost of the compressor or expander
-        function obj = compexp_econ(obj, CEind, Lscale, scale)
+        function obj = compexp_econ(obj, CEind, fld)
             mode = obj.cmpexp_cost.cost_mode ;
             curr = 2019 ; % Current year
             
@@ -435,33 +435,8 @@ classdef compexp_class
                     COST = 7190 * (obj.W0 * 0.00134102)^0.61 ;
                     COST = COST * CEind(curr) / CEind(2010)  ; 
                     
+                    
                 case 4
-                    % Turbomachinery compressor cost from Valero et al 1994, but updated by Farres-Antunez, 2019
-                    % Eq. C3.1
-                    COST = 670 * obj.mdot0 * log(obj.pr0) / (0.92 - obj.eta0) ;
-                    COST = COST * CEind(curr) / CEind(2019) ;
-                    
-                    COST = 39.5 * obj.mdot0 * obj.pr0* log(obj.pr0) / (0.92 - obj.eta0) ;
-                    COST = COST * CEind(curr) / CEind(1994) ;
-                    
-                case 5
-                    % Cost for an sCO2 compressor developed by Carlson et al. 2017
-                    % See equation C6 in Q2 solar-PTES report
-                    COST = 6998 * (obj.W0/1e3) ^ 0.7865 ;
-                    COST = COST * CEind(curr) / CEind(2017) ;
-                    
-                case 6 
-                    % sCO2 compressor from Morandin 2013 - eq. C7
-                    COST = 20e3 + 9e3 * (obj.W0/1e3)^0.6 ;
-                    COST = COST * CEind(curr) / CEind(2013) ;
-                    
-                case 7
-                    % sCO2 compressor by Weiland et al 2019
-                    % Integrally geared, centrifugal, 1.5-200 MW
-                    COST = 1.23e6 * (obj.W0/1e6)^0.3992 ;
-                    COST = COST * CEind(curr) / CEind(2019) ;
-                    
-                case 8
                     % This calculates the average cost from Turton, Sieder, and Couper
                 
                     % Reciprocating compressor cost from Georgiou et al 2019 based on Seider
@@ -478,67 +453,124 @@ classdef compexp_class
                     
                     COST = (SIEDER + TURT + COUPER) / 3.;
                 
+                    
                 case 10
+                    % Black and Veatch correlation, eq. C1 and E1
+                    COST = 250. * obj.W0 / 1e3 ;
+                    COST = COST * CEind(curr) / CEind(2018) ;
+                    
+                case 11
+                    % Turbomachinery compressor cost from Valero et al 1994
+                    % Have changed eta_max from 0.9 to 0.92
+                    COST = 39.5 * obj.mdot0 * obj.pr0* log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = COST * CEind(curr) / CEind(1994) ;
+                    
+                case 12
+                    % Turbomachinery compressor from Agazzini 1996. Based
+                    % on Valero, but coefficients updated against costs
+                    % from Gas Turbine World 1995 Handbook. Again have
+                    % changed eta_max from 0.9 to 0.92.
+                    
+                    COST = 1.051 * 39.5 * obj.mdot0 * obj.pr0* log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = COST * CEind(curr) / CEind(1995) ;
+                    
+                case 13
+                    % Air compressor costs based on quotations for CAES.
+                    % From CEC-500-2008-069 CAES scoping report.
+                    
+                    COST = 30 * obj.mdot0 * 3600. ;
+                    COST = COST * CEind(curr) / CEind(2008) ;
+                    
+                case 14
+                    % Centrifugual compressor from Couper
+                    % Convert power to horsepower
+                    P = obj.W0 * 0.00134102 ;
+                    
+                    nC = 1 ;
+                    maxP = 30e3 ;
+                    if P > maxP
+                        nC = P / maxP ;
+                        P  = maxP ;
+                    end
+                    
+                    COST = nC * 7.9e3 * P ^ 0.62 ;
+                    COST = COST * CEind(curr) / CEind(2010) ;
+                                        
+                    
+                case 15 
+                    % Use Agazzini's (Valero's) correlation, but scale it by the density
+                    % of the inlet air (if higher density, then more
+                    % compact compressor)
+                    
+                    COST = 1.051 * 39.5 * obj.mdot0 * obj.pr0* log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = COST * CEind(curr) / CEind(1995) ;
+                    
+                    RHOin = RP1('PT_INPUTS',obj.Pin,obj.Tin,'D',fld) ;
+                    RHO0  = 1.225 ; % Density of air at standard conditions
+                    n     = 1 ; % This allows you to modify how strongly the cost is reduced
+                    scale = (RHOin / RHO0)^n ;
+                    
+                    COST = COST / scale ;  
+                    
+                case 16
+                    % Scale Agazzini's correlation by the maximum compressor temperature
+                    % This way can capture increasing costs
+                    % A typical air compressor at a pressure ratio of 17
+                    % compresses air to around 450-500 C (750 K)
+                    % Therefore the cost should increase above this. Assume
+                    % a compressor at 1000 K is double the cost. One
+                    % sensible looking factor is Tfac = (1. + exp(0.01 .* Tmax - 10)) ;
+                    
+                    % MAYBE COMBINE THIS CORRELATION AND THE PREVIOUS ONE?
+                    
+                    COST = 1.051 * 39.5 * obj.mdot0 * obj.pr0* log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = COST * CEind(curr) / CEind(1995) ;
+                    
+                    % Estimate gamma
+                    if strcmp(fld.read,'IDL')
+                        Gama = fld.IDL.gam ;
+                    else
+                        Gama = CP1('PT_INPUTS',obj.Pin,obj.Tin,'CPMASS',fld.handle)/CP1('PT_INPUTS',obj.Pin,obj.Tin,'CVMASS',fld.handle);
+                    end
+                                        
+                    Tmax = obj.Tin * obj.pr0 ^ ((Gama-1.)/(obj.eta0*Gama)) ;
+                    Tfac = (1. + exp(0.01 .* Tmax - 10)) ;
+                    
+                    COST = COST * Tfac ; 
+                case 20
+                    % Cost for an sCO2 compressor developed by Carlson et al. 2017
+                    % See equation C6 in Q2 solar-PTES report
+                    COST = 6998 * (obj.W0/1e3) ^ 0.7865 ;
+                    COST = COST * CEind(curr) / CEind(2017) ;
+                    
+                case 21 
+                    % sCO2 compressor from Morandin 2013 - eq. C7
+                    COST = 20e3 + 9e3 * (obj.W0/1e3)^0.6 ;
+                    COST = COST * CEind(curr) / CEind(2013) ;
+                    
+                case 22
+                    % sCO2 compressor by Weiland et al 2019
+                    % Integrally geared, centrifugal, 1.5-200 MW
+                    COST = 1.23e6 * (obj.W0/1e6)^0.3992 ;
+                    COST = COST * CEind(curr) / CEind(2019) ;
+                    
+                case 30
                     % Reciprocating Expander cost from Georgiou et al 2019 based on Turton
                     % ** NOT SURE IF power should be in kW or horsepower?
                     COST = 10 ^ (2.7051 + 1.4398 * log10(obj.W0/1e3) - 0.1776 * (log10(obj.W0/1e3))^2) ;
                     COST = COST * 3.5 * CEind(curr) / CEind(2013) ;
                 
-                case 11
+                case 31
                     % Reciprocating Expander cost from Georgiou et al 2019 based on Sieder
                     COST = 530 * (obj.W0 * 0.00134102)^0.81 ;
                     COST = COST * CEind(curr) / CEind(2010)  ;   
                     
-                case 12 
+                case 32 
                     % Reciprocating expander cost from Georgiou et al 2019 based on Couper
                     COST = 378 * (obj.W0 * 0.00134102)^0.81 ;
                     COST = COST * CEind(curr) / CEind(2010)  ; 
                     
-                case 13
-                    % Expander cost from Valero et al 1994, but updated by Farres-Antunez, 2019
-                    % Eq. E3.1
-                    COST = 1100 * obj.mdot0 * log(obj.pr0) / (0.92 - obj.eta0) ;
-                    COST = COST * CEind(curr) / CEind(2019) ;
-                    
-                    COST = 266.3 * obj.mdot0 * log(obj.pr0) / (0.92 - obj.eta0) ;
-                    COST = COST * CEind(curr) / CEind(1994) ;
-                    
-                case 14 
-                    % Cost for an sCO2 expander developed by Carlson et al. 2017
-                    % See equation E4 in Q2 solar-PTES report
-                    COST = 7790 * (obj.W0/1e3) ^ 0.6842 ;
-                    COST = COST * CEind(curr) / CEind(2017) ;
-                    
-                case 15
-                    % sCO2 expander from Morandin 2013 - eq. E5
-                    COST = 40e3 + 9e3 * (obj.W0/1e3)^0.69 ;
-                    COST = COST * CEind(curr) / CEind(2013) ;
-                    
-                case 16
-                    % sCO2 radial turbine, 8-35 MW
-                    % From Weiland et al 2019
-                    % Valid up to TIT = 700C, and Pin = 200-260 bar
-                    if obj.Tin > 550 + 273.15
-                        fact = 1 + 1.137e-5 * (obj.Tin - 550 - 273.15)^2 ;
-                    else
-                        fact = 1.0 ;
-                    end
-                    COST = fact * 4.062e6 * (obj.W0/1e6)^0.8 ;
-                    COST = COST * CEind(curr) / CEind(2019) ;
-                    
-                case 17
-                    % sCO2 axial turbine, 10-750 MW
-                    % From Weiland et al 2019
-                    % Valid up to TIT = 730C, and Pin = 240-280 bar
-                    if obj.Tin > 550 + 273.15
-                        fact = 1 + 1.106e-4 * (obj.Tin - 550 - 273.15)^2 ;
-                    else
-                        fact = 1.0 ;
-                    end
-                    COST = fact * 1.826e6 * (obj.W0/1e6)^0.5561 ;
-                    COST = COST * CEind(curr) / CEind(2019) ;
-                    
-                case 18
+                case 33
                     % Average reciprocating expander cost from Turton, Sieder and Couper
                     
                     SIEDER = 530 * (obj.W0 * 0.00134102)^0.81 ;
@@ -551,42 +583,190 @@ classdef compexp_class
                     COUPER = COUPER * 1.5 * CEind(curr) / CEind(2010)  ; 
                     
                     COST = (TURT + SIEDER + COUPER) / 3. ;
+                
                     
-                case 20
+                case 40
+                    % Expander cost from Valero et al 1994
+                    % Eq. E3.1                    
+                    COST = 266.3 * obj.mdot0 * log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = COST * (1. + exp(0.018 * obj.Tin - 26.4)) ;
+                    COST = COST * CEind(curr) / CEind(1994) ;
+                    
+                case 41
+                    % Turbomachinery expander from Agazzini 1996. Based
+                    % on Valero, but coefficients updated against costs
+                    % from Gas Turbine World 1995 Handbook. 
+                    
+                    COST = 1.051 * 266.3 * obj.mdot0 * log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = COST * (1. + exp(0.018 * obj.Tin - 1.207 * 26.4)) ;
+                    COST = COST * CEind(curr) / CEind(1995) ;
+                    
+                case 42
+                    % Turboexpander costs based on quotations for CAES.
+                    % From CEC-500-2008-069 CAES scoping report.
+                    
+                    COST = 160 * obj.W0/1e3  ;
+                    COST = COST * CEind(curr) / CEind(2008) ;
+                    
+                case 43
+                    % 'Turbine' from Couper
+                    % Convert power to horsepower
+                    P = obj.W0 * 0.00134102 ;
+                    
+                    nC = 1 ;
+                    maxP = 8e3 ;
+                    if P > maxP
+                        nC = P / maxP ;
+                        P  = maxP ;
+                    end
+                    
+                    COST = nC * 1.1e3 * P ^ 0.81 ;
+                    COST = COST * CEind(curr) / CEind(2010) ;
+                
+                case 44
+                    % Use Agazzini's (Valero's) correlation, but scale it by the density
+                    % of the outlet air (if higher density, then more
+                    % compact expander)
+                    
+                    COST = 1.051 * 266.3 * obj.mdot0 * log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = COST * (1. + exp(0.018 * obj.Tin - 1.207 * 26.4)) ;
+                    COST = COST * CEind(curr) / CEind(1995) ;
+                    
+                    % Estimate gamma
+                    if strcmp(fld.read,'IDL')
+                        Gama = fld.IDL.gam ;
+                    else
+                        Gama = CP1('PT_INPUTS',obj.Pin,obj.Tin,'CPMASS',fld.handle)/CP1('PT_INPUTS',obj.Pin,obj.Tin,'CVMASS',fld.handle);
+                    end
+                    
+                    Pout = obj.Pin / obj.pr0 ;
+                    Tout = obj.Tin / (obj.pr0 ^ (obj.eta0 * (Gama - 1)/Gama)) ;
+                    
+                    RHOout = RP1('PT_INPUTS',Pout,Tout,'D',fld) ;
+                    RHO0  = 1.225 ; % Density of air at standard conditions
+                    n     = 1 ; % This allows you to modify how strongly the cost is reduced
+                    scale = (RHOout / RHO0)^n ;
+                    
+                    COST = COST / scale ; 
+                    
+                case 50 
+                    % Cost for an sCO2 expander developed by Carlson et al. 2017
+                    % See equation E4 in Q2 solar-PTES report
+                    COST = 7790 * (obj.W0/1e3) ^ 0.6842 ;
+                    COST = COST * CEind(curr) / CEind(2017) ;
+                    
+                case 51
+                    % sCO2 expander from Morandin 2013 - eq. E5
+                    COST = 40e3 + 9e3 * (obj.W0/1e3)^0.69 ;
+                    COST = COST * CEind(curr) / CEind(2013) ;
+                    
+                case 52
+                    % sCO2 radial turbine, 8-35 MW
+                    % From Weiland et al 2019
+                    % Valid up to TIT = 700C, and Pin = 200-260 bar
+                    if obj.Tin > 550 + 273.15
+                        fact = 1 + 1.137e-5 * (obj.Tin - 550 - 273.15)^2 ;
+                    else
+                        fact = 1.0 ;
+                    end
+                    COST = fact * 4.062e6 * (obj.W0/1e6)^0.8 ;
+                    COST = COST * CEind(curr) / CEind(2019) ;
+                    
+                case 53
+                    % sCO2 axial turbine, 10-750 MW
+                    % From Weiland et al 2019
+                    % Valid up to TIT = 730C, and Pin = 240-280 bar
+                    if obj.Tin > 550 + 273.15
+                        fact = 1 + 1.106e-4 * (obj.Tin - 550 - 273.15)^2 ;
+                    else
+                        fact = 1.0 ;
+                    end
+                    COST = fact * 1.826e6 * (obj.W0/1e6)^0.5561 ;
+                    COST = COST * CEind(curr) / CEind(2019) ;
+                    
+                    
+                case 60
                     % Pump cost. Centrifugal, carbon steel, includes motor.
                     % - eq. P1
                     COST = 2409.6 + 75.9 * obj.W0 / 1e3 ;
                     COST = COST * CEind(curr) / CEind(1998) ;
                     
-                case 21
+                case 61
                     % Pump cost. Centrifugal, includes motor.
                     % - eq. P2
                     COST = 1227.5 + 177.8 * obj.W0 / 1e3 ;
                     COST = COST * CEind(curr) / CEind(1990) ;
                     
-                case 22
+                case 62
                     % Pump cost. - eq. P3
                     COST = 50e3 + 1500 * (obj.W0 / 1e3)^0.8 ;
                     COST = COST * CEind(curr) / CEind(2009) ;
                     
-                case 30
-                    % FANS --> NEED UPDATING!
+                case 70
+                    % FANS --> NEED UPDATING! (Just using value from 62)
                     COST = 50e3 + 1500 * (obj.W0 / 1e3)^0.8 ;
                     COST = COST * CEind(curr) / CEind(2009) ;
                     
-                case 40
-                    % Black and Veatch correlation, eq. C1 and E1
-                    COST = 250. * obj.W0 ;
-                    COST = COST * CEind(curr) / CEind(2018) ;
+                case 71
+                    % FANS from Couper
+                    % Convert mass flow to KSCFM (kilo-standard-cubic feet
+                    % per min)
+                    V = obj.mdot0 * 60 / 1.225 ; % m3/min based on air at standard conditions
+                    V = V * 3.28084^3 / 1e3 ; % kilo-ft3/min
+                    
+                    nF = 1 ;
+                    maxV = 500 ;
+                    if V > maxV
+                        nF = V / maxV ;
+                        V  = maxV ;
+                    end
+                    
+                    mat = 'CS' ;
+                    
+                    switch mat
+                        case 'CS'
+                            fm = 2.2 ;
+                        case 'Fibreglass'
+                            fm = 4.0 ;
+                        case 'SS'
+                            fm = 5.5 ;
+                        case 'Ni'
+                            fm = 11 ;
+                    end
+                    
+                    fantype = 'propeller' ;
+                    
+                    switch fantype
+                        case 'radial'
+                            a = 0.4682 ;
+                            b = 0.1203 ;
+                            c = 0.0931 ;
+                        case 'backward'
+                            a = 0.04 ;
+                            b = 0.1821 ;
+                            c = 0.0786 ;
+                        case 'propeller'
+                            a = -0.4456 ;
+                            b = 0.2211 ;
+                            c = 0.082 ;
+                        case 'prop vanes'
+                            a = -1.0181 ;
+                            b = 0.3332 ;
+                            c = 0.0647 ;
+                    end
+                    
+                    fp = 1 ;
+                    
+                    COST = 1218 * nF * fm * fp * exp(a + b * log(V) + c * (log(V)^2)) ;
+                    COST = COST * CEind(curr) / CEind(2010) ;
+                    
+                case 72
+                    % Fans from Benato 2017 - very high
+                    COST = exp(6.6547 + 0.79 * log(obj.W0)) ;
+                    COST = COST * CEind(curr) / CEind(2017) ;
 
             end
-            
-            % May wish to scale the cost - e.g. by the inlet density
-            % compared to the reference density 
-            if Lscale
-                COST = COST * scale ;
-            end
-                        
+                                    
             obj.cmpexp_cost.COST = COST ;
             obj.cmpexp_cost.cost = COST / obj.W0 ;
             

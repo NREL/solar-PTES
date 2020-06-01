@@ -598,3 +598,8 @@ if any(Load.mode ==[0,4,6])
     end
 end
 
+% Print HEXs
+fprintf('Heat exchanger summary\n');
+print_hexs(HX,i_chg,'Charge:\n');
+print_hexs(HX,i_dis,'Discharge:\n');
+

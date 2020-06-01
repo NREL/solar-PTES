@@ -52,11 +52,11 @@ classdef double_tank_class
              
              obj.costdat = costdat ;
              
-             obj.tankA_cost = econ_class(costdat.tankmode, 0.2, 5, 0.2) ;
-             obj.tankB_cost = econ_class(costdat.tankmode, 0.2, 5, 0.2) ;
-             obj.insA_cost  = econ_class(1, 0.2, 5, 0.2) ;
-             obj.insB_cost  = econ_class(1, 0.2, 5, 0.2) ;
-             obj.fluid_cost = econ_class(1, 0.2, 5, 0.2) ;
+             obj.tankA_cost = econ_class(costdat.tankmode(1), 0.2, 5, 0.2) ;
+             obj.tankB_cost = econ_class(costdat.tankmode(1), 0.2, 5, 0.2) ;
+             obj.insA_cost  = econ_class(costdat.ins_cost(1), 0.2, 5, 0.2) ;
+             obj.insB_cost  = econ_class(costdat.ins_cost(1), 0.2, 5, 0.2) ;
+             obj.fluid_cost = econ_class(costdat.fld_cost(1), 0.2, 5, 0.2) ;
              
          end
          
@@ -356,9 +356,25 @@ classdef double_tank_class
                      Bcost = Bcost * CEind(curr) / CEind(1990) ;
                      
                  case 2
+                     % Maximum tank volume is 40e3 m3. 
+                     maxV = 40e3 ;
+                     VA   = obj.tank_volA ;
+                     nA   = 1;
+                     if VA > maxV
+                         nA = VA / maxV; % Number of maxV tanks
+                         VA = maxV ;
+                     end
+                     
+                     VB   = obj.tank_volB ;
+                     nB   = 1;
+                     if VB > maxV
+                         nB = VB / maxV; % Number of maxV tanks
+                         VB = maxV ;
+                     end
+                     
                      % NETL, carbon steel fixed roof, eq. PV1.2
-                     Acost = 40288 + 50.9 * obj.tank_volA ;
-                     Bcost = 40288 + 50.9 * obj.tank_volB ;
+                     Acost = nA * (40288 + 50.9 * VA) ;
+                     Bcost = nB * (40288 + 50.9 * VB) ;
                      
                      Acost = Acost * CEind(curr) / CEind(1998) ;
                      Bcost = Bcost * CEind(curr) / CEind(1998) ;
@@ -476,7 +492,7 @@ classdef double_tank_class
          function [obj] = fld_cost(obj, CEind)
              
              curr = 2019 ;
-             cost_kg = obj.costdat.fld_cost ;
+             cost_kg = obj.fluid_cost.cost_mode ;
              COST = obj.fluid_mass * cost_kg ;
              COST = COST * CEind(curr) / CEind(2019) ;
              
@@ -488,12 +504,13 @@ classdef double_tank_class
          function [obj] = ins_cost(obj, CEind)
              
              curr = 2019 ;
-             cost_kg = obj.costdat.ins_cost ;
+             cost_kg = obj.insA_cost.cost_mode ;
              
              COST = obj.ins_volA * obj.costdat.ins_rho * cost_kg ;
              COST = COST * CEind(curr) / CEind(2019) ;
              obj.insA_cost.COST = COST ;
              
+             cost_kg = obj.insB_cost.cost_mode ;
              COST = obj.ins_volB * obj.costdat.ins_rho * cost_kg ;
              COST = COST * CEind(curr) / CEind(2019) ;
              obj.insB_cost.COST = COST ;

@@ -11,7 +11,7 @@
 % Mode 7: Steam-Rankine heat engine (discharge only)
 
 % Call the correct input file
-Load.mode  = 3 ;
+Load.mode  = 0 ;
 Loffdesign = 0 ; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
 PBmode     = 0 ; % Liquid stores = 0; Packed beds = 1; Heat exchangers between power cycle and a storage fluid, which then passes through packed beds = 2
 
@@ -25,7 +25,7 @@ end
 % Set heat exchanger parameters
 eff      = 0.97;  % heat exchanger effectiveness
 ploss    = 0.01;  % pressure loss in HEXs
-HX_model = 'eff' ;
+HX_model = 'geom' ;
 HX_D1    = 0.005; %hydraulic diameter
 HX_shape = 'circular'; %channel shape
 HX_NX    = 100; % number of sections for HEX algorithm
@@ -88,15 +88,15 @@ environ = environment_class(T0,p0,Load.num,10);
 % have been defined in the SET_MULTI_RUN script
 if multi_run==1
     % Set variable along curves
-    Vpnt = 'Ran_TbotC';  % variable along curve
-    Npnt = 10;            % points on curve
-    pnt1 = 10+273.15;    % min value
-    pnt2 = 40+273.15;    % max value
+    Vpnt = 'eff';  % variable along curve
+    Npnt = 20;            % points on curve
+    pnt1 = 0.8;    % min value
+    pnt2 = 0.97;    % max value
     Apnt = linspace(pnt1,pnt2,Npnt); % array
     
     % Set variable between curves
-    Vcrv = 'Ne_ch';
-    Acrv = [1,2,3];
+    Vcrv = 'eta';
+    Acrv = [0.85,0.9,0.95];
     Ncrv = numel(Acrv);
     
     % Delete previous files

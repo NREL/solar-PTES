@@ -2,7 +2,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Lcyclic = true ; % Run the system until cyclic convergence reached
-Ncyc    = 100 ; % Maximum number of cycles to run before giving up
+Ncyc    = 20 ; % Maximum number of cycles to run before giving up
 Icyc    = 1 ; % Number of cycles that have elapsed so far
 
 % Set up the classes
