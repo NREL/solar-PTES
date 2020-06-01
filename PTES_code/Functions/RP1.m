@@ -4,8 +4,46 @@ function [output1] = RP1(input_pair,input1,input2,out1,fluid)
 %   RP1 supports three different modes, 'CP' (obtain properties from
 %   CoolProp), 'TAB' (tabular interpolation) and 'IDL' (ideal gas).
 
-% Obtain access to global structure TABS
+% Set access to global structures TABS and LIB
 global TABS
+global LIB
+
+% Load or create LIB file with tabular interpolation data (only first time)
+if isempty(LIB)
+    fileName = './LIB/LIB/LIB.mat';
+    % Create Library if file does not exist or if the file is old
+    renewalAge = 1; %days
+    if isfile(fileName)
+        % File exists. Check how old it is.
+        fileInfo = dir(fileName);
+        fileAge  = datenum(datetime) - fileInfo.datenum; %file age in days
+        if fileAge > renewalAge
+            create_LIB = 1;
+        else
+            create_LIB = 0;
+        end
+    else
+        % File does not exist, needs to be created.
+        create_LIB = 1;
+    end
+    
+    % Create LIB file if necessary
+    if create_LIB
+        warning(['Creating LIB file with tabular interpolation data. ',...
+            'This could take a couple of minutes but is only done once.']);
+        tic
+        LIB.Water.HmassP_INPUTS = LIB_THERM('Water','HmassP_INPUTS',100);
+        toc
+        tic
+        LIB.Water.PQ_INPUTS     = LIB_THERM('Water','PQ_INPUTS',1e3);
+        toc
+        LIB.Water.name = 'Water';
+        save('./LIB/LIB/LIB.mat','LIB')
+    end
+    
+    S   = load(fileName,'LIB');
+    LIB = S.LIB;
+end
 
 switch fluid.read
     case 'CP' % Obtain properties from CoolProp
@@ -20,7 +58,11 @@ switch fluid.read
                     if any(input2<0.8*1e5)
                         handle = fluid.HEOS;
                     end
-                case {'PSmass_INPUTS','PT_INPUTS','PQ_INPUTS'}
+                case {'PSmass_INPUTS','PT_INPUTS'}
+                    if any(input1<0.8*1e5)
+                        handle = fluid.HEOS;
+                    end
+                case {'PQ_INPUTS'}
                     if any(input1<0.8*1e5)
                         handle = fluid.HEOS;
                     end
@@ -30,10 +72,29 @@ switch fluid.read
                 otherwise
                     error('not implemented')
             end
+            
+            %%{
+            switch input_pair
+                case {'HmassP_INPUTS','PQ_INPUTS'}
+                    [LIB.Water.(input_pair), output1] =...
+                        RLIB(LIB.Water.(input_pair), input_pair, input1, input2, out1);
+                    %keyboard
+                otherwise
+                    % Call CoolProp and extract output
+                    output1 = CP1(input_pair,input1,input2,out1,handle);
+                    
+            end
+            %}
+            
+            %{
+            % Call CoolProp and extract output
+            output1 = CP1(input_pair,input1,input2,out1,handle);
+            %}
+            
+        else
+            % Call CoolProp and extract output
+            output1 = CP1(input_pair,input1,input2,out1,handle);
         end
-        
-        % Call CoolProp and extract output
-        output1 = CP1(input_pair,input1,input2,out1,handle);
         
         
     case 'TAB' % Use tabular interpolation

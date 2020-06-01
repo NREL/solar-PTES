@@ -36,10 +36,10 @@ load_coolprop
 % 1 = Gas regenerator
 % 2 = SolarSalt and Water
 % 3 = CO2 and Water
-% 4 = Steam and MEG
+% 4 = Steam and Water
 % 5 = sCO2 and sCO2
 % 6 = Heat rejection unit (Nigroten and Nitrogen)
-scenario = 6;
+scenario = 2;
 
 % Save figures?
 save_figures = 0;
@@ -105,17 +105,24 @@ switch scenario
         par = 0;
         
     case 4
-        % Water
+        % Steam
         F1 = fluid_class('Water','WF','CP','TTSE',1,5);
         F1.state(iL,i2).p = 0.1*1e5;
         F1.state(iL,i2).T = 350;
         F1.state(iL,i2).mdot = 10;
         
+        % Water
+        F2 = fluid_class('Water','SF','TAB',NaN,1,5);
+        F2.state(iL,i1).p = 1e5;
+        F2.state(iL,i1).T = 273.15+1;
+        F2.state(iL,i2).mdot = 200;
+        %{
         % MEG
         F2 = fluid_class('INCOMP::MEG2[0.56]','SF','TAB',NaN,1,5);
         F2.state(iL,i1).p = 1e5;
         F2.state(iL,i1).T = 245;
         F2.state(iL,i2).mdot = 200;
+        %}
         
         % Set hex_mode
         hex_mode = 5;
@@ -236,6 +243,8 @@ if strcmp(HX.model,'geom')
     fprintf(1,'Eff     = %8.3f   %9.3f\n',eff,1-min(HX.H(1).T-HX.C(1).T)/(HX.H(1).T(end)-HX.C(1).T(1)))
     fprintf(1,'DppH    = %8.5f   %9.5f\n',ploss,HX.DppH)
     fprintf(1,'DppC    = %8.5f   %9.5f\n',ploss,HX.DppC)
+    
+    %print_hexs(HX,1,'Summary:\n');
 end
 
 % Make plots
