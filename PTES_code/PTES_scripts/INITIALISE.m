@@ -1,92 +1,104 @@
 % Reset Load structure
 Load = Load0;
 
-% Reset fluid states and stages
-gas = reset_fluid(gas);
-if any(Load.mode==[3,7])
-    steam = reset_fluid(steam);
-end
-
-% These storage fluid streams only exist in certain cases
-if PBmode == 0 || PBmode == 2
-    for ir = 1:length(fluidH)
-        fluidH(ir) = reset_fluid(fluidH(ir)); %#ok<*SAGROW>
-    end
-    for ir = 1:length(fluidC)
-        fluidC(ir) = reset_fluid(fluidC(ir));
-    end
-    
-    % Reset cold tanks
-    for ir = 1 : Ncld
-        CT(ir) = reset_tanks(CT(ir),TC_dis0(ir),p0,MC_dis0(ir),TC_chg0(ir),p0,MC_chg0(ir),T0);
-    end
-    
-    % Reset hot tanks
-    for ir = 1 : Nhot
-        HT(ir) = reset_tanks(HT(ir),TH_dis0(ir),p0,MH_dis0(ir),TH_chg0(ir),p0,MH_chg0(ir),T0);
-    end
+switch Load.mode
+    case {0,1,2,3,4,5,6,7}
+        
+        % Reset fluid states and stages
+        gas = reset_fluid(gas);
+        if any(Load.mode==[3,7])
+            steam = reset_fluid(steam);
+        end
+        
+        % These storage fluid streams only exist in certain cases
+        if PBmode == 0 || PBmode == 2
+            for ir = 1:length(fluidH)
+                fluidH(ir) = reset_fluid(fluidH(ir)); %#ok<*SAGROW>
+            end
+            for ir = 1:length(fluidC)
+                fluidC(ir) = reset_fluid(fluidC(ir));
+            end
+            
+            % Reset cold tanks
+            for ir = 1 : Ncld
+                CT(ir) = reset_tanks(CT(ir),TC_dis0(ir),p0,MC_dis0(ir),TC_chg0(ir),p0,MC_chg0(ir),T0);
+            end
+            
+            % Reset hot tanks
+            for ir = 1 : Nhot
+                HT(ir) = reset_tanks(HT(ir),TH_dis0(ir),p0,MH_dis0(ir),TH_chg0(ir),p0,MH_chg0(ir),T0);
+            end
+        end
+        
+        % Estimate cycle pressures and temperatures
+        % Set bottom pressure line based on maximum pressure and pressure ratio
+        pbot = pmax/PRch;
+        T1   = TH_dis0(1); % compressor inlet temperature estimate
+        % Estimate gamma
+        if strcmp(gas.read,'IDL')
+            Gama = gas.IDL.gam ;
+        else
+            Gama = CP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CPMASS',gas.handle)/CP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CVMASS',gas.handle);
+        end
+        
+        % Hot temperatures
+        if setTmax
+            % Obtain PRch from maximum temperature and estimated temperature ratio
+            if strcmp(gas.read,'IDL')
+                Gama = gas.IDL.gam ;
+            else
+                Gama = RP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CPMASS',gas)/RP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CVMASS',gas);
+            end
+            PRestim = ((Tmax/T1)^((Gama*eta)/(Gama-1)))^Nc_ch;
+            pbot = pmax/PRestim;
+        else
+            Tmax = T1 * PRch ^((Gama-1)/(Gama*eta))^(1/Nc_ch) ;
+        end
+        
+        % Cold temperatures
+        T3 = TC_dis0(1) ;
+        if setTmax
+            TC_chg0(1) = T3 / (PRestim ^((Gama-1)*eta/(Gama))^(1/Ne_ch)) ;
+        else
+            TC_chg0(1) = T3 / (PRch ^((Gama-1)*eta/(Gama))^(1/Ne_ch)) ;
+        end
+        
+        switch PBmode
+            case 1
+                % Set up packed beds
+                for ii = 1 : Nhot
+                    pbH(ii).TC = TH_chg0 ;
+                    pbH(ii).TD = TH_dis0 ;
+                    pbH(ii) = PB_INITIALISE( pbH(ii), gas, pmax, Load ) ;
+                end
+                
+                for ii = 1 : Ncld
+                    pbC(ii).TC = TC_chg0 ;
+                    pbC(ii).TD = TC_dis0 ;
+                    pbC(ii) = PB_INITIALISE( pbC(ii), gas, pbot, Load ) ;
+                end
+                
+                [pbH, pbC] = PB_TIMINGS(pbH, pbC) ; % This routine selects the smallest timesteps to run at
+            case 2
+                error ('Not implemented')
+        end
+        
+        % Set number of compressions and expansions symmetrically between charge
+        % and discharge
+        Nc_dis = Ne_ch; % compressions during discharge
+        Ne_dis = Nc_ch; % expansions during discharge
+        
+    case 20 % CCES
+        % Reset fluid states and stages
+        gas1 = reset_fluid(gas1);
+        gas2 = reset_fluid(gas2);
+        
+    otherwise
+        error('not implemented')
 end
 
 % Reset atmospheric tanks
 AT = reset_tanks(AT,T0,p0,0,T0,p0,0,T0);
-
-% Estimate cycle pressures and temperatures
-% Set bottom pressure line based on maximum pressure and pressure ratio
-pbot = pmax/PRch;
-T1   = TH_dis0(1); % compressor inlet temperature estimate
-% Estimate gamma
-if strcmp(gas.read,'IDL')
-    Gama = gas.IDL.gam ;
-else
-    Gama = CP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CPMASS',gas.handle)/CP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CVMASS',gas.handle);
-end
-
-% Hot temperatures
-if setTmax
-    % Obtain PRch from maximum temperature and estimated temperature ratio
-    if strcmp(gas.read,'IDL')
-        Gama = gas.IDL.gam ;
-    else
-        Gama = RP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CPMASS',gas)/RP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CVMASS',gas);
-    end
-    PRestim = ((Tmax/T1)^((Gama*eta)/(Gama-1)))^Nc_ch;
-    pbot = pmax/PRestim;
-else
-    Tmax = T1 * PRch ^((Gama-1)/(Gama*eta))^(1/Nc_ch) ;
-end
-
-% Cold temperatures
-T3 = TC_dis0(1) ;
-if setTmax
-    TC_chg0(1) = T3 / (PRestim ^((Gama-1)*eta/(Gama))^(1/Ne_ch)) ;
-else
-    TC_chg0(1) = T3 / (PRch ^((Gama-1)*eta/(Gama))^(1/Ne_ch)) ;
-end
-
-switch PBmode
-    case 1
-        % Set up packed beds
-        for ii = 1 : Nhot 
-            pbH(ii).TC = TH_chg0 ;
-            pbH(ii).TD = TH_dis0 ;
-            pbH(ii) = PB_INITIALISE( pbH(ii), gas, pmax, Load ) ;
-        end
-        
-        for ii = 1 : Ncld
-            pbC(ii).TC = TC_chg0 ;
-            pbC(ii).TD = TC_dis0 ;
-            pbC(ii) = PB_INITIALISE( pbC(ii), gas, pbot, Load ) ;
-        end
-        
-        [pbH, pbC] = PB_TIMINGS(pbH, pbC) ; % This routine selects the smallest timesteps to run at
-    case 2
-        error ('Not implemented')
-end
-
-% Set number of compressions and expansions symmetrically between charge
-% and discharge
-Nc_dis = Ne_ch; % compressions during discharge
-Ne_dis = Nc_ch; % expansions during discharge
 
 % Construct compressor and expander classes
 switch Load.mode
@@ -129,6 +141,12 @@ switch Load.mode
             RCMP = compexp_class('comp', 'poly', 0, eta, Load.num) ; % Re-compressors
         end
         
+    case 20 % CCES
+        CCMP(1:4) = compexp_class('comp', 'poly', CCMPmode(1), eta, Load.num) ; % Charging compressors
+        DEXP(1:3) = compexp_class('exp',  'poly', DEXPmode(1), eta, Load.num) ; % Discharging expanders
+        
+        CEXP(1:2) = compexp_class('exp',  'poly', CEXPmode(1), eta, Load.num) ; % Charging expanders
+        DCMP(1:3) = compexp_class('comp', 'poly', DCMPmode(1), eta, Load.num) ; % Discharging compressors
 end
 
 % Construct heat exchangers
@@ -225,6 +243,21 @@ switch Load.mode
         HX(3) = hx_class('cold',  'hex',   25, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Cold heat exchanger
         HX(4) = hx_class('regen', 'regen',  0, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Recuperator exchanger
         HX(5) = hx_class('regen', 'regen',  0, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Recuperator heat exchanger    
+        
+    case 20
+        % HEXs for the LAES side
+        HX(1) = hx_class('hot_LA', 'hex', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        HX(2) = hx_class('med_LA', 'hex', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Medium heat exchanger
+        HX(3) = hx_class('med_LA', 'hex', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Medium heat exchanger
+        HX(4) = hx_class('cold',   'hex', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Cold heat exchanger
+        
+        % Coupler
+        HX(5) = hx_class('coupler','regen', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Recuperator (air-neon)
+        
+        % HEXs for the PTES side
+        HX(6) = hx_class('hot_LA', 'hex', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        HX(7) = hx_class('med_LA', 'hex', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Medium heat exchanger
+        HX(8) = hx_class('rej',    'hex', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
         
 end
 

@@ -97,6 +97,12 @@ for ix = 1:1
                         case 'sol'
                             SOLAR_TANKS
                             iL=iL+1;
+                        case 'chgCC'
+                            CHARGE_CCES
+                            iL=iL+1;
+                        case 'disCC'
+                            DISCHARGE_CCES
+                            iL=iL+1;
                     end
                 end
                 
