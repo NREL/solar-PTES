@@ -130,8 +130,9 @@ load('./LIB/LIB/Query.mat')
 %list  = list(1:5);
 %zcool = zcool(:,:,1:5);
 
+repetitions=100;
 tic
-for i0=1:1
+for i0=1:repetitions
 % Obtain interpolated tables
 [LIB.Water.(inputs), ztab] = RLIB(LIB.Water.(inputs), inputs, Xq, Yq, list);
 end
@@ -140,15 +141,17 @@ toc
 % Compare against results from CoolProp using TTSE
 fluidT = fluid_class(LIB.Water.name,'WF','CP','TTSE',1,1);
 tic
-for i0=1:1
+for i0=1:ceil(repetitions/5)
 zcoolT = zeros([size(Xq),length(list)]);
 for ip=1:length(list)
     for ic=1:size(Xq,2)
         switch inputs
-            case 'HP'
+            case 'HmassP_INPUTS'
                 zcoolT(:,ic,ip) = CP1('HmassP_INPUTS',Xq(:,ic),Yq(:,ic),list{ip},fluidT.handle);
-            case 'PQ'
+            case 'PQ_INPUTS'
                 zcoolT(:,ic,ip) = CP1('PQ_INPUTS',Xq(:,ic),Yq(:,ic),list{ip},fluidT.handle);
+            otherwise
+                error('not implemented')
         end
     end
 end

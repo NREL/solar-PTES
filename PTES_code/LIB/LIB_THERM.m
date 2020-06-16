@@ -310,7 +310,6 @@ classdef LIB_THERM
                                     vG = obj.tabG(:,ip);
                                     obj.fL{ip} = griddedInterpolant(obj.yL,vL,meth);
                                     obj.fG{ip} = griddedInterpolant(obj.yG,vG,meth);
-                                    obj.F{ip}  = griddedInterpolant(obj.X',obj.Y',obj.TAB(:,:,ip)',meth);
                                     
                                 otherwise
                                     error('not implemented')
@@ -333,6 +332,9 @@ classdef LIB_THERM
                     INGq = Xq <= XGq + obj.dxG & SHEATq & Yq <= obj.YG(end,1);
                     INTq = Xq >= obj.XT(1,1) & Xq <= obj.XT(1,end) & Yq >= obj.YT(1,1) & Yq <= obj.YT(end,1) & OUTq;
                     
+                    % Determine wet saturated (L) and dry saturated (G)
+                    % properties corresponding to the pressure of each
+                    % query point
                     VsatLq = zeros([size(XLq),length(out)]);
                     VsatGq = zeros([size(XGq),length(out)]);
                     for io = 1:length(out)
@@ -345,13 +347,16 @@ classdef LIB_THERM
                     Q      = ones(size(Xq)).*(-1);
                     Q(INq) = (Xq(INq) - XLq(INq))./(XGq(INq) - XLq(INq));
                     
-                    % Interpolate points outside saturation dome
+                    % Preallocate results array
                     results = zeros([size(Xq),length(out)]);
+                    
+                    % Interpolate points outside saturation dome
                     for io = 1:length(out)
                         ind = strcmp(out{io},obj.list);
                         Vq  = zeros(size(Xq));
                         
-                        Vq(OUTq) = obj.F{ind}(Xq(OUTq),Yq(OUTq));
+                        V  = obj.TAB(:,:,ind);
+                        Vq(OUTq) = rtab_nest(obj.X,obj.Y,V,Xq(OUTq),Yq(OUTq),'g');
                         
                         VL = obj.TABL(:,:,ind);
                         Vq(INLq) = rtab_nest(obj.XL,obj.YL,VL,Xq(INLq),Yq(INLq),'h');
@@ -362,8 +367,15 @@ classdef LIB_THERM
                         VT = obj.TABT(:,:,ind);
                         Vq(INTq) = rtab_nest(obj.XT,obj.YT,VT,Xq(INTq),Yq(INTq),'v');
                         
-                        % Compute points inside saturation dome using correlation
-                        % with vapour quality
+                        results(:,:,io) = Vq;
+                    end
+                    
+                    % Compute points inside saturation dome as a function
+                    % of vapour quality
+                    for io = 1:length(out)
+                        ind = strcmp(out{io},obj.list);
+                        Vq  = results(:,:,io);
+
                         VsatL = VsatLq(:,:,ind);
                         VsatG = VsatGq(:,:,ind);
                         switch out{io}
@@ -480,8 +492,8 @@ classdef LIB_THERM
                         iy1(iy1<=1) = 1;
                         iy1(iy1>=numy-1) = numy - 1;
                         iy2 = iy1 + 1;
-                        y1  = ymin*yr.^(iy1 - 1);
-                        y2  = ymin*yr.^(iy2 - 1);
+                        y1  = Y1D(iy1);
+                        y2  = Y1D(iy2);
                         
                         % Obtain the x-indices (and values) around the xq query
                         % points. In this case, the values of xmin and dx vary for
@@ -508,46 +520,19 @@ classdef LIB_THERM
                         
                         % Extract coefficients for bilinear interpolation formula
                         % (i.e. values of V on corners around query point).
-                        Q11  = V(sub2ind(size(V),iy1,ix1_a));
-                        Q12  = V(sub2ind(size(V),iy2,ix1_b));
-                        Q21  = V(sub2ind(size(V),iy1,ix2_a));
-                        Q22  = V(sub2ind(size(V),iy2,ix2_b));
+                        i11 = sub2ind(size(V),iy1,ix1_a);
+                        i12 = sub2ind(size(V),iy2,ix1_b);
+                        i21 = sub2ind(size(V),iy1,ix2_a);
+                        i22 = sub2ind(size(V),iy2,ix2_b);
+                        Q11 = V(i11);
+                        Q12 = V(i12);
+                        Q21 = V(i21);
+                        Q22 = V(i22);
                         
                         % Apply bilinear interpolation formula
                         Vy1 = ((x2_a-xq).*Q11 + (xq-x1_a).*Q21)./(x2_a-x1_a);
                         Vy2 = ((x2_b-xq).*Q12 + (xq-x1_b).*Q22)./(x2_b-x1_b);
                         Vq  = ((y2-yq).*Vy1 + (yq-y1).*Vy2)./(y2-y1);
-                        
-                    case 'h2'
-                        % Horizontally adapted grid (constant vertical axis)
-                        % use spline method!
-                        
-                        % Select a 1D array from the Y matrix which is
-                        % representative of the selected region. Store as a
-                        % 1-column array.
-                        Y1D  = Y(:,1);
-                        ymin = min(Y1D);
-                        yr   = Y1D(2)/Y1D(1);
-                        numy = length(Y1D);
-                        
-                        % Obtain the y-indices (and values) around the yq query
-                        % points.
-                        iy1 = floor(1 + log(yq/ymin)./log(yr));
-                        iy1(iy1<=2) = 2;
-                        iy1(iy1>=numy-2) = numy - 2;
-                        iy0 = iy1 - 1;
-                        iy2 = iy1 + 1;
-                        iy3 = iy1 + 2;
-                        
-                        method = 'spline';
-                        Vq  = zeros(size(xq));
-                        for iq=1:length(xq)
-                            Vy0 = interp1(X(iy0(iq),:),V(iy0(iq),:),xq(iq),method);
-                            Vy1 = interp1(X(iy1(iq),:),V(iy1(iq),:),xq(iq),method);
-                            Vy2 = interp1(X(iy2(iq),:),V(iy2(iq),:),xq(iq),method);
-                            Vy3 = interp1(X(iy3(iq),:),V(iy3(iq),:),xq(iq),method);
-                            Vq(iq) = interp1(Y1D(iy0(iq):iy3(iq)),[Vy0;Vy1;Vy2;Vy3],yq(iq),method);
-                        end
                         
                     case 'v'
                         % Vertically adapted grid (constant horizontal axis)
@@ -566,8 +551,8 @@ classdef LIB_THERM
                         ix1(ix1<=1) = 1;
                         ix1(ix1>=numx) = numx - 1;
                         ix2 = ix1 + 1;
-                        x1  = X1D(ix1);%xmin + (ix1 - 1).*dx
-                        x2  = X1D(ix2);%xmin + (ix2 - 1).*dx
+                        x1  = X1D(ix1);% x1 = xmin + (ix1 - 1).*dx
+                        x2  = X1D(ix2);% x2 = xmin + (ix2 - 1).*dx
                         
                         % Obtain the y-indices (and values) around the yq query
                         % points. In this case, the values of ymin and yr vary for
@@ -594,45 +579,19 @@ classdef LIB_THERM
                         
                         % Extract coefficients for bilinear interpolation formula
                         % (i.e. values of V on corners around query point).
-                        Q11  = V(sub2ind(size(V),iy1_a,ix1));
-                        Q12  = V(sub2ind(size(V),iy2_a,ix1));
-                        Q21  = V(sub2ind(size(V),iy1_b,ix2));
-                        Q22  = V(sub2ind(size(V),iy2_b,ix2));
+                        i11 = sub2ind(size(V),iy1_a,ix1);
+                        i12 = sub2ind(size(V),iy2_a,ix1);
+                        i21 = sub2ind(size(V),iy1_b,ix2);
+                        i22 = sub2ind(size(V),iy2_b,ix2);
+                        Q11 = V(i11);
+                        Q12 = V(i12);
+                        Q21 = V(i21);
+                        Q22 = V(i22);
                         
                         % Apply bilinear interpolation formula
                         Vx1 = ((y2_a-yq).*Q11 + (yq-y1_a).*Q12)./(y2_a-y1_a);
                         Vx2 = ((y2_b-yq).*Q21 + (yq-y1_b).*Q22)./(y2_b-y1_b);
                         Vq  = ((x2-xq).*Vx1 + (xq-x1).*Vx2)./(x2-x1);
-                        
-                    case 'v2'
-                        % Vertically adapted grid (constant horizontal axis)
-                        
-                        % Select a 1D array from the X matrix which is
-                        % representative of the selected region. Store as a
-                        % 1-column array.
-                        X1D   = X(1,:)';
-                        xmin  = min(X1D);
-                        dx    = X1D(2) - X1D(1);
-                        numx  = length(X1D);
-                        
-                        % Obtain the x-indices (and values) around the Xq query
-                        % points
-                        ix1 = floor(1 + (xq-xmin)./dx);
-                        ix1(ix1<=2) = 2;
-                        ix1(ix1>=numx-2) = numx - 2;
-                        ix0 = ix1 - 1;
-                        ix2 = ix1 + 1;
-                        ix3 = ix1 + 2;
-                        
-                        method = 'spline';
-                        Vq  = zeros(size(yq));
-                        for iq=1:length(yq)
-                            Vx0 = interp1(Y(:,ix0(iq)),V(:,ix0(iq)),yq(iq),method);
-                            Vx1 = interp1(Y(:,ix1(iq)),V(:,ix1(iq)),yq(iq),method);
-                            Vx2 = interp1(Y(:,ix2(iq)),V(:,ix2(iq)),yq(iq),method);
-                            Vx3 = interp1(Y(:,ix3(iq)),V(:,ix3(iq)),yq(iq),method);
-                            Vq(iq) = interp1(X1D(ix0(iq):ix3(iq)),[Vx0;Vx1;Vx2;Vx3],xq(iq),method);
-                        end
                         
                     case 'g'
                         % General, rectangular grid
@@ -650,8 +609,8 @@ classdef LIB_THERM
                         iy1(iy1<=1) = 1;
                         iy1(iy1>=numy) = numy - 1;
                         iy2 = iy1 + 1;
-                        y1  = ymin*yr.^(iy1 - 1);
-                        y2  = ymin*yr.^(iy2 - 1);
+                        y1  = Y1D(iy1); %y1 = ymin*yr.^(iy1 - 1);
+                        y2  = Y1D(iy2); %y2 = ymin*yr.^(iy2 - 1);
                         
                         % Select a 1D array from the X matrix. Store as a
                         % 1-column array.
@@ -666,15 +625,19 @@ classdef LIB_THERM
                         ix1(ix1<=1) = 1;
                         ix1(ix1>=numx) = numx - 1;
                         ix2 = ix1 + 1;
-                        x1  = xmin + (ix1 - 1).*dx;
-                        x2  = xmin + (ix2 - 1).*dx;
+                        x1  = X1D(ix1);% x1 = xmin + (ix1 - 1).*dx
+                        x2  = X1D(ix2);% x2 = xmin + (ix2 - 1).*dx
                         
                         % Extract coefficients for bilinear interpolation formula
                         % (i.e. values of V on corners around query point).
-                        Q11  = V(sub2ind(size(V),iy1,ix1));
-                        Q12  = V(sub2ind(size(V),iy2,ix1));
-                        Q21  = V(sub2ind(size(V),iy1,ix2));
-                        Q22  = V(sub2ind(size(V),iy2,ix2));
+                        i11 = sub2ind(size(V),iy1,ix1);
+                        i12 = sub2ind(size(V),iy2,ix1);
+                        i21 = sub2ind(size(V),iy1,ix2);
+                        i22 = sub2ind(size(V),iy2,ix2);
+                        Q11 = V(i11);
+                        Q12 = V(i12);
+                        Q21 = V(i21);
+                        Q22 = V(i22);
                         
                         % Apply bilinear interpolation formula
                         Vy1 = ((x2-xq).*Q11 + (xq-x1).*Q21)./(x2-x1);
