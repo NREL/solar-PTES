@@ -17,7 +17,7 @@ inputs = 'HmassP_INPUTS';
 %%% CREATE TABLE %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 create = 0;
-create_only = 1;
+create_only = 0;
 
 switch create_only
     case 1
@@ -197,7 +197,7 @@ switch inputs
         semilogy(XL,YL,'k.');
         semilogy(XG,YG,'k.');
         semilogy(XT,YT,'k.');
-        botm = 1.1;
+        botm = 0.01;
         mark = max(err(:,:,:),[],3) > botm;
         semilogy(Xq(mark),Yq(mark),'rs');
         hold off;

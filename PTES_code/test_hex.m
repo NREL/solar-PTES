@@ -39,7 +39,7 @@ load_coolprop
 % 4 = Steam and Water
 % 5 = sCO2 and sCO2
 % 6 = Heat rejection unit (Nigroten and Nitrogen)
-scenario = 2;
+scenario = 4;
 
 % Save figures?
 save_figures = 0;
@@ -70,22 +70,22 @@ switch scenario
         % Solar Salt
         F1 = fluid_class('SolarSalt','SF','TAB',NaN,1,5);
         F1.state(iL,i1).p = 1e5;
-        F1.state(iL,i1).T = 800;
-        F1.state(iL,i2).mdot = 45;
+        F1.state(iL,i1).T = 565+273.15;
+        F1.state(iL,i2).mdot = 600;
         
         % Water
         F2 = fluid_class('Water','WF','CP','TTSE',1,5);
         F2.state(iL,i2).p = 100*1e5;
-        F2.state(iL,i2).T = 400;
-        F2.state(iL,i2).mdot = 10;
+        F2.state(iL,i2).T = 180+273;
+        F2.state(iL,i2).mdot = 100;
         
         % Set hex_mode and stage_type
-        %hex_mode = 0;
-        %par = 1.10;
+        hex_mode = 0;
+        par = 1.00;
         %hex_mode = 4;
         %par = 300+273;
-        hex_mode = 3;
-        par = 450+273;
+        %hex_mode = 3;
+        %par = 450+273;
         
     case 3        
         % CO2
@@ -214,7 +214,7 @@ switch model
             otherwise
                 eff   = 0.97;
                 ploss = 0.01;
-                D1    = 0.005;                
+                D1    = 0.01;                
         end
         
         par1  = eff;
@@ -244,7 +244,7 @@ if strcmp(HX.model,'geom')
     fprintf(1,'DppH    = %8.5f   %9.5f\n',ploss,HX.DppH)
     fprintf(1,'DppC    = %8.5f   %9.5f\n',ploss,HX.DppC)
     
-    %print_hexs(HX,1,'Summary:\n');
+    print_hexs(HX,1,'Summary:\n');
 end
 
 % Make plots
@@ -443,6 +443,7 @@ switch save_figures
         save_fig(11,'./Results/T_A',formats)
         save_fig(12,'./Results/p_A',formats)
         save_fig(13,'./Results/Re_A',formats)
+        save_fig(14,'./Results/ht_Q',formats)
         
         switch scenario
             case 1
