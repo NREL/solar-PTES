@@ -336,17 +336,25 @@ classdef LIB_THERM
                         ind = strcmp(out{io},obj.list);
                         Vq  = zeros(size(Xq));
                         
-                        V  = obj.TAB(:,:,ind);
-                        Vq(OUTq) = rtab_nest(obj.X,obj.Y,V,Xq(OUTq),Yq(OUTq),'g');
+                        if ~isempty(Xq(OUTq))
+                            V  = obj.TAB(:,:,ind);
+                            Vq(OUTq) = rtab_nest(obj.X,obj.Y,V,Xq(OUTq),Yq(OUTq),'g');
+                        end
                         
-                        VL = obj.TABL(:,:,ind);
-                        Vq(INLq) = rtab_nest(obj.XL,obj.YL,VL,Xq(INLq),Yq(INLq),'h');
+                        if ~isempty(Xq(INLq))
+                            VL = obj.TABL(:,:,ind);
+                            Vq(INLq) = rtab_nest(obj.XL,obj.YL,VL,Xq(INLq),Yq(INLq),'h');
+                        end
                         
-                        VG = obj.TABG(:,:,ind);
-                        Vq(INGq) = rtab_nest(obj.XG,obj.YG,VG,Xq(INGq),Yq(INGq),'h');
+                        if ~isempty(Xq(INGq))
+                            VG = obj.TABG(:,:,ind);
+                            Vq(INGq) = rtab_nest(obj.XG,obj.YG,VG,Xq(INGq),Yq(INGq),'h');
+                        end
                         
-                        VT = obj.TABT(:,:,ind);
-                        Vq(INTq) = rtab_nest(obj.XT,obj.YT,VT,Xq(INTq),Yq(INTq),'v');
+                        if ~isempty(Xq(INTq))
+                            VT = obj.TABT(:,:,ind);
+                            Vq(INTq) = rtab_nest(obj.XT,obj.YT,VT,Xq(INTq),Yq(INTq),'v');
+                        end
                         
                         results(:,:,io) = Vq;
                     end
