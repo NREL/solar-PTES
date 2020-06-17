@@ -76,13 +76,11 @@ switch fluid.read
             %%{
             switch input_pair
                 case {'HmassP_INPUTS','PQ_INPUTS'}
-                    [LIB.Water.(input_pair), output1] =...
-                        RLIB(LIB.Water.(input_pair), input_pair, input1, input2, out1);
-                    %keyboard
+                    output1 = RLIB(LIB.Water.(input_pair), input_pair, input1, input2, out1);
+                    
                 otherwise
                     % Call CoolProp and extract output
                     output1 = CP1(input_pair,input1,input2,out1,handle);
-                    
             end
             %}
             

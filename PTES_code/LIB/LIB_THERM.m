@@ -269,7 +269,7 @@ classdef LIB_THERM
             end
         end
         
-        function [obj, results] = RLIB(obj, inputs, Xq, Yq, out)
+        function [results] = RLIB(obj, inputs, Xq, Yq, out)
             %RLIB Read library of thermophysical properties.
             
             % Make sure that 'out' is a cell array
@@ -279,7 +279,7 @@ classdef LIB_THERM
             
             % Obtain logical array corresponding to indices of the
             % properties 'out' inside obj.list
-            ind = zeros(size(obj.list));
+            ind = false(size(obj.list));
             
             for io = 1:length(out)
                 cond = strcmp(out{io},obj.list);
@@ -294,28 +294,6 @@ classdef LIB_THERM
             
             switch inputs
                 case 'HmassP_INPUTS'
-                    
-                    % Create gridded interpolants
-                    if isempty(obj.F)
-                        np     = length(obj.list);
-                        obj.F  = cell([1 np]);
-                        obj.fL = cell([1 np]);
-                        obj.fG = cell([1 np]);
-                        meth   = 'linear';
-                        for ip=1:np
-                            prop = obj.list{ip};
-                            switch prop
-                                case {'H','T','S','D','U','Q','C','CONDUCTIVITY','VISCOSITY','PRANDTL'}
-                                    vL = obj.tabL(:,ip);
-                                    vG = obj.tabG(:,ip);
-                                    obj.fL{ip} = griddedInterpolant(obj.yL,vL,meth);
-                                    obj.fG{ip} = griddedInterpolant(obj.yG,vG,meth);
-                                    
-                                otherwise
-                                    error('not implemented')
-                            end
-                        end
-                    end
                     
                     % Determine which query points fall within each region
                     method_sat = 'spline';
@@ -337,10 +315,13 @@ classdef LIB_THERM
                     % query point
                     VsatLq = zeros([size(XLq),length(out)]);
                     VsatGq = zeros([size(XGq),length(out)]);
+                    meth   = 'linear';
                     for io = 1:length(out)
                         ind = strcmp(out{io},obj.list);
-                        VsatLq(:,:,ind) = obj.fL{ind}(Yq);
-                        VsatGq(:,:,ind) = obj.fG{ind}(Yq);
+                        vL  = obj.tabL(:,ind);
+                        vG  = obj.tabG(:,ind);
+                        VsatLq(:,:,ind) = interp1(obj.yL,vL,Yq,meth);
+                        VsatGq(:,:,ind) = interp1(obj.yG,vG,Yq,meth);
                     end
                     
                     % Fill in table of vapour quality
@@ -375,7 +356,7 @@ classdef LIB_THERM
                     for io = 1:length(out)
                         ind = strcmp(out{io},obj.list);
                         Vq  = results(:,:,io);
-
+                        
                         VsatL = VsatLq(:,:,ind);
                         VsatG = VsatGq(:,:,ind);
                         switch out{io}
@@ -398,34 +379,18 @@ classdef LIB_THERM
                     
                 case 'PQ_INPUTS'
                     
-                    
-                    % Create gridded interpolants
-                    if isempty(obj.F)
-                        np     = length(obj.list);
-                        obj.fL = cell([1 np]);
-                        obj.fG = cell([1 np]);
-                        meth   = 'spline';
-                        for ip=1:np
-                            prop = obj.list{ip};
-                            switch prop
-                                case {'H','T','S','D','U','Q','C','CONDUCTIVITY','VISCOSITY','PRANDTL'}
-                                    vL = obj.tabL(:,ip);
-                                    vG = obj.tabG(:,ip);
-                                    obj.fL{ip} = griddedInterpolant(obj.xL,vL,meth);
-                                    obj.fG{ip} = griddedInterpolant(obj.xG,vG,meth);
-                                    
-                                otherwise
-                                    error('not implemented')
-                            end
-                        end
-                    end
-                    
+                    % Determine wet saturated (L) and dry saturated (G)
+                    % properties corresponding to the pressure of each
+                    % query point
                     VsatLq = zeros([size(Xq),length(out)]);
                     VsatGq = zeros([size(Xq),length(out)]);
+                    meth   = 'spline';
                     for io = 1:length(out)
                         ind = strcmp(out{io},obj.list);
-                        VsatLq(:,:,ind) = obj.fL{ind}(Xq);
-                        VsatGq(:,:,ind) = obj.fG{ind}(Xq);
+                        vL  = obj.tabL(:,ind);
+                        vG  = obj.tabG(:,ind);
+                        VsatLq(:,:,ind) = interp1(obj.xL,vL,Xq,meth);
+                        VsatGq(:,:,ind) = interp1(obj.xG,vG,Xq,meth);
                     end
                     
                     % Determine points that fall inside saturation dome
@@ -434,7 +399,7 @@ classdef LIB_THERM
                     OUTq   = ~INq;
                     ATq    = 0 == Yq | Yq == 1; % Exactly AT the saturation curve
                     if any(OUTq,'all')
-                        warning('Query point falls outside the limits of the table.')
+                        fprintf(1,'\n\n***WARNING: Query point falls outside the limits of the table.***\n\n')
                     end
                     
                     % Fill in table of vapour quality

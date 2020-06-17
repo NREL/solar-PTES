@@ -17,7 +17,7 @@ inputs = 'HmassP_INPUTS';
 %%% CREATE TABLE %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 create = 0;
-create_only = 0;
+create_only = 1;
 
 switch create_only
     case 1
@@ -127,14 +127,15 @@ load('./LIB/LIB/LIB.mat')
 load('./LIB/LIB/Query.mat')
 
 % Restrict list of variables to be compared
-%list  = list(1:5);
-%zcool = zcool(:,:,1:5);
+list  = list(1:5);
+zcool = zcool(:,:,1:5);
 
 repetitions=100;
 tic
 for i0=1:repetitions
 % Obtain interpolated tables
-[LIB.Water.(inputs), ztab] = RLIB(LIB.Water.(inputs), inputs, Xq, Yq, list);
+[ztab] = RLIB(LIB.Water.(inputs), inputs, Xq, Yq, list);
+%[ztab] = RLIB_mex(LIB.Water.(inputs), inputs, Xq, Yq, list);
 end
 toc
 
