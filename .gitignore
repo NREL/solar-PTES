@@ -20,3 +20,5 @@
 /PTES_code/Results/*
 /PTES_code/Outputs/Multi_run/*
 /PTES_code/LIB/LIB/*
+/PTES_code/LIB/codegen/*
+*.prj

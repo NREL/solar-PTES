@@ -82,7 +82,7 @@ if any(itp)
             % Use Shah's heat transfer correlation
             
             % Compute reduced pressure
-            Pcrit = RP1(0,0,0,'Pcrit',S);
+            Pcrit = RPN(0,0,0,'Pcrit',S);
             p     = S.p(itp);
             pr    = 0.5*p/Pcrit; %reduced pressure
             

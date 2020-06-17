@@ -137,11 +137,11 @@ classdef packbed_class
             obj.mdot = load.mdot(1) ; % Fluid mass flow rate, kg/s
             obj.Pin  = p ;
             Tave     = 0.5 * (obj.TC + obj.TD) ;
-            obj.kF   = RP1('PT_INPUTS',obj.Pin,Tave,'L',fld); %0.035 ; % Thermal conductivity, W/mK
-            obj.rhoF = RP1('PT_INPUTS',obj.Pin,Tave,'D',fld);%857;%12;% % Density, kg/m3 - Need to calculate these properly!
-            obj.cF   = RP1('PT_INPUTS',obj.Pin,Tave,'CPMASS',fld); %2300;%1000; % Specific heat capacity, J/kgK
-            obj.Pr   = RP1('PT_INPUTS',obj.Pin,Tave,'PRANDTL',fld);%0.7 ;  % Prandtl number
-            obj.mu   = RP1('PT_INPUTS',obj.Pin,Tave,'V',fld);%5e-4 ;%1e-5;% Viscosity, Pa.s
+            obj.kF   = RPN('PT_INPUTS',obj.Pin,Tave,'L',fld); %0.035 ; % Thermal conductivity, W/mK
+            obj.rhoF = RPN('PT_INPUTS',obj.Pin,Tave,'D',fld);%857;%12;% % Density, kg/m3 - Need to calculate these properly!
+            obj.cF   = RPN('PT_INPUTS',obj.Pin,Tave,'CPMASS',fld); %2300;%1000; % Specific heat capacity, J/kgK
+            obj.Pr   = RPN('PT_INPUTS',obj.Pin,Tave,'PRANDTL',fld);%0.7 ;  % Prandtl number
+            obj.mu   = RPN('PT_INPUTS',obj.Pin,Tave,'V',fld);%5e-4 ;%1e-5;% Viscosity, Pa.s
             
             % volume of solid required
             obj.V = obj.tN * obj.mdot * obj.cF / ((1-obj.eps)*obj.rhoS * obj.cS) ;
@@ -227,7 +227,7 @@ classdef packbed_class
             elseif strcmp(fld.read,'CP')
                 if obj.Lideal
                     obj.CFfacs = [obj.cF; 0; 0] ;
-                    obj.R      = RP1('PT_INPUTS',obj.Pin,Tave,'CPMASS',fld) - RP1('PT_INPUTS',obj.Pin,Tave,'CVMASS',fld) ;
+                    obj.R      = RPN('PT_INPUTS',obj.Pin,Tave,'CPMASS',fld) - RPN('PT_INPUTS',obj.Pin,Tave,'CVMASS',fld) ;
                 else
                     error('Not implemented')                    
                 end
@@ -430,22 +430,22 @@ classdef packbed_class
         function obj = PB_FLUX(obj, T0, P0, fld, iCYC)
             
             % Reference points
-            HF0 = RP1('PT_INPUTS',P0,T0,'H',fld) ;
-            SF0 = RP1('PT_INPUTS',P0,T0,'S',fld) ;
+            HF0 = RPN('PT_INPUTS',P0,T0,'H',fld) ;
+            SF0 = RPN('PT_INPUTS',P0,T0,'S',fld) ;
 
             % Calculate the mass, enthalpy, and entropy flux INTO the storage in that timestep
             Min = obj.u(1,1) * obj.rho(1,1) * obj.A * obj.dt ;
             obj.Mflux(iCYC, 1) = obj.Mflux(iCYC, 1) + Min ;
-            obj.Hflux(iCYC, 1) = obj.Hflux(iCYC, 1) + Min * (RP1('PT_INPUTS',obj.P(1),obj.TF(1,1),'H',fld) - HF0);
+            obj.Hflux(iCYC, 1) = obj.Hflux(iCYC, 1) + Min * (RPN('PT_INPUTS',obj.P(1),obj.TF(1,1),'H',fld) - HF0);
             %obj.Hflux(iCYC, 1) = obj.Hflux(iCYC, 1) + Min * (obj.cF *(obj.TF(1,1)-T0));
-            obj.Sflux(iCYC, 1) = obj.Sflux(iCYC, 1) + Min * (RP1('PT_INPUTS',obj.P(1),obj.TF(1,1),'S',fld) - SF0);
+            obj.Sflux(iCYC, 1) = obj.Sflux(iCYC, 1) + Min * (RPN('PT_INPUTS',obj.P(1),obj.TF(1,1),'S',fld) - SF0);
             
             % Calculate the mass, enthalpy, and entropy flux OUT OF the storage in that timestep
             Mout = obj.u(end,1) * obj.rho(end,1) * obj.A * obj.dt ;
             obj.Mflux(iCYC, 2) = obj.Mflux(iCYC, 2) + Mout ;
-            obj.Hflux(iCYC, 2) = obj.Hflux(iCYC, 2) + Mout * (RP1('PT_INPUTS',obj.P(end),obj.TF(end,1),'H',fld) - HF0) ;
+            obj.Hflux(iCYC, 2) = obj.Hflux(iCYC, 2) + Mout * (RPN('PT_INPUTS',obj.P(end),obj.TF(end,1),'H',fld) - HF0) ;
             %obj.Hflux(iCYC, 2) = obj.Hflux(iCYC, 2) + Mout * (obj.cF *(obj.TF(end,1)-T0));
-            obj.Sflux(iCYC, 2) = obj.Sflux(iCYC, 2) + Mout * (RP1('PT_INPUTS',obj.P(end),obj.TF(end,1),'S',fld) - SF0) ;
+            obj.Sflux(iCYC, 2) = obj.Sflux(iCYC, 2) + Mout * (RPN('PT_INPUTS',obj.P(end),obj.TF(end,1),'S',fld) - SF0) ;
              
             
         end
@@ -497,8 +497,8 @@ classdef packbed_class
                 % interpolating original data
                 
                 % Reference points
-                HF0 = RP1('PT_INPUTS',1e5,T0,'H',fld) ;
-                SF0 = RP1('PT_INPUTS',1e5,T0,'S',fld) ;
+                HF0 = RPN('PT_INPUTS',1e5,T0,'H',fld) ;
+                SF0 = RPN('PT_INPUTS',1e5,T0,'S',fld) ;
                 
                 x = obj.sld(:,1) ;
                 HS0 = interp1(x,obj.sld(:,2),T0) ;
@@ -506,8 +506,8 @@ classdef packbed_class
                 
                 for i = 1 : N
                     
-                    HF(i) = RP1('PT_INPUTS',1e5,obj.TF(i,1),'H',fld) ; % Enthalpy
-                    SF(i) = RP1('PT_INPUTS',1e5,obj.TF(i,1),'S',fld) ; % Entropy
+                    HF(i) = RPN('PT_INPUTS',1e5,obj.TF(i,1),'H',fld) ; % Enthalpy
+                    SF(i) = RPN('PT_INPUTS',1e5,obj.TF(i,1),'S',fld) ; % Entropy
                     
                     HS(i) = interp1(x,obj.sld(:,2),obj.TS(i,1)) ; % Enthalpy
                     SS(i) = interp1(x,obj.sld(:,4),obj.TS(i,1)) ; % Entropy

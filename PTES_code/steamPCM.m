@@ -47,21 +47,21 @@ tN    = 1*1000;  % Duration of simultion, s
 steam = fluid_class('Water','WF','CP','HEOS',2,30);
 Ap    = 0.25 * pi * dp^2 ; % Pipe area
 Ar    = 4.0 / dp ;
-Tsat = RP1('PQ_INPUTS',Psat,x0,'T',steam) ; % Saturation temperature
+Tsat = RPN('PQ_INPUTS',Psat,x0,'T',steam) ; % Saturation temperature
 
 % Initial properties
 T0 = Tsat ;
 Tpcm = Tsat - 15 ;
 P0 = Psat ;
-h0 = RP1('PQ_INPUTS',Psat,x0,'H',steam) ; 
-hv = RP1('PQ_INPUTS',Psat,1.0,'H',steam) ; % Enthalpy of vapour
-hl = RP1('PQ_INPUTS',Psat,0.0,'H',steam) ; % Enthalpy of liquid
+h0 = RPN('PQ_INPUTS',Psat,x0,'H',steam) ; 
+hv = RPN('PQ_INPUTS',Psat,1.0,'H',steam) ; % Enthalpy of vapour
+hl = RPN('PQ_INPUTS',Psat,0.0,'H',steam) ; % Enthalpy of liquid
 
-vv = 1./RP1('PQ_INPUTS',Psat,1.0,'D',steam) ; % Specific volume of vapour
-vl = 1./RP1('PQ_INPUTS',Psat,0.0,'D',steam) ; % Specific volume of liquid
+vv = 1./RPN('PQ_INPUTS',Psat,1.0,'D',steam) ; % Specific volume of vapour
+vl = 1./RPN('PQ_INPUTS',Psat,0.0,'D',steam) ; % Specific volume of liquid
 
-s0 = RP1('PQ_INPUTS',Psat,x0,'S',steam) ; 
-rho0 = RP1('PQ_INPUTS',Psat,x0,'D',steam) ; 
+s0 = RPN('PQ_INPUTS',Psat,x0,'S',steam) ; 
+rho0 = RPN('PQ_INPUTS',Psat,x0,'D',steam) ; 
 G0   = mdot0 / Ap ; % Mass flux per unit area
 u0   = G0 / rho0 ;
 
@@ -112,9 +112,9 @@ for n = 1 : Nt
             v = x(i,1) * (vv - vl) + vl ; % Specific volume from lever rule
             rho(i,1) = 1./v ;
             
-            %x(i,1)   = RP1('HmassP_INPUTS',h(i,1),Psat,'Q',steam) ;
-            %s(i,1)   = RP1('HmassP_INPUTS',h(i,1),Psat,'S',steam) ;
-            %rhoaccurate = RP1('HmassP_INPUTS',h(i,1),Psat,'D',steam) ;
+            %x(i,1)   = RPN('HmassP_INPUTS',h(i,1),Psat,'Q',steam) ;
+            %s(i,1)   = RPN('HmassP_INPUTS',h(i,1),Psat,'S',steam) ;
+            %rhoaccurate = RPN('HmassP_INPUTS',h(i,1),Psat,'D',steam) ;
         end
     end
     

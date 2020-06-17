@@ -32,8 +32,8 @@ else
     T0 = obj.TC ;
 end
 % Reference points
-HF0 = RP1('PT_INPUTS',1e5,T0,'H',fld) ;
-SF0 = RP1('PT_INPUTS',1e5,T0,'S',fld) ;
+HF0 = RPN('PT_INPUTS',1e5,T0,'H',fld) ;
+SF0 = RPN('PT_INPUTS',1e5,T0,'S',fld) ;
 
         
 % Fluid inlet
@@ -61,16 +61,16 @@ while ~Lend
         % Calculate the mass, enthalpy, and entropy flux INTO the storage in that timestep
         Min = obj(Npb).u(1,1) * obj(Npb).rho(1,1) * obj(Npb).A * obj(Npb).dt ;
         obj(Npb).Mflux(iCYC, 1) = obj(Npb).Mflux(iCYC, 1) + Min ;
-        obj(Npb).Hflux(iCYC, 1) = obj(Npb).Hflux(iCYC, 1) + Min * (RP1('PT_INPUTS',obj.P(1),obj.TF(1,1),'H',fld) - HF0);
+        obj(Npb).Hflux(iCYC, 1) = obj(Npb).Hflux(iCYC, 1) + Min * (RPN('PT_INPUTS',obj.P(1),obj.TF(1,1),'H',fld) - HF0);
         %obj(Npb).Hflux(iCYC, 1) = obj(Npb).Hflux(iCYC, 1) + Min * (obj(Npb).cF *(obj.TF(1,1)-T0));
-        obj(Npb).Sflux(iCYC, 1) = obj(Npb).Sflux(iCYC, 1) + Min * (RP1('PT_INPUTS',obj.P(1),obj.TF(1,1),'S',fld) - SF0);
+        obj(Npb).Sflux(iCYC, 1) = obj(Npb).Sflux(iCYC, 1) + Min * (RPN('PT_INPUTS',obj.P(1),obj.TF(1,1),'S',fld) - SF0);
     
         % Calculate the mass, enthalpy, and entropy flux OUT OF the storage in that timestep
         Mout = obj(Npb).u(end,1) * obj(Npb).rho(end,1) * obj(Npb).A * obj(Npb).dt ;
         obj(Npb).Mflux(iCYC, 2) = obj(Npb).Mflux(iCYC, 2) + Mout ;
-        obj(Npb).Hflux(iCYC, 2) = obj(Npb).Hflux(iCYC, 2) + Mout * (RP1('PT_INPUTS',obj.P(end),obj.TF(end,1),'H',fld) - HF0) ;
+        obj(Npb).Hflux(iCYC, 2) = obj(Npb).Hflux(iCYC, 2) + Mout * (RPN('PT_INPUTS',obj.P(end),obj.TF(end,1),'H',fld) - HF0) ;
         %obj(Npb).Hflux(iCYC, 2) = obj(Npb).Hflux(iCYC, 2) + Mout * (obj(Npb).cF *(obj.TF(end,1)-T0));
-        obj(Npb).Sflux(iCYC, 2) = obj(Npb).Sflux(iCYC, 2) + Mout * (RP1('PT_INPUTS',obj.P(end),obj.TF(end,1),'S',fld) - SF0) ;
+        obj(Npb).Sflux(iCYC, 2) = obj(Npb).Sflux(iCYC, 2) + Mout * (RPN('PT_INPUTS',obj.P(end),obj.TF(end,1),'S',fld) - SF0) ;
             
         % Fluid outlet
         fld.state(indF(1),indF(2)).T = obj(Npb).TF(obj.NX,1) ;

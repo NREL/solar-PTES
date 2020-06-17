@@ -47,7 +47,7 @@ switch Load.mode
             if strcmp(gas.read,'IDL')
                 Gama = gas.IDL.gam ;
             else
-                Gama = RP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CPMASS',gas)/RP1('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CVMASS',gas);
+                Gama = RPN('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CPMASS',gas)/RPN('PT_INPUTS',pmax/2,0.5*(T1+Tmax),'CVMASS',gas);
             end
             PRestim = ((Tmax/T1)^((Gama*eta)/(Gama-1)))^Nc_ch;
             pbot = pmax/PRestim;

@@ -38,8 +38,8 @@ C.read = fluidC.read; C.handle = fluidC.handle; C.HEOS = fluidC.HEOS;
 
 % Obtain minimum and maximum enthalpy outlets (hot outlet cannot be colder
 % than cold inlet, and vice-versa) and average specific heat capacity
-hH1_min = RP1('PT_INPUTS',pH2,TC1,'H',fluidH);
-hC2_max = RP1('PT_INPUTS',pC1,TH2,'H',fluidC);
+hH1_min = RPN('PT_INPUTS',pH2,TC1,'H',fluidH);
+hC2_max = RPN('PT_INPUTS',pC1,TH2,'H',fluidC);
 
 % Set enthalpy to estimate average value, and pressure to initial value
 H.h = 0.5*(hH2 + hH1_min);
@@ -123,8 +123,8 @@ for i=1:3
     hH1  = hH2 - QT/mH;
     pC2  = pC1*(1 - DppC);
     pH1  = pH2*(1 - DppH);
-    TC2 = RP1('HmassP_INPUTS',hC2,pC2,'T',fluidC);
-    TH1 = RP1('HmassP_INPUTS',hH1,pH1,'T',fluidH);
+    TC2 = RPN('HmassP_INPUTS',hC2,pC2,'T',fluidC);
+    TH1 = RPN('HmassP_INPUTS',hH1,pH1,'T',fluidH);
     
     % Update average properties
     H.h = 0.5*(hH2 + hH1);

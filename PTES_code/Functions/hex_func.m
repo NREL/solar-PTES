@@ -114,8 +114,8 @@ end
 
 % Obtain preliminary minimum and maximum enthalpy outlets (hot outlet
 % cannot be colder than cold inlet, and vice-versa)
-hH1_min = RP1('PT_INPUTS',pH2,THmin,'H',fluidH);
-hC2_max = RP1('PT_INPUTS',pC1,TCmax,'H',fluidC);
+hH1_min = RPN('PT_INPUTS',pH2,THmin,'H',fluidH);
+hC2_max = RPN('PT_INPUTS',pC1,TCmax,'H',fluidC);
 
 % Compute average 'overall' specific heat capacities
 CpHmean = (hH2 - hH1_min)/(TH2-THmin);
@@ -238,7 +238,7 @@ switch model
             case 3
                 % Set outlet conditions of cold fluid
                 TC2 = par;
-                hC2 = RP1('PT_INPUTS',pC2,TC2,'H',fluidC);
+                hC2 = RPN('PT_INPUTS',pC2,TC2,'H',fluidC);
                 
                 % Compute preliminary QMAX (hot outlet cannot be colder than cold
                 % inlet) and set boundaries accordingly
@@ -280,7 +280,7 @@ switch model
             case 4
                 % Set outlet conditions of hot fluid
                 TH1 = par;
-                hH1 = RP1('PT_INPUTS',pH1,TH1,'H',fluidH);
+                hH1 = RPN('PT_INPUTS',pH1,TH1,'H',fluidH);
                 
                 % Compute preliminary QMAX (cold outlet cannot be hotter than hot
                 % inlet) and set boundaries accordingly
@@ -309,7 +309,7 @@ switch model
             case 5
                 % Set outlet conditions of hot fluid
                 TH1 = par;
-                hH1 = RP1('PT_INPUTS',pH1,TH1,'H',fluidH);
+                hH1 = RPN('PT_INPUTS',pH1,TH1,'H',fluidH);
                 
                 % Compute total heat transfer and compute mCmin and mCmax
                 % accordingly
@@ -386,7 +386,7 @@ switch model
                 % of pressure loss when computing outlet enthalpy from the
                 % objective outlet temperature.
                 TC2 = par;
-                hC2 = RP1('PT_INPUTS',pC1,TC2,'H',fluidC);
+                hC2 = RPN('PT_INPUTS',pC1,TC2,'H',fluidC);
                 
                 % Compute preliminary QMAX (hot outlet cannot be colder
                 % than cold inlet) and set boundaries accordingly
@@ -410,7 +410,7 @@ switch model
                 % of pressure loss when computing outlet enthalpy from the
                 % objective outlet temperature.
                 TH1 = par;
-                hH1 = RP1('PT_INPUTS',pH2,TH1,'H',fluidH);
+                hH1 = RPN('PT_INPUTS',pH2,TH1,'H',fluidH);
                 
                 % Compute preliminary QMAX (cold outlet cannot be hotter
                 % than hot inlet) and set boundaries accordingly
@@ -432,7 +432,7 @@ switch model
                 % of pressure loss when computing outlet enthalpy from the
                 % objective outlet temperature.
                 TH1 = par;
-                hH1 = RP1('PT_INPUTS',pH2,TH1,'H',fluidH);
+                hH1 = RPN('PT_INPUTS',pH2,TH1,'H',fluidH);
                 
                 % Compute total heat transfer and compute mCmin and mCmax
                 % accordingly
@@ -645,12 +645,12 @@ switch mode
         
         % Compute temperature distribution of hot stream
         hH  = linspace(hH1,hH2,n+1)';
-        TH  = RP1('HmassP_INPUTS',hH,pH,'T',fluidH);
+        TH  = RPN('HmassP_INPUTS',hH,pH,'T',fluidH);
         
         % Compute temperature distribution of cold stream
         QS  = (hH - hH1)*mH; % cummulative heat transfer
         hC  = hC1 + QS/mC;
-        TC  = RP1('HmassP_INPUTS',hC,pC,'T',fluidC);
+        TC  = RPN('HmassP_INPUTS',hC,pC,'T',fluidC);
         
     case 'hC2'
         
@@ -659,13 +659,13 @@ switch mode
         
         % Compute temperature distribution of cold stream
         hC  = linspace(hC1,hC2,n+1)';
-        TC  = RP1('HmassP_INPUTS',hC,pC,'T',fluidC);
+        TC  = RPN('HmassP_INPUTS',hC,pC,'T',fluidC);
         
         % Compute temperature distribution of hot stream
         QS  = (hC - hC1)*mC; % cummulative heat transfer
         hH1 = hH2 - QS(n+1)/mH;
         hH  = hH1 + QS/mH;
-        TH  = RP1('HmassP_INPUTS',hH,pH,'T',fluidH);
+        TH  = RPN('HmassP_INPUTS',hH,pH,'T',fluidH);
         
     otherwise
         error('not implemented')

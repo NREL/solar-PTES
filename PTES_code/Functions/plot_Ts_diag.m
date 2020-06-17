@@ -79,7 +79,7 @@ for iL=1:Load.num
             
             switch type
                 case {1,2}
-                    Pcrit = RP1(0,0,0,'Pcrit',fluid);
+                    Pcrit = RPN(0,0,0,'Pcrit',fluid);
                     
                     if any(p_vect>0.99*Pcrit & p_vect<1.00*Pcrit)
                         [s1,T1,~,~,~] = CP5('HmassP_INPUTS',h_vect,p_vect*1.01,'S','T','P','P','P',fluid.handle);

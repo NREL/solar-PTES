@@ -35,11 +35,11 @@ if Load.options.useCold(iL)
 else
     Ran_Tbot = Ran_Tbot0;
 end
-Ran_pbot  = RP1('QT_INPUTS',0.0,Ran_Tbot,'P',steam);
+Ran_pbot  = RPN('QT_INPUTS',0.0,Ran_Tbot,'P',steam);
 
 if Ran_pbot < Ran_pbotMIN % Check bottom pressure doesn't exceed lower bound
     Ran_pbot = Ran_pbotMIN ;
-    Ran_Tbot  = RP1('PQ_INPUTS',Ran_pbot,0.0,'T',steam);
+    Ran_Tbot  = RPN('PQ_INPUTS',Ran_pbot,0.0,'T',steam);
 end
 
 if design_mode == 1
@@ -48,8 +48,8 @@ if design_mode == 1
     PR_dis0   = PR_dis; % Total pressure ratio - deisgn point
     Ran_pmid1 = Ran_ptop/(PR_dis0)^(1/3);  % pressure at HPT outlet. First two stages pressure ratios are kept constant. Only final LP stage pressure ratio changes.
     Ran_pmid2 = Ran_pmid1/(PR_dis0)^(1/3); % pressure at IPT outlet
-    Ran_Tmid1 = RP1('PQ_INPUTS',Ran_pmid1,0.0,'T',steam); %wet saturated temp1
-    Ran_Tmid2 = RP1('PQ_INPUTS',Ran_pmid2,0.0,'T',steam); %wet saturated temp2
+    Ran_Tmid1 = RPN('PQ_INPUTS',Ran_pmid1,0.0,'T',steam); %wet saturated temp1
+    Ran_Tmid2 = RPN('PQ_INPUTS',Ran_pmid2,0.0,'T',steam); %wet saturated temp2
    
     % Initial guess of discharge conditions (Point 1)
     iG = 1;
@@ -94,8 +94,8 @@ else
     PR_dis    = Ran_ptop/Ran_pbot; % Total pressure ratio
     Ran_pmid1 = Ran_ptop/(PR_dis0)^(1/3);  % pressure at HPT outlet. First two stages pressure ratios are kept constant. Only final LP stage pressure ratio changes.
     Ran_pmid2 = Ran_pmid1/(PR_dis0)^(1/3); % pressure at IPT outlet
-    Ran_Tmid1 = RP1('PQ_INPUTS',Ran_pmid1,0.0,'T',steam); %wet saturated temp1
-    Ran_Tmid2 = RP1('PQ_INPUTS',Ran_pmid2,0.0,'T',steam); %wet saturated temp2
+    Ran_Tmid1 = RPN('PQ_INPUTS',Ran_pmid1,0.0,'T',steam); %wet saturated temp1
+    Ran_Tmid2 = RPN('PQ_INPUTS',Ran_pmid2,0.0,'T',steam); %wet saturated temp2
     
     DEXP(3).mdot(iL) = DEXP(3).mdot0 ;
     DEXP(3).pr(iL) = 1.0 ;
@@ -212,7 +212,7 @@ for counter=1:max_iter
         % COOL (condense using cold tanks)
         fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p; %#ok<*SAGROW>
         [fluidC] = update(fluidC,[iL,iC],1);
-        T_aim = RP1('PQ_INPUTS',steam.state(iL,iG).p,0.0,'T',steam) - 1; %wet saturated
+        T_aim = RPN('PQ_INPUTS',steam.state(iL,iG).p,0.0,'T',steam) - 1; %wet saturated
         [HX(ihx_JB+2),steam,iG,fluidC,iC] = hex_func(HX(ihx_JB+2),iL,steam,iG,fluidC,iC,5,T_aim);
         [DPMP(iPMP),fluidC,iC] = compexp_func (DPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
         iC=iC+1; iPMP=iPMP+1;
