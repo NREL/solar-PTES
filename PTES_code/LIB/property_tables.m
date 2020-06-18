@@ -25,7 +25,7 @@ switch create_only
         LIB.Water.HmassP_INPUTS = LIB_THERM('Water','HmassP_INPUTS',100);
         toc
         tic
-        LIB.Water.PQ_INPUTS     = LIB_THERM('Water','PQ_INPUTS',1e3);
+        LIB.Water.PQ_INPUTS     = LIB_THERM('Water','PQ_INPUTS',1e4);
         toc
         LIB.Water.name = 'Water';
         save('./LIB/LIB/LIB.mat','LIB')
@@ -77,7 +77,7 @@ switch create
             case 'PQ_INPUTS'
                 tic
                 % Create table
-                LIB.Water.(inputs) = LIB_THERM('Water','PQ_INPUTS',1e3);
+                LIB.Water.(inputs) = LIB_THERM('Water','PQ_INPUTS',2e3);
                 LIB.Water.name = LIB.Water.(inputs).name;
                 
                 % Save library into a .mat file
@@ -130,7 +130,7 @@ load('./LIB/LIB/Query.mat')
 list  = list(1:5);
 zcool = zcool(:,:,1:5);
 
-repetitions=100;
+repetitions=20;
 tic
 for i0=1:repetitions
 % Obtain interpolated tables
@@ -192,8 +192,8 @@ switch inputs
         xG  = TAB.xG;
         yL  = TAB.yL;
         yG  = TAB.yG;
-        dxL = TAB.dxL;
-        dxG = TAB.dxG;
+        dxL = XL(1,end) - XL(1,1);
+        dxG = XG(1,end) - XG(1,1);
         figure(1)
         semilogy(xL,yL,'b',xG,yG,'b'); hold on;
         semilogy(xL-dxL,yL,xG+dxG,yG)
@@ -201,7 +201,7 @@ switch inputs
         semilogy(XL,YL,'k.');
         semilogy(XG,YG,'k.');
         semilogy(XT,YT,'k.');
-        botm = 0.01;
+        botm = 0.1;
         mark = max(err(:,:,:),[],3) > botm;
         semilogy(Xq(mark),Yq(mark),'rs');
         hold off;
