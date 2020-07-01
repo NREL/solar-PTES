@@ -4,9 +4,16 @@ function [ S ] = developed_flow( S, mode )
 % Compute Reynolds number
 S.Re = S.D*S.G./S.mu;
 
+% Compute Graetz number
+if ~isempty(S.LS)
+    S.Gz = (S.D./S.LS).*S.Re.*S.Pr;
+else
+    S.Gz = zeros(size(S.Re));
+end
+
 % First, compute the friction factor, Stanton number and heat transfer
 % coefficient assuming single phase flow along the whole stream
-[ S.Cf, S.St, S.ht ] = single_phase_flow( S.Re, S.Pr, S.G, S.Cp, S.shape );
+[ S.Cf, S.St, S.ht ] = single_phase_flow( S.Re, S.Pr, S.G, S.Cp, S.shape, S.Gz);
 
 % Compute pressure gradient due to flow friction. First, create average
 % arrays of Cf and v
@@ -107,19 +114,24 @@ end
 end
 
 %%% SUPPORT FUNCTIONS %%%
-function [ Cf, St, ht ] = single_phase_flow( Re, Pr, G, Cp, shape )
+function [ Cf, St, ht ] = single_phase_flow( Re, Pr, G, Cp, shape, Gz )
 
-if strcmp(shape,'circular')
-    % Set coefficients for circular pipe
-    aL  = 16.0;
-    bL  = 4.36;
-else
-    error('not implemented')
+% Set regime transition points. 'lim1' is the first limit (laminar to
+% transition). 'lim2' is the second limit (transition to turbulence).
+switch shape
+    case 'circular' % Macroscopic circular pipe
+        Re_lim1 = 2000;
+        Re_lim2 = 3000;
+        
+    case 'PCHE' % Semi-circular PCHE
+        Re_lim1 = 2800;
+        Re_lim2 = 2800;
+        %Re_lim1 = 2000;
+        %Re_lim2 = 3000;
+        
+    otherwise
+        error('not implemented')
 end
-
-% Set laminar to turbulent transition points
-Re_lim1 = 2000; % first limit (laminar to transition)
-Re_lim2 = 3000; % second limit (transition to turbulence)
 
 % Obtain array indices for laminar, transition and turbulent regimes
 lam = find(Re<=Re_lim1);
@@ -131,26 +143,132 @@ tur = find(Re>Re_lim2);
 W = (Re(tra) - Re_lim1)/(Re_lim2 - Re_lim1);
 
 % Allocate matrices
-f  = zeros(size(Re));
+Cf = zeros(size(Re));
 Nu = zeros(size(Re));
 
-% Compute friction factor and Stanton numbers. Fully developed flow model
-% with constant heat flux (Incropera):
-% Friction factor
-f(lam)  = aL*4./Re(lam);
-f(tur)  = (0.790 * log(Re(tur)) - 1.64).^(-2);
-f_lim1  = aL*4./Re_lim1;
-f_lim2  = (0.790 * log(Re_lim2) - 1.64).^(-2);
-f(tra)  = (1-W)*f_lim1 + W*f_lim2;
-Cf = f/4;
-% Nusselt number and Stanton number
-Nu(lam) = bL + 0.*Re(lam);
-Nu(tur) = (f(tur)/8).*(Re(tur) - 1000).*Pr(tur)./(1 + 12.7*(f(tur)/8).^(1/2).*(Pr(tur).^(2/3)-1));
-Nu_lim1 = bL + 0.*Re_lim1;
-Nu_lim2 = (f_lim2/8).*(Re_lim2 - 1000).*Pr(tra)./(1 + 12.7*(f_lim2/8).^(1/2).*(Pr(tra).^(2/3)-1));
+% Compute friction coefficient and Nusselt numbers. Use fully developed
+% flow model with constant heat flux.
+% Sources:
+% --> Incropera&DeWitt for circular channels
+
+% Obtain friction coefficient
+Cf(lam) = friction_coefficient( Re(lam), 'lam', shape );
+Cf_lim1 = friction_coefficient( Re_lim1, 'lam', shape );
+Cf(tur) = friction_coefficient( Re(tur), 'tur', shape );
+Cf_lim2 = friction_coefficient( Re_lim2, 'tur', shape );
+Cf(tra) = (1-W)*Cf_lim1 + W*Cf_lim2;
+
+% Nusselt number
+Nu(lam) = Nusselt_number( Re(lam),      [],      [], 'lam', shape);
+Nu_lim1 = Nusselt_number( Re_lim1,      [],      [], 'lam', shape);
+Nu(tur) = Nusselt_number( Re(tur), Pr(tur), Cf(tur), 'tur', shape);
+Nu_lim2 = Nusselt_number( Re_lim2, Pr(tra), Cf_lim2, 'tur', shape);
 Nu(tra) = (1-W)*Nu_lim1 + W.*Nu_lim2;
+
+% Use Graetz number to account for effects due to entry region
+% Thermally developing entry
+Nu = Nu + 0.0668*Gz./(1 + 0.04.*Gz.^(2/3));
+Nu(lam) = 3.66 + 0.0668*Gz(lam)./(1 + 0.04.*Gz(lam).^(2/3));
+% Combined developing entry
+%Nu = (Nu./tanh(2.264.*Gz.^(-1/3) + 1.7.*Gz.^(-2/3)) +...
+%    0.0499*Gz.*tanh(1./Gz))./tanh(2.432.*Pr.^(1/6).*Gz.^(-1/6));
+% No entry effects
+%Nu = Nu + 0.0.*Gz;
+
+%{
+if strcmp(shape,'PCHE')
+    Cf = Cf*1.1;
+    Nu = Nu*1.2;
+end
+%}
+
+% Compute Stanton number and heat transfer coefficient
 St = Nu./(Re.*Pr);
-% Heat transfer coefficient
 ht = G*Cp.*St;
+
+end
+
+function [ Cf ] = friction_coefficient ( Re , regime, shape )
+% Cf is the friction coefficient, also known as the "fanning friction
+% factor". It is defined here as: dp = - 2*Cf*v*G^2*dx/D
+
+switch shape
+    case 'circular'
+        
+        switch regime
+            case 'lam'
+                aL = 16;
+                Cf = aL./Re;
+                
+            case 'tur'
+                Cf = (1/4)*(0.790 * log(Re) - 1.64).^(-2);
+                
+            otherwise
+                error("incorrect regime input, please set 'lam' or 'tur'")
+        end
+        
+    case 'PCHE'
+        
+        switch regime
+            case 'lam' %Figley2013
+                aL = 15.78;
+                Cf = aL./Re;
+                
+            case 'tur' %Figley2013
+                Cf = (1/4)*(1./ (1.8*log10(Re) - 1.5)).^2;
+                
+            %case 'tur' %Marchionni2019
+            %    A  = -2.0.*log10(12./Re);
+            %    B  = -2.0.*log10(2.51.*A./Re);
+            %    Cf = (1/4)*( 4.781 - (A - 4.781).^2./(B - 2*A + 4.781) ).^(-2);
+                
+            otherwise
+                error("incorrect regime input, please set 'lam' or 'tur'")
+        end
+        
+    otherwise
+        error('not implemented')
+end
+
+end
+
+function [ Nu ] = Nusselt_number ( Re , Pr, Cf, regime, shape )
+
+switch shape
+    case 'circular'
+        
+        switch regime
+            case 'lam'
+                bL = 4.36;
+                Nu = bL + 0.*Re;
+                
+            case 'tur'
+                Nu = (Cf/2).*(Re - 1000).*Pr./(1 + 12.7*(Cf/2).^(1/2).*(Pr.^(2/3)-1));
+                
+            otherwise
+                error("incorrect regime input, please set 'lam' or 'tur'")
+        end
+        
+    case 'PCHE'
+        
+        switch regime
+            case 'lam' %Figley2013
+                bL = 4.089;
+                Nu = bL + 0.*Re;
+                
+            case 'tur'
+                Nu = (Cf/2).*(Re - 1000).*Pr./(1 + 12.7*(Cf/2).^(1/2).*(Pr.^(2/3)-1));
+                
+            otherwise
+                error("incorrect regime input, please set 'lam' or 'tur'")
+        end
+        
+    otherwise
+        
+        error('not implemented')
+end
+
+% Other correlations
+% Nu(tur) = 0.023.*Re(tur).^(0.8).*Pr(tur).^(0.33);
 
 end

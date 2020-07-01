@@ -198,9 +198,14 @@ for iI = 1:NI
     end
     
     % COMPUTE PRESSURE PROFILES
-    % Create averaged arrays of Cf and v
     % Obtain dL from dAC and AC
-    dL = dA/A*HX.L;
+    dL   = dA/A*HX.L;
+    % Compute cummulative sums of the dL array (used to account for entry
+    % effects)
+    LSH  = cumsum(dL,'reverse');
+    H.LS = [LSH(1);LSH];
+    LSC  = cumsum(dL);
+    C.LS = [LSC;LSC(end)];
     % Compute arrays of pressure loss
     Dp_H = 0.5*(H.dpdL(1:NX) + H.dpdL(2:NX+1)).*dL;
     Dp_C = 0.5*(C.dpdL(1:NX) + C.dpdL(2:NX+1)).*dL;
@@ -329,6 +334,7 @@ else
     HX.AS(iL,:) = AS';
     HX.QS(iL,:) = QS';
     HX.Ul(iL,:) = Ul';
+    HX.dL(iL,:) = dL';
     HX.A1 = A;
     HX.A2 = A;
     varargout{1} = solution;

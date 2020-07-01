@@ -32,6 +32,7 @@ classdef stream
         Cf      
         St      
         ht %heat transfer coeff
+        Gz %Graetz number
         
         %%% Arrays for the two-phase region
         % Saturated liquid
@@ -63,6 +64,8 @@ classdef stream
         D       {mustBePositive}
         G       {mustBePositive}
         L       {mustBePositive}
+        dL      {mustBePositive}
+        LS
     end
     
     methods

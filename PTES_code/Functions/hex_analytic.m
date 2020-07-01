@@ -35,6 +35,8 @@ H = stream; H.mdot = mH; H.name = fluidH.name;
 C = stream; C.mdot = mC; C.name = fluidC.name;
 H.read = fluidH.read; H.handle = fluidH.handle; H.HEOS = fluidH.HEOS;
 C.read = fluidC.read; C.handle = fluidC.handle; C.HEOS = fluidC.HEOS;
+H.shape = HX.shape;
+C.shape = HX.shape;
 
 % Obtain minimum and maximum enthalpy outlets (hot outlet cannot be colder
 % than cold inlet, and vice-versa) and average specific heat capacity
@@ -50,21 +52,25 @@ C.p = pC1;
 % Import values from HX structure into C and H structures
 if H.p > C.p
     % Hot fluid flows inside the tubes
-    H.D = HX.D1;
-    H.G = HX.G1;
-    H.A = HX.A1;
-    C.D = HX.D2;
-    C.G = HX.G2;
-    C.A = HX.A2;
+    H.D  = HX.D1;
+    H.Af = HX.Af1;
+    H.A  = HX.A1;
+    C.D  = HX.D2;
+    C.Af = HX.Af2;
+    C.A  = HX.A2;
 else
     % Hot fluid flows inside the shell side
-    H.D = HX.D2;
-    H.G = HX.G2;
-    H.A = HX.A2;
-    C.D = HX.D1;
-    C.G = HX.G1;
-    C.A = HX.A1;
+    H.D  = HX.D2;
+    H.Af = HX.Af2;
+    H.A  = HX.A2;
+    C.D  = HX.D1;
+    C.Af = HX.Af1;
+    C.A  = HX.A1;
 end
+
+% Compute mass fluxes
+H.G = mH/H.Af;
+C.G = mC/C.Af;
 
 % Initial guess
 hH1 = hH1_min;
@@ -81,13 +87,9 @@ for i=1:3
     
     % COMPUTE HEAT TRANSFER COEFFICIENTS
     % Cold stream
-    C.Re = C.D*C.G./C.mu;
-    [C.Cf,C.St] = developed_flow(C.Re,C.Pr,HX.shape);
-    C.ht  = C.G*C.Cp.*C.St;
+    [ C ] = developed_flow( C, 'heating' );
     % Hot stream
-    H.Re = H.D*H.G./H.mu;
-    [H.Cf,H.St] = developed_flow(H.Re,H.Pr,HX.shape);
-    H.ht  = H.G*H.Cp.*H.St;
+    [ H ] = developed_flow( H, 'cooling' );
     % Overall heat transfer coefficient (based on cold side heat transfer
     % area). Neglects wall thermal resistance and axial conduction.
     UlC  = 1./(C.A./(H.A*H.ht) + 1./C.ht);

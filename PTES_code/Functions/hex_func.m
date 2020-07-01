@@ -37,8 +37,8 @@ switch model
         ploss  = HX.ploss;
         
     case 'eff'
-        eff      = HX.eff;
-        ploss    = HX.ploss;
+        eff    = HX.eff;
+        ploss  = HX.ploss;
         
     case 'geom'
         % Set heat exchanger geometry (first time only)
