@@ -255,7 +255,7 @@ end
 % If the heat exchanger was employed with the 'eff' or 'DT' modes, the
 % required geometry is computed now
 for ii = 1 : numel(HX)
-    if any(strcmp(HX(ii).model,{'eff','DT'}))
+    if any(strcmp(HX(ii).model,{'eff','DT'})) && (~HX(ii).Lgeom_set)
         HX(ii)   = hex_set_geom(HX(ii)); %#ok<*SAGROW>
     end
     HX(ii)   = HX_cost(HX(ii), CEind) ;

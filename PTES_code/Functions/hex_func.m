@@ -208,6 +208,28 @@ switch model
         else
             plossC = ploss;
         end
+        % Account for different pressure losses in the two channels. Set
+        % the highest pressure loss equal to 'ploss' and estimate the
+        % lowest pressure with the ratio of geometry-independent pressure
+        % loss factors.
+        %%{
+        if isempty(HX.plossH0) && isempty(HX.plossC0) && any(mode==[0,1,2])
+            % Obtain specific volumes for the two channels
+            vH = 0.5*(1/RPN('PT_INPUTS',pH2,TH2,'D',fluidH) + 1/RPN('PT_INPUTS',pH2,TC1,'D',fluidH));
+            vC = 0.5*(1/RPN('PT_INPUTS',pC1,TH2,'D',fluidC) + 1/RPN('PT_INPUTS',pC1,TC1,'D',fluidC));
+            % Obtain geometry-independent pressure loss factors
+            DppH_fac = mH^2*vH/pH2;
+            DppC_fac = mC^2*vC/pC1;
+            % Set pressure losses
+            if DppH_fac > DppC_fac
+                plossH = ploss;
+                plossC = ploss*DppC_fac/DppH_fac;
+            else
+                plossC = ploss;
+                plossH = ploss*DppH_fac/DppC_fac;
+            end
+        end
+        %%}
         pH1 = pH2*(1-plossH);
         pC2 = pC1*(1-plossC);
         
