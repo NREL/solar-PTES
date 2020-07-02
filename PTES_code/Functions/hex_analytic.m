@@ -33,6 +33,8 @@ mC  = stateC.mdot;
 % Declare the two fluid streams
 H = stream; H.mdot = mH; H.name = fluidH.name;
 C = stream; C.mdot = mC; C.name = fluidC.name;
+H.read = fluidH.read; H.handle = fluidH.handle; H.HEOS = fluidH.HEOS;
+C.read = fluidC.read; C.handle = fluidC.handle; C.HEOS = fluidC.HEOS;
 
 % Obtain minimum and maximum enthalpy outlets (hot outlet cannot be colder
 % than cold inlet, and vice-versa) and average specific heat capacity
@@ -73,9 +75,9 @@ TC2 = TH2;
 for i=1:3
     % UPDATE PROPERTIES
     % Cold stream
-    C = stream_update(fluidC,C,1);
+    C = stream_update(C,2);
     % Hot stream
-    H = stream_update(fluidH,H,1);
+    H = stream_update(H,2);
     
     % COMPUTE HEAT TRANSFER COEFFICIENTS
     % Cold stream

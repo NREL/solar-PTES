@@ -12,9 +12,6 @@ if ~multi_run
         if Load.mode==3
             save_fig(2,'./Outputs/T-s_Rankine',0,0,0)
         end
-        if all([optimise,any(Load.mode==[0,2])])
-            save_fig(3,'./Outputs/Golden_search',0,0,0)            
-        end 
         % Also save workspace
         save('./Outputs/vars.mat')
     end

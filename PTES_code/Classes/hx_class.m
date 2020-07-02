@@ -8,10 +8,14 @@ classdef hx_class
        
        eff      % Effectiveness
        ploss    % Pressure loss
+       DT       % Pinch-point temperature difference
        
+       plossH0  % Pressure loss, specific to hot side
+       plossC0  % Pressure loss, specific to cold side
        UA0      % Conductance, W/K - (design)
        NTU0     % Design NTU
        LMTD0    % Design LMTD
+       iL0      % First load period in which hx is called
        Hname    % Hot fluid name
        Cname    % Cold fluid name
        
@@ -28,8 +32,11 @@ classdef hx_class
        
        QS       % Cumulative heat transfer
        AS       % Heat transfer area
+       Ul       % Local overall heat transfer coefficient
        LMTD     % Why not
        Cmin 
+       DTmin
+       effDT
        UA
        NTU
        DppH
@@ -68,43 +75,121 @@ classdef hx_class
        Sirr     % entropy generation, W/K
        
        % Costs
-       LestA   % Logical - estimate the area (if using effectivenesss/UA method) to enable cost calculations
+       Lgeom_set % Has the geometry been set
        hx_cost = econ_class(0,0,0,0) ;
        
    end
    
    methods
-       function obj = hx_class(name, stage_type, model, eff, ploss, cost_mode, Ngrid, Nsave, numPeriods)
-            obj.name       = name ;
-            obj.stage_type = stage_type ;
-            obj.model      = model ;
-            obj.eff        = eff ;
-            obj.ploss      = ploss ;
-            
-            obj.NX         = Ngrid ;
-            
-            % Loss data          
-            % Two columns. First for hot side. Second for cold side.
-            obj.w    = zeros(numPeriods,2) ;
-            obj.q    = zeros(numPeriods,2) ;
-            obj.Dh   = zeros(numPeriods,2) ;
-            obj.sirr = zeros(numPeriods,2) ;
-                        
-            obj.W    = zeros(numPeriods,2) ;
-            obj.Q    = zeros(numPeriods,2) ;
-            obj.DH   = zeros(numPeriods,2) ;
-            obj.Sirr = zeros(numPeriods,2) ;
-            
-            % Property data
-            %obj.H    = zeros(Nsave, 1) ;
-            %obj.C    = zeros(Nsave, 1) ;
-                        
-            obj.QS    = zeros(Nsave,Ngrid+1) ;
-            
-            obj.hx_cost = econ_class(cost_mode, 0.2, 5, 0.2) ;
-            
+       function obj = hx_class(name, stage_type, cost_mode, Ngrid, Nsave, numPeriods, model, varargin)
+           % There are four possible ways to construct a hx, depending on
+           % the selected hx model.
+           %
+           % If model is 'eff',
+           % eff = varargin{1}, ploss = varargin{2} and D1 = varargin{3}.
+           %
+           % If model is 'UA',
+           % UA  = varargin{1}, ploss = varargin{2} and D1 = varargin{3}.
+           %
+           % If model is 'DT',
+           % DT  = varargin{1}, ploss = varargin{2} and D1 = varargin{3}.
+           %
+           % If model is 'geom',
+           % DT  = varargin{1}, ploss = varargin{2}, D1 = varargin{3} and
+           % shape = varargin{4}.
+           
+           switch model
+               case 'eff'
+                   if length(varargin)~=4
+                       error('incorrect number of inputs');
+                   end
+                   obj.eff   = varargin{1};
+               case 'UA'
+                   if length(varargin)~=4
+                       error('incorrect number of inputs');
+                   end
+                   obj.UA    = varargin{1};
+               case 'DT'
+                   if length(varargin)~=4
+                       error('incorrect number of inputs');
+                   end
+                   obj.DT    = varargin{1};
+               case 'geom'
+                   if length(varargin)~=4
+                       error('incorrect number of inputs');
+                   end
+                   obj.eff   = varargin{1};
+               otherwise
+                   error('not implemented')
+           end
+           obj.ploss = varargin{2};
+           obj.D1    = varargin{3};
+           obj.shape = varargin{4};
+           
+           obj.name       = name ;
+           obj.stage_type = stage_type ;
+           obj.model      = model ;
+           obj.NX         = Ngrid ;
+           
+           % Loss data
+           % Two columns. First for hot side. Second for cold side.
+           obj.w    = zeros(numPeriods,2) ;
+           obj.q    = zeros(numPeriods,2) ;
+           obj.Dh   = zeros(numPeriods,2) ;
+           obj.sirr = zeros(numPeriods,2) ;
+           
+           obj.W    = zeros(numPeriods,2) ;
+           obj.Q    = zeros(numPeriods,2) ;
+           obj.DH   = zeros(numPeriods,2) ;
+           obj.Sirr = zeros(numPeriods,2) ;
+           
+           % Performance data
+           obj.Cmin = zeros(numPeriods,1);
+           obj.NTU  = zeros(numPeriods,1);
+           obj.DppH = zeros(numPeriods,1);
+           obj.DppC = zeros(numPeriods,1);
+           obj.UA   = zeros(numPeriods,1);
+           obj.LMTD = zeros(numPeriods,1);
+           obj.DTmin= zeros(numPeriods,1);
+           obj.effDT= zeros(numPeriods,1);
+           
+           % Property data
+           obj.H(1:numPeriods) = stream;
+           obj.C(1:numPeriods) = stream;
+           
+           obj.QS   = zeros(Nsave,Ngrid+1) ;
+           
+           obj.Lgeom_set = false ;
+           
+           obj.hx_cost = econ_class(cost_mode, 0.2, 5, 0.2) ;
+           
        end
-        
+       
+       % Calculate the energy and entropy terms for the heat exchanger
+       function obj = hx_energy(obj , T)  
+           % T is the duration of the load cycle in seconds
+           
+           % Iterate through each load cycle
+           for i = 1 : numel(obj.H)
+               
+               % Only evaluate if mdot is defined
+               if ~isempty(obj.H(i).mdot)
+                   % Hot streams
+                   obj.W(i,1)    = obj.w(i,1)    * obj.H(i).mdot * T(i) ;
+                   obj.Q(i,1)    = obj.q(i,1)    * obj.H(i).mdot * T(i) ;
+                   obj.DH(i,1)   = obj.Dh(i,1)   * obj.H(i).mdot * T(i) ;
+                   obj.Sirr(i,1) = obj.sirr(i,1) * obj.H(i).mdot * T(i) ;
+                   
+                   % Cold streams
+                   obj.W(i,2)    = obj.w(i,2)    * obj.C(i).mdot * T(i) ;
+                   obj.Q(i,2)    = obj.q(i,2)    * obj.C(i).mdot * T(i) ;
+                   obj.DH(i,2)   = obj.Dh(i,2)   * obj.C(i).mdot * T(i) ;
+                   obj.Sirr(i,2) = obj.sirr(i,2) * obj.C(i).mdot * T(i) ;
+               end
+               
+           end
+       end
+       
        
        % Calculate the HX cost
        % Costs come from Q2 report unless otherwise stated
@@ -138,6 +223,8 @@ classdef hx_class
                    % Shell and tube from Couper et al 3rd ed 2012 (2009
                    % costs). Have to choose material and pressure range.
                    % For 150 < A < 12e3 sqft
+                   nHX = 1 ; % Number of heat exchangers
+                   
                    if (obj.A1 == 0)
                        error('Have picked an unsuitable HX cost mode')
                    end
@@ -145,7 +232,13 @@ classdef hx_class
                    % Convert area to square feet
                    A = A * 3.28084^2 ;
                    
-                   COST = exp(8.821 - 0.30863 * log(A) + 0.0681 * (log(A))^2) ;
+                   maxA = 12e3 ;
+                   if A > maxA
+                       nHX = A / maxA ;
+                       A = maxA ;
+                   end                       
+                                      
+                   COST = 1.218 * nHX * exp(8.821 - 0.30863 * log(A) + 0.0681 * (log(A))^2) ;
                    
                    type = 'fixed head' ;
                    
@@ -169,9 +262,11 @@ classdef hx_class
                        f2 = 1.14 + 0.12088 * log(A) ;
                    end
                    
-                   mat = 'SS316' ;
+                   mat = 'CS' ;
                    
                    switch mat
+                       case 'CS'
+                           f3 = 1.0 ;
                        case 'SS316'
                            f3 = 0.86030 + 0.23296 * log(A) ;                            
                        case 'Nickel 200'
@@ -195,7 +290,7 @@ classdef hx_class
                    % Assumed to use 3/4 or 1 inch O.D. carbon steel tubes,
                    % 20 ft long, on square or triangular pitch, at
                    % pressures up to 100 psig
-                 
+                   nHX = 1 ; % Number of heat exchangers
                    if (obj.A1 == 0)
                        error('Have picked an unsuitable HX cost mode')
                    end
@@ -203,7 +298,13 @@ classdef hx_class
                    % Convert area to square feet
                    A = A * 3.28084^2 ;
                    
-                   type = 'floating head';
+                   maxA = 12e3 ;
+                   if A > maxA
+                       nHX = A / maxA ;
+                       A = maxA ;
+                   end                       
+                   
+                   type = 'fixed head';
                    
                    switch type
                        case 'floating head'
@@ -252,8 +353,37 @@ classdef hx_class
                     
                    f3 = d + (A/100)^e ;
                    
-                   COST = COST * f2 * f3 ;
-                   COST = COST * CEind(curr) / CEind(2017) ;    
+                   COST = COST * f2 * f3 * nHX;
+                   COST = COST * CEind(curr) / CEind(2017) ;  
+                   
+               case 5
+                   % Shell and tube. Data from Hall 1990, based on his 1986
+                   % work.
+                   if (obj.A1 == 0)
+                       error('Have picked an unsuitable HX cost mode')
+                   end
+                   A = 0.5 * (obj.A1 + obj.A2) ;
+                   
+                   mat = 'CS' ;
+                   
+                   switch mat
+                       case 'CS'
+                           fm = 1.0 ;
+                       case 'SS'
+                           fm = 1.7853 ;
+                       case 'Ti'
+                           fm = 5.876 ;
+                   end
+                   
+                   P = max(obj.H(1).pin,obj.C(1).pin) ; % Max pressure
+                   if P <= 10e5 
+                       fp = 1.0 ;
+                   else
+                       fp = 1. + 0.018347 * (P - 10e5) / 1e5 ;
+                   end
+                   
+                   COST = 30800 + 750 * fm * fp * A ^ 0.81 ; 
+                   COST = COST * CEind(curr) / CEind(1986) ;  
                
                case 10
                    % Plate-frame heat exchanger. Stainless and carbon steel
@@ -317,7 +447,7 @@ classdef hx_class
                case 24
                    % Natural gas fired primary heat exchanger
                    % From Weiland et al 2019. Valid up to 715 C and 230-275 bar, 10-50 MWth
-                   COST = 6.329e5 * (obj.QS(end,1)/1e6) ^ 0.6 ;
+                   COST = 6.329e5 * (obj.QS(1,end)/1e6) ^ 0.6 ;
                    if max(obj.H(1).T) > 550 + 273.15
                        COST = COST * (1 + 5.4e-5 * (max(obj.H(1).T) - 550 - 273.15)^2) ;
                    end
@@ -366,12 +496,28 @@ classdef hx_class
                    if (obj.A1 == 0)
                        error('Have picked an unsuitable HX cost mode')
                    end
+                   nHX  = 1 ;
+                   maxA = 500 ;
                    A = 0.5 * (obj.A1 + obj.A2) ;
                    % Convert area to kilo-square feet
                    A = (A * 3.28084^2)/1e3 ;
+                   if A > maxA
+                       nHX = A / maxA ;
+                       A   = maxA ;
+                   end
                    
-                   COST = 30 * A ^ 0.4 ;
+                   COST = nHX * 30 * A ^ 0.4 ;
                    COST = COST * 1e3 * CEind(curr) / CEind(2009) ;
+                   
+               case 34
+                   % From NETL 1998. Gives very large results.
+                   if (obj.A1 == 0)
+                       error('Have picked an unsuitable HX cost mode')
+                   end
+                   A = 0.5 * (obj.A1 + obj.A2) ;
+                   
+                   COST = 21126 + 210.28 * A ;
+                   COST = COST * CEind(curr) / CEind(1998) ;
                    
            end
            

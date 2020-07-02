@@ -45,6 +45,7 @@ while ~Lend
         obj(Npb) = PB_TIMESTEP(obj(Npb), fld, mode) ;
         %obj(Npb) = PB_TIMESTEP_IDEAL(obj(Npb), fld, mode) ;
         
+        % >> Move this stuff into PB_TIMESTEP?
         % Calculate the mass, enthalpy, and entropy flux INTO the storage in that timestep
         Min = obj(Npb).u(1,1) * obj(Npb).rho(1,1) * obj(Npb).A * obj(Npb).dt ;
         obj(Npb).Mflux(iCYC, 1) = obj(Npb).Mflux(iCYC, 1) + Min ;
@@ -88,7 +89,7 @@ for j = 1 : Npb
     [obj(Npb), obj(Npb).H(iCYC), obj(Npb).S(iCYC)] = PB_ENERGY(obj(Npb), fld) ; % Evaluate energy in packed bed at end of charge
     
     % Calculate lossy stuff
-    obj(Npb).W(iCYC) = 0.0 ;
+    obj(Npb).W(iCYC)    = 0.0 ;
     obj(Npb).Q(iCYC)    = obj(Npb).Hflux(iCYC,1) - obj(Npb).Hflux(iCYC,2) ; % Heat transferred into/out of storage
     obj(Npb).DH(iCYC)   = obj(Npb).H(iCYC) - obj(Npb).H(iCYC-1) ; % Change in enthalpy of packed bed. Should equal Q (small errors occur though)
     obj(Npb).Sirr(iCYC) = obj(Npb).S(iCYC) - obj(Npb).S(iCYC-1) ; % Change in entropy of packed bed

@@ -25,7 +25,12 @@ set_graphics
 load_coolprop
 
 tic
-PACKED_BED_INPUTS
+
+% Fluid
+FSname = 'MineralOil';  % fluid name
+fluidS = fluid_class(FSname,'SF','TAB',NaN,1,30); % Storage fluid
+Nhot = 1 ;
+PACKED_BED_INPUTS_ORIG
 
 i    = 1 ;
 iCYC = 1 ;
@@ -41,7 +46,7 @@ iCYC = iCYC + 1;
 while ~Lcyc 
     
     [pbH, TsC, TfC, iCYC] = PB_RUN(pbH, Nhot, fluidS, iCYC, 'chg');
-    %[pbH, TsD, TfD, iCYC] = PB_RUN(pbH, Nhot, fluidS, iCYC, 'dis');
+    [pbH, TsD, TfD, iCYC] = PB_RUN(pbH, Nhot, fluidS, iCYC, 'dis');
     fprintf(1,'COMPLETED CYCLE %5i\n\n',i) ;
     
     den     = 100.0 * abs(pbH(1).H(1) - en_prev) / en_prev ;

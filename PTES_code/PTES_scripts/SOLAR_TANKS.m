@@ -4,7 +4,7 @@
 if setTmax
     HT = reset_tanks(HT,273+250,p0,0,Tmax,p0,1e6,T0);
     % Set PRch used for reference to set PR_dis range
-    PRch = PR_estim;
+    %PRch = PR_estim;
     HT.A(2) = HT.A(1);
     HT.B(2) = HT.B(1);
 else

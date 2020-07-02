@@ -10,10 +10,8 @@ PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 0;            % set Tmax? (this option substitutes PRch)
 Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 
-% Set component parameters
+% Set compressor/expander parameters
 eta   = 0.90;  % polytropic efficiency
-eff   = 0.97;  % heat exchanger effectiveness
-ploss = 0.01;  % pressure loss in HEXs
 
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
@@ -208,47 +206,6 @@ end
 % Working fluid
 gas = fluid_class('CarbonDioxide','WF','CP','TTSE',Load.num,30);
 
-% Make heat exchangers
-
-
-% Heat exchangers set up to match Ty's work
-if Load.mode == 5
-    HX(1) = hx_class('hot', 'hex', 'eff', 0.879, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-    HX(2) = hx_class('cold', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-    HX(3) = hx_class('regen', 'regen', 'eff', 0.968, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-    HX(4) = hx_class('regen', 'regen', 'eff', 0.937, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-elseif Load.mode ==6
-    HX(1) = hx_class('hot', 'hex', 'eff', eff, ploss, 0, 100, Load.num, Load.num) ; % Hot heat exchanger
-    HX(2) = hx_class('hot', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-    HX(3) = hx_class('cold', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Cold heat exchanger
-    HX(4) = hx_class('regen', 'regen', 'eff', eff, ploss, 0, 100, Load.num, Load.num) ; % Recuperator exchanger
-    HX(5) = hx_class('regen', 'regen', 'eff', eff, ploss, 0, 100, Load.num, Load.num) ; % Recuperator heat exchanger    
-else
-    iHX = 1 ; % Heat exchanger counter
-    for ii = 1 : Nhot
-        HX(iHX) = hx_class('hot', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-        iHX = iHX + 1 ;
-    end
-    for ii = 1 : Ncld
-        HX(iHX) = hx_class('cold', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-        iHX = iHX + 1 ;
-    end
-    if (Nhot < 2) && (Ncld < 2) && (Nrcp > 0)
-        for ii = 1 : Nrcp
-            HX(iHX) = hx_class('regen', 'regen', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-            iHX = iHX + 1 ;
-        end
-    end
-end
-
-% Options for specifying heat exchanger geometry
-% This will probably be expanded over time
-for i = 1 : length(HX)
-   HX(i).LestA = true ;
-   HX(i).D1    = 0.025 ;
-end
-
-
-
 % Save copy of input file in "Outputs" folder
 copyfile(['./PTES_scripts/',mfilename,'.m'],'./Outputs/')
+

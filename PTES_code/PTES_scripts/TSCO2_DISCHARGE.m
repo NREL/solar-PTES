@@ -38,13 +38,8 @@ A_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
 while 1
     fprintf(1,'Hello discharge TSRC-sCO2 PTES cycle\n')
     % REGENERATE (gas-gas)
-    if new_hex_calls
-        [HX(Nhot+Ncld+1),gas,iG,~,~] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg2,0,0);
-        [HX(Nhot+Ncld+2),gas,iG,~,~] = hex_func(HX(Nhot+Ncld+2),iL,gas,iG,gas,iReg3,3,min(TthreshD,gas.state(iL,iG).T-5)); % Low-temp regenerator
-    else
-        [gas,~,iG,~] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0); %#ok<*SAGROW>
-        [gas,~,iG,~] = hex_TQ(gas,[iL,iG],gas,[iL,iReg3],eff,ploss,'regen',3,min(TthreshD,gas.state(iL,iG).T-5));% Low-temp regenerator
-    end
+    [HX(Nhot+Ncld+1),gas,iG,~,~] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg2,0,0);
+    [HX(Nhot+Ncld+2),gas,iG,~,~] = hex_func(HX(Nhot+Ncld+2),iL,gas,iG,gas,iReg3,3,min(TthreshD,gas.state(iL,iG).T-5)); % Low-temp regenerator
     
     % Split flows. Part goes through cold store. Part goes through heat rejection.
     % Set mass flows
@@ -62,11 +57,7 @@ while 1
     fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p;
     TCoutMIN = min(gas.state(iL,iG).T-5,CT.A(1).T) ;
     [fluidC] = update(fluidC,[iL,iC],1);
-    if new_hex_calls
-        [HX(Nhot+1),gas,~,fluidC,iC] = hex_func(HX(Nhot+1),iL,gas,iCLD,fluidC,iC,3,TCoutMIN);
-    else
-        [gas,fluidC,~,iC] = hex_TQ(gas,[iL,iCLD],fluidC,[iL,iC],eff,ploss,'hex',3,TCoutMIN);
-    end
+    [HX(Nhot+1),gas,~,fluidC,iC] = hex_func(HX(Nhot+1),iL,gas,iCLD,fluidC,iC,3,TCoutMIN);
     iC = iC + 1 ;
                 
     % Reject heat to environment (external HEX)
@@ -80,63 +71,45 @@ while 1
     
     % COMPRESS
     p_aim = gas.state(iL,iG).p*PRc_dis;
-    [DCMP(1),gas,iG] = compexp_func (DCMP(1),iL,gas,iG,'Paim',p_aim) ;
+    [DCMP(1),gas,iG] = compexp_func (DCMP(1),iL,gas,iG,'Paim',p_aim,design_mode) ;
     
     % REGENERATE (gas-gas)
-    if new_hex_calls
-        
-        % Split flow. Part goes through low-temp recuperator. Part goes
-        % through low-temp storage.
-        
-        % Mass flow rates get adjusted
-        % Low-temp recuperator:
-        [HX(Nhot+Ncld+2),~,~,gas,iG] = hex_func(HX(Nhot+Ncld+2),iL,gas,iReg1+1,gas,iReg3,3,min(TthreshD,gas.state(iL,iReg1+1).T-5)); % Require cold side to reach a certain temp
-        gas.state(iL,iCLD).mdot      = gas.state(iL,iReg1).mdot - gas.state(iL,iReg3).mdot ;
-        gas.state(iL,iCLD+1).mdot    = gas.state(iL,iCLD).mdot ;
-        
-        gas.state(iL,iCLD+2)      = gas.state(iL,iReg3) ;
-        gas.state(iL,iCLD+2).mdot = gas.state(iL,iCLD).mdot ;
-        gas.state(iL,iCLD+3).mdot = gas.state(iL,iCLD).mdot ;
-        
-        % Now low-temp storage
-        fluidH(2).state(iL,iH(2)).T = HT(2).B(iL).T; fluidH(2).state(iL,iH(2)).p = HT(2).B(iL).p; THmin = HT(2).A(1).T;
-        [fluidH(2)] = update(fluidH(2),[iL,iH(2)],1);
-        [HX(Nhot),fluidH(2),iH(2),gas,~] = hex_func(HX(Nhot),iL,fluidH(2),iH(2),gas,iCLD+2,4,THmin); % Require cold side to reach a certain temp
-        iH(2) = iH(2) + 1; 
-        
-        [gas,~,~] = mix_streams(gas,[iL,iG],[iL,iCLD+3]) ;
-        
-        % High-temp recuperator
-        [HX(Nhot+Ncld+1),~,~,gas,iG] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg2,0,0);
-               
-    else
-        error('Not implemented')
-        % If there is a recompression, adjust mass flows and add a mixer between the recomp. outlet and LTR cold outlet
-%         [~,gas,~,iG] = hex_TQ(gas,[iL,iReg1+1],gas,[iL,iReg3],eff,ploss,'regen',3,min(TthreshD,gas.state(iL,iReg1+1).T-5)); %% Require cold side to reach a certain temp
-%         gas.state(iL,iRCMP).mdot   = gas.state(iL,iReg1).mdot - gas.state(iL,iReg3).mdot ;
-%         gas.state(iL,iRCMP+1).mdot = gas.state(iL,iRCMP).mdot ;
-%         [gas,~,~] = mix_streams(gas,[iL,iG],[iL,iRCMP+1]) ;
-%         
-%         [~,gas,~,iG] = hex_TQ(gas,[iL,iReg1],gas,[iL,iReg2],eff,ploss,'regen',0,0);
-               
-    end
+    % Split flow. Part goes through low-temp recuperator. Part goes
+    % through low-temp storage.
+    % Mass flow rates get adjusted
+    % Low-temp recuperator:
+    [HX(Nhot+Ncld+2),~,~,gas,iG] = hex_func(HX(Nhot+Ncld+2),iL,gas,iReg1+1,gas,iReg3,3,min(TthreshD,gas.state(iL,iReg1+1).T-5)); % Require cold side to reach a certain temp
+    gas.state(iL,iCLD).mdot      = gas.state(iL,iReg1).mdot - gas.state(iL,iReg3).mdot ;
+    gas.state(iL,iCLD+1).mdot    = gas.state(iL,iCLD).mdot ;
+    
+    gas.state(iL,iCLD+2)      = gas.state(iL,iReg3) ;
+    gas.state(iL,iCLD+2).mdot = gas.state(iL,iCLD).mdot ;
+    gas.state(iL,iCLD+3).mdot = gas.state(iL,iCLD).mdot ;
+    
+    % Now low-temp storage
+    fluidH(2).state(iL,iH(2)).T = HT(2).B(iL).T; fluidH(2).state(iL,iH(2)).p = HT(2).B(iL).p; THmin = HT(2).A(1).T;
+    [fluidH(2)] = update(fluidH(2),[iL,iH(2)],1);
+    [HX(Nhot),fluidH(2),iH(2),gas,~] = hex_func(HX(Nhot),iL,fluidH(2),iH(2),gas,iCLD+2,4,THmin); % Require cold side to reach a certain temp
+    iH(2) = iH(2) + 1;
+    
+    [gas,~,~] = mix_streams(gas,[iL,iG],[iL,iCLD+3]) ;
+    
+    % High-temp recuperator
+    [HX(Nhot+Ncld+1),~,~,gas,iG] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg2,0,0);
+    
     
     for iN = 1:Ne_dis
         % HEAT (gas-fluid)
         fluidH(1).state(iL,iH(1)).T = HT(1).B(iL).T; fluidH(1).state(iL,iH(1)).p = HT(1).B(iL).p;
         THoutMAX = max(gas.state(iL,iG).T+1,HT(1).A(1).T);
         [fluidH(1)] = update(fluidH(1),[iL,iH(1)],1);
-        if new_hex_calls
-            [HX(1),fluidH(1),iH(1),gas,iG] = hex_func(HX(1),iL,fluidH(1),iH(1),gas,iG,4,THoutMAX); % Mode 4.
-        else
-            [fluidH(1),gas,iH(1),iG] = hex_TQ(fluidH(1),[iL,iH(1)],gas,[iL,iG],eff,ploss,'hex',4, THoutMAX); % Mode 4.
-        end
+        [HX(1),fluidH(1),iH(1),gas,iG] = hex_func(HX(1),iL,fluidH(1),iH(1),gas,iG,4,THoutMAX); % Mode 4.
         iH(1) = iH(1) + 1 ;
         
         % EXPAND
         PRe_dis = (gas.state(iL,iG).p/pbot)^(1/(Ne_dis+1-iN));  % expansion pressure ratio
         p_aim = gas.state(iL,iG).p/PRe_dis;
-        [DEXP(iN),gas,iG] = compexp_func (DEXP(iN),iL,gas,iG,'Paim',p_aim) ; 
+        [DEXP(iN),gas,iG] = compexp_func (DEXP(iN),iL,gas,iG,'Paim',p_aim,design_mode) ; 
     end
     
     % Determine convergence and proceed

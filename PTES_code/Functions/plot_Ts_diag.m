@@ -79,7 +79,7 @@ for iL=1:Load.num
             
             switch type
                 case {1,2}
-                    Pcrit = CP1(0,0,0,'Pcrit',fluid.handle);
+                    Pcrit = RP1(0,0,0,'Pcrit',fluid);
                     
                     if any(p_vect>0.99*Pcrit & p_vect<1.00*Pcrit)
                         [s1,T1,~,~,~] = CP5('HmassP_INPUTS',h_vect,p_vect*1.01,'S','T','P','P','P',fluid.handle);
@@ -118,7 +118,7 @@ end
 
 if Sat_curve    
     % Plot saturation curve
-    [T_vect_c,sL,sG,sQ] = plot_sat_curve(fignum,num,10,fluid.handle);
+    [T_vect_c,sL,sG,sQ] = plot_sat_curve(fignum,num,10,fluid);
     for i0=1:size(sQ,1)
         plot(sQ(i0,:)/1e3,T_vect_c+K_C,'-k','LineWidth',1); hold on;
     end

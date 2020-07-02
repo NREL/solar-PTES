@@ -30,8 +30,7 @@ classdef compexp_class
         Sirr     % entropy generation, W/K
         
         rhoP    % design point power density
-        firstcall
-        
+                
         % Economics
         cmpexp_cost = econ_class(0,0,0,0) ;
         
@@ -64,7 +63,7 @@ classdef compexp_class
             
         end
             
-        function [obj,fluid,i] = compexp_func (obj,iL,fluid,i,aim_mode,aim)
+        function [obj,fluid,i] = compexp_func (obj,iL,fluid,i,aim_mode,aim, design_mode)
             % iL is the Load index
             % i is the index of the state point within the cycle
             
@@ -80,12 +79,26 @@ classdef compexp_class
             s1   = state.s;
             rho1 = state.rho;
             
-            % Extract eta for this time period
-            obj = compexp_offdesign (obj , state, iL , 1) ;
-            obj.eta(iL) = obj.eta0 ;
+            % Extract eta, pr for this time period
+            if design_mode
+                obj.eta(iL)  = obj.eta0 ;
+                obj.mdot(iL) = obj.mdot0 ;
+                obj.pr(iL)   = 1 ;
+            else
+                if strcmp(fluid.name,'Water')
+                    obj = compexp_offdesign (obj , state, iL , aim, 2) ;
+                elseif strcmp(obj.type,'pump')
+                    obj.eta(iL)  = obj.eta0 ;
+                    obj.mdot(iL) = state.mdot ;
+                    obj.pr(iL)   = 1 ;
+                else
+                    obj = compexp_offdesign (obj , state, iL , aim, 1) ;
+                end
+            end
             etaI = obj.eta(iL) ;     
             
-            %{
+            % If not at the design pressure ratio then calculate the
+            % required pressure ratio
             if obj.pr(iL) ~= 1
                obj.aim_mode = 'Paim' ;
                if strcmp(obj.type,'comp')
@@ -94,7 +107,7 @@ classdef compexp_class
                    aim = fluid.state(iL,i).p / (obj.pr0 * obj.pr(iL)) ;
                end
             end
-            %}
+            
             
             % EXPECT ALL OF THIS COULD BE MOVED INTO CLASS CONSTRUCTOR AND
             % THEREFORE ONLY CALCULATED ONCE >>>>
@@ -110,6 +123,8 @@ classdef compexp_class
                 mode = 4 ;
             elseif strcmp(obj.type,'comp') && strcmp(obj.aim_mode,'Paim') && strcmp(obj.eff_mode,'isen')
                 mode = 5 ;
+            elseif strcmp(obj.type,'pump') && strcmp(obj.aim_mode,'Paim') && strcmp(obj.eff_mode,'isen')
+                mode = 6 ;
             else
                 error('Not implemented')
             end
@@ -129,6 +144,9 @@ classdef compexp_class
             elseif (mode==1 || mode==2 || mode==4) %expander
                 n = -1;
                 stage.type = 'exp';
+            elseif (mode==6) %pump
+                n = 1;
+                stage.type = 'pump';
             else
                 error('***Mode not implemented***')
             end
@@ -142,14 +160,12 @@ classdef compexp_class
                 % Estimate polytropic index to estimate final pressure
                 T2   = aim;
                 TAV  = 0.5*(T1 + T2);
-                %Gama = CP1('PT_INPUTS',p1,TAV,'CPMASS',fluid.handle)/CP1('PT_INPUTS',p1,TAV,'CVMASS',fluid.handle);
                 Gama = RP1('PT_INPUTS',p1,TAV,'CPMASS',fluid)/RP1('PT_INPUTS',p1,TAV,'CVMASS',fluid);
                 phi  = (Gama/(Gama-1))*etaI^n;
                 p2   = p1*(T2/T1)^phi;
                 
                 % Compute compression/expansion for estimated final pressure
                 h2   = nested_compexp(fluid,p1,h1,s1,rho1,p2,etaI,n,num);
-                %Tnew = CP1('HmassP_INPUTS',h2,p2,'T',fluid.handle);
                 Tnew = RP1('HmassP_INPUTS',h2,p2,'T',fluid);
                 
                 % Re-compute polytropic index and adapt final pressure
@@ -172,18 +188,16 @@ classdef compexp_class
                 h2   = nested_compexp_is(fluid,h1,s1,p2,etaI,n);
             end
             
-            if iL == obj.firstcall
-                if strcmp(obj.type,'comp')
-                    obj.pr0 = p2 / p1 ;
-                else
-                    obj.pr0 = p1 / p2 ;
-                end
+            % Pump. Final pressure specified (isentropic efficiency)
+            if mode==6
+               p2 = aim ;
+               h2 = pump_is(obj.mdot(iL), h1, rho1, p1, p2, etaI) ;
             end
             
             % Update state
             state.h = h2;
             state.p = p2;
-            state   = update_state(state,fluid.handle,fluid.read,fluid.TAB,fluid.IDL,2);
+            state   = update_state(state,fluid,2);
             
             obj.Dh(iL)   = state.h - h1;
             obj.q(iL)    = 0;
@@ -200,26 +214,38 @@ classdef compexp_class
             % Export computed state and stage back into fluid
             fluid.state(iL,i+1) = state; % Result goes into next state
             fluid.stage(iL,i)   = stage; % Result stays in current stage
-            
+            % << DELETE THIS EVENTUALLY 
             %Increase stage counter
             i = i+1;
             
-            % << DELETE THIS EVENTUALLY 
-            
+            % Save the main design parameters
+            if design_mode
+                obj.mdot0 = state.mdot ;
+                obj.Tin   = T1 ;
+                obj.Pin   = p1 ;
+                
+                % Design pressure ratio
+                if strcmp(obj.type,'comp') || strcmp(obj.type,'pump')
+                    obj.pr0 = p2 / p1 ;
+                else
+                    obj.pr0 = p1 / p2 ;
+                end
+                
+                obj.W0 = abs(obj.w(iL) * obj.mdot0) ;
+            end
+                        
             function h2 = nested_compexp(fluid,p1,h1,s1,rho1,p2,eta,n,num)
                 % Use isentropic efficiency as an initial guess to speed things up
                 % Pressure array (to solve integral)
                 pv = logspace(log10(p1),log10(p2),num);
                 Dp = pv(2:num) - pv(1:(num-1));
                 % Initial guess
-                %h2_is = CP1('PSmass_INPUTS',p2,s1,'H',fluid.handle);
                 h2_is = RP1('PSmass_INPUTS',p2,s1,'H',fluid);
                 h2 = h1 + eta^n*(h2_is - h1);
                 % Update until convergence
                 err = zeros(1,20);
-                for i1 = 1:20
+                for i1 = 1:50
                     h2_0  = h2;
-                    %rho2  = CP1('HmassP_INPUTS',h2,p2,'D',fluid.handle);
                     rho2  = RP1('HmassP_INPUTS',h2,p2,'D',fluid);
                     xi    = log(rho2/rho1)/log(p2/p1); %assumes rho = K*p^xi along polytropic compression/expansion
                     rhov  = rho1*(pv/p1).^xi;  %density array (estimate)
@@ -245,7 +271,6 @@ classdef compexp_class
             
             function h2 = nested_compexp_is(fluid,h1,s1,p2,eta,n)
                 % Use isentropic efficiency
-                %h2_is = CP1('PSmass_INPUTS',p2,s1,'H',fluid.handle);
                 h2_is = RP1('PSmass_INPUTS',p2,s1,'H',fluid);
                 if n == 1 %compressor
                     h2 = h1 + (h2_is - h1)/eta;
@@ -256,11 +281,17 @@ classdef compexp_class
                 end
             end
             
+            % Calculate the work input to a pump Q = dP * vol flow rate / eta
+            function h2 = pump_is(mdot, h1, rho1, p1, p2, eta) 
+                work = (p2 - p1) * mdot / (rho1 * eta) ;
+                h2   = h1 + work ;
+            end
+            
         end
         
         % Calculate the off-design performance of the compressor given how
         % the mass flow or pressure ratio deviate from the design point
-        function [obj, Nr, mr] = compexp_offdesign(obj,state,iL,mode)
+        function [obj, Nr, mr] = compexp_offdesign(obj,state,iL,paim,mode)
             % iL is the current timestep
             % Mode 1: Map based on Zhang and Cai 2002
             
@@ -275,24 +306,12 @@ classdef compexp_class
                 obj.N(iL) = obj.N0 ;
             end
                         
-            % If design variables are undefined set them here
-            % (Essentially, the 1st charge and 1st discharge cycles set the
-            % design point
-            if obj.mdot0 == 0
-                obj.firstcall = iL ;
-            end
-            
-            if iL == obj.firstcall
-                obj.mdot0 = obj.mdot(iL) ;
-                obj.Tin   = T1 ;
-                obj.Pin   = P1 ;
-            end
-            
             % Check whether at design point
             % (Running the off-design model at the design point should
             % return the same value, running this way requires fewer calcs
             if P1==obj.Pin && T1==obj.Tin && obj.mdot(iL)==obj.mdot0 && obj.N(iL) == obj.N0
                 obj.eta(iL) = obj.eta0 ;
+                obj.pr(iL)  = 1.;
                 mr = 1. ;
                 Nr = 1. ;
             else
@@ -320,7 +339,7 @@ classdef compexp_class
                     end
                 elseif obj.type == "exp"
                     switch mode
-                        case 1
+                        case 1 % Axial gas machines
                             mr = (obj.mdot(iL) / obj.mdot0) * (T1/obj.Tin)^0.5 * (obj.Pin/P1) ; % Reduced mass
                             Nr = (obj.N(iL) / obj.N0) * (T1/obj.Tin)^0.5 ; % Reduced speed
                             
@@ -337,7 +356,40 @@ classdef compexp_class
                             end
                             obj.eta(iL) = obj.eta0 *(1-t2*(1-Nr)^2)*(Nr/mr)*(2-Nr/mr) ;
                             
-                        case 2
+                        case 2 % Axial steam machines
+                            % Estimate what exit pressure should be based on Stodola's ellipse
+                            pout0 = obj.Pin / obj.pr0 ;
+                            pout = P1 * sqrt(1.-(1. - (pout0/obj.Pin)^2)*(obj.mdot(iL) / obj.mdot0)^2);
+                            
+                            obj.eta(iL) = obj.eta0 ; % Assume this by default
+                            
+                            % How does outlet presssure compare to paim?
+                            if paim < pout
+                                pout = paim ;
+                                obj.pr(iL) = (P1 / paim) / obj.pr0 ; % Reduce pout and pr accordingly
+                                
+                                % Calculate mass from Stodola
+                                mout = obj.mdot0 * sqrt ( (1. - (pout/P1)^2)/(1. - (pout0/obj.Pin)^2)) ;
+                                if mout > obj.mdot0 % If an increased mass is required, specify this
+                                    obj.mdot(iL) = mout ; 
+                                elseif mout < obj.mdot0 %If a reduced mass is required, use the original mass but reduce the efficiency
+                                    obj.eta(iL) = obj.eta0 * (1. - 0.191 + 0.409*mout/obj.mdot0 - 0.218*(mout/obj.mdot0)^2) ; % Correlation from Patnode thesis, p.68
+                                end
+                            end
+                            
+                            if pout < paim
+                                pout = paim ; % paim is minimum outlet pressure
+                                obj.pr(iL) = (P1 / paim) / obj.pr0 ; % Reduce pout and pr accordingly
+                                
+                                % Calculate mass from Stodola
+                                mout = obj.mdot0 * sqrt ( (1. - (pout/P1)^2)/(1. - (pout0/obj.Pin)^2)) ;
+                                if mout > obj.mdot0 % If an increased mass is required, specify this
+                                    obj.mdot(iL) = mout ; 
+                                elseif mout < obj.mdot0 %If a reduced mass is required, use the original mass but reduce the efficiency
+                                    obj.eta(iL) = obj.eta0 * (1. - 0.191 + 0.409*mout/obj.mdot0 - 0.218*(mout/obj.mdot0)^2) ; % Correlation from Patnode thesis, p.68
+                                end
+                            end
+                        case 3
                             error('Not implemented')
                     end
                     
@@ -353,18 +405,10 @@ classdef compexp_class
             obj.Q    = obj.q    .* obj.mdot .* T ;
             obj.DH   = obj.Dh   .* obj.mdot .* T ;
             obj.Sirr = obj.sirr .* obj.mdot .* T ;
-            
-            % What is the design point work? Need a better method in the
-            % long run
-            if strcmp(obj.type,'comp')
-                obj.W0 = -min(obj.w .* obj.mdot) ;
-            elseif strcmp(obj.type,'exp')
-                obj.W0 = max(obj.w .* obj.mdot) ;
-            end
         end
                
         % Calculate the economic cost of the compressor or expander
-        function obj = compexp_econ(obj, CEind, Lscale, scale)
+        function obj = compexp_econ(obj, CEind, fld)
             mode = obj.cmpexp_cost.cost_mode ;
             curr = 2019 ; % Current year
             
@@ -391,33 +435,8 @@ classdef compexp_class
                     COST = 7190 * (obj.W0 * 0.00134102)^0.61 ;
                     COST = COST * CEind(curr) / CEind(2010)  ; 
                     
+                    
                 case 4
-                    % Turbomachinery compressor cost from Valero et al 1994, but updated by Farres-Antunez, 2019
-                    % Eq. C3.1
-                    COST = 670 * obj.mdot0 * log(obj.pr0) / (0.92 - obj.eta0) ;
-                    COST = COST * CEind(curr) / CEind(2019) ;
-                    
-                    COST = 39.5 * obj.mdot0 * obj.pr0* log(obj.pr0) / (0.92 - obj.eta0) ;
-                    COST = COST * CEind(curr) / CEind(1994) ;
-                    
-                case 5
-                    % Cost for an sCO2 compressor developed by Carlson et al. 2017
-                    % See equation C6 in Q2 solar-PTES report
-                    COST = 6998 * (obj.W0/1e3) ^ 0.7865 ;
-                    COST = COST * CEind(curr) / CEind(2017) ;
-                    
-                case 6 
-                    % sCO2 compressor from Morandin 2013 - eq. C7
-                    COST = 20e3 + 9e3 * (obj.W0/1e3)^0.6 ;
-                    COST = COST * CEind(curr) / CEind(2013) ;
-                    
-                case 7
-                    % sCO2 compressor by Weiland et al 2019
-                    % Integrally geared, centrifugal, 1.5-200 MW
-                    COST = 1.23e6 * (obj.W0/1e6)^0.3992 ;
-                    COST = COST * CEind(curr) / CEind(2019) ;
-                    
-                case 8
                     % This calculates the average cost from Turton, Sieder, and Couper
                 
                     % Reciprocating compressor cost from Georgiou et al 2019 based on Seider
@@ -434,67 +453,124 @@ classdef compexp_class
                     
                     COST = (SIEDER + TURT + COUPER) / 3.;
                 
+                    
                 case 10
+                    % Black and Veatch correlation, eq. C1 and E1
+                    COST = 250. * obj.W0 / 1e3 ;
+                    COST = COST * CEind(curr) / CEind(2018) ;
+                    
+                case 11
+                    % Turbomachinery compressor cost from Valero et al 1994
+                    % Have changed eta_max from 0.9 to 0.92
+                    COST = 39.5 * obj.mdot0 * obj.pr0* log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = COST * CEind(curr) / CEind(1994) ;
+                    
+                case 12
+                    % Turbomachinery compressor from Agazzini 1996. Based
+                    % on Valero, but coefficients updated against costs
+                    % from Gas Turbine World 1995 Handbook. Again have
+                    % changed eta_max from 0.9 to 0.92.
+                    
+                    COST = 1.051 * 39.5 * obj.mdot0 * obj.pr0* log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = COST * CEind(curr) / CEind(1995) ;
+                    
+                case 13
+                    % Air compressor costs based on quotations for CAES.
+                    % From CEC-500-2008-069 CAES scoping report.
+                    
+                    COST = 30 * obj.mdot0 * 3600. ;
+                    COST = COST * CEind(curr) / CEind(2008) ;
+                    
+                case 14
+                    % Centrifugual compressor from Couper
+                    % Convert power to horsepower
+                    P = obj.W0 * 0.00134102 ;
+                    
+                    nC = 1 ;
+                    maxP = 30e3 ;
+                    if P > maxP
+                        nC = P / maxP ;
+                        P  = maxP ;
+                    end
+                    
+                    COST = nC * 7.9e3 * P ^ 0.62 ;
+                    COST = COST * CEind(curr) / CEind(2010) ;
+                                        
+                    
+                case 15 
+                    % Use Agazzini's (Valero's) correlation, but scale it by the density
+                    % of the inlet air (if higher density, then more
+                    % compact compressor)
+                    
+                    COST = 1.051 * 39.5 * obj.mdot0 * obj.pr0* log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = COST * CEind(curr) / CEind(1995) ;
+                    
+                    RHOin = RP1('PT_INPUTS',obj.Pin,obj.Tin,'D',fld) ;
+                    RHO0  = 1.225 ; % Density of air at standard conditions
+                    n     = 1 ; % This allows you to modify how strongly the cost is reduced
+                    scale = (RHOin / RHO0)^n ;
+                    
+                    COST = COST / scale ;  
+                    
+                case 16
+                    % Scale Agazzini's correlation by the maximum compressor temperature
+                    % This way can capture increasing costs
+                    % A typical air compressor at a pressure ratio of 17
+                    % compresses air to around 450-500 C (750 K)
+                    % Therefore the cost should increase above this. Assume
+                    % a compressor at 1000 K is double the cost. One
+                    % sensible looking factor is Tfac = (1. + exp(0.01 .* Tmax - 10)) ;
+                    
+                    % MAYBE COMBINE THIS CORRELATION AND THE PREVIOUS ONE?
+                    
+                    COST = 1.051 * 39.5 * obj.mdot0 * obj.pr0* log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = COST * CEind(curr) / CEind(1995) ;
+                    
+                    % Estimate gamma
+                    if strcmp(fld.read,'IDL')
+                        Gama = fld.IDL.gam ;
+                    else
+                        Gama = CP1('PT_INPUTS',obj.Pin,obj.Tin,'CPMASS',fld.handle)/CP1('PT_INPUTS',obj.Pin,obj.Tin,'CVMASS',fld.handle);
+                    end
+                                        
+                    Tmax = obj.Tin * obj.pr0 ^ ((Gama-1.)/(obj.eta0*Gama)) ;
+                    Tfac = (1. + exp(0.01 .* Tmax - 10)) ;
+                    
+                    COST = COST * Tfac ; 
+                case 20
+                    % Cost for an sCO2 compressor developed by Carlson et al. 2017
+                    % See equation C6 in Q2 solar-PTES report
+                    COST = 6998 * (obj.W0/1e3) ^ 0.7865 ;
+                    COST = COST * CEind(curr) / CEind(2017) ;
+                    
+                case 21 
+                    % sCO2 compressor from Morandin 2013 - eq. C7
+                    COST = 20e3 + 9e3 * (obj.W0/1e3)^0.6 ;
+                    COST = COST * CEind(curr) / CEind(2013) ;
+                    
+                case 22
+                    % sCO2 compressor by Weiland et al 2019
+                    % Integrally geared, centrifugal, 1.5-200 MW
+                    COST = 1.23e6 * (obj.W0/1e6)^0.3992 ;
+                    COST = COST * CEind(curr) / CEind(2019) ;
+                    
+                case 30
                     % Reciprocating Expander cost from Georgiou et al 2019 based on Turton
                     % ** NOT SURE IF power should be in kW or horsepower?
                     COST = 10 ^ (2.7051 + 1.4398 * log10(obj.W0/1e3) - 0.1776 * (log10(obj.W0/1e3))^2) ;
                     COST = COST * 3.5 * CEind(curr) / CEind(2013) ;
                 
-                case 11
+                case 31
                     % Reciprocating Expander cost from Georgiou et al 2019 based on Sieder
                     COST = 530 * (obj.W0 * 0.00134102)^0.81 ;
                     COST = COST * CEind(curr) / CEind(2010)  ;   
                     
-                case 12 
+                case 32 
                     % Reciprocating expander cost from Georgiou et al 2019 based on Couper
                     COST = 378 * (obj.W0 * 0.00134102)^0.81 ;
                     COST = COST * CEind(curr) / CEind(2010)  ; 
                     
-                case 13
-                    % Expander cost from Valero et al 1994, but updated by Farres-Antunez, 2019
-                    % Eq. E3.1
-                    COST = 1100 * obj.mdot0 * log(obj.pr0) / (0.92 - obj.eta0) ;
-                    COST = COST * CEind(curr) / CEind(2019) ;
-                    
-                    COST = 266.3 * obj.mdot0 * log(obj.pr0) / (0.92 - obj.eta0) ;
-                    COST = COST * CEind(curr) / CEind(1994) ;
-                    
-                case 14 
-                    % Cost for an sCO2 expander developed by Carlson et al. 2017
-                    % See equation E4 in Q2 solar-PTES report
-                    COST = 7790 * (obj.W0/1e3) ^ 0.6842 ;
-                    COST = COST * CEind(curr) / CEind(2017) ;
-                    
-                case 15
-                    % sCO2 expander from Morandin 2013 - eq. E5
-                    COST = 40e3 + 9e3 * (obj.W0/1e3)^0.69 ;
-                    COST = COST * CEind(curr) / CEind(2013) ;
-                    
-                case 16
-                    % sCO2 radial turbine, 8-35 MW
-                    % From Weiland et al 2019
-                    % Valid up to TIT = 700C, and Pin = 200-260 bar
-                    if obj.Tin > 550 + 273.15
-                        fact = 1 + 1.137e-5 * (obj.Tin - 550 - 273.15)^2 ;
-                    else
-                        fact = 1.0 ;
-                    end
-                    COST = fact * 4.062e6 * (obj.W0/1e6)^0.8 ;
-                    COST = COST * CEind(curr) / CEind(2019) ;
-                    
-                case 17
-                    % sCO2 axial turbine, 10-750 MW
-                    % From Weiland et al 2019
-                    % Valid up to TIT = 730C, and Pin = 240-280 bar
-                    if obj.Tin > 550 + 273.15
-                        fact = 1 + 1.106e-4 * (obj.Tin - 550 - 273.15)^2 ;
-                    else
-                        fact = 1.0 ;
-                    end
-                    COST = fact * 1.826e6 * (obj.W0/1e6)^0.5561 ;
-                    COST = COST * CEind(curr) / CEind(2019) ;
-                    
-                case 18
+                case 33
                     % Average reciprocating expander cost from Turton, Sieder and Couper
                     
                     SIEDER = 530 * (obj.W0 * 0.00134102)^0.81 ;
@@ -507,42 +583,190 @@ classdef compexp_class
                     COUPER = COUPER * 1.5 * CEind(curr) / CEind(2010)  ; 
                     
                     COST = (TURT + SIEDER + COUPER) / 3. ;
+                
                     
-                case 20
+                case 40
+                    % Expander cost from Valero et al 1994
+                    % Eq. E3.1                    
+                    COST = 266.3 * obj.mdot0 * log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = COST * (1. + exp(0.018 * obj.Tin - 26.4)) ;
+                    COST = COST * CEind(curr) / CEind(1994) ;
+                    
+                case 41
+                    % Turbomachinery expander from Agazzini 1996. Based
+                    % on Valero, but coefficients updated against costs
+                    % from Gas Turbine World 1995 Handbook. 
+                    
+                    COST = 1.051 * 266.3 * obj.mdot0 * log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = COST * (1. + exp(0.018 * obj.Tin - 1.207 * 26.4)) ;
+                    COST = COST * CEind(curr) / CEind(1995) ;
+                    
+                case 42
+                    % Turboexpander costs based on quotations for CAES.
+                    % From CEC-500-2008-069 CAES scoping report.
+                    
+                    COST = 160 * obj.W0/1e3  ;
+                    COST = COST * CEind(curr) / CEind(2008) ;
+                    
+                case 43
+                    % 'Turbine' from Couper
+                    % Convert power to horsepower
+                    P = obj.W0 * 0.00134102 ;
+                    
+                    nC = 1 ;
+                    maxP = 8e3 ;
+                    if P > maxP
+                        nC = P / maxP ;
+                        P  = maxP ;
+                    end
+                    
+                    COST = nC * 1.1e3 * P ^ 0.81 ;
+                    COST = COST * CEind(curr) / CEind(2010) ;
+                
+                case 44
+                    % Use Agazzini's (Valero's) correlation, but scale it by the density
+                    % of the outlet air (if higher density, then more
+                    % compact expander)
+                    
+                    COST = 1.051 * 266.3 * obj.mdot0 * log(obj.pr0) / (0.92 - obj.eta0) ;
+                    COST = COST * (1. + exp(0.018 * obj.Tin - 1.207 * 26.4)) ;
+                    COST = COST * CEind(curr) / CEind(1995) ;
+                    
+                    % Estimate gamma
+                    if strcmp(fld.read,'IDL')
+                        Gama = fld.IDL.gam ;
+                    else
+                        Gama = CP1('PT_INPUTS',obj.Pin,obj.Tin,'CPMASS',fld.handle)/CP1('PT_INPUTS',obj.Pin,obj.Tin,'CVMASS',fld.handle);
+                    end
+                    
+                    Pout = obj.Pin / obj.pr0 ;
+                    Tout = obj.Tin / (obj.pr0 ^ (obj.eta0 * (Gama - 1)/Gama)) ;
+                    
+                    RHOout = RP1('PT_INPUTS',Pout,Tout,'D',fld) ;
+                    RHO0  = 1.225 ; % Density of air at standard conditions
+                    n     = 1 ; % This allows you to modify how strongly the cost is reduced
+                    scale = (RHOout / RHO0)^n ;
+                    
+                    COST = COST / scale ; 
+                    
+                case 50 
+                    % Cost for an sCO2 expander developed by Carlson et al. 2017
+                    % See equation E4 in Q2 solar-PTES report
+                    COST = 7790 * (obj.W0/1e3) ^ 0.6842 ;
+                    COST = COST * CEind(curr) / CEind(2017) ;
+                    
+                case 51
+                    % sCO2 expander from Morandin 2013 - eq. E5
+                    COST = 40e3 + 9e3 * (obj.W0/1e3)^0.69 ;
+                    COST = COST * CEind(curr) / CEind(2013) ;
+                    
+                case 52
+                    % sCO2 radial turbine, 8-35 MW
+                    % From Weiland et al 2019
+                    % Valid up to TIT = 700C, and Pin = 200-260 bar
+                    if obj.Tin > 550 + 273.15
+                        fact = 1 + 1.137e-5 * (obj.Tin - 550 - 273.15)^2 ;
+                    else
+                        fact = 1.0 ;
+                    end
+                    COST = fact * 4.062e6 * (obj.W0/1e6)^0.8 ;
+                    COST = COST * CEind(curr) / CEind(2019) ;
+                    
+                case 53
+                    % sCO2 axial turbine, 10-750 MW
+                    % From Weiland et al 2019
+                    % Valid up to TIT = 730C, and Pin = 240-280 bar
+                    if obj.Tin > 550 + 273.15
+                        fact = 1 + 1.106e-4 * (obj.Tin - 550 - 273.15)^2 ;
+                    else
+                        fact = 1.0 ;
+                    end
+                    COST = fact * 1.826e6 * (obj.W0/1e6)^0.5561 ;
+                    COST = COST * CEind(curr) / CEind(2019) ;
+                    
+                    
+                case 60
                     % Pump cost. Centrifugal, carbon steel, includes motor.
                     % - eq. P1
                     COST = 2409.6 + 75.9 * obj.W0 / 1e3 ;
                     COST = COST * CEind(curr) / CEind(1998) ;
                     
-                case 21
+                case 61
                     % Pump cost. Centrifugal, includes motor.
                     % - eq. P2
                     COST = 1227.5 + 177.8 * obj.W0 / 1e3 ;
                     COST = COST * CEind(curr) / CEind(1990) ;
                     
-                case 22
+                case 62
                     % Pump cost. - eq. P3
                     COST = 50e3 + 1500 * (obj.W0 / 1e3)^0.8 ;
                     COST = COST * CEind(curr) / CEind(2009) ;
                     
-                case 30
-                    % FANS --> NEED UPDATING!
+                case 70
+                    % FANS --> NEED UPDATING! (Just using value from 62)
                     COST = 50e3 + 1500 * (obj.W0 / 1e3)^0.8 ;
                     COST = COST * CEind(curr) / CEind(2009) ;
                     
-                case 40
-                    % Black and Veatch correlation, eq. C1 and E1
-                    COST = 250. * obj.W0 ;
-                    COST = COST * CEind(curr) / CEind(2018) ;
+                case 71
+                    % FANS from Couper
+                    % Convert mass flow to KSCFM (kilo-standard-cubic feet
+                    % per min)
+                    V = obj.mdot0 * 60 / 1.225 ; % m3/min based on air at standard conditions
+                    V = V * 3.28084^3 / 1e3 ; % kilo-ft3/min
+                    
+                    nF = 1 ;
+                    maxV = 500 ;
+                    if V > maxV
+                        nF = V / maxV ;
+                        V  = maxV ;
+                    end
+                    
+                    mat = 'CS' ;
+                    
+                    switch mat
+                        case 'CS'
+                            fm = 2.2 ;
+                        case 'Fibreglass'
+                            fm = 4.0 ;
+                        case 'SS'
+                            fm = 5.5 ;
+                        case 'Ni'
+                            fm = 11 ;
+                    end
+                    
+                    fantype = 'propeller' ;
+                    
+                    switch fantype
+                        case 'radial'
+                            a = 0.4682 ;
+                            b = 0.1203 ;
+                            c = 0.0931 ;
+                        case 'backward'
+                            a = 0.04 ;
+                            b = 0.1821 ;
+                            c = 0.0786 ;
+                        case 'propeller'
+                            a = -0.4456 ;
+                            b = 0.2211 ;
+                            c = 0.082 ;
+                        case 'prop vanes'
+                            a = -1.0181 ;
+                            b = 0.3332 ;
+                            c = 0.0647 ;
+                    end
+                    
+                    fp = 1 ;
+                    
+                    COST = 1218 * nF * fm * fp * exp(a + b * log(V) + c * (log(V)^2)) ;
+                    COST = COST * CEind(curr) / CEind(2010) ;
+                    
+                case 72
+                    % Fans from Benato 2017 - very high
+                    COST = exp(6.6547 + 0.79 * log(obj.W0)) ;
+                    COST = COST * CEind(curr) / CEind(2017) ;
 
             end
-            
-            % May wish to scale the cost - e.g. by the inlet density
-            % compared to the reference density 
-            if Lscale
-                COST = COST * scale ;
-            end
-                        
+                                    
             obj.cmpexp_cost.COST = COST ;
             obj.cmpexp_cost.cost = COST / obj.W0 ;
             

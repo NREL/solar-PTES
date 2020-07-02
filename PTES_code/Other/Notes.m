@@ -435,3 +435,58 @@ a  = linspace(xL(iM),HsatL(end),nsx+1);
 da = a(end) - a(end-1);
 b  = linspace(HsatL(end)+da,xR(iM),nsx-1);
 xM(iM,:) = [a,b];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Check difference between CoolProp handles
+output1 = CP1(input_pair,input1,input2,out1,handle);
+output2 = CP1(input_pair,input1,input2,out1,fluid.HEOS);
+if any(abs(output1./output2 - 1) > 1e-4)
+    warning('Original CoolProp handle proving innacurate')
+    keyboard
+    output1 = output2;
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% DO NOT PLOT A SPECIFIC POINT?
+%OKpnts = (Apnt<420 | Apnt>460); %remove according to condition
+OKpnts = ~isnan(Apnt); %keep all
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% See how the heat exchanger length and the Reynolds numbers of each side
+% of the HX evolve as the value of Af changes, using the compute_pressure
+% function. (the lines below were originally part of set_hex_geom2)
+
+f1 = @(Af) compute_pressure(HX,iL,Af,0);
+plot_function(f1,Afmin,Afmax,100,31,'semilogx');
+Af = logspace(log10(Af_min),log10(Af_max),100);
+L  = ones(1,100);
+ReH = ones(1,100);
+ReC = ones(1,100);
+for i=1:100
+    [~,HXt] = compute_pressure(HX,iL,Af(i),0);
+    L(i)    = HXt.L;
+    ReH(i)  = mean(HXt.H(iL).Re);
+    ReC(i)  = mean(HXt.C(iL).Re);
+end
+figure(32)
+yyaxis left
+loglog(Af,L)
+yyaxis right
+loglog(Af,ReH,Af,ReC)
+legend({'Length','ReH','ReC'})
+keyboard
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Doble-checking exergy losses only due to heat rejection
+for i=1:10
+    if strcmp(air.stage(1,i).type,'hex_reject')
+        WL_PTES_chg(5) = WL_PTES_chg(5) + T0*[air.stage(1,i).sirr].*[air.state(1,i).mdot]*t_chg;
+    end
+    if strcmp(air.stage(2,i).type,'hex_reject')
+        WL_PTES_dis(5) = WL_PTES_dis(5) + T0*[air.stage(2,i).sirr].*[air.state(2,i).mdot]*t_dis;
+    end
+end

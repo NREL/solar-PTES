@@ -10,10 +10,8 @@ PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 0;            % set Tmax? (this option substitutes PRch)
 Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 
-% Set component parameters
+% Set compressor/expander parameters
 eta   = 0.90;  % polytropic efficiency
-eff   = 0.97;  % heat exchanger effectiveness
-ploss = 0.01;  % pressure loss in HEXs
 
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
@@ -31,14 +29,17 @@ switch Load.mode
         Load.time = [10;4;10].*3600;          % time spent in each load period, s
         Load.type = ["chgCO2";"str";"disCO2"]; % type of load period
         Load.mdot = [1000*fac;0;1000*fac];              % working fluid mass flow rate, kg/s
+        T0_inc    = 5.0 ; % Increment above ambient temperature that gas is cooled to
     case 5
         Load.time = [10;4;10].*3600;          % time spent in each load period, s
         Load.type = ["sol";"str";"rcmpCO2"]; % type of load period
         Load.mdot = [10;0;10];              % working fluid mass flow rate, kg/s
+        T0_inc    = 5.0 ; % Increment above ambient temperature that gas is cooled to
     case 6
         Load.time = [10;4;10].*3600;          % time spent in each load period, s
         Load.type = ["chgTSCO2";"str";"disTSCO2"]; % type of load period
         Load.mdot = [1000;0;1000];              % working fluid mass flow rate, kg/s
+        T0_inc    = 5.0 ; % Increment above ambient temperature that gas is cooled to
 end
 Load.num = numel(Load.time);
 Load.ind = 1:Load.num;
@@ -199,6 +200,40 @@ switch Nrcp
                 
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% COST MODES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+CCMPmode = 4 ; % Charging compressor cost mode
+CEXPmode = 13 ; % Charging expander cost mode
+DCMPmode = 4 ; % Discharging compressor cost mode
+DEXPmode = 13 ; % Discharging expander cost mode
+
+PMPmode = 40; % Pump cost mode
+FANmode = 40; % Fan cost mode
+
+hotHXmode = 1; % Heat exchanger - hot cost mode
+cldHXmode = 1; % Heat exchanger - cold cost mode
+rcpHXmode = 1; % Heat exchanger - recuperator cost mode
+rejHXmode = 2; % Heat exchanger - rejection cost mode
+
+HTmode.tankmode  = 5 ; % Cost mode for hot tank container cost
+HTmode.fld_cost  = 1 ; % Hot tank fluid cost, $/kg
+HTmode.ins_cost  = 1 ; % Insulation material, %/kg
+HTmode.ins_k     = 0.05 ; % Thermal conductivity of insulation
+HTmode.ins_rho   = 200 ; % Density of insulation
+HTmode.tau       = 100 ; % Number of days before all heat leaks out of tank
+HTmode.AR        = 1.0 ; % Aspect ratio (L/D) of tank
+HTmode.over_fac  = 1.1 ; % How much larger is inner tank volume than the fluid volume
+
+CTmode.tankmode  = 5 ; % Cost mode for cold tank container cost
+CTmode.fld_cost  = 1 ; % Cold tank fluid cost, $/kg
+CTmode.ins_cost  = 1 ; % Insulation material, %/kg
+CTmode.ins_k     = 0.05 ; % Thermal conductivity of insulation
+CTmode.tau       = 100 ; % Number of days before all heat leaks out of tank
+CTmode.ins_rho   = 200 ; % Density of insulation
+CTmode.AR        = 1.0 ; % Aspect ratio (L/D) of tank
+CTmode.over_fac  = 1.1 ; % How much larger is inner tank volume than the fluid volume
+
 
 % Set working fluids, storage fluids, and heat rejection streams. 'WF' or
 % 'SF' indicates working fluid or storage fluid. 'CP' or 'TAB' indicate
@@ -208,47 +243,6 @@ end
 % Working fluid
 gas = fluid_class('CarbonDioxide','WF','CP','TTSE',Load.num,30);
 
-% Make heat exchangers
-
-
-% Heat exchangers set up to match Ty's work
-if Load.mode == 5
-    HX(1) = hx_class('hot', 'hex', 'eff', 0.879, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-    HX(2) = hx_class('cold', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-    HX(3) = hx_class('regen', 'regen', 'eff', 0.968, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-    HX(4) = hx_class('regen', 'regen', 'eff', 0.937, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-elseif Load.mode ==6
-    HX(1) = hx_class('hot', 'hex', 'eff', eff, ploss, 0, 100, Load.num, Load.num) ; % Hot heat exchanger
-    HX(2) = hx_class('hot', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-    HX(3) = hx_class('cold', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Cold heat exchanger
-    HX(4) = hx_class('regen', 'regen', 'eff', eff, ploss, 0, 100, Load.num, Load.num) ; % Recuperator exchanger
-    HX(5) = hx_class('regen', 'regen', 'eff', eff, ploss, 0, 100, Load.num, Load.num) ; % Recuperator heat exchanger    
-else
-    iHX = 1 ; % Heat exchanger counter
-    for ii = 1 : Nhot
-        HX(iHX) = hx_class('hot', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-        iHX = iHX + 1 ;
-    end
-    for ii = 1 : Ncld
-        HX(iHX) = hx_class('cold', 'hex', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-        iHX = iHX + 1 ;
-    end
-    if (Nhot < 2) && (Ncld < 2) && (Nrcp > 0)
-        for ii = 1 : Nrcp
-            HX(iHX) = hx_class('regen', 'regen', 'eff', eff, ploss, 25, 100, Load.num, Load.num) ; % Hot heat exchanger
-            iHX = iHX + 1 ;
-        end
-    end
-end
-
-% Options for specifying heat exchanger geometry
-% This will probably be expanded over time
-for i = 1 : length(HX)
-   HX(i).LestA = true ;
-   HX(i).D1    = 0.025 ;
-end
-
-
-
 % Save copy of input file in "Outputs" folder
 copyfile(['./PTES_scripts/',mfilename,'.m'],'./Outputs/')
+

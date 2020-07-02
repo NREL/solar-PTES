@@ -85,22 +85,16 @@ while 1
     
     % COMPRESS
     T_aim = TH_chg0(2);
-    [CCMP(1),gas,iG] = compexp_func (CCMP(1),iL,gas,iG,'Taim',T_aim) ;
+    [CCMP(1),gas,iG] = compexp_func (CCMP(1),iL,gas,iG,'Taim',T_aim,design_mode) ;
     ptop  = gas.state(iL,iG).p;
     
     % COOL (gas-liquid)
     fluidH(2).state(iL,iH).T = HT(2).A(iL).T; fluidH(2).state(iL,iH).p = HT(2).A(iL).p;
     [fluidH(2)] = update(fluidH(2),[iL,iH],1);
-    if new_hex_calls
-        %[HX1,gas,iG,fluidH,iH] = hex_func(HX1,iL,gas,iG,fluidH,iH,1,1.0); % Original call
-        [HX(1),gas,iG,fluidH(2),iH] = hex_func(HX(1),iL,gas,iG,fluidH(2),iH,1,1.0); % New call using hx_class
-    else
-        [gas,fluidH(2),iG,iH,HX] = hex_TQ(gas,[iL,iG],fluidH(2),[iL,iH],eff,ploss,'hex',1,1.0);
-    end
+    [HX(1),gas,iG,fluidH(2),iH] = hex_func(HX(1),iL,gas,iG,fluidH(2),iH,1,1.0);
     iH=iH+1;
     
     PRch = ptop/pbot ;
-    
         
     % REJECT HEAT (external HEX)
     if Lcld
@@ -113,17 +107,12 @@ while 1
     % EXPAND
     PRe = (gas.state(iL,iG).p/pbot)^(1/(Ne_ch+1-iN)); % stage expansion pressure ratio
     p_aim = gas.state(iL,iG).p/PRe;
-    [CEXP(1),gas,iG] = compexp_func (CEXP(1),iL,gas,iG,'Paim',p_aim) ;
+    [CEXP(1),gas,iG] = compexp_func (CEXP(1),iL,gas,iG,'Paim',p_aim,design_mode) ;
     
     % HEAT (gas-liquid)
     fluidC.state(iL,iC).T = CT.A(iL).T; fluidC.state(iL,iC).p = CT.A(iL).p;
     [fluidC] = update(fluidC,[iL,iC],1);
-    if new_hex_calls
-        %[HX,fluidC,iC,gas,iG] = hex_func(HX,iL,fluidC,iC,gas,iG,2,1.0);
-        [HX(2),fluidC,iC,gas,iG] = hex_func(HX(2),iL,fluidC,iC,gas,iG,2,1.0); % New call using hx_class
-    else
-        [fluidC,gas,iC,iG] = hex_TQ(fluidC,[iL,iC],gas,[iL,iG],eff,ploss,'hex',2,1.0);
-    end
+    [HX(2),fluidC,iC,gas,iG] = hex_func(HX(2),iL,fluidC,iC,gas,iG,2,1.0);
     iC=iC+1;
     
     % Determine convergence and proceed

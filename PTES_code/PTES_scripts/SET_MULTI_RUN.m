@@ -1,6 +1,10 @@
 switch Vpnt
     case 'PRch'
         PRch  = Apnt(ipnt);
+    case 'PRr'
+        PRch  = Apnt(ipnt);
+    case 'T0'
+        T0  = Apnt(ipnt);
     case 'TC_dis0'
         TC_dis0 = Apnt(ipnt);
     case 'TH_dis0'
@@ -22,6 +26,10 @@ end
 switch Vcrv
     case 'PRch'
         PRch = Acrv(icrv);
+    case 'PRr'
+        PRr = Acrv(icrv);
+    case 'T0'
+        T0  = Acrv(icrv);
     case 'TC_dis0'
         TC_dis0 = Acrv(icrv);
     case 'TH_dis0'
@@ -39,3 +47,5 @@ switch Vcrv
     otherwise
         error('not implemented')
 end
+
+fprintf(1,'\nMULTI RUN STEP: Point #%d of %d, Curve #%d of %d',ipnt,length(Apnt),icrv,length(Acrv))
