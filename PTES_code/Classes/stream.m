@@ -26,8 +26,9 @@ classdef stream
         rho     
         v       
         mu      
-        k       
-        Pr      %{mustBePositive}
+        k
+        G
+        Pr
         Re      
         Cf      
         St      
@@ -62,7 +63,6 @@ classdef stream
         Af      {mustBePositive}
         Ax      {mustBePositive}
         D       {mustBePositive}
-        G       {mustBePositive}
         L       {mustBePositive}
         dL      {mustBePositive}
         LS

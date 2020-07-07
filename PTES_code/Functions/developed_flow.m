@@ -125,7 +125,7 @@ switch shape
         
     case 'PCHE' % Semi-circular PCHE
         Re_lim1 = 2800;
-        Re_lim2 = 2800;
+        Re_lim2 = 3000;
         %Re_lim1 = 2000;
         %Re_lim2 = 3000;
         
@@ -156,24 +156,33 @@ Cf(lam) = friction_coefficient( Re(lam), 'lam', shape );
 Cf_lim1 = friction_coefficient( Re_lim1, 'lam', shape );
 Cf(tur) = friction_coefficient( Re(tur), 'tur', shape );
 Cf_lim2 = friction_coefficient( Re_lim2, 'tur', shape );
-Cf(tra) = (1-W)*Cf_lim1 + W*Cf_lim2;
+
 
 % Nusselt number
 Nu(lam) = Nusselt_number( Re(lam),      [],      [], 'lam', shape);
 Nu_lim1 = Nusselt_number( Re_lim1,      [],      [], 'lam', shape);
 Nu(tur) = Nusselt_number( Re(tur), Pr(tur), Cf(tur), 'tur', shape);
 Nu_lim2 = Nusselt_number( Re_lim2, Pr(tra), Cf_lim2, 'tur', shape);
-Nu(tra) = (1-W)*Nu_lim1 + W.*Nu_lim2;
+
 
 % Use Graetz number to account for effects due to entry region
+% Hydraulically developing entry
+%z = Pr./Gz;
+%Cf(lam) = 1./(4*Re(lam)).*( 13.74*z(lam).^(-1/2) + (1.25*z(lam).^(-1) + 64 - 13.74*z(lam).^(-1/2))./(1 + 0.00021*z(lam).^(-2)) );
 % Thermally developing entry
-Nu = Nu + 0.0668*Gz./(1 + 0.04.*Gz.^(2/3));
+%Nu      = Nu + 0.0668*Gz./(1 + 0.04.*Gz.^(2/3));
 Nu(lam) = 3.66 + 0.0668*Gz(lam)./(1 + 0.04.*Gz(lam).^(2/3));
+Gz_lim1 = Gz(tra).*Re_lim1./Re(tra);
+Nu_lim1 = 3.66 + 0.0668*Gz_lim1./(1 + 0.04.*Gz_lim1.^(2/3));
 % Combined developing entry
 %Nu = (Nu./tanh(2.264.*Gz.^(-1/3) + 1.7.*Gz.^(-2/3)) +...
 %    0.0499*Gz.*tanh(1./Gz))./tanh(2.432.*Pr.^(1/6).*Gz.^(-1/6));
 % No entry effects
 %Nu = Nu + 0.0.*Gz;
+
+% Compute transition points
+Cf(tra) = (1-W).*Cf_lim1 + W.*Cf_lim2;
+Nu(tra) = (1-W).*Nu_lim1 + W.*Nu_lim2;
 
 %{
 if strcmp(shape,'PCHE')

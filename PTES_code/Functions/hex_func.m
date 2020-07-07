@@ -214,12 +214,20 @@ switch model
         % loss factors.
         %%{
         if isempty(HX.plossH0) && isempty(HX.plossC0) && any(mode==[0,1,2])
-            % Obtain specific volumes for the two channels
+            % Obtain average specific volumes for the two channels
             vH = 0.5*(1/RPN('PT_INPUTS',pH2,TH2,'D',fluidH) + 1/RPN('PT_INPUTS',pH2,TC1,'D',fluidH));
             vC = 0.5*(1/RPN('PT_INPUTS',pC1,TH2,'D',fluidC) + 1/RPN('PT_INPUTS',pC1,TC1,'D',fluidC));
+            % Obtain average viscosities
+            muH = 0.5*(RPN('PT_INPUTS',pH2,TH2,'VISCOSITY',fluidH) + RPN('PT_INPUTS',pH2,TC1,'VISCOSITY',fluidH));
+            muC = 0.5*(RPN('PT_INPUTS',pC1,TH2,'VISCOSITY',fluidC) + RPN('PT_INPUTS',pC1,TC1,'VISCOSITY',fluidC));
             % Obtain geometry-independent pressure loss factors
-            DppH_fac = mH^2*vH/pH2;
-            DppC_fac = mC^2*vC/pC1;
+            if any([muH,muC]==Inf)
+                DppH_fac = mH^2.0*vH/pH2;
+                DppC_fac = mC^2.0*vC/pC1;
+            else
+                DppH_fac = mH^1.67*muH^0.33*vH/pH2;
+                DppC_fac = mC^1.67*muC^0.33*vC/pC1;
+            end
             % Set pressure losses
             if DppH_fac > DppC_fac
                 plossH = ploss;
@@ -228,6 +236,12 @@ switch model
                 plossC = ploss;
                 plossH = ploss*DppH_fac/DppC_fac;
             end
+            %{
+            fprintf(1,'\n');
+            fprintf(1,'Hot:  %10s, %5.1f bar, ploss = %6.4f\n',valid_name(fluidH.name,2),pH2/1e5,plossH)
+            fprintf(1,'Cold: %10s, %5.1f bar, ploss = %6.4f\n',valid_name(fluidC.name,2),pC1/1e5,plossC)
+            keyboard
+            %}
         end
         %%}
         pH1 = pH2*(1-plossH);

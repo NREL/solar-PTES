@@ -206,26 +206,32 @@ for iI = 1:NI
     H.LS = [LSH(1);LSH];
     LSC  = cumsum(dL);
     C.LS = [LSC;LSC(end)];
-    % Compute arrays of pressure loss
-    Dp_H = 0.5*(H.dpdL(1:NX) + H.dpdL(2:NX+1)).*dL;
-    Dp_C = 0.5*(C.dpdL(1:NX) + C.dpdL(2:NX+1)).*dL;
+    % Compute arrays of pressure loss due to flow friction
+    Dpf_H = 0.5*(H.dpdL(1:NX) + H.dpdL(2:NX+1)).*dL;
+    Dpf_C = 0.5*(C.dpdL(1:NX) + C.dpdL(2:NX+1)).*dL;
     
     % In a situation where H.h(NX+1)==H.h(1) (i.e. no heat exchange), the
     % code above results in dAC=0, AC=0 and Dp_H=NaN, Dp_C=NaN. If so, set
     % Dp_H and Dp_C to zero and proceed.
-    if any(isnan([Dp_H;Dp_C]))
+    if any(isnan([Dpf_H;Dpf_C]))
         if abs(H.h(NX+1)-H.h(1)) < 10*eps(H.h(1))
-            Dp_H = zeros(size(Dp_H));
-            Dp_C = zeros(size(Dp_C));
+            Dpf_H = zeros(size(Dpf_H));
+            Dpf_C = zeros(size(Dpf_C));
         else
             error('NaN value found in hex_func!')
         end
     end
     
+    % Compute arrays of pressure loss due to flow acceleration
+    Dpa_H = -( H.G.^2.*H.v(1:NX) - H.G.^2.*H.v(2:NX+1) );
+    Dpa_C = -( C.G.^2.*C.v(2:NX+1) - C.G.^2.*C.v(1:NX) );
+    %Dpa_H = 0;
+    %Dpa_C = 0;
+    
     % Update pressure profiles. Assume a linear profile (to avoid computing
     % a slow 'for loop') and limit max pressure loss to 80%.
-    DppH = abs(sum(Dp_H))/H.pin;
-    DppC = abs(sum(Dp_C))/C.pin;
+    DppH = abs(sum(Dpf_H + Dpa_H))/H.pin;
+    DppC = abs(sum(Dpf_C + Dpa_C))/C.pin;
     if DppH > 0.8
         DppH = 0.8;
         impossible_p = true;

@@ -381,10 +381,10 @@ switch scenario
         data    = load('Validation_Figley2013.csv');
         
         mdot_dat = data(:,1)/3600;        
-        DpH_dat  = data(:,2)*1e3;
-        DpC_dat  = data(:,4)*1e3;
-        %DpH_dat  = data(:,3)*1e3;
-        %DpC_dat  = data(:,5)*1e3;
+        %DpH_dat  = data(:,2)*1e3; %Correlation
+        %DpC_dat  = data(:,4)*1e3; %Correlation
+        DpH_dat  = data(:,3)*1e3; %CFD
+        DpC_dat  = data(:,5)*1e3; %CFD
         ReH_dat  = data(:,7);
         ReC_dat  = data(:,6);
         htH_dat  = data(:,9);
@@ -574,10 +574,6 @@ switch scenario
         %plot(mdot1,num_pC2/1e5,data(:,1),data(:,10),'s')
         
     case 9 % Compare numerical results with data from Figley2013
-        
-        %htH_dat = data(:,9);
-        %htC_dat = data(:,8);
-        %U_dat   = data(:,11);
         
         % Compute errors
         errDpH = ((DpH_num - DpH_dat)./DpH_dat)*100;
