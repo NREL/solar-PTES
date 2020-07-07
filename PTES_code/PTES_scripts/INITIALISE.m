@@ -145,7 +145,8 @@ switch Load.mode
         CCMP(1:4) = compexp_class('comp', 'poly', CCMPmode(1), eta, Load.num) ; % Charging compressors
         DEXP(1:3) = compexp_class('exp',  'poly', DEXPmode(1), eta, Load.num) ; % Discharging expanders
         
-        CEXP(1:2) = compexp_class('exp',  'poly', CEXPmode(1), eta, Load.num) ; % Charging expanders
+        CEXP(1)   = compexp_class('exp',  'poly', CEXPmode(1), eta, Load.num) ; % Cryo expander (LAES side)
+        CEXP(2)   = compexp_class('exp',  'poly', CEXPmode(1), eta, Load.num) ; % Charging expander (PTES side)
         DCMP(1:3) = compexp_class('comp', 'poly', DCMPmode(1), eta, Load.num) ; % Discharging compressors
 end
 
@@ -258,6 +259,7 @@ switch Load.mode
         HX(6) = hx_class('hot_LA', 'hex', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
         HX(7) = hx_class('med_LA', 'hex', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Medium heat exchanger
         HX(8) = hx_class('rej',    'hex', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
+        HX(9) = hx_class('regen','regen', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Recuperator
         
 end
 

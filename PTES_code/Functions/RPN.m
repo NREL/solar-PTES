@@ -62,6 +62,14 @@ switch fluid.read
         % (other than HEOS) do not produce accurate results. This is seen to
         % happen at low pressures and close to the saturation curve
         handle = fluid.handle;
+        switch input_pair
+            case {'PSmass_INPUTS'}
+                handle = fluid.HEOS;
+            case {'HmassP_INPUTS'}
+                if strcmp(fluid.name,'Nitrogen') && any(input1<0.0)
+                    handle = fluid.HEOS;
+                end
+        end
         if strcmp(fluid.name,'Water')
             switch input_pair
                 case {'HmassP_INPUTS'}

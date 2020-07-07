@@ -2,27 +2,27 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %  LAES SIDE
 %  ---------
-%  1: Compressor inlet (atmosphere)
-%  2: Hot HEX inlet
-%  3: Medium HEX inlet
-%  4: Second Compressor inlet
-%  5: Second Medium HEX inlet
-%  6: Cold HEX inlet
-%  7: Coupler inlet (air side)
+%  1: Compressor inlet (atmosphere) - CCMP(1)
+%  2: Hot HEX inlet                 - HX(1)
+%  3: Medium HEX inlet              - HX(2)
+%  4: Second Compressor inlet       - CCMP(2)
+%  5: Second Medium HEX inlet       - HX(3)
+%  6: Cold HEX inlet                - HX(4)
+%  7: Coupler inlet (air side)      - HX(5)
 %  8: Expander inlet
 %  9: Liquid air tank inlet
 %
 %  PTES SIDE
 %  ---------
-%  1: Compressor inlet
-%  2: Hot HEX inlet
-%  3: Medium HEX inlet
-%  4: Auxiliary compressor inlet
-%  5: Rejection unit inlet
-%  6: Regenerator inlet (high pressure side)
-%  7: Expander inlet
-%  8: Coupler inlet (neon side)
-%  9: Regenerator inlet (low pressure side)
+%  1: Compressor inlet                  - CCMP(3)
+%  2: Hot HEX inlet                     - HX(6)
+%  3: Medium HEX inlet                  - HX(7)
+%  4: Auxiliary compressor inlet        - CCMP(4)
+%  5: Rejection unit inlet              - HX(8)
+%  6: Regenerator inlet (high p side)   -
+%  7: Expander inlet                    -
+%  8: Coupler inlet (neon side)         -
+%  9: Regenerator inlet (low p side)    -
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -34,33 +34,39 @@ iM  = 1;  % keeps track of the Medium fluid stream number (mineral oil)
 iC  = 1;  % keeps track of the Cold fluid stream number
 iA  = 1;  % keeps track of the Air (heat rejection) stream number
 iPMP = 1 ; % Keeps track of which pump is being used
+iFAN = 1 ; % Keeps track of which fan is being used
 
-%{
-% Regenerator inlet indices
-iReg1 = 1 + Nc_ch*2;         % index hot regenerator inlet (after compression + cooling)
-iReg2 = iReg1 + 2 + Ne_ch*2; % index cold regenerator inlet (after regeneration + heat_reject + expansion + heating)
-%}
-
-% Initial guess of charge conditions
-% Compressor inlet (regenerator hot outlet)
-gas1.state(iL,1).p    = p0; gas1.state(iL,1).T = T0;
+% Initial guess of charge conditions (LAES side)
+% Compressor inlet
+gas1.state(iL,1).p = p0;
+gas1.state(iL,1).T = T0;
 gas1.state(iL,1).mdot = Load.mdot(iL);
 [gas1] = update(gas1,[iL,1],1);
 
-%{
-gas.state(iL,iReg2).T = T0;
-gas.state(iL,iReg2).p = pbot;
-gas.state(iL,iReg2).mdot = gas.state(iL,1).mdot;
-[gas] = update(gas,[iL,iReg2],1);
-%}
+% Initial guess of charge conditions (PTES side). The mass flow rate is not
+% know yet, as it is determined by the Coupler HEX.
+% Compressor inlet (regenerator hot outlet)
+gas2.state(iL,1).p = p0;
+gas2.state(iL,1).T = T0;
+[gas2] = update(gas2,[iL,1],1);
+iCoup = 8;
+gas2.state(iL,iCoup).p = p0;
+gas2.state(iL,iCoup).T = 74;
+[gas2] = update(gas2,[iL,iCoup],1);
+% Set regenerator indices
+iReg1 = iCoup-2; %high pressure side
+iReg2 = iCoup+1; %low pressure side
 
 % Set matrix of temperature and pressure points to test convergence
 C_0 = [[gas1.state(iL,:).T];[gas1.state(iL,:).p]];
 max_iter=100;
 for counter=1:max_iter
     
-    fprintf(1,['Charging LAES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
+    fprintf(1,['Charging CCES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
     
+    %%%%%%%%%%%%%%%%
+    %%%%% LAES %%%%%
+    %%%%%%%%%%%%%%%%    
     % FIRST COMPRESSION
     T_aim = Tmax;
     [CCMP(1),gas1,iG1] = compexp_func (CCMP(1),iL,gas1,iG1,'Taim',T_aim, 1) ;
@@ -109,97 +115,72 @@ for counter=1:max_iter
     [CPMP(iPMP),fluidC,iC] = compexp_func (CPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
     iC=iC+1;iPMP=iPMP+1;
     
-    print_states(gas1,iL,1:10,Load);
-    keyboard
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-end
-    %{
-    % COOL (mineral oil)
+    % COUPLER HEX (air-neon)
+    [HX(5),gas1,iG1,gas2,~] = hex_func(HX(5),iL,gas1,iG1,gas2,iCoup,1,1.0);
+    % Update mass flow rate at the PTES side
+    gas2.state(iL,1).mdot = gas2.state(iL,iCoup).mdot;
+    
+    % EXPANSION
+    p_aim = max([RPN('QT_INPUTS',0.0,gas1.state(iL,iG1).T,'P',gas1),p0]);
+    [CEXP(1),gas1,iG1] = compexp_func (CEXP(1),iL,gas1,iG1,'Paim',p_aim, 1) ;
+    
+    %%%%%%%%%%%%%%%%
+    %%%%% PTES %%%%%
+    %%%%%%%%%%%%%%%%
+    % FIRST COMPRESSION
+    T_aim = Tmax;
+    [CCMP(3),gas2,iG2] = compexp_func (CCMP(3),iL,gas2,iG2,'Taim',T_aim, 1) ;
+    
+    % COOL (molten salt)
+    % Set fluidH
     fluidH.state(iL,iH).T = HT.A(iL).T; fluidH.state(iL,iH).p = HT.A(iL).p;
     [fluidH] = update(fluidH,[iL,iH],1);
-    
-    [HX(ihx_hot(iN)),gas,iG,fluidH,iH] = hex_func(HX(ihx_hot(iN)),iL,gas,iG,fluidH,iH,1,1.0);
-    % Now calculate pump requirements for moving fluidH
+    % Run HEX
+    [HX(6),gas2,iG2,fluidH,iH] = hex_func(HX(6),iL,gas2,iG2,fluidH,iH,1,1.0);
+    % Run Pump
     [CPMP(iPMP),fluidH,iH] = compexp_func (CPMP(iPMP),iL,fluidH,iH,'Paim',fluidH.state(iL,1).p,1);
     iH=iH+1;iPMP=iPMP+1;
     
-    % REGENERATE (gas-gas)
-    [HX(ihx_reg),gas,iG,~,~] = hex_func(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
+    % COOL (mineral oil)
+    % Set fluidM
+    fluidM.state(iL,iM).T = MT.A(iL).T; fluidM.state(iL,iM).p = MT.A(iL).p;
+    [fluidM] = update(fluidM,[iL,iM],1);
+    % Run HEX
+    [HX(7),gas2,iG2,fluidM,iM] = hex_func(HX(7),iL,gas2,iG2,fluidM,iM,1,1.0);
+    % Run Pump
+    [CPMP(iPMP),fluidM,iM] = compexp_func (CPMP(iPMP),iL,fluidM,iM,'Paim',fluidM.state(iL,1).p,1);
+    iM=iM+1;iPMP=iPMP+1;
+    
+    % SECOND COMPRESSION
+    p_aim = gas2.state(iL,iG2).p*1.5;
+    [CCMP(2),gas2,iG2] = compexp_func (CCMP(2),iL,gas2,iG2,'Paim',p_aim, 1) ;
     
     % REJECT HEAT (external HEX)
     T_aim = environ.T0 + T0_inc;    
     air.state(iL,iA).T = T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
-    [HX(ihx_rejc), gas, iG, air, iA] = hex_func(HX(ihx_rejc),iL,gas,iG,air,iA,5,T_aim);
-    [CFAN(1),air,iA] = compexp_func (CFAN(1),iL,air,iA,'Paim',p0,1);
-        
-    for iN = 1:Ne_ch
-        % EXPAND
-        PRe = (gas.state(iL,iG).p/pbot)^(1/(Ne_ch+1-iN)); % stage expansion pressure ratio
-        p_aim = gas.state(iL,iG).p/PRe;
-        [CEXP(iN),gas,iG] = compexp_func (CEXP(iN),iL,gas,iG,'Paim',p_aim, design_mode) ; 
-        
-        switch Load.mode
-            case {0,1,2}
-                % HEAT (gas-liquid)
-                fluidC.state(iL,iC).T = CT.A(iL).T; fluidC.state(iL,iC).p = CT.A(iL).p;
-                [fluidC] = update(fluidC,[iL,iC],1);
-                
-                [HX(ihx_cld(iN)),fluidC,iC,gas,iG] = hex_func(HX(ihx_cld(iN)),iL,fluidC,iC,gas,iG,2,1.0);
-                [CPMP(iPMP),fluidC,iC] = compexp_func (CPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
-                iC=iC+1; iPMP=iPMP+1;
-                
-            case 3
-                % Use secondary heat transfer loop between gas and cold
-                % storage fluid (i.e. water) to avoid freezing
-                
-                % Store current state of indices and iterate over the two
-                % heat transfer processes until HTF temperatures become
-                % stable
-                iHTF_0 = iHTF;
-                iG_0   = iG;
-                iC_0   = iC;
-                iPMP_0 = iPMP;
-                HTF_max_iter = 10;
-                for HTF_iter=1:HTF_max_iter
-                    % HEAT (gas-HTF)
-                    Taim = 273.15+1;
-                    [HX(ihx_cld(iN)),HTF,iHTF,gas,iG] = hex_func(HX(ihx_cld(iN)),iL,HTF,iHTF,gas,iG,4,Taim);
-                    
-                    % HEAT (HTF-liquid)
-                    fluidC.state(iL,iC).T = CT.A(iL).T; fluidC.state(iL,iC).p = CT.A(iL).p;
-                    [fluidC] = update(fluidC,[iL,iC],1);
-                    [HX(ihx_htf(iN)),fluidC,iC,HTF,iHTF] = hex_func(HX(ihx_htf(iN)),iL,fluidC,iC,HTF,iHTF,2,1.0);
-                    
-                    % Pump HTF and fluidC back to original pressures
-                    [CPMP(iPMP),HTF,iHTF] = compexp_func (CPMP(iPMP),iL,HTF,iHTF,'Paim',p0,1);
-                    iPMP=iPMP+1;
-                    [CPMP(iPMP),fluidC,iC] = compexp_func (CPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
-                    iC=iC+1; iPMP=iPMP+1;
-                    
-                    %disp(HTF.state(iL,iHTF).T)
-                    
-                    % Evaluate convergence and proceed
-                    HTFconvergence = abs(HTF.state(iL,iHTF_0).T - HTF.state(iL,iHTF).T) < 1e-3;
-                    if HTFconvergence
-                        break
-                    else
-                        HTF.state(iL,iHTF_0).T = HTF.state(iL,iHTF).T;
-                        iHTF = iHTF_0;
-                        iG   = iG_0;
-                        iC   = iC_0;
-                        iPMP = iPMP_0;
-                        [HTF] = update(HTF,[iL,iHTF],1);
-                    end
-                end
-                if HTF_iter>=HTF_max_iter
-                    error('convergence not reached')
-                end
-        end
-
-    end
+    [HX(8), gas2, iG2, air, iA] = hex_func(HX(8),iL,gas2,iG2,air,iA,5,T_aim);
+    [CFAN(iFAN),air,iA] = compexp_func (CFAN(1),iL,air,iA,'Paim',p0,1);
+    iFAN=iFAN+1;
     
     % REGENERATE (gas-gas)
-    [HX(ihx_reg),~,~,gas,iG] = hex_func(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
+    [HX(9),gas2,iG2,~,~] = hex_func(HX(9),iL,gas2,iG2,gas2,iCoup+1,0,0);
+    
+    % EXPANSION
+    p_aim = p0;
+    [CEXP(2),gas2,iG2] = compexp_func (CEXP(2),iL,gas2,iG2,'Paim',p_aim, 1) ;
+    
+    % COUPLER (this has already been done)
+    iG2 = iG2+1;
+    
+    % REGENERATE (gas-gas)
+    [HX(9),~,~,gas2,iG2] = hex_func(HX(9),iL,gas2,iReg1,gas2,iG2,0,0);
+    
+    print_states(gas1,iL,1:12,Load);
+    print_states(gas2,iL,1:12,Load);
+    keyboard
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+end
+    %{
     
     % Determine convergence and proceed
     C = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
