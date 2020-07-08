@@ -30,11 +30,21 @@ if any(itp)
     % transfer coefficients. For saturated liquid conditions:
     ReL  = S.D * S.G ./ S.muL;
     CpL  = S.PrL .* S.kL ./ S.muL;
-    [ CfL, ~, htL ] = single_phase_flow( ReL, S.PrL, S.G, CpL, S.shape );
+    if ~isempty(S.LS)
+        GzL = (S.D./S.LS(itp)).*ReL.*S.PrL;
+    else
+        GzL = zeros(size(ReL));
+    end
+    [ CfL, ~, htL ] = single_phase_flow( ReL, S.PrL, S.G, CpL, S.shape, GzL );
     % And saturated gas conditions:
     ReG  = S.D * S.G ./ S.muG;
     CpG  = S.PrG .* S.kG ./ S.muG;
-    [ CfG, ~, ~   ] = single_phase_flow( ReG, S.PrG, S.G, CpG, S.shape );
+    if ~isempty(S.LS)
+        GzG = (S.D./S.LS(itp)).*ReG.*S.PrG;
+    else
+        GzG = zeros(size(ReG));
+    end
+    [ CfG, ~, ~   ] = single_phase_flow( ReG, S.PrG, S.G, CpG, S.shape, GzG );
     
     % Compute pressure gradients for single-phase conditions. Saturated
     % liquid:

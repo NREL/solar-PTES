@@ -212,7 +212,7 @@ switch model
         % the highest pressure loss equal to 'ploss' and estimate the
         % lowest pressure with the ratio of geometry-independent pressure
         % loss factors.
-        %%{
+        %{
         if isempty(HX.plossH0) && isempty(HX.plossC0) && any(mode==[0,1,2])
             % Obtain average specific volumes for the two channels
             vH = 0.5*(1/RPN('PT_INPUTS',pH2,TH2,'D',fluidH) + 1/RPN('PT_INPUTS',pH2,TC1,'D',fluidH));
@@ -243,7 +243,7 @@ switch model
             keyboard
             %}
         end
-        %%}
+        %}
         pH1 = pH2*(1-plossH);
         pC2 = pC1*(1-plossC);
         
