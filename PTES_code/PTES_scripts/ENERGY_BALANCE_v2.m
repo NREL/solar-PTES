@@ -3,7 +3,7 @@
 % Calculate work/heat/irreversibility terms for each component
 % Charging compressors and discharging expanders
 for ii = 1:length(CCMP)
-    CCMP(ii) = compexp_energy(CCMP(ii),Load.time)  ;
+    CCMP(ii) = compexp_energy(CCMP(ii),Load.time)  ; %#ok<*SAGROW>
 end
 % Charging expanders and discharging compressors
 for ii = 1:length(CEXP)
@@ -53,6 +53,14 @@ for ii = 1:length(MIX)
     MIX(ii) = misc_energy(MIX(ii),Load.time) ;
 end
 
+% Motor-Generator
+switch Load.mode
+    case {2,7}
+        error('not implemented yet')
+    otherwise
+        GEN = gen_power(GEN,CCMP,CEXP,DCMP,DEXP,Load.time);
+end
+
 switch Load.mode
     case {0,1,2,4,5,6}
         NC = Ne_ch ;
@@ -64,30 +72,34 @@ end
 
 % Adds up the contributions of the several stages to compute an energy balance
 % SIGN CONVENTION. Work out is positive. Heat in is positive.
-W_in_chg   = 0;
-W_pmp_chg  = 0; % Parasitic work input - nice to seperate this out
-W_fan_chg  = 0; % Parasitic work input - nice to seperate this out
+E_in_chg   = 0; % Electricity input (before motor losses)
+W_in_chg   = 0; % Mechanical work input
+WL_mot_chg = 0; % Lost work by electrical motor
+W_pmp_chg  = 0; % Parasitic work input - nice to separate this out
+W_fan_chg  = 0; % Parasitic work input - nice to separate this out
 DH_chg     = 0;
 W_lost_chg = 0;
 QH_chg     = 0;  % heat to hot tanks
 QH_dis     = 0;  % heat from hot tanks
 QE_chg     = 0;  % heat rejected to environment
 
-W_out_dis  = 0;
-W_pmp_dis  = 0;  % Parasitic work input - nice to seperate this out
-W_fan_dis  = 0;  % Parasitic work input - nice to seperate this out
+E_out_dis  = 0;  % Electricity output (after generator losses)
+W_out_dis  = 0;  % Mechanical work output
+WL_gen_dis = 0;  % Work lost by electrical generator
+W_pmp_dis  = 0;  % Parasitic work input - nice to separate this out
+W_fan_dis  = 0;  % Parasitic work input - nice to separate this out
 DH_dis     = 0;
 W_lost_dis = 0;
 QC_chg     = 0;  % heat from cold tanks
 QC_dis     = 0;  % heat to cold tanks
 QE_dis     = 0;  % heat rejected to environment
 
-W_out_disRC  = 0;
-W_fan_disRC = 0;  % Parasitic work input - nice to seperate this out
-W_pmp_disRC = 0;  % Parasitic work input - nice to seperate this out
-QC_disRC     = 0;  
-QH_disRC     = 0; 
-t_disRC      = 0;
+W_out_disRC = 0;
+W_fan_disRC = 0;  % Parasitic work input - nice to separate this out
+W_pmp_disRC = 0;  % Parasitic work input - nice to separate this out
+QC_disRC    = 0;  
+QH_disRC    = 0; 
+t_disRC     = 0;
 
 nH = numel(fluidH);
 nC = numel(fluidC);
@@ -102,8 +114,8 @@ nC = numel(fluidC);
 % 6: Mixing losses of the working fluid
 % 7: Losses due to exergy leftover in tanks
 % 8: Parasitic losses due to pumping fluid and heat rejection air.
-WL_PTES_chg = zeros(1,8);
-WL_PTES_dis = zeros(1,8);
+WL_PTES_chg = zeros(1,9);
+WL_PTES_dis = zeros(1,9);
 
 for iL=1:Load.num
     
@@ -153,6 +165,10 @@ for iL=1:Load.num
             end
             
         end
+        
+        % Electricity from Motor
+        E_in_chg   = E_in_chg   + GEN.E(iL);
+        WL_mot_chg = WL_mot_chg - GEN.WL(iL);
         
         % Work lost in other components (mixers, seperators, work left in tanks, mixing losses)
         % ...
@@ -208,6 +224,10 @@ for iL=1:Load.num
             end
             
         end
+        
+        % Electricity from Generator
+        E_out_dis  = E_out_dis  + GEN.E(iL);
+        WL_gen_dis = WL_gen_dis - GEN.WL(iL);
         
         % Work lost in other components
         for ii = 1:length(MIX)
@@ -293,6 +313,10 @@ switch Load.mode
         WL_PTES_dis(7) = HT.A(end).B - HT.A(1).B + HT.B(end).B - HT.B(1).B;
 end
 
+% Allocate losses from motor/generator
+WL_PTES_chg(9) = abs(WL_mot_chg);
+WL_PTES_dis(9) = abs(WL_gen_dis);
+
 fact    = 1e6*3600; % J to MWh
 
 i_chg = Load.ind(any(Load.type == {'chg','chgCO2','chgTSCO2'},2));
@@ -312,7 +336,7 @@ Net_chg = (- W_in_chg  + QC_chg  + QH_chg  + QE_chg);
 Net_dis = (- W_out_dis + QC_dis  + QH_dis  + QE_dis);
 
 % SECOND LAW ENERGY BALANCES AND ACCOUNTING
-WL_matrix = [ WL_PTES_chg ; WL_PTES_dis ; ];
+WL_matrix  = [ WL_PTES_chg ; WL_PTES_dis ; ];
 Total_loss = sum(WL_matrix(:));
 
 % Calculate tank stats - volumes and masses
@@ -334,58 +358,58 @@ switch Load.mode
             Heat_in_tanks = Heat_in_tanks + (CT(ii).A(end).H - CT(ii).A(1).H) + (CT(ii).B(end).H - CT(ii).B(1).H);
         end
         
-        Heat_rejected = QE_chg + QE_dis + W_fan_chg + W_fan_dis ;
-        Total_Work_lost = W_in_chg + W_out_dis + W_fan_chg + W_pmp_chg + W_fan_dis + W_pmp_dis;
-        First_law_error = (-Heat_rejected + Heat_in_tanks + Total_Work_lost)/Total_Work_lost;
+        Heat_rejected    = QE_chg + QE_dis + W_fan_chg + W_fan_dis + WL_mot_chg + WL_gen_dis;
+        Total_Work_lost  = E_in_chg + E_out_dis + W_fan_chg + W_pmp_chg + W_fan_dis + W_pmp_dis;
+        First_law_error  = (-Heat_rejected + Heat_in_tanks + Total_Work_lost)/Total_Work_lost;
         Second_law_error = (Total_loss + Total_Work_lost)/Total_Work_lost;
         
-        W_net_chg = W_in_chg + W_fan_chg + W_pmp_chg ;
-        W_net_dis = W_out_dis + W_fan_dis + W_pmp_dis ;
+        E_net_chg = E_in_chg  + W_fan_chg + W_pmp_chg;
+        E_net_dis = E_out_dis + W_fan_dis + W_pmp_dis;
         
         chi_PTES = -W_out_dis/W_in_chg;
-        chi_PTES_para = -W_net_dis / W_net_chg ;
+        chi_PTES_para = -E_net_dis / E_net_chg ;
         
         vol = 0.0; % Calculate storage volume
         for ii = 1:Nhot; vol = vol + HT(ii).tank_volA + HT(ii).tank_volB ; end
         for ii = 1:Ncld; vol = vol + CT(ii).tank_volA + CT(ii).tank_volB ; end
         
-        rhoE = W_net_dis /fact/vol*1e3; %kWh/m3
+        rhoE = E_net_dis /fact/vol*1e3; %kWh/m3
         
         % Calculate some special metrics for certain cycles
         if Load.mode == 3
             
-            W_out_disNC = W_net_dis - (W_out_disRC + W_fan_disRC + W_pmp_disRC) ;
+            W_out_disNC = E_net_dis - (W_out_disRC + W_fan_disRC + W_pmp_disRC) ;
             QH_disNC = QH_dis - QH_disRC ;
             QC_disNC = QC_dis - QC_disRC ;
             
-            HEeff   = W_net_dis / QH_dis ; % Heat engine average efficiency
+            HEeff   = E_net_dis / QH_dis ; % Heat engine average efficiency
             HEeffRC = (W_out_disRC + W_fan_disRC + W_pmp_disRC) / QH_disRC ; % Efficiency for cycles where only cold tanks are used for condensing
             HEeffNC = W_out_disNC / QH_disNC ; % Efficiency for cycles where cold tanks are NOT used for condensing
         elseif Load.mode == 6
-            SOLeff  = W_net_dis / QH_sol ; % Solar conversion efficiency
-            HEeff   = W_net_dis / QH_dis ; % Heat engine efficiency
-            NETeff  = (W_net_dis - W_net_chg) / QH_sol ; % Net efficiency
-            EXeff   = W_net_dis / (W_net_chg + EX_sol) ; % Exergetic efficiency
+            SOLeff  = E_net_dis / QH_sol ; % Solar conversion efficiency
+            HEeff   = E_net_dis / QH_dis ; % Heat engine efficiency
+            NETeff  = (E_net_dis - E_net_chg) / QH_sol ; % Net efficiency
+            EXeff   = E_net_dis / (E_net_chg + EX_sol) ; % Exergetic efficiency
         end
         
     case 1 % Heat pump only
         Heat_into_tanks   = (HT.A(end).H - HT.A(1).H) + (HT.B(end).H - HT.B(1).H) + (CT.A(end).H - CT.A(1).H) + (CT.B(end).H - CT.B(1).H);
         Exergy_into_tanks = (HT.A(end).B - HT.A(1).B) + (HT.B(end).B - HT.B(1).B) + (CT.A(end).B - CT.A(1).B) + (CT.B(end).B - CT.B(1).B);
         
-        Heat_rejected = QE_chg + W_fan_chg ;
-        W_net_chg = W_in_chg + W_fan_chg + W_pmp_chg ;
-        Total_Work_lost = -W_net_chg - Exergy_into_tanks;
+        Heat_rejected = QE_chg + W_fan_chg + WL_mot_chg;
+        E_net_chg = E_in_chg + W_fan_chg + W_pmp_chg + WL_mot_chg;
+        Total_Work_lost = -E_net_chg - Exergy_into_tanks;
         
-        First_law_error = (-Heat_rejected + Heat_into_tanks + W_net_chg)/W_net_chg;
+        First_law_error = (-Heat_rejected + Heat_into_tanks + E_net_chg)/E_net_chg;
         Second_law_error = (Total_loss - Total_Work_lost)/Total_Work_lost;
                 
         chi_tot               = Exergy_into_tanks/(W_in_chg);
-        chi_tot_para          = Exergy_into_tanks/(W_net_chg);
+        chi_tot_para          = Exergy_into_tanks/(E_net_chg);
         Exergy_into_hot_tanks = ((HT.A(end).B - HT.A(1).B) + (HT.B(end).B - HT.B(1).B));
         chi_hot               = Exergy_into_hot_tanks/(W_in_chg);
-        chi_hot_para          = Exergy_into_hot_tanks/(W_net_chg);
+        chi_hot_para          = Exergy_into_hot_tanks/(E_net_chg);
         COP                   = QH_chg/W_in_chg;
-        COP_para              = QH_chg/W_net_chg;
+        COP_para              = QH_chg/E_net_chg;
         vol = 0.0; % Calculate storage volume
         for ii = 1:Nhot; vol = vol + HT(ii).tank_volA + HT(ii).tank_volB ; end
         rhoE = Exergy_into_hot_tanks/fact/vol*1e3; %kWh/m3
@@ -394,18 +418,18 @@ switch Load.mode
         Heat_from_tanks   = (HT.A(2).H - HT.A(end).H) + (HT.B(2).H - HT.B(end).H);
         Exergy_from_tanks = (HT.A(2).B - HT.A(end).B) + (HT.B(2).B - HT.B(end).B);
         
-        Heat_rejected = QE_dis + W_fan_dis ;
-        W_net_dis = W_out_dis + W_fan_dis + W_pmp_dis ;
-        Total_Work_lost = Exergy_from_tanks - W_net_dis;
+        Heat_rejected = QE_dis + W_fan_dis + WL_gen_dis;
+        E_net_dis = E_out_dis + W_fan_dis + W_pmp_dis  + WL_gen_dis;
+        Total_Work_lost = Exergy_from_tanks - E_net_dis;
         
-        First_law_error = (Heat_from_tanks - W_net_dis + Heat_rejected)/(W_net_dis);
+        First_law_error = (Heat_from_tanks - E_net_dis + Heat_rejected)/(E_net_dis);
         Second_law_error = (Total_loss + Total_Work_lost)/Total_Work_lost;
         
         chi_tot      = (W_out_dis)/Exergy_from_tanks;
-        chi_tot_para = (W_net_dis)/Exergy_from_tanks;
+        chi_tot_para = (E_net_dis)/Exergy_from_tanks;
         EFF          = W_out_dis/QH_dis;
-        EFF_para     = W_net_dis/QH_dis;
-        rhoE         = W_net_dis/fact/(HT.A(end).V)*1e3; %kWh/m3
+        EFF_para     = E_net_dis/QH_dis;
+        rhoE         = E_net_dis/fact/(HT.A(end).V)*1e3; %kWh/m3
 end
 
 
@@ -486,24 +510,26 @@ if WM == 1
     switch Load.mode
         case {0,1,3,4,6}
             fprintf(1,'CHARGE\n');
-            fprintf(1,'Average power input:     %8.2f MW\n',-W_net_chg/t_chg/1e6);
+            fprintf(1,'Average power input:     %8.2f MW\n',-E_net_chg/t_chg/1e6);
             fprintf(1,'Total charge time:       %8.2f h\n',t_chg/3600);
-            fprintf(1,'Energy(el) input:        %8.2f MWh\n',-W_net_chg/fact);
+            fprintf(1,'Electricity input:       %8.2f MWh\n',-E_net_chg/fact);
+            fprintf(1,'Work input:              %8.2f MWh\n',-W_in_chg/fact);
             fprintf(1,'Heat to hot tanks:       %8.2f MWh\n',-QH_chg/fact);
             fprintf(1,'Heat from cold tanks:    %8.2f MWh\n',QC_chg/fact);
-            fprintf(1,'Heat rejected:           %8.2f MWh\n',-(QE_chg+W_fan_chg)/fact);
+            fprintf(1,'Heat rejected:           %8.2f MWh\n',-(QE_chg+W_fan_chg+WL_mot_chg)/fact);
             fprintf(1,'NET:                     %8.2f MWh\n\n',Net_chg/fact);
     end
     
     switch Load.mode
         case {0,2,3,4,5,6,7}
             fprintf(1,'DISCHARGE\n');
-            fprintf(1,'Average power output:    %8.2f MW\n',W_net_dis/t_dis/1e6);
+            fprintf(1,'Average power output:    %8.2f MW\n',E_net_dis/t_dis/1e6);
             fprintf(1,'Total discharge time:    %8.2f h\n',t_dis/3600);
-            fprintf(1,'Energy(el) output:       %8.2f MWh\n',W_net_dis/fact);
+            fprintf(1,'Electricity output:      %8.2f MWh\n',E_net_dis/fact);
+            fprintf(1,'Work output:             %8.2f MWh\n',W_out_dis/fact);
             fprintf(1,'Heat from hot tanks:     %8.2f MWh\n',QH_dis/fact);
             fprintf(1,'Heat to cold tanks:      %8.2f MWh\n',-QC_dis/fact);
-            fprintf(1,'Heat rejected:           %8.2f MWh\n',-(QE_dis+W_fan_dis)/fact);
+            fprintf(1,'Heat rejected:           %8.2f MWh\n',-(QE_dis+W_fan_dis+WL_gen_dis)/fact);
             fprintf(1,'NET:                     %8.2f MWh\n\n',Net_dis/fact);
     end
     
@@ -528,9 +554,9 @@ if WM == 1
     switch Load.mode
         case {0,3,4,6}
             fprintf(1,'COP:                                 %8.2f \n',QH_chg/W_in_chg);
-            fprintf(1,'COP (including parasitics):          %8.2f \n',QH_chg/W_net_chg);
+            fprintf(1,'COP (including parasitics):          %8.2f \n',QH_chg/E_net_chg);
             fprintf(1,'Heat engine efficiency:              %8.2f %%\n',W_out_dis/QH_dis*100);
-            fprintf(1,'Heat engine eff. (inc. parasitics):  %8.2f %%\n\n',W_net_dis/QH_dis*100);
+            fprintf(1,'Heat engine eff. (inc. parasitics):  %8.2f %%\n\n',E_net_dis/QH_dis*100);
             fprintf(1,'Round trip efficiency:               %8.2f %%\n',chi_PTES*100);
             fprintf(1,'Round trip eff. (inc. parasitics):   %8.2f %%\n\n',chi_PTES_para*100);
             fprintf(1,'Exergy density:                      %8.2f kWh/m3\n\n',rhoE);
@@ -599,7 +625,9 @@ if any(Load.mode ==[0,4,6])
 end
 
 % Print HEXs
+%{
 fprintf('Heat exchanger summary\n');
 print_hexs(HX,i_chg,'Charge:\n');
 print_hexs(HX,i_dis,'Discharge:\n');
+%}
 

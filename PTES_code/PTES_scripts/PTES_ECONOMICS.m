@@ -224,14 +224,9 @@ end
 % Motor-generator. Assume this is just to provide the net work (i.e. don't
 % have a motor on the compressor and a separate generator on the expander)
 % This needs to be based on design values of the compressors and expanders
-if Load.mode == 2
-    GEN = gen_power(GEN,DCMP,DEXP) ;
-elseif Load.mode == 7
+if Load.mode == 7
     GEN.gen_cost.cost_mode = 0 ;
-else
-    GEN = gen_power(GEN,CCMP,CEXP) ;
 end
-
 GEN = gen_econ(GEN,CEind) ;
 cap_cost = cap_cost + GEN.gen_cost.COST ;
 cap_sens = cap_sens + cost_sens(GEN.gen_cost, Nsens) ;
@@ -309,9 +304,9 @@ Cdata.cap_cost_hi  = Cdata.cap_costM + Cdata.cap_costSD ;
 
 switch Load.mode
     case {0,3,4,6}
-        pow  = W_net_dis/t_dis/1e3 ;
-        Wout = W_net_dis/(1e3*3600) ;
-        Win  = -W_net_chg/(1e3*3600) ;
+        pow  = W_out_dis/t_dis/1e3 ;
+        Wout = W_out_dis/(1e3*3600) ;
+        Win  = -W_in_chg/(1e3*3600) ;
 
         Cdata.cap_cost_pow = Cdata.cap_costM / pow ; % Cost, $ / kW
         Cdata.cap_cost_en  = Cdata.cap_costM / Wout ;  % Cost, $ / kWh
@@ -323,15 +318,15 @@ switch Load.mode
         Cdata = calc_lcos(Cdata, Win, Wout, Load.time, Nsens) ;
 
     case 1
-        pow  = -W_net_chg/t_chg/1e3 ;
-        Win  = -W_net_chg/(1e3*3600) ;
+        pow  = -W_in_chg/t_chg/1e3 ;
+        Win  = -W_in_chg/(1e3*3600) ;
         
         Cdata.cap_cost_pow = Cdata.cap_costM / pow ; % Cost, $ / kW
         Cdata.cap_cost_en  = Cdata.cap_costM / Win ;  % Cost, $ / kWh
         
     case {2,5,7}
-        pow  = W_net_dis/t_dis/1e3 ;
-        Wout = W_net_dis/(1e3*3600) ;
+        pow  = W_out_dis/t_dis/1e3 ;
+        Wout = W_out_dis/(1e3*3600) ;
         
         Cdata.cap_cost_pow = Cdata.cap_costM / pow ; % Cost, $ / kW
         Cdata.cap_cost_en  = Cdata.cap_costM / Wout ;  % Cost, $ / kWh
@@ -394,14 +389,14 @@ if Lsuper
    
    % Tanks, fluid, insulation
    for ii = 1 : length(HT)
-       compMAT(jj,9) = compMAT(jj,9) + HT(ii).tankA_cost.COST + HT(ii).tankB_cost.COST ;
-       compMAT(jj,10) = compMAT(jj,10) + HT(ii).insA_cost.COST + HT(ii).insB_cost.COST ;
+       compMAT(jj,9)  = compMAT(jj,9)  + HT(ii).tankA_cost.COST + HT(ii).tankB_cost.COST ;
+       compMAT(jj,10) = compMAT(jj,10) + HT(ii).insA_cost.COST  + HT(ii).insB_cost.COST ;
        compMAT(jj,11) = compMAT(jj,11) + HT(ii).fluid_cost.COST;
    end
    
    for ii = 1 : length(CT)
-       compMAT(jj,9) = compMAT(jj,9) + CT(ii).tankA_cost.COST + CT(ii).tankB_cost.COST ;
-       compMAT(jj,10) = compMAT(jj,10) + CT(ii).insA_cost.COST + CT(ii).insB_cost.COST ;
+       compMAT(jj,9)  = compMAT(jj,9)  + CT(ii).tankA_cost.COST + CT(ii).tankB_cost.COST ;
+       compMAT(jj,10) = compMAT(jj,10) + CT(ii).insA_cost.COST  + CT(ii).insB_cost.COST ;
        compMAT(jj,12) = compMAT(jj,12) + CT(ii).fluid_cost.COST;
    end
    
