@@ -48,6 +48,9 @@ clear all
     var_min = [523; 0.8; 0.8;];
     var_max = [723; 1.6; 0.97];
     
+    xl=var_min';
+    xu=var_max';
+    
     POS=zeros(Np,nVar);
     %Wdamp=0.99;
     
@@ -72,7 +75,7 @@ if previousdata==1
         L1=size(A,1)+1 %if size(Nr of rows) of POS is 40 and A is 30, then L1=31 and L2=40
         L2=size(POS,1);
         for jj=L1:L2
-            pop=xl+rand.*(xl-xu);
+            pop=xl+rand.*(xu-xl);
             POS(jj,:)=pop;
         end
     end
