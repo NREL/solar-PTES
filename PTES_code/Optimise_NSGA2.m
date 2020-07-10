@@ -57,7 +57,7 @@ if previousdata==1
         L1=size(A,1)+1 %if size(Nr of rows) of x is 40 and A is 30, then L1=31 and L2=40
         L2=size(x,1);
         for jj=L1:L2
-            pop=xl+rand.*(xl-xu);
+            pop=xl+rand.*(xu-xl);
             x(jj,:)=pop;
         end
     end
