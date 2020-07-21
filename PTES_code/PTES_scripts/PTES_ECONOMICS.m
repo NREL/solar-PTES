@@ -323,6 +323,7 @@ switch Load.mode
         
         Cdata.cap_cost_pow = Cdata.cap_costM / pow ; % Cost, $ / kW
         Cdata.cap_cost_en  = Cdata.cap_costM / Win ;  % Cost, $ / kWh
+        Cdata.lcosM = -1.;
         
     case {2,5,7}
         pow  = W_out_dis/t_dis/1e3 ;
