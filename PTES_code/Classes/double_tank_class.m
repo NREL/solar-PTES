@@ -265,7 +265,7 @@ classdef double_tank_class
              AA = pi * AD * (AL + AD/4.) ;
              AA = 8 * AA / 5;
              
-             CF = RP1('PT_INPUTS',obj.A(1).p,obj.A(1).T,'CPMASS',obj) ;
+             CF = RPN('PT_INPUTS',obj.A(1).p,obj.A(1).T,'CPMASS',obj) ;
              tau = obj.costdat.tau * 24 * 3600 ; % convert from days to seconds
              UA = obj.tank_volA * obj.A(1).rho * CF / (tau * AA) ; % Overall heat transfer coef
              
@@ -285,7 +285,7 @@ classdef double_tank_class
              BL = BD * obj.costdat.AR ;
              BA = pi * BD * (BL + BD/4.) ;
              
-             CF = RP1('PT_INPUTS',obj.B(1).p,obj.B(1).T,'CPMASS',obj) ;
+             CF = RPN('PT_INPUTS',obj.B(1).p,obj.B(1).T,'CPMASS',obj) ;
              tau = obj.costdat.tau * 24 * 3600 ; % convert from days to seconds
              UB = obj.tank_volB * obj.B(1).rho * CF / (tau * BA) ; % Overall heat transfer coef
              

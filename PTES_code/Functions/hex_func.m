@@ -37,8 +37,8 @@ switch model
         ploss  = HX.ploss;
         
     case 'eff'
-        eff      = HX.eff;
-        ploss    = HX.ploss;
+        eff    = HX.eff;
+        ploss  = HX.ploss;
         
     case 'geom'
         % Set heat exchanger geometry (first time only)
@@ -114,8 +114,8 @@ end
 
 % Obtain preliminary minimum and maximum enthalpy outlets (hot outlet
 % cannot be colder than cold inlet, and vice-versa)
-hH1_min = RP1('PT_INPUTS',pH2,THmin,'H',fluidH);
-hC2_max = RP1('PT_INPUTS',pC1,TCmax,'H',fluidC);
+hH1_min = RPN('PT_INPUTS',pH2,THmin,'H',fluidH);
+hC2_max = RPN('PT_INPUTS',pC1,TCmax,'H',fluidC);
 
 % Compute average 'overall' specific heat capacities
 CpHmean = (hH2 - hH1_min)/(TH2-THmin);
@@ -208,6 +208,42 @@ switch model
         else
             plossC = ploss;
         end
+        % Account for different pressure losses in the two channels. Set
+        % the highest pressure loss equal to 'ploss' and estimate the
+        % lowest pressure with the ratio of geometry-independent pressure
+        % loss factors.
+        %{
+        if isempty(HX.plossH0) && isempty(HX.plossC0) && any(mode==[0,1,2])
+            % Obtain average specific volumes for the two channels
+            vH = 0.5*(1/RPN('PT_INPUTS',pH2,TH2,'D',fluidH) + 1/RPN('PT_INPUTS',pH2,TC1,'D',fluidH));
+            vC = 0.5*(1/RPN('PT_INPUTS',pC1,TH2,'D',fluidC) + 1/RPN('PT_INPUTS',pC1,TC1,'D',fluidC));
+            % Obtain average viscosities
+            muH = 0.5*(RPN('PT_INPUTS',pH2,TH2,'VISCOSITY',fluidH) + RPN('PT_INPUTS',pH2,TC1,'VISCOSITY',fluidH));
+            muC = 0.5*(RPN('PT_INPUTS',pC1,TH2,'VISCOSITY',fluidC) + RPN('PT_INPUTS',pC1,TC1,'VISCOSITY',fluidC));
+            % Obtain geometry-independent pressure loss factors
+            if any([muH,muC]==Inf)
+                DppH_fac = mH^2.0*vH/pH2;
+                DppC_fac = mC^2.0*vC/pC1;
+            else
+                DppH_fac = mH^1.67*muH^0.33*vH/pH2;
+                DppC_fac = mC^1.67*muC^0.33*vC/pC1;
+            end
+            % Set pressure losses
+            if DppH_fac > DppC_fac
+                plossH = ploss;
+                plossC = ploss*DppC_fac/DppH_fac;
+            else
+                plossC = ploss;
+                plossH = ploss*DppH_fac/DppC_fac;
+            end
+            %{
+            fprintf(1,'\n');
+            fprintf(1,'Hot:  %10s, %5.1f bar, ploss = %6.4f\n',valid_name(fluidH.name,2),pH2/1e5,plossH)
+            fprintf(1,'Cold: %10s, %5.1f bar, ploss = %6.4f\n',valid_name(fluidC.name,2),pC1/1e5,plossC)
+            keyboard
+            %}
+        end
+        %}
         pH1 = pH2*(1-plossH);
         pC2 = pC1*(1-plossC);
         
@@ -238,7 +274,7 @@ switch model
             case 3
                 % Set outlet conditions of cold fluid
                 TC2 = par;
-                hC2 = RP1('PT_INPUTS',pC2,TC2,'H',fluidC);
+                hC2 = RPN('PT_INPUTS',pC2,TC2,'H',fluidC);
                 
                 % Compute preliminary QMAX (hot outlet cannot be colder than cold
                 % inlet) and set boundaries accordingly
@@ -280,7 +316,7 @@ switch model
             case 4
                 % Set outlet conditions of hot fluid
                 TH1 = par;
-                hH1 = RP1('PT_INPUTS',pH1,TH1,'H',fluidH);
+                hH1 = RPN('PT_INPUTS',pH1,TH1,'H',fluidH);
                 
                 % Compute preliminary QMAX (cold outlet cannot be hotter than hot
                 % inlet) and set boundaries accordingly
@@ -309,7 +345,7 @@ switch model
             case 5
                 % Set outlet conditions of hot fluid
                 TH1 = par;
-                hH1 = RP1('PT_INPUTS',pH1,TH1,'H',fluidH);
+                hH1 = RPN('PT_INPUTS',pH1,TH1,'H',fluidH);
                 
                 % Compute total heat transfer and compute mCmin and mCmax
                 % accordingly
@@ -389,7 +425,7 @@ switch model
                 % of pressure loss when computing outlet enthalpy from the
                 % objective outlet temperature.
                 TC2 = par;
-                hC2 = RP1('PT_INPUTS',pC1,TC2,'H',fluidC);
+                hC2 = RPN('PT_INPUTS',pC1,TC2,'H',fluidC);
                 
                 % Compute preliminary QMAX (hot outlet cannot be colder
                 % than cold inlet) and set boundaries accordingly
@@ -413,7 +449,7 @@ switch model
                 % of pressure loss when computing outlet enthalpy from the
                 % objective outlet temperature.
                 TH1 = par;
-                hH1 = RP1('PT_INPUTS',pH2,TH1,'H',fluidH);
+                hH1 = RPN('PT_INPUTS',pH2,TH1,'H',fluidH);
                 
                 % Compute preliminary QMAX (cold outlet cannot be hotter
                 % than hot inlet) and set boundaries accordingly
@@ -435,7 +471,7 @@ switch model
                 % of pressure loss when computing outlet enthalpy from the
                 % objective outlet temperature.
                 TH1 = par;
-                hH1 = RP1('PT_INPUTS',pH2,TH1,'H',fluidH);
+                hH1 = RPN('PT_INPUTS',pH2,TH1,'H',fluidH);
                 
                 % Compute total heat transfer and compute mCmin and mCmax
                 % accordingly
@@ -649,12 +685,12 @@ switch mode
         
         % Compute temperature distribution of hot stream
         hH  = linspace(hH1,hH2,n+1)';
-        TH  = RP1('HmassP_INPUTS',hH,pH,'T',fluidH);
+        TH  = RPN('HmassP_INPUTS',hH,pH,'T',fluidH);
         
         % Compute temperature distribution of cold stream
         QS  = (hH - hH1)*mH; % cummulative heat transfer
         hC  = hC1 + QS/mC;
-        TC  = RP1('HmassP_INPUTS',hC,pC,'T',fluidC);
+        TC  = RPN('HmassP_INPUTS',hC,pC,'T',fluidC);
         
     case 'hC2'
         
@@ -663,13 +699,13 @@ switch mode
         
         % Compute temperature distribution of cold stream
         hC  = linspace(hC1,hC2,n+1)';
-        TC  = RP1('HmassP_INPUTS',hC,pC,'T',fluidC);
+        TC  = RPN('HmassP_INPUTS',hC,pC,'T',fluidC);
         
         % Compute temperature distribution of hot stream
         QS  = (hC - hC1)*mC; % cummulative heat transfer
         hH1 = hH2 - QS(n+1)/mH;
         hH  = hH1 + QS/mH;
-        TH  = RP1('HmassP_INPUTS',hH,pH,'T',fluidH);
+        TH  = RPN('HmassP_INPUTS',hH,pH,'T',fluidH);
         
     otherwise
         error('not implemented')

@@ -27,12 +27,14 @@ classdef stream
         rho     
         v       
         mu      
-        k       
-        Pr      %{mustBePositive}
+        k
+        G
+        Pr
         Re      
         Cf      
         St      
         ht %heat transfer coeff
+        Gz %Graetz number
         
         %%% Arrays for the two-phase region
         % Saturated liquid
@@ -62,8 +64,9 @@ classdef stream
         Af      {mustBePositive}
         Ax      {mustBePositive}
         D       {mustBePositive}
-        G       {mustBePositive}
         L       {mustBePositive}
+        dL      {mustBePositive}
+        LS
     end
     
     methods

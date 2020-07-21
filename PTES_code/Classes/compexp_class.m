@@ -164,13 +164,13 @@ classdef compexp_class
                 % Estimate polytropic index to estimate final pressure
                 T2   = aim;
                 TAV  = 0.5*(T1 + T2);
-                Gama = RP1('PT_INPUTS',p1,TAV,'CPMASS',fluid)/RP1('PT_INPUTS',p1,TAV,'CVMASS',fluid);
+                Gama = RPN('PT_INPUTS',p1,TAV,'CPMASS',fluid)/RPN('PT_INPUTS',p1,TAV,'CVMASS',fluid);
                 phi  = (Gama/(Gama-1))*etaI^n;
                 p2   = p1*(T2/T1)^phi;
                 
                 % Compute compression/expansion for estimated final pressure
                 h2   = nested_compexp(fluid,p1,h1,s1,rho1,p2,etaI,n,num);
-                Tnew = RP1('HmassP_INPUTS',h2,p2,'T',fluid);
+                Tnew = RPN('HmassP_INPUTS',h2,p2,'T',fluid);
                 
                 % Re-compute polytropic index and adapt final pressure
                 phi  = log(p2/p1)/log(Tnew/T1);
@@ -244,13 +244,13 @@ classdef compexp_class
                 pv = logspace(log10(p1),log10(p2),num);
                 Dp = pv(2:num) - pv(1:(num-1));
                 % Initial guess
-                h2_is = RP1('PSmass_INPUTS',p2,s1,'H',fluid);
+                h2_is = RPN('PSmass_INPUTS',p2,s1,'H',fluid);
                 h2 = h1 + eta^n*(h2_is - h1);
                 % Update until convergence
                 err = zeros(1,20);
                 for i1 = 1:50
                     h2_0  = h2;
-                    rho2  = RP1('HmassP_INPUTS',h2,p2,'D',fluid);
+                    rho2  = RPN('HmassP_INPUTS',h2,p2,'D',fluid);
                     xi    = log(rho2/rho1)/log(p2/p1); %assumes rho = K*p^xi along polytropic compression/expansion
                     rhov  = rho1*(pv/p1).^xi;  %density array (estimate)
                     rhoAV = 0.5*(rhov(1:(num-1))+rhov(2:num));
@@ -276,7 +276,7 @@ classdef compexp_class
             
             function h2 = nested_compexp_is(fluid,h1,s1,p2,eta,n)
                 % Use isentropic efficiency
-                h2_is = RP1('PSmass_INPUTS',p2,s1,'H',fluid);
+                h2_is = RPN('PSmass_INPUTS',p2,s1,'H',fluid);
                 if n == 1 %compressor
                     h2 = h1 + (h2_is - h1)/eta;
                 elseif n==-1 %expander
@@ -512,7 +512,7 @@ classdef compexp_class
                     COST = 1.051 * 39.5 * obj.mdot0 * obj.pr0* log(obj.pr0) / (0.92 - obj.eta0) ;
                     COST = COST * CEind(curr) / CEind(1995) ;
                     
-                    RHOin = RP1('PT_INPUTS',obj.Pin,obj.Tin,'D',fld) ;
+                    RHOin = RPN('PT_INPUTS',obj.Pin,obj.Tin,'D',fld) ;
                     RHO0  = 1.225 ; % Density of air at standard conditions
                     n     = 1 ; % This allows you to modify how strongly the cost is reduced
                     scale = (RHOin / RHO0)^n ;
@@ -649,7 +649,7 @@ classdef compexp_class
                     Pout = obj.Pin / obj.pr0 ;
                     Tout = obj.Tin / (obj.pr0 ^ (obj.eta0 * (Gama - 1)/Gama)) ;
                     
-                    RHOout = RP1('PT_INPUTS',Pout,Tout,'D',fld) ;
+                    RHOout = RPN('PT_INPUTS',Pout,Tout,'D',fld) ;
                     RHO0  = 1.225 ; % Density of air at standard conditions
                     n     = 1 ; % This allows you to modify how strongly the cost is reduced
                     scale = (RHOout / RHO0)^n ;

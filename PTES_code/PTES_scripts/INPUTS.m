@@ -9,6 +9,8 @@
 % Mode 5: sCO2 recompression cycle (discharge only)
 % Mode 6: sCO2 'time-shifted' recompression cycle
 % Mode 7: Steam-Rankine heat engine (discharge only)
+%
+% Mode 20: PTES-LAES. Combined cycle energy storage (CCES)
 
 % Call the correct input file
 Load.mode  = 3 ;
@@ -19,8 +21,12 @@ PBmode     = 0 ; % Liquid stores = 0; Packed beds = 1; Heat exchangers between p
 switch Load.mode
     case {0,1,2,3,7} % Joule-Bratyon PTES / Joule-Brayton + Rankine
         JB_RANK_INPUTS
-    case {4, 5, 6} % sCO2-PTES type cycles
+    case {4, 5, 6}   % sCO2-PTES type cycles
         sCO2_INPUTS
+    case 20          % PTES-LAES combined cycle
+        CCES_INPUTS
+    otherwise
+        error('not implemented')
 end
 
 % Required average power output during discharge
@@ -29,7 +35,7 @@ Wdis_req = 100e6 ;
 % Set heat exchanger parameters
 eff      = 0.97;  % heat exchanger effectiveness
 ploss    = 0.01;  % pressure loss in HEXs
-HX_model = 'geom' ;
+HX_model = 'eff' ;
 HX_D1    = 0.005; %hydraulic diameter
 HX_shape = 'circular'; %channel shape
 HX_NX    = 100; % number of sections for HEX algorithm
@@ -42,9 +48,9 @@ make_plots  = 1; % make plots?
 save_figs   = 0; % save figures at the end?
 make_hex_plots = 0; % make plots of heat exchangers?
 
-if (Nc_ch > 1 || Ne_ch > 1) && (Ncld > 1 || Nhot > 1)
-    error('Have not implemented multiple compressions/expansions AND multiple storage tanks in series')
-end
+%if (Nc_ch > 1 || Ne_ch > 1) && (Ncld > 1 || Nhot > 1)
+%    error('Have not implemented multiple compressions/expansions AND multiple storage tanks in series')
+%end
 
 switch PBmode
     case 0
@@ -71,6 +77,13 @@ switch PBmode
                 fluidH(ii)  = fluid_class(char(fHname(ii,:)),'SF','TAB',NaN,Load.num,30);
                 HT(ii)  = double_tank_class(fluidH(ii),TH_dis0(ii),p0,MH_dis0(ii),TH_chg0(ii),p0,MH_chg0(ii),T0,HTmode,Load.num+1); %hot double tank
             end
+        end
+        
+        switch Load.mode
+            case 20
+                % Medium tanks
+                fluidM = fluid_class(fHname,'SF','TAB',NaN,Load.num,30); % Storage fluid
+                MT     = double_tank_class(fluidM,TM_dis0,p0,MM_dis0,TM_chg0,p0,MM_chg0,T0,HTmode,Load.num+1); %medium double tank
         end
         
     case 1

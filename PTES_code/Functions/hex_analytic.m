@@ -35,11 +35,13 @@ H = stream; H.mdot = mH; H.name = fluidH.name;
 C = stream; C.mdot = mC; C.name = fluidC.name;
 H.read = fluidH.read; H.handle = fluidH.handle; H.HEOS = fluidH.HEOS;
 C.read = fluidC.read; C.handle = fluidC.handle; C.HEOS = fluidC.HEOS;
+H.shape = HX.shape;
+C.shape = HX.shape;
 
 % Obtain minimum and maximum enthalpy outlets (hot outlet cannot be colder
 % than cold inlet, and vice-versa) and average specific heat capacity
-hH1_min = RP1('PT_INPUTS',pH2,TC1,'H',fluidH);
-hC2_max = RP1('PT_INPUTS',pC1,TH2,'H',fluidC);
+hH1_min = RPN('PT_INPUTS',pH2,TC1,'H',fluidH);
+hC2_max = RPN('PT_INPUTS',pC1,TH2,'H',fluidC);
 
 % Set enthalpy to estimate average value, and pressure to initial value
 H.h = 0.5*(hH2 + hH1_min);
@@ -50,21 +52,25 @@ C.p = pC1;
 % Import values from HX structure into C and H structures
 if H.p > C.p
     % Hot fluid flows inside the tubes
-    H.D = HX.D1;
-    H.G = HX.G1;
-    H.A = HX.A1;
-    C.D = HX.D2;
-    C.G = HX.G2;
-    C.A = HX.A2;
+    H.D  = HX.D1;
+    H.Af = HX.Af1;
+    H.A  = HX.A1;
+    C.D  = HX.D2;
+    C.Af = HX.Af2;
+    C.A  = HX.A2;
 else
     % Hot fluid flows inside the shell side
-    H.D = HX.D2;
-    H.G = HX.G2;
-    H.A = HX.A2;
-    C.D = HX.D1;
-    C.G = HX.G1;
-    C.A = HX.A1;
+    H.D  = HX.D2;
+    H.Af = HX.Af2;
+    H.A  = HX.A2;
+    C.D  = HX.D1;
+    C.Af = HX.Af1;
+    C.A  = HX.A1;
 end
+
+% Compute mass fluxes
+H.G = mH/H.Af;
+C.G = mC/C.Af;
 
 % Initial guess
 hH1 = hH1_min;
@@ -81,13 +87,9 @@ for i=1:3
     
     % COMPUTE HEAT TRANSFER COEFFICIENTS
     % Cold stream
-    C.Re = C.D*C.G./C.mu;
-    [C.Cf,C.St] = developed_flow(C.Re,C.Pr,HX.shape);
-    C.ht  = C.G*C.Cp.*C.St;
+    [ C ] = developed_flow( C, 'heating' );
     % Hot stream
-    H.Re = H.D*H.G./H.mu;
-    [H.Cf,H.St] = developed_flow(H.Re,H.Pr,HX.shape);
-    H.ht  = H.G*H.Cp.*H.St;
+    [ H ] = developed_flow( H, 'cooling' );
     % Overall heat transfer coefficient (based on cold side heat transfer
     % area). Neglects wall thermal resistance and axial conduction.
     UlC  = 1./(C.A./(H.A*H.ht) + 1./C.ht);
@@ -123,8 +125,8 @@ for i=1:3
     hH1  = hH2 - QT/mH;
     pC2  = pC1*(1 - DppC);
     pH1  = pH2*(1 - DppH);
-    TC2 = RP1('HmassP_INPUTS',hC2,pC2,'T',fluidC);
-    TH1 = RP1('HmassP_INPUTS',hH1,pH1,'T',fluidH);
+    TC2 = RPN('HmassP_INPUTS',hC2,pC2,'T',fluidC);
+    TH1 = RPN('HmassP_INPUTS',hH1,pH1,'T',fluidH);
     
     % Update average properties
     H.h = 0.5*(hH2 + hH1);

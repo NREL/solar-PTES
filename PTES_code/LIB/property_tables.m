@@ -25,7 +25,7 @@ switch create_only
         LIB.Water.HmassP_INPUTS = LIB_THERM('Water','HmassP_INPUTS',100);
         toc
         tic
-        LIB.Water.PQ_INPUTS     = LIB_THERM('Water','PQ_INPUTS',1e3);
+        LIB.Water.PQ_INPUTS     = LIB_THERM('Water','PQ_INPUTS',1e4);
         toc
         LIB.Water.name = 'Water';
         save('./LIB/LIB/LIB.mat','LIB')
@@ -77,7 +77,7 @@ switch create
             case 'PQ_INPUTS'
                 tic
                 % Create table
-                LIB.Water.(inputs) = LIB_THERM('Water','PQ_INPUTS',1e3);
+                LIB.Water.(inputs) = LIB_THERM('Water','PQ_INPUTS',2e3);
                 LIB.Water.name = LIB.Water.(inputs).name;
                 
                 % Save library into a .mat file
@@ -127,28 +127,32 @@ load('./LIB/LIB/LIB.mat')
 load('./LIB/LIB/Query.mat')
 
 % Restrict list of variables to be compared
-%list  = list(1:5);
-%zcool = zcool(:,:,1:5);
+list  = list(1:5);
+zcool = zcool(:,:,1:5);
 
+repetitions=20;
 tic
-for i0=1:1
+for i0=1:repetitions
 % Obtain interpolated tables
-[LIB.Water.(inputs), ztab] = RLIB(LIB.Water.(inputs), inputs, Xq, Yq, list);
+[ztab] = RLIB(LIB.Water.(inputs), inputs, Xq, Yq, list);
+%[ztab] = RLIB_mex(LIB.Water.(inputs), inputs, Xq, Yq, list);
 end
 toc
 
 % Compare against results from CoolProp using TTSE
 fluidT = fluid_class(LIB.Water.name,'WF','CP','TTSE',1,1);
 tic
-for i0=1:1
+for i0=1:ceil(repetitions/5)
 zcoolT = zeros([size(Xq),length(list)]);
 for ip=1:length(list)
     for ic=1:size(Xq,2)
         switch inputs
-            case 'HP'
+            case 'HmassP_INPUTS'
                 zcoolT(:,ic,ip) = CP1('HmassP_INPUTS',Xq(:,ic),Yq(:,ic),list{ip},fluidT.handle);
-            case 'PQ'
+            case 'PQ_INPUTS'
                 zcoolT(:,ic,ip) = CP1('PQ_INPUTS',Xq(:,ic),Yq(:,ic),list{ip},fluidT.handle);
+            otherwise
+                error('not implemented')
         end
     end
 end
@@ -188,8 +192,8 @@ switch inputs
         xG  = TAB.xG;
         yL  = TAB.yL;
         yG  = TAB.yG;
-        dxL = TAB.dxL;
-        dxG = TAB.dxG;
+        dxL = XL(1,end) - XL(1,1);
+        dxG = XG(1,end) - XG(1,1);
         figure(1)
         semilogy(xL,yL,'b',xG,yG,'b'); hold on;
         semilogy(xL-dxL,yL,xG+dxG,yG)
@@ -197,7 +201,7 @@ switch inputs
         semilogy(XL,YL,'k.');
         semilogy(XG,YG,'k.');
         semilogy(XT,YT,'k.');
-        botm = 1.1;
+        botm = 0.1;
         mark = max(err(:,:,:),[],3) > botm;
         semilogy(Xq(mark),Yq(mark),'rs');
         hold off;

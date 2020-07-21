@@ -10,7 +10,7 @@ stageM = main.stage(indM(1),indM(2));
 stateS = stateM;
 
 % Find gas fraction
-fraction = RP1('HmassP_INPUTS',stateM.h,stateM.p,'Q',main);
+fraction = RPN('HmassP_INPUTS',stateM.h,stateM.p,'Q',main);
 if (fraction < 0 || fraction > 1)
     error('***Fluid is outside the saturation curve, separation not possible***')
 end
@@ -22,9 +22,9 @@ stateS.mdot = mdotS;
 stateM.mdot = mdot - mdotS;
 
 % Update states
-stateM.h = RP1('PQ_INPUTS',stateM.p,0.0,'H',main);
+stateM.h = RPN('PQ_INPUTS',stateM.p,0.0,'H',main);
 stateM   = update_state(stateM,main,2);
-stateS.h = RP1('PQ_INPUTS',stateS.p,1.0,'H',second);
+stateS.h = RPN('PQ_INPUTS',stateS.p,1.0,'H',second);
 stateS   = update_state(stateS,second,2);
 
 % Compute stage energy flows

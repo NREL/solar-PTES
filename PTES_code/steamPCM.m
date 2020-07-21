@@ -58,11 +58,9 @@ steamPCM_SETUP
 %mdot(2) = 0.75 * mdot(2) ;
 % Run through each load cycle
 while Iload <= Nload
-    
     steamPCM_LOADCYCLE
     steamPCMv5
-    Iload = Iload + 1 ;
- 
+    Iload = Iload + 1 ; 
 end
 
 steamPCM_POWER

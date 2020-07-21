@@ -31,7 +31,8 @@ classdef hx_class
        C = stream ; % Cold side
        
        QS       % Cumulative heat transfer
-       AS       % Heat transfer area
+       AS       % Cumulative heat transfer area
+       dL       % Array of heat exchanger sections (length)
        Ul       % Local overall heat transfer coefficient
        LMTD     % Why not
        Cmin 
@@ -159,6 +160,9 @@ classdef hx_class
            obj.C(1:numPeriods) = stream;
            
            obj.QS   = zeros(Nsave,Ngrid+1) ;
+           obj.AS   = zeros(Nsave,Ngrid+1) ;
+           obj.Ul   = zeros(Nsave,Ngrid+1) ;
+           obj.dL   = zeros(Nsave,Ngrid) ;
            
            obj.Lgeom_set = false ;
            

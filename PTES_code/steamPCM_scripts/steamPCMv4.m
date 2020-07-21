@@ -51,7 +51,7 @@ U     = 110 ; % Overall heat transfer coefficient, W/m2K
 steam = fluid_class('Water','WF','CP','HEOS',2,30);
 Psat  = 20e5 ; % Saturation pressure
 xs0   = 1.0 ;  % Initial dryness fraction of steam
-Tsat  = RP1('PQ_INPUTS',Psat,1.0,'T',steam) ; % Saturation temperature
+Tsat  = RPN('PQ_INPUTS',Psat,1.0,'T',steam) ; % Saturation temperature
 Ts0   = Tsat ;
 Ps0   = Psat ;
 
@@ -80,25 +80,25 @@ tN    = 4*3600;  % Duration of simultion, s
 %**** SET UP SOME PARAMETERS ****%
 
 % Initial properties of steam 
-hv = RP1('PQ_INPUTS',Psat,1.0,'H',steam) ; % Enthalpy of vapour
-hl = RP1('PQ_INPUTS',Psat,0.0,'H',steam) ; % Enthalpy of liquid
+hv = RPN('PQ_INPUTS',Psat,1.0,'H',steam) ; % Enthalpy of vapour
+hl = RPN('PQ_INPUTS',Psat,0.0,'H',steam) ; % Enthalpy of liquid
 
-vv = 1./RP1('PQ_INPUTS',Psat,1.0,'D',steam) ; % Specific volume of vapour
-vl = 1./RP1('PQ_INPUTS',Psat,0.0,'D',steam) ; % Specific volume of liquid
+vv = 1./RPN('PQ_INPUTS',Psat,1.0,'D',steam) ; % Specific volume of vapour
+vl = 1./RPN('PQ_INPUTS',Psat,0.0,'D',steam) ; % Specific volume of liquid
 
-hs0   = RP1('PQ_INPUTS',Ps0,xs0,'H',steam) ;
-ss0   = RP1('PQ_INPUTS',Ps0,xs0,'S',steam) ; 
-rhos0 = RP1('PQ_INPUTS',Ps0,xs0,'D',steam) ; 
-mus0  = RP1('PQ_INPUTS',Ps0,xs0,'VISCOSITY',steam) ; 
-csl   = RP1('PQ_INPUTS',Ps0,0.0,'CPMASS',steam) ; 
-rhosl = RP1('PQ_INPUTS',Ps0,0.0,'D',steam) ; 
-musl  = RP1('PQ_INPUTS',Ps0,0.0,'VISCOSITY',steam) ; 
-ktl   = RP1('PQ_INPUTS',Ps0,0.0,'L',steam) ;  % Thermal conductivity of liquid
-Psc   = RP1(0,0,0,'PCRIT',steam);      % Critical pressure of steam
+hs0   = RPN('PQ_INPUTS',Ps0,xs0,'H',steam) ;
+ss0   = RPN('PQ_INPUTS',Ps0,xs0,'S',steam) ; 
+rhos0 = RPN('PQ_INPUTS',Ps0,xs0,'D',steam) ; 
+mus0  = RPN('PQ_INPUTS',Ps0,xs0,'VISCOSITY',steam) ; 
+csl   = RPN('PQ_INPUTS',Ps0,0.0,'CPMASS',steam) ; 
+rhosl = RPN('PQ_INPUTS',Ps0,0.0,'D',steam) ; 
+musl  = RPN('PQ_INPUTS',Ps0,0.0,'VISCOSITY',steam) ; 
+ktl   = RPN('PQ_INPUTS',Ps0,0.0,'L',steam) ;  % Thermal conductivity of liquid
+Psc   = RPN(0,0,0,'PCRIT',steam);      % Critical pressure of steam
 
-csv   = RP1('PQ_INPUTS',Ps0,1.0,'CPMASS',steam) ; 
-rhosv = RP1('PQ_INPUTS',Ps0,1.0,'D',steam) ; 
-musv  = RP1('PQ_INPUTS',Ps0,1.0,'VISCOSITY',steam) ; 
+csv   = RPN('PQ_INPUTS',Ps0,1.0,'CPMASS',steam) ; 
+rhosv = RPN('PQ_INPUTS',Ps0,1.0,'D',steam) ; 
+musv  = RPN('PQ_INPUTS',Ps0,1.0,'VISCOSITY',steam) ; 
 
 mdot0 = U * pi * dp * Lp * (Tsat - Tpm) / (hv-hl) ;
 
@@ -137,7 +137,7 @@ mus   = mus0  * ones(Nx,2) ; % Viscosity
 
 % Some dimensionless numbers
 Re0   = Gs0 * dp / musl ; % Reynolds number based on all liquid flow
-Pr0   = RP1('PQ_INPUTS',Ps0,0.0,'PRANDTL',steam) ; % Prandtl number of liquid
+Pr0   = RPN('PQ_INPUTS',Ps0,0.0,'PRANDTL',steam) ; % Prandtl number of liquid
 Nu0   = 0.023 * Re0^0.8 * Pr0^0.4 ; % Dittus-Boelter
 hc0   = Nu0 * ktl / dp ;
 St0   = Nu0 / (Re0 * Pr0) ;
@@ -252,8 +252,8 @@ for n = 1 : Nt
             % Calculate steam properties
             if hs(i,1) > hv % steam
                 xs(i,1)   = 1. ;
-                Ts(i,1)   = RP1('HmassP_INPUTS',hs(i,1),Ps0,'T',steam);%Tsat + (hs(i,1)-hv) / csv ;
-                rhos(i,1) = RP1('HmassP_INPUTS',hs(i,1),Ps0,'D',steam);% rhosv;
+                Ts(i,1)   = RPN('HmassP_INPUTS',hs(i,1),Ps0,'T',steam);%Tsat + (hs(i,1)-hv) / csv ;
+                rhos(i,1) = RPN('HmassP_INPUTS',hs(i,1),Ps0,'D',steam);% rhosv;
             elseif hs(i,1) < hl % water
                 xs(i,1)   = 0. ;
                 Ts(i,1)   = hs(i,1) / csl ;

@@ -54,14 +54,14 @@ Lp    = 1.0 ; % Pipe length
 steam = fluid_class('Water','WF','CP','HEOS',2,30);
 PsatC = 20e5 ; % Saturation pressure
 xsC   = 0.95 ;  % Initial dryness fraction of steam
-TsatC = RP1('PQ_INPUTS',PsatC,1.0,'T',steam) ; % Saturation temperature
+TsatC = RPN('PQ_INPUTS',PsatC,1.0,'T',steam) ; % Saturation temperature
 TsC   = TsatC ;
 PsC   = PsatC ;
 
 % STEAM DISCHARGING CONDITIONS
 PsatD = 12e5 ; % Saturation pressure
 xsD   = 0.0 ;  % Initial dryness fraction of steam
-TsatD = RP1('PQ_INPUTS',PsatD,0.0,'T',steam) ; % Saturation temperature
+TsatD = RPN('PQ_INPUTS',PsatD,0.0,'T',steam) ; % Saturation temperature
 TsD   = TsatD ;
 PsD   = PsatD ;
 
@@ -106,15 +106,15 @@ PCMiterations = 2 ; % Number of times to iterate PCM equation. 2 gives good resu
 %**** SET UP SOME PARAMETERS ****%
 
 % Initial properties of steam 
-hvC = RP1('PQ_INPUTS',PsatC,1.0,'H',steam) ; % Enthalpy of vapour
-hlC = RP1('PQ_INPUTS',PsatC,0.0,'H',steam) ; % Enthalpy of liquid
-vvC = 1./RP1('PQ_INPUTS',PsatC,1.0,'D',steam) ; % Specific volume of vapour
-vlC = 1./RP1('PQ_INPUTS',PsatC,0.0,'D',steam) ; % Specific volume of liquid
+hvC = RPN('PQ_INPUTS',PsatC,1.0,'H',steam) ; % Enthalpy of vapour
+hlC = RPN('PQ_INPUTS',PsatC,0.0,'H',steam) ; % Enthalpy of liquid
+vvC = 1./RPN('PQ_INPUTS',PsatC,1.0,'D',steam) ; % Specific volume of vapour
+vlC = 1./RPN('PQ_INPUTS',PsatC,0.0,'D',steam) ; % Specific volume of liquid
 
-hvD = RP1('PQ_INPUTS',PsatD,1.0,'H',steam) ; % Enthalpy of vapour
-hlD = RP1('PQ_INPUTS',PsatD,0.0,'H',steam) ; % Enthalpy of liquid
-vvD = 1./RP1('PQ_INPUTS',PsatD,1.0,'D',steam) ; % Specific volume of vapour
-vlD = 1./RP1('PQ_INPUTS',PsatD,0.0,'D',steam) ; % Specific volume of liquid
+hvD = RPN('PQ_INPUTS',PsatD,1.0,'H',steam) ; % Enthalpy of vapour
+hlD = RPN('PQ_INPUTS',PsatD,0.0,'H',steam) ; % Enthalpy of liquid
+vvD = 1./RPN('PQ_INPUTS',PsatD,1.0,'D',steam) ; % Specific volume of vapour
+vlD = 1./RPN('PQ_INPUTS',PsatD,0.0,'D',steam) ; % Specific volume of liquid
 
 % Going to do something a bit crappy to avoid having to use Coolprops (very slow)
 Ntab  = 50 ;
@@ -126,11 +126,11 @@ TtabD = zeros(Ntab,1) ;
 VtabD = zeros(Ntab,1) ;
 
 for i = 1 : Ntab
-   TtabC(i) = RP1('HmassP_INPUTS',htabC(i),PsatC,'T',steam);
-   VtabC(i) = 1./RP1('HmassP_INPUTS',htabC(i),PsatC,'D',steam);
+   TtabC(i) = RPN('HmassP_INPUTS',htabC(i),PsatC,'T',steam);
+   VtabC(i) = 1./RPN('HmassP_INPUTS',htabC(i),PsatC,'D',steam);
    
-   TtabD(i) = RP1('HmassP_INPUTS',htabD(i),PsatD,'T',steam);
-   VtabD(i) = 1./RP1('HmassP_INPUTS',htabD(i),PsatD,'D',steam);
+   TtabD(i) = RPN('HmassP_INPUTS',htabD(i),PsatD,'T',steam);
+   VtabD(i) = 1./RPN('HmassP_INPUTS',htabD(i),PsatD,'D',steam);
 end
 
 % Correlation between H and T, and H and V (specific volume)
@@ -142,27 +142,27 @@ HH = [ones(Ntab,1) htabD] ;
 TcoefD = HH \ TtabD ;
 VcoefD = HH \ VtabD ;
 
-hsC   = RP1('PQ_INPUTS',PsC,xsC,'H',steam) ;
-ssC   = RP1('PQ_INPUTS',PsC,xsC,'S',steam) ; 
-rhosC = RP1('PQ_INPUTS',PsC,xsC,'D',steam) ; 
-musC  = RP1('PQ_INPUTS',PsC,xsC,'VISCOSITY',steam) ; 
+hsC   = RPN('PQ_INPUTS',PsC,xsC,'H',steam) ;
+ssC   = RPN('PQ_INPUTS',PsC,xsC,'S',steam) ; 
+rhosC = RPN('PQ_INPUTS',PsC,xsC,'D',steam) ; 
+musC  = RPN('PQ_INPUTS',PsC,xsC,'VISCOSITY',steam) ; 
 
-hsD   = RP1('PQ_INPUTS',PsD,xsD,'H',steam) ;
-ssD   = RP1('PQ_INPUTS',PsD,xsD,'S',steam) ; 
-rhosD = RP1('PQ_INPUTS',PsD,xsD,'D',steam) ; 
-musD  = RP1('PQ_INPUTS',PsD,xsD,'VISCOSITY',steam) ; 
+hsD   = RPN('PQ_INPUTS',PsD,xsD,'H',steam) ;
+ssD   = RPN('PQ_INPUTS',PsD,xsD,'S',steam) ; 
+rhosD = RPN('PQ_INPUTS',PsD,xsD,'D',steam) ; 
+musD  = RPN('PQ_INPUTS',PsD,xsD,'VISCOSITY',steam) ; 
 
-csl   = RP1('PQ_INPUTS',PsC,0.0,'CPMASS',steam) ; 
-rhosl = RP1('PQ_INPUTS',PsC,0.0,'D',steam) ; 
-musl  = RP1('PQ_INPUTS',PsC,0.0,'VISCOSITY',steam) ; 
-ktl   = RP1('PQ_INPUTS',PsC,0.0,'L',steam) ;  % Thermal conductivity of liquid
+csl   = RPN('PQ_INPUTS',PsC,0.0,'CPMASS',steam) ; 
+rhosl = RPN('PQ_INPUTS',PsC,0.0,'D',steam) ; 
+musl  = RPN('PQ_INPUTS',PsC,0.0,'VISCOSITY',steam) ; 
+ktl   = RPN('PQ_INPUTS',PsC,0.0,'L',steam) ;  % Thermal conductivity of liquid
 
-csv   = RP1('PQ_INPUTS',PsC,1.0,'CPMASS',steam) ; 
-rhosv = RP1('PQ_INPUTS',PsC,1.0,'D',steam) ; 
-musv  = RP1('PQ_INPUTS',PsC,1.0,'VISCOSITY',steam) ; 
-ktv   = RP1('PQ_INPUTS',PsC,1.0,'L',steam) ;  % Thermal conductivity of liquid
+csv   = RPN('PQ_INPUTS',PsC,1.0,'CPMASS',steam) ; 
+rhosv = RPN('PQ_INPUTS',PsC,1.0,'D',steam) ; 
+musv  = RPN('PQ_INPUTS',PsC,1.0,'VISCOSITY',steam) ; 
+ktv   = RPN('PQ_INPUTS',PsC,1.0,'L',steam) ;  % Thermal conductivity of liquid
 
-Psc   = RP1(0,0,0,'PCRIT',steam);      % Critical pressure of steam
+Psc   = RPN(0,0,0,'PCRIT',steam);      % Critical pressure of steam
 
 % Areas
 Ap    = 0.25 * pi * dp^2 ; % Pipe area
@@ -172,7 +172,7 @@ Ar    = 4.0 / dp ; % Heat transfer area
 
 do_lo = 1.01 * dp ; % Guess do
 do_hi = 10 * dp ; % Guess do
-PrC   = RP1('PQ_INPUTS',PsC,0.0,'PRANDTL',steam) ; % Prandtl number of liquid
+PrC   = RPN('PQ_INPUTS',PsC,0.0,'PRANDTL',steam) ; % Prandtl number of liquid
 
 % Now iterate to find do
 cnt = 1 ;
@@ -241,7 +241,7 @@ mus   = musC  * ones(Nx,2) ; % Viscosity
 
 % Some dimensionless numbers
 ReL   = GsC * dp / musl ; % Reynolds number based on all liquid flow
-PrL   = RP1('PQ_INPUTS',PsC,0.0,'PRANDTL',steam) ; % Prandtl number of liquid
+PrL   = RPN('PQ_INPUTS',PsC,0.0,'PRANDTL',steam) ; % Prandtl number of liquid
 if ReL < 3000
     NuL = 4.36;
 else
@@ -250,7 +250,7 @@ end
 hcL   = NuL * ktl / dp ;
 
 ReV   = GsC * dp / musv ; % Reynolds number based on all liquid flow
-PrV   = RP1('PQ_INPUTS',PsC,1.0,'PRANDTL',steam) ; % Prandtl number of liquid
+PrV   = RPN('PQ_INPUTS',PsC,1.0,'PRANDTL',steam) ; % Prandtl number of liquid
 NuV   = 0.023 * ReV^0.8 * PrV^0.4 ; % Dittus-Boelter
 hcV   = NuV * ktv / dp ;
 
@@ -512,9 +512,9 @@ while Iload <= Nload
                 % Calculate steam properties
                 if hs(i,1) > hv % steam
                     xs(i,1)   = 1. ;
-                    %Ts(i,1)   = RP1('HmassP_INPUTS',hs(i,1),Ps(i,1),'T',steam);
+                    %Ts(i,1)   = RPN('HmassP_INPUTS',hs(i,1),Ps(i,1),'T',steam);
                     Ts(i,1)   = Tsat + (hs(i,1)-hv) / csv ;
-                    %rhos(i,1) = RP1('HmassP_INPUTS',hs(i,1),Ps(i,1),'D',steam);% rhosv;
+                    %rhos(i,1) = RPN('HmassP_INPUTS',hs(i,1),Ps(i,1),'D',steam);% rhosv;
                     
                     %Ts(i,1) = Tcoef(1) + Tcoef(2) * hs(i,1) ;
                     rhos(i,1) = 1. / (Vcoef(1) + Vcoef(2) * hs(i,1)) ;

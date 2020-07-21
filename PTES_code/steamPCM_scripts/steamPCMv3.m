@@ -47,7 +47,7 @@ U     = 1e2 ; % Overall heat transfer coefficient, W/m2K
 steam = fluid_class('Water','WF','CP','HEOS',2,30);
 Psat  = 20e5 ; % Saturation pressure
 xs0   = 1.0 ;  % Initial dryness fraction of steam
-Tsat  = RP1('PQ_INPUTS',Psat,1.0,'T',steam) ; % Saturation temperature
+Tsat  = RPN('PQ_INPUTS',Psat,1.0,'T',steam) ; % Saturation temperature
 Ts0   = Tsat ;
 Ps0   = Psat ;
 mdot0 = 5.0;  % Mass flow rate, kg/s
@@ -76,19 +76,19 @@ tN    = 4*3600;  % Duration of simultion, s
 %**** SET UP SOME PARAMETERS ****%
 
 % Initial properties of steam 
-hv = RP1('PQ_INPUTS',Psat,1.0,'H',steam) ; % Enthalpy of vapour
-hl = RP1('PQ_INPUTS',Psat,0.0,'H',steam) ; % Enthalpy of liquid
+hv = RPN('PQ_INPUTS',Psat,1.0,'H',steam) ; % Enthalpy of vapour
+hl = RPN('PQ_INPUTS',Psat,0.0,'H',steam) ; % Enthalpy of liquid
 
-vv = 1./RP1('PQ_INPUTS',Psat,1.0,'D',steam) ; % Specific volume of vapour
-vl = 1./RP1('PQ_INPUTS',Psat,0.0,'D',steam) ; % Specific volume of liquid
+vv = 1./RPN('PQ_INPUTS',Psat,1.0,'D',steam) ; % Specific volume of vapour
+vl = 1./RPN('PQ_INPUTS',Psat,0.0,'D',steam) ; % Specific volume of liquid
 
-hs0   = RP1('PQ_INPUTS',Ps0,xs0,'H',steam) ;
-ss0   = RP1('PQ_INPUTS',Ps0,xs0,'S',steam) ; 
-rhos0 = RP1('PQ_INPUTS',Ps0,xs0,'D',steam) ; 
-csl   = RP1('PQ_INPUTS',Ps0,0.0,'CPMASS',steam) ; 
-rhosl = RP1('PQ_INPUTS',Ps0,0.0,'D',steam) ; 
-csv   = RP1('PQ_INPUTS',Ps0,1.0,'CPMASS',steam) ; 
-rhosv = RP1('PQ_INPUTS',Ps0,1.0,'D',steam) ; 
+hs0   = RPN('PQ_INPUTS',Ps0,xs0,'H',steam) ;
+ss0   = RPN('PQ_INPUTS',Ps0,xs0,'S',steam) ; 
+rhos0 = RPN('PQ_INPUTS',Ps0,xs0,'D',steam) ; 
+csl   = RPN('PQ_INPUTS',Ps0,0.0,'CPMASS',steam) ; 
+rhosl = RPN('PQ_INPUTS',Ps0,0.0,'D',steam) ; 
+csv   = RPN('PQ_INPUTS',Ps0,1.0,'CPMASS',steam) ; 
+rhosv = RPN('PQ_INPUTS',Ps0,1.0,'D',steam) ; 
 
 mdot0 = 0.3*U * pi * dp * Lp * (Tsat - Tpm) / (hv-hl) ;
 
@@ -194,8 +194,8 @@ for n = 1 : Nt
         % Calculate steam properties
         if hs(i,1) > hv % steam
             xs(i,1)   = 1. ;
-            Ts(i,1)   = RP1('HmassP_INPUTS',hs(i,1),Ps0,'T',steam);%Tsat + (hs(i,1)-hv) / csv ;  
-            rhos(i,1) = RP1('HmassP_INPUTS',hs(i,1),Ps0,'D',steam);% rhosv; 
+            Ts(i,1)   = RPN('HmassP_INPUTS',hs(i,1),Ps0,'T',steam);%Tsat + (hs(i,1)-hv) / csv ;  
+            rhos(i,1) = RPN('HmassP_INPUTS',hs(i,1),Ps0,'D',steam);% rhosv; 
         elseif hs(i,1) < hl % water
             xs(i,1)   = 0. ;
             Ts(i,1)   = hs(i,1) / csl ;
@@ -248,8 +248,8 @@ for n = 1 : Nt
         % Calculate steam properties
         if hs(i,1) > hv % steam
             xs(i,1)   = 1. ;
-            Ts(i,1)   = RP1('HmassP_INPUTS',hs(i,1),Ps0,'T',steam) ;%Tsat + (hs(i,1)-hv) / csv  ; 
-            rhos(i,1) = RP1('HmassP_INPUTS',hs(i,1),Ps0,'D',steam) ;%rhosv; 
+            Ts(i,1)   = RPN('HmassP_INPUTS',hs(i,1),Ps0,'T',steam) ;%Tsat + (hs(i,1)-hv) / csv  ; 
+            rhos(i,1) = RPN('HmassP_INPUTS',hs(i,1),Ps0,'D',steam) ;%rhosv; 
         elseif hs(i,1) < hl % water
             xs(i,1)   = 1. ;
             Ts(i,1)   = hs(i,1) / csl ;
