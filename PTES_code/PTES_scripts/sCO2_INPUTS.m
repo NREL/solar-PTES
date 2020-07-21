@@ -49,7 +49,7 @@ Lrcmp   = false ;       % Is there a recompressor?
 Trej    = 0.0 ;
 
 % Number of recuperators
-Nrcp = 1 ; % Can be 0,1,2.
+Nrcp = 2 ; % Can be 0,1,2.
 if (Nrcp > 0) && (Nhot > 1 || Ncld > 1)
     error('Have not implemented recuperators and multiple storage tanks in series')
 end

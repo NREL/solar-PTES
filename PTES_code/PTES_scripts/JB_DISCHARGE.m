@@ -46,7 +46,7 @@ else
         gas.state(iL,ii).p = gas0.state(2,ii).p * Load.mdot(iL) / DEXP.mdot0 ; % Second ever run is discharging
         [gas] = update(gas,[iL,ii],1);
         environ.T0 = T0_off(iL) ;
-        TOLconv = 1e-1 ;
+        TOLconv = 1e-3 ;
     end    
 end
 
@@ -175,13 +175,9 @@ for counter = 1:max_iter
             % Adjust inlet pressure to try to reach convergence. The
             % 'smoothing' factor has to be quite small (<0.1, say) for this to be stable
             smooth = 0.025;
-            %gas.state(iL,1).p = gas.state(iL,1).p - smooth * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
-            
-            %dP = gas.state(iL,iReg2+2).p - gas.state(iL,1).p ;
-            %Ptarg = (gas.state(iL,iReg2+2).mdot / DEXP.mdot0) * sqrt(gas.state(iL,iReg2+2).T/DEXP.Tin) * DEXP.Pin ;
-            %gas.state(iL,1).p = Ptarg - dP ;
-            
-            gas.state(iL,1).p = gas.state(iL,1).p / (gas.state(iL,iReg2+2).p * DEXP.mdot0 / (DEXP.Pin * gas.state(iL,iReg2+2).mdot)) ;
+            gas.state(iL,1).p = gas.state(iL,1).p - smooth * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
+           
+            %gas.state(iL,1).p = gas.state(iL,1).p / (gas.state(iL,iReg2+2).p * DEXP.mdot0 / (DEXP.Pin * gas.state(iL,iReg2+2).mdot)) ;
             
             gas.state(iL,1).T = gas.state(iL,1).T + smooth * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
             gas.state(iL,1).mdot = Load.mdot(iL);
