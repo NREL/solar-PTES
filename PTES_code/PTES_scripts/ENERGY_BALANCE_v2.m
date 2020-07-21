@@ -603,3 +603,8 @@ fprintf('Heat exchanger summary\n');
 print_hexs(HX,i_chg,'Charge:\n');
 print_hexs(HX,i_dis,'Discharge:\n');
 
+%
+if Lreadload
+   ENERGY_LOAD 
+end
+

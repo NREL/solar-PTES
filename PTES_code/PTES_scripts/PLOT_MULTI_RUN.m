@@ -14,6 +14,12 @@ switch Vpnt
     case 'PRch'
         Tpnt = ' $$ \mathrm{PR_{ch}} $$'; 
         Upnt = ' ';
+    case 'pmax'
+        Tpnt = ' $$ \mathrm{P_{max}} $$'; 
+        Upnt = ' [bar]';
+    case 'PRr'
+        Tpnt = ' $$ \mathrm{PR_{r}} $$'; 
+        Upnt = ' ';
     case 'TC_dis0'
         Tpnt = '$$ T_3 $$';
         Upnt = ' [K]';
@@ -28,9 +34,18 @@ switch Vpnt
     case 'eff'
         Tpnt = '$$ \epsilon $$';
         Upnt = ' ';
+    case 'ploss'
+        Tpnt = 'Fractional pressure loss';
+        Upnt = ' ';
     case 'eta'
         Tpnt = '$$ \eta $$';
         Upnt = ' ';
+    case 'mdot_off'
+        Tpnt = '$$ \dot{m} / \dot{m}_0 $$';
+        Upnt = ' ';
+    case 'T0_off'
+        Tpnt = 'Change in ambient temperature';
+        Upnt = 'K' ;
     otherwise
         error('not implemented')
 end
@@ -40,6 +55,12 @@ Lpnt = strcat(Tpnt,Upnt);
 switch Vcrv
     case 'PRch'
         Tcrv = ' $$ \mathrm{PR_{ch}} $$'; 
+        Ucrv = ' ';
+    case 'pmax'
+        Tcrv = ' $$ \mathrm{P_{max}} $$'; 
+        Ucrv = ' [bar]';
+    case 'PRr'
+        Tcrv = ' $$ \mathrm{PR_{r}} $$'; 
         Ucrv = ' ';
     case 'TC_dis0'
         Tcrv = '$$ T_3 $$';
@@ -55,12 +76,21 @@ switch Vcrv
     case 'eff'
         Tcrv = '$$ \epsilon $$';
         Ucrv = ' ';
+    case 'ploss'
+        Tcrv = 'Fractional pressure loss';
+        Ucrv = ' ';
     case 'eta'
         Tcrv = '$$ \eta $$';
         Ucrv = ' ';
     case 'Ne_ch'
         Tcrv = '$$ \mathrm{N_{stages\;heat\;pump}} $$';
         Ucrv = ' ';
+    case 'mdot_off'
+        Tcrv = '$$ \dot{m} / \dot{m}_0 $$';
+        Ucrv = ' ';
+    case 'T0_off'
+        Tcrv = 'Change in ambient temperature';
+        Ucrv = 'K' ;
     otherwise
         error('not implemented')
 end
@@ -70,8 +100,16 @@ for icrv=1:Ncrv
 end
 
 % EXTRACT DATA INTO ARRAYS
-chi_mat  = var_extract('chi_PTES',Npnt,Ncrv);
+chi_mat  = var_extract('chi_PTES_para',Npnt,Ncrv);
 lcos_mat = var_extract('lcosM',Npnt,Ncrv);
+capcost_mat = var_extract('cap_costM',Npnt,Ncrv);
+Wdis_mat = var_extract('W_net_dis',Npnt,Ncrv);
+tdis_mat = var_extract('t_dis',Npnt,Ncrv);
+
+Wpow_mat = Wdis_mat ./ tdis_mat ./ 1e6 ;
+
+mdot_mat = var_extract('mdot',Npnt,Ncrv);
+Ttop_mat = var_extract('Ttop',Npnt,Ncrv);
 % WL_1_mat = var_extract('WL_comp',   Npnt,Ncrv);
 % WL_2_mat = var_extract('WL_exp',    Npnt,Ncrv);
 % WL_3_mat = var_extract('WL_hexs',   Npnt,Ncrv);
@@ -108,6 +146,30 @@ hold off;
 xlabel([Tpnt,Upnt])
 ylabel('LCOS [$$\$$$/kWh]')
 ylim([0 0.5])
+legend(Lcrv,'Location','Best')
+grid on;
+
+% Capital cost
+figure(fignum+2);
+for icrv=1:Ncrv
+    plot(Apnt,capcost_mat(:,icrv),stl{icrv}); hold on;
+end
+hold off;
+xlabel([Tpnt,Upnt])
+ylabel('Capital cost [$$\$$$]')
+ylim([0 5e7])
+legend(Lcrv,'Location','Best')
+grid on;
+
+% Power output during discharging
+figure(fignum+3);
+for icrv=1:Ncrv
+    plot(Apnt,Wpow_mat(:,icrv),stl{icrv}); hold on;
+end
+hold off;
+xlabel([Tpnt,Upnt])
+ylabel('Discharging power output [$$MW_e$$]')
+ylim([0 200])
 legend(Lcrv,'Location','Best')
 grid on;
 

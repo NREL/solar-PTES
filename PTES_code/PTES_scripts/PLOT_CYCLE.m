@@ -26,6 +26,7 @@ switch Load.mode
         else
             
             % Plot states in Ts diagram
+            %{
             pl1 = plot_Ts_diag(gas,Load,{'chg','chgCO2','chgTSCO2'},1,100,'k-','k-o',true,true);
             % Plot storage tank temperatures
             %plot_T_storage(HT(1),Load,{'chg','chgCO2','chgTSCO2'},1,{'r','r'},true,NameArray,ValueArray);
@@ -33,7 +34,7 @@ switch Load.mode
             % Set legends
             figure(1); hold off;
             legend([pl1],{'charge'},'Location','best');
-            %{
+            %}
             pl2 = plot_Ts_diag(gas,Load,{'dis','disCO2','disTSCO2'},2,100,'k:','k:s',true,true);
             %plot_T_storage(HT(1),Load,{'chg','chgCO2','chgTSCO2'},2,{'r','r'},true,NameArray,ValueArray);
             %plot_T_storage(CT(1),Load,{'chg','chgCO2','disTSCO2'},2,{'b','b'},true,NameArray,ValueArray);

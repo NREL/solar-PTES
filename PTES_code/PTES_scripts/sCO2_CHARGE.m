@@ -4,6 +4,7 @@ iH = ones(1,Nhot);  % keeps track of the Hot fluid stream number
 iC = ones(1,Ncld); % keeps track of the Cold fluid stream number
 iE = 1;  % keeps track of the heat rejection stream number
 iA = 1; % Keeps track of air stream
+iPMP = 1 ; % Keeps track of the pump being used
 
 % Initial guess of charge conditions
 % Compressor inlet (regenerator hot outlet)
@@ -41,11 +42,27 @@ else
     error('Not implemented')
 end
 
+switch HX_model
+    case 'eff'
+        HX_model_temp = 'eff';
+    case 'geom'
+        % Set the heat exchanger models to 'eff' temporarily, to obtain
+        % approximated cycle points before using the 'geom' model 
+        HX_model_temp = 'eff';
+        for ihx=1:length(HX)
+            HX(ihx).model = HX_model_temp;
+        end
+    otherwise
+        error('not implemented')
+end
+
+
 % Set matrix of temperature and pressure points to test convergence
 A_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-while 1
+max_iter=200;
+for counter=1:max_iter
     
-    fprintf(1,'Hello charge sCO2-PTES\n')
+    fprintf(1,['Charging sCO2 PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
     
     for iN = 1:Nc_ch
         % COMPRESS
@@ -69,7 +86,8 @@ while 1
                 TCoutMIN = fluidH(ii-1).state(iL,1).T ;
                 [HX(ii),gas,iG,fluidH(ii),iH(ii)] = hex_func(HX(ii),iL,gas,iG,fluidH(ii),iH(ii),3,TCoutMIN); % Mode 3.
             end
-            iH(ii) = iH(ii) + 1;
+            [CPMP(iPMP),fluidH(ii),iH(ii)] = compexp_func (CPMP(iPMP),iL,fluidH(ii),iH(ii),'Paim',fluidH(ii).state(iL,1).p,1);
+            iH(ii) = iH(ii) + 1; iPMP=iPMP+1;
         end
     end    
     if setTmax, PRch = ptop/pbot; end
@@ -91,7 +109,18 @@ while 1
         T_aim = gas.state(iL,iG).T - 0.1 ;
     end
     % REJECT HEAT (external HEX)
-    [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
+    %[gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
+    air.state(iL,iA).T = environ.T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
+    if T_aim > gas.state(iL,iG).T 
+        T_aim = gas.state(iL,iG).T - 0.1 ;
+    end
+    if T_aim <= environ.T0 
+        gas.state(iL,iG+1) = gas.state(iL,iG) ;
+        iG = iG + 1 ;
+    else
+        [HX(end-2), gas, iG, air, iA] = hex_func(HX(end-2),iL,gas,iG,air,iA,5,T_aim);
+        [CFAN(1),air,iA] = compexp_func (CFAN(1),iL,air,iA,'Paim',p0,1);
+    end
     
     for iN = 1:Ne_ch
         % EXPAND
@@ -109,7 +138,8 @@ while 1
                 THoutMAX = fluidC(ii-1).state(iL,1).T ;
                 [HX(Nhot+ii),fluidC(ii),iC(ii),gas,iG] = hex_func(HX(Nhot+ii),iL,fluidC(ii),iC(ii),gas,iG,4,THoutMAX);
             end
-            iC(ii) = iC(ii) + 1;
+            [CPMP(iPMP),fluidC(ii),iC(ii)] = compexp_func (CPMP(iPMP),iL,fluidC(ii),iC(ii),'Paim',fluidC(ii).state(iL,1).p,1);
+            iC(ii) = iC(ii) + 1; iPMP=iPMP+1 ;
         end
     end
     
@@ -123,19 +153,26 @@ while 1
     
     % Determine convergence and proceed
     A = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-    if all(abs((A(A~=0) - A_0(A~=0))./A(A~=0))*100 < 1e-3) % is charge cycle converged?
+    convergence = all(abs((A(A~=0) - A_0(A~=0))./A(A~=0))*100 < 1e-3) ;
+    
+    if (convergence && strcmp(HX_model_temp,HX_model)) || counter==max_iter % is charge cycle converged?
         % Close working fluid streams
         gas.stage(iL,iG).type = 'end';
         gas = count_Nstg(gas);
         
+        % Close air (heat rejection) streams
+        iA_out = 1:3:(iA-1); iA_in  = iA_out + 2;
+        for i=iA_in, air.stage(iL,i).type = 'end'; end
+        air = count_Nstg(air);
+        
         % Close storage fluid streams
         for ii = 1 : Nhot
-            iH_out = 1:2:(iH(ii)-1); iH_in  = iH_out + 1;
+            iH_out = 1:3:(iH(ii)-1); iH_in  = iH_out + 2;
             for i=iH_in, fluidH(ii).stage(iL,i).type = 'end'; end
             fluidH(ii) = count_Nstg(fluidH(ii));
         end
         for ii = 1 : Ncld
-            iC_out = 1:2:(iC(ii)-1); iC_in  = iC_out + 1;
+            iC_out = 1:3:(iC(ii)-1); iC_in  = iC_out + 2;
             for i=iC_in, fluidC(ii).stage(iL,i).type = 'end'; end
             fluidC(ii) = count_Nstg(fluidC(ii));
         end
@@ -147,28 +184,43 @@ while 1
         
         % Exit loop
         break
+    elseif convergence
+        % If convergence has been reach but HX_model_temp~=HX_model, set
+        % the heat exchanger models back to the original using the new
+        % converged state, and resume iteration
+        HX_model_temp = HX_model;
+        for ihx=1:length(HX)
+            HX(ihx).model = HX_model_temp;
+        end
+        gas.state(iL,1) = gas.state(iL,iG);
+        A_0 = A;
+        iG=1; iH=1; iC=1; iA=1; iPMP=1; iE=1;
+
     else
         % Set new initial conditions
         gas.state(iL,1) = gas.state(iL,iG);        
         A_0 = A;
-        iG=1; iH=ones(1,Nhot); iC=ones(1,Ncld); iE=1;
+        iG=1; iH=ones(1,Nhot); iC=ones(1,Ncld); iE=1; iA=1; iPMP = 1 ;
     end
+end
+if counter==max_iter
+    warning('Exiting sCO2_CHARGE cycle without having reached convergence');
 end
 
 % Compute effect of fluid streams entering/leaving the sink/source tanks
 % Hot tanks
 for ii = 1 : Nhot
-    iH_out = 1:2:(iH(ii)-1); iH_in  = iH_out + 1;
+    %iH_out = 1:3:(iH(ii)-1); iH_in  = iH_out + 2;
     [HT(ii)] = run_tanks(HT(ii),iL,fluidH(ii),iH_out,iH_in,Load,T0);
 end
 
 % Cold tanks
 for ii = 1 : Ncld
-    iC_out = 1:2:(iC(ii)-1); iC_in  = iC_out + 1;
+    %iC_out = 1:3:(iC(ii)-1); iC_in  = iC_out + 2;
     [CT(ii)] = run_tanks(CT(ii),iL,fluidC(ii),iC_out,iC_in,Load,T0);
 end
 
 
 % Atmospheric tanks
-iA_out = 0; iA_in = 0;
+%iA_out = 0; iA_in = 0;
 AT = run_tanks(AT,iL,air,iA_out,iA_in,Load,T0);

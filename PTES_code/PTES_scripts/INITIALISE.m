@@ -106,15 +106,15 @@ switch Load.mode
         DEXP(1:3) = compexp_class('exp', 'isen', 0, eta, Load.num) ; % Discharging expanders
         
     case {4,5} % sCO2-PTES type cycles
-        CCMP(1:Nc_ch) = compexp_class('comp', 'poly', 7, eta, Load.num) ; % Charging compressors
-        DEXP(1:Nc_ch) = compexp_class('exp', 'poly', 17, eta, Load.num) ; % Discharging expanders
+        CCMP(1:Nc_ch) = compexp_class('comp', 'poly', CCMPmode(1), eta, Load.num) ; % Charging compressors
+        DEXP(1:Nc_ch) = compexp_class('exp', 'poly', DEXPmode(1), eta, Load.num) ; % Discharging expanders
         
-        CEXP(1:Ne_ch) = compexp_class('exp', 'poly', 7, eta, Load.num) ; % Charging expanders
-        DCMP(1:Ne_ch) = compexp_class('comp', 'poly', 17, eta, Load.num) ; % Discharging compressors
+        CEXP(1:Ne_ch) = compexp_class('exp', 'poly', CEXPmode(1), eta, Load.num) ; % Charging expanders
+        DCMP(1:Ne_ch) = compexp_class('comp', 'poly', DCMPmode(1), eta, Load.num) ; % Discharging compressors
         
         %Recompressor
         if Lrcmp
-            RCMP = compexp_class('comp', 'poly', 7, eta, Load.num) ; % Re-compressors
+            RCMP = compexp_class('comp', 'poly', RCMPmode(1), eta, Load.num) ; % Re-compressors
         end
         
     case {6} % sCO2-PTES type cycles
@@ -141,7 +141,6 @@ switch Load.mode
         ihx_cld  = ihx_reg(end)+(1:Ne_ch);
         ihx_rejc = ihx_cld(end)+1;
         ihx_rejd = ihx_rejc(end)+(1:Ne_ch);
-        
         switch PBmode
             case {0,2}
                 HX(ihx_hot)  = hx_class('hot',  'hex',   hotHXmode(1), HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
@@ -149,6 +148,7 @@ switch Load.mode
                 HX(ihx_cld)  = hx_class('cold', 'hex',   cldHXmode(1), HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Cold heat exchanger
                 HX(ihx_rejc) = hx_class('rej',  'hex',   rejHXmode(1), HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit (charge)
                 HX(ihx_rejd) = hx_class('rej',  'hex',   rejHXmode(1), HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit (discharge)
+                
             case 1
                 HX(1) = hx_class('rej',  'hex',   rejHXmode(1), 100, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
                 HX(2) = hx_class('rej',  'hex',   rejHXmode(1), 100, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
@@ -196,21 +196,27 @@ switch Load.mode
         HX(ihx_JB+4) = hx_class('hot',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Boiler
                 
     case 4
+        
+        % Should implement a scheme similar to JB_PTES with ihx indices
         iHX = 1 ; % Heat exchanger counter
-    for ii = 1 : Nhot
-        HX(iHX) = hx_class('hot', 'hex', 25, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
-        iHX = iHX + 1 ;
-    end
-    for ii = 1 : Ncld
-        HX(iHX) = hx_class('cold', 'hex', 25, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
-        iHX = iHX + 1 ;
-    end
-    if (Nhot < 2) && (Ncld < 2) && (Nrcp > 0)
-        for ii = 1 : Nrcp
-            HX(iHX) = hx_class('regen', 'regen', 25, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        for ii = 1 : Nhot
+            HX(iHX) = hx_class('hot', 'hex', hotHXmode(1), HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
             iHX = iHX + 1 ;
         end
-    end
+        for ii = 1 : Ncld
+            HX(iHX) = hx_class('cold', 'hex', cldHXmode(1), HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+            iHX = iHX + 1 ;
+        end
+        if (Nhot < 2) && (Ncld < 2) && (Nrcp > 0)
+            for ii = 1 : Nrcp
+                HX(iHX) = hx_class('regen', 'regen', rcpHXmode(1), HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+                iHX = iHX + 1 ;
+            end
+        end
+        for ii = 1 : 3 % How many heat rejection units?
+            HX(iHX) = hx_class('rej',  'hex',   rejHXmode(1), HX_NX, Load.num, Load.num, 'eff', eff, 0.001, HX_D1, HX_shape) ; % Heat rejection unit 
+            iHX     = iHX + 1 ;
+        end
     
     case 5
         % Heat exchangers set up to match Ty's work
@@ -232,8 +238,8 @@ end
 GEN        = gen_class('gen',GENmode(1)) ;
 
 % Fans 
-CFAN(1:10) = compexp_class('comp', 'isen', FANmode(1), 0.6, Load.num) ;
-DFAN(1:10) = compexp_class('comp', 'isen', FANmode(1), 0.6, Load.num) ;
+CFAN(1:10) = compexp_class('comp', 'isen', FANmode(1), 0.75, Load.num) ;
+DFAN(1:10) = compexp_class('comp', 'isen', FANmode(1), 0.75, Load.num) ;
 
 % Fluid pumps 
 CPMP(1:10) = compexp_class('pump', 'isen', PMPmode(1), 0.8, Load.num) ;

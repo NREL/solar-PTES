@@ -8,6 +8,7 @@ classdef stream
         read
         handle
         HEOS
+        IDL
         Tin     {mustBePositive}
         Tout    {mustBePositive}
         pin     {mustBePositive}

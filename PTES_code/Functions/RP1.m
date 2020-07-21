@@ -12,7 +12,7 @@ global LIB
 if isempty(LIB)
     fileName = './LIB/LIB/LIB.mat';
     % Create Library if file does not exist or if the file is old
-    renewalAge = 1; %days
+    renewalAge = 10; %days
     if isfile(fileName)
         % File exists. Check how old it is.
         fileInfo = dir(fileName);
@@ -73,7 +73,7 @@ switch fluid.read
                     error('not implemented')
             end
             
-            %%{
+            %{
             switch input_pair
                 case {'HmassP_INPUTS','PQ_INPUTS'}
                     [LIB.Water.(input_pair), output1] =...
@@ -86,7 +86,7 @@ switch fluid.read
             end
             %}
             
-            %{
+            %%{
             % Call CoolProp and extract output
             output1 = CP1(input_pair,input1,input2,out1,handle);
             %}
@@ -177,6 +177,8 @@ switch fluid.read
                 
                 T   = fluid.IDL.T0 * exp( (s + fluid.IDL.R * log(p/fluid.IDL.P0))/fluid.IDL.cp) ;
                 h   = fluid.IDL.cp  * T - fluid.IDL.h0 ;
+            otherwise
+                error('not implemented')
         end
         
         % Then compute derived properties

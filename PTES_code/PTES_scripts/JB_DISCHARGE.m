@@ -33,6 +33,8 @@ if design_mode == 1
     gas.state(iL,iReg2).p = gas.state(iL,1).p*PRdis;
     gas.state(iL,iReg2).mdot = gas.state(iL,1).mdot;
     [gas] = update(gas,[iL,iReg2],1);
+    TOLconv = 1e-3 ;
+    environ.T0 = T0 ;
 else
     for ii = 1 : numel(D(D~=0))/2
         gas.state(iL,ii).T    = D(1,ii) ;
@@ -41,9 +43,10 @@ else
         
         % For inventory control, assume that the pressure scales with the off-design mass flow rate
         %gas.state(iL,ii).p = (DEXP.Pin/DEXP.pr0) * Load.mdot(iL) / DEXP.mdot0 ;
-        gas.state(iL,ii).p = gas.state(iL,ii).p * Load.mdot(iL) / DEXP.mdot0 ;
-        
+        gas.state(iL,ii).p = gas0.state(2,ii).p * Load.mdot(iL) / DEXP.mdot0 ; % Second ever run is discharging
         [gas] = update(gas,[iL,ii],1);
+        environ.T0 = T0_off(iL) ;
+        TOLconv = 1e-1 ;
     end    
 end
 
@@ -63,7 +66,7 @@ end
 
 % Set matrix of temperature and pressure points to test convergence
 D_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-max_iter = 100;
+max_iter = 200;
 for counter = 1:max_iter
     fprintf(1,['Discharging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
     
@@ -74,7 +77,7 @@ for counter = 1:max_iter
         % REJECT HEAT (external HEX)
         T_aim = environ.T0 + T0_inc;
         
-        air.state(iL,iA).T = T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
+        air.state(iL,iA).T = environ.T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
         [HX(ihx_rejd(iN)), gas, iG, air, iA] = hex_func(HX(ihx_rejd(iN)),iL,gas,iG,air,iA,5,T_aim);
         [DFAN(1),air,iA] = compexp_func (DFAN(1),iL,air,iA,'Paim',p0,1);
         
@@ -117,7 +120,7 @@ for counter = 1:max_iter
     
     % Determine convergence and proceed
     D = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-    convergence = all(abs((D(D~=0) - D_0(D~=0))./D(D~=0))*100 < 1e-3);
+    convergence = all(abs((D(D~=0) - D_0(D~=0))./D(D~=0))*100 < TOLconv);
     
     if (convergence && strcmp(HX_model_temp,HX_model)) || counter >= max_iter % is discharge cycle converged?
         % Close working fluid streams
@@ -171,8 +174,16 @@ for counter = 1:max_iter
 %              fprintf('TEND: %13.8f \n\n',gas.state(iL,iG).T)
             % Adjust inlet pressure to try to reach convergence. The
             % 'smoothing' factor has to be quite small (<0.1, say) for this to be stable
-            gas.state(iL,1).p = gas.state(iL,1).p - 0.05 * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
-            gas.state(iL,1).T = gas.state(iL,1).T + 0.05 * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
+            smooth = 0.025;
+            %gas.state(iL,1).p = gas.state(iL,1).p - smooth * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
+            
+            %dP = gas.state(iL,iReg2+2).p - gas.state(iL,1).p ;
+            %Ptarg = (gas.state(iL,iReg2+2).mdot / DEXP.mdot0) * sqrt(gas.state(iL,iReg2+2).T/DEXP.Tin) * DEXP.Pin ;
+            %gas.state(iL,1).p = Ptarg - dP ;
+            
+            gas.state(iL,1).p = gas.state(iL,1).p / (gas.state(iL,iReg2+2).p * DEXP.mdot0 / (DEXP.Pin * gas.state(iL,iReg2+2).mdot)) ;
+            
+            gas.state(iL,1).T = gas.state(iL,1).T + smooth * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
             gas.state(iL,1).mdot = Load.mdot(iL);
             [gas] = update(gas,[iL,1],1);
             

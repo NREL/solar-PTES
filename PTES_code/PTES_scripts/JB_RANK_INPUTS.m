@@ -1,9 +1,9 @@
 % Set atmospheric conditions and cycle parameters
-T0      = 30 + 273.15;  % ambient temp, K
+T0      = 25 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 25e5;         % top pressure, Pa
-PRch    = 3.0;          % charge pressure ratio
-PRr     = 1.18;          % discharge pressure ratio: PRdis = PRch*PRr
+PRch    = 1.5;          % charge pressure ratio
+PRr     = 1.26;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 1;            % set Tmax? (this option substitutes PRch)
@@ -12,7 +12,7 @@ Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 % Set Rankine-specific parameters
 Ran_ptop    = 100e5;
 Ran_pbotMIN = 0.05e5 ; % If condenser pressure decreases below this, the final stage chokes. Can't go to pressures below this, because who knows what happens.
-Ran_Tbot0   = T0+15; %when discharging against the environment. This sets design condenser pressure.
+Ran_Tbot0   = 30 + 273.15+15; %when discharging against the environment. This sets design condenser pressure.
 Ran_TbotC   = 273.15+20; %when discharging against the cold stores
 
 % Set compressor/expander parameters
@@ -31,22 +31,31 @@ Nhot = 1; % number of hot stores. Not implemented for >2
 % Set parameters of Load structure
 switch Load.mode
     case 0 % PTES
-        fac = 10.0/1.2794; % This can be used to more easily set the mass flow to obtain a desired power output
+        fac = 10; % This can be used to more easily set the mass flow to obtain a desired power output
         stH = 10 ;
-        ee  = 1.;%0.6042 ;
         % This is the load scenario the plant is designed for
         Design_Load      = Load ;
-        Design_Load.time = [stH/ee;stH].*3600;  % time spent in each load period, s
+        Design_Load.time = [stH;stH].*3600;  % time spent in each load period, s
         Design_Load.type = ["chg";"dis"];    % type of load period
-        Design_Load.mdot = [10*fac*ee;10*fac];  % working fluid mass flow rate, kg/s
-        T0_inc    = 5.0 ; % Increment above ambient temperature that gas is cooled to
+        Design_Load.mdot = [100*fac;100*fac];  % working fluid mass flow rate, kg/s
+        T0_inc    = 3.0 ; % Increment above ambient temperature that gas is cooled to
         
         if Loffdesign
             % This is the actual load profile that the plant meets
-            Load.time = [stH;stH].*3600;      % time spent in each load period, s
-            Load.type = ["chg";"dis"];    % type of load period
-            Load.mdot = [10.*fac;10.*fac];      % working fluid mass flow rate, kg/s
-            T0_inc    = 5.0 ; % Increment above ambient temperature that gas is cooled to
+            if ~Lreadload
+                Load.time = [stH;stH];      % time spent in each load period, s
+                Load.type = ["chg";"dis"];    % type of load period
+                Load.mdot = [100.*fac;100.*fac];      % working fluid mass flow rate, kg/s
+                T0_off    = [T0;T0] ;
+            else
+                fload     = './Data/load2.csv';
+                fdat      = readmatrix(fload,'Range','A:B') ;
+                T0_off    = fdat(:,1) ;
+                Load.mdot = fdat(:,2) .* Design_Load.mdot(1) ;
+                Load.type = readmatrix(fload,'Range','C','OutputType','string') ;
+                Load.time = ones(numel(Load.mdot),1) * 3600.;
+            end
+
         else
             Load = Design_Load ;
         end
@@ -148,11 +157,12 @@ switch PBmode
         switch Load.mode
             case {0,1,2}
                 % Cold storage tanks
-                fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
+                fCname  = 'Methanol'; % fluid name
                 TC_dis0 = T0;           % initial temperature of discharged cold fluid, K
-                MC_dis0 = 1e9;          % initial mass of discharged cold fluid, kg
+                MC_dis0 = 20e6;          % initial mass of discharged cold fluid, kg
                 TC_chg0 = T0-50;        % initial temperature of charged cold fluid, K
                 MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
+                
             case 3
                 % Cold storage tanks
                 fCname  = 'Water';      % cold fluid name
@@ -194,23 +204,23 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % COST MODES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-CCMPmode = [12,13,15,15] ; % Charging compressor cost mode
-CEXPmode = [41,42,43,44] ; % Charging expander cost mode
-DCMPmode = [12,13,15,15] ; % Discharging compressor cost mode
-DEXPmode = [41,42,43,44] ; % Discharging expander cost mode
+CCMPmode = [10,12,15,16] ; % Charging compressor cost mode. Removed mode 13.
+CEXPmode = [41,43,44] ; % Charging expander cost mode. Removed mode 42.
+DCMPmode = [10,12,15] ; % Discharging compressor cost mode. Removed mode 13.
+DEXPmode = [41,43,44] ; % Discharging expander cost mode
 
 PMPmode = [60,61,62]; % Pump cost mode
-FANmode = [71,70,71,72]; % Fan cost mode
+FANmode = [70,71]; % Fan cost mode. Removed mode 72.
 
-hotHXmode = [1,2,3,4,5,10,11]; % Heat exchanger - hot cost mode
-cldHXmode = [1,2,3,4,5,10,11]; % Heat exchanger - cold cost mode
-rcpHXmode = [1,2,3,4,5,10,11]; % Heat exchanger - recuperator cost mode
-rejHXmode = [30,31,32,33]; % Heat exchanger - rejection cost mode
+hotHXmode = [1,3,4,5,10,11]; % Heat exchanger - hot cost mode. Removed mode 2.
+cldHXmode = [1,3,4,5,10,11]; % Heat exchanger - cold cost mode. Removed mode 2.
+rcpHXmode = [1,3,4,5,10,11]; % Heat exchanger - recuperator cost mode. Removed mode 2.
+rejHXmode = [33,32,30]; % Heat exchanger - rejection cost mode. Removed mode 31.
 
 GENmode = [2,1,3] ; % Motor-generator
 
 HTmode.tankmode  = [5,1,2,3,4,6] ; % Cost mode for hot tank container cost
-HTmode.fld_cost  = [0.8,0.5,1.3] ; % Hot tank fluid cost, $/kg
+HTmode.fld_cost  = [0.8,0.5,1.3] ; % Hot tank fluid cost, $/kg solarsalt : [0.8,0.5,1.3]. Mineral oil: [1.6,0.5,2.5]. Therminol: [3.1,0.5,2.5]. Chloride Salt: [0.64,0.4,1.1]
 HTmode.ins_cost  = [30,5,50] ; % Insulation material, %/kg
 HTmode.ins_k     = 0.08 ; % Thermal conductivity of insulation
 HTmode.ins_rho   = 150 ; % Density of insulation
@@ -219,7 +229,7 @@ HTmode.AR        = 1.0 ; % Aspect ratio (L/D) of tank
 HTmode.over_fac  = 1.1 ; % How much larger is inner tank volume than the fluid volume
 
 CTmode.tankmode  = [5,1,2,3,4,6] ; % Cost mode for cold tank container cost
-CTmode.fld_cost  = [0.56,0.1,1] ; % Cold tank fluid cost, $/kg
+CTmode.fld_cost  = [0.3,0.1,1] ; % Cold tank fluid cost, $/kg. Water: [0.01,0.05,0.1]. Methanol [0.3,0.1,1]
 CTmode.ins_cost  = [30,5,50] ; % Insulation material, %/kg
 CTmode.ins_k     = 0.08 ; % Thermal conductivity of insulation
 CTmode.ins_rho   = 150 ; % Density of insulation
@@ -238,20 +248,20 @@ ATmode.ins_cost  = 0 ; % Insulation material, %/kg
 % 'TTSE' for speed and accuracy. 'num' indicates number of preallocated
 % elements in state arrays.
 gas = fluid_class('Nitrogen','WF','CP','BICUBIC&HEOS',Load.num,30);
-
+%{
 % Set up an ideal gas - should run faster
-% gas_temp = fluid_class('Nitrogen','WF','CP','BICUBIC&HEOS',Load.num,30);
-% dat.T0   = 300 ;
-% dat.P0   = 1e5 ;
-% dat.cp   = RP1('PT_INPUTS',dat.P0,dat.T0,'CPMASS',gas_temp) ;
-% dat.cv   = RP1('PT_INPUTS',dat.P0,dat.T0,'CVMASS',gas_temp) ;
-% dat.mu0  = 17.81e-6 ;
-% dat.TVref = 300.55 ;
-% dat.S     = 111 ;
-% dat.k     = 0.026 ;
-% 
-% gas      = fluid_class('Nitrogen','WF','IDL',dat,Load.num,30);
+gas_temp = fluid_class('Nitrogen','WF','CP','BICUBIC&HEOS',Load.num,30);
+dat.T0   = 300 ;
+dat.P0   = 1e5 ;
+dat.cp   = RP1('PT_INPUTS',dat.P0,dat.T0,'CPMASS',gas_temp) ;
+dat.cv   = RP1('PT_INPUTS',dat.P0,dat.T0,'CVMASS',gas_temp) ;
+dat.mu0  = 17.81e-6 ;
+dat.TVref = 300.55 ;
+dat.S     = 111 ;
+dat.k     = 0.026 ;
 
+gas      = fluid_class('Nitrogen','WF','IDL',dat,Load.num,30);
+%}
 if any(Load.mode==[3,7])
     % 'TTSE' interpolation is NOT recommended for steam when reading values
     % close to the saturation curve. Use 'HEOS' or 'BICUBIC&HEOS'

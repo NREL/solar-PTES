@@ -65,7 +65,7 @@ end
 
 % This function should only be called if the geometry has not been set.
 if HX.Lgeom_set
-    warning('The heat exchanger geometry has already been set!')
+    %warning('The heat exchanger geometry has already been set!')
     return
 end
 
