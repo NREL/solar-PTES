@@ -38,6 +38,16 @@ function varargout = hex_compute_area(HX,iL,mode,par,varargin)
 %   hex_compute_area(HX,iL,'hC2',hC2,'mC',mC)
 %   hex_compute_area(HX,iL,'Af',Af,0)
 
+% Check that this is the correct algorithm to be called
+switch HX.shape
+    case {'circular','PCHE'}
+    case 'cross-flow'
+        error(['The hex_compute_Xflow function must be used for',...
+            ' cross-flow heat exchangers.'])
+    otherwise
+        error('HX.shape not recognised')
+end
+
 % Select mode and assing value of par
 switch mode
     case 'hH1'
@@ -194,12 +204,14 @@ for iI = 1:NI
         case 'Af'
             % COMPUTE HEAT EXCHANGER LENGTH
             % By definition of hydraulic diameter, D = 4*Af/P = 4*Af*L/A
-            HX.L = C.D*A/(4*C.Af);
+            L = C.D*A/(4*C.Af);
+            HX.L1 = L;
+            HX.L2 = L;
     end
     
     % COMPUTE PRESSURE PROFILES
     % Obtain dL from dAC and AC
-    dL   = dA/A*HX.L;
+    dL   = dA/A*HX.L1;
     % Compute cummulative sums of the dL array (used to account for entry
     % effects)
     LSH  = cumsum(dL,'reverse');
@@ -326,15 +338,51 @@ end
 
 if nargout == 1
     varargout{1} = solution;
+    
 else
     % Compute cummulative heat transfer area
     AS = zeros(size(QS));
     for i=1:(length(AS)-1)
         AS(i+1) = AS(i) + dA(i);
     end
+    
+    % Extract inlet and outlet conditions
+    TH1 = H.T(1);
+    TH2 = H.T(NX+1);
+    TC1 = C.T(1);
+    TC2 = C.T(NX+1);
+    hH1 = H.h(1);
+    hH2 = H.h(NX+1);
+    hC1 = C.h(1);
+    hC2 = C.h(NX+1);
+    pH1 = H.p(1);
+    pH2 = H.p(NX+1);
+    pC1 = C.p(1);
+    pC2 = C.p(NX+1);
+    
+    % Compute several performance indicators
+    H.Cp_mean = (hH2 - hH1)/(TH2-TH1);
+    C.Cp_mean = (hC2 - hC1)/(TC2-TC1);
+    Cmin  = min([mC*C.Cp_mean,mH*H.Cp_mean]);
+    DTmin = min(H.T - C.T);
+    effDT = 1 - DTmin/(TH2 - TC1);
+    UA    = sum(dQ./DT_AV);
+    NTU   = UA/Cmin;
+    DppH  = (pH2-pH1)/pH2;
+    DppC  = (pC1-pC2)/pC1;    
+    dTa   = TH1 - TC1 ;
+    dTb   = TH2 - TC2 ;
+    LMTD  = (dTa - dTb) / log(dTa / dTb);
+    
     % Save parameters into HX structure
     HX.H(iL) = H;
     HX.C(iL) = C;
+    HX.Cmin(iL)  = Cmin;
+    HX.NTU(iL)   = NTU;
+    HX.UA(iL)    = UA ;
+    HX.LMTD(iL)  = LMTD;
+    HX.DTmin(iL) = DTmin;
+    HX.effDT(iL) = effDT;
     HX.DppH(iL) = DppH;
     HX.DppC(iL) = DppC;
     HX.AS(iL,:) = AS';
@@ -343,6 +391,18 @@ else
     HX.dL(iL,:) = dL';
     HX.A1 = A;
     HX.A2 = A;
+    
+    % If this is the first time that hex_func is called, save the initial
+    % values UA0, NTU0 and LMTD0. Also save iL0, corresponding to the load
+    % period in which it is called for the first time.
+    if isempty(HX.UA0)
+        HX.UA0   = HX.UA(iL) ;
+        HX.NTU0  = HX.NTU(iL) ;
+        HX.LMTD0 = HX.LMTD(iL) ;
+        HX.iL0   = iL;
+    end
+    
+    % Set varargout fields
     varargout{1} = solution;
     varargout{2} = HX;
 end

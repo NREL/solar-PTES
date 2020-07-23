@@ -42,7 +42,8 @@ load_coolprop
 % 7 = sCO2 and sCO2 (Marchionni2019 - CFD)
 % 8 = sCO2 and sCO2 (Marchionni2019 - experiment)
 % 9 = Helium and Helium (Figley2013)
-scenario = 9;
+%10 = Water and air (Nellis example 8.1-1, cross-flow HEX)
+scenario = 10;
 
 % Save figures?
 save_figures = 0;
@@ -154,18 +155,20 @@ switch scenario
         % Nitrogen (WF)
         F1 = fluid_class('Nitrogen','WF','CP','TTSE',1,5);
         F1.state(1,i1).p = 10e5;
-        F1.state(1,i1).T = 100 + 273.15;
+        F1.state(1,i1).T = 30 + 273.15;
         F1.state(1,i1).mdot = 1e3;
         
         % Nitrogen (ENV)
         F2 = fluid_class('Nitrogen','ENV','CP','TTSE',1,5); % storage fluid       
         F2.state(1,i2).p = 1e5;
-        F2.state(1,i2).T = 20 + 273.15;
+        F2.state(1,i2).T = 15 + 273.15;
         F2.state(1,i2).mdot = 0;
         
         % Set hex_mode
-        hex_mode = 5;
-        par = F2.state(1,i2).T + 5;
+        %hex_mode = 5;
+        %par = F2.state(1,i2).T + 5;
+        hex_mode = 1;
+        par = 0.5;
         
     case 7 % Marchionni2019 - CFD validation
         % CO2
@@ -213,6 +216,24 @@ switch scenario
         F2.state(1,i2).p = 30e5;
         F2.state(1,i2).T = 813;
         F2.state(1,i2).mdot = 80/3600;
+        
+        % Set hex_mode
+        hex_mode = 0;
+        par = 0;
+        
+    case 10 % Nellis&Klein2009
+        % Water
+        F1 = fluid_class('Water','WF','CP','BICUBIC&HEOS',1,5);
+        F1.state(1,i1).p = 1e5;
+        F1.state(1,i1).T = 60 + 273.15;
+        F1.state(1,i1).mdot = 0.03;
+        
+        % Nitrogen
+        F2 = fluid_class('Nitrogen','ENV','CP','BICUBIC&HEOS',1,5);
+        F2.state(1,i2).p = 1e5;
+        F2.state(1,i2).T = 20 + 273.15;
+        rho = RPN('PT_INPUTS',F2.state(1,i2).p,F2.state(1,i2).T,'D',F2);
+        F2.state(1,i2).mdot = 0.06*rho;
         
         % Set hex_mode
         hex_mode = 0;
@@ -270,12 +291,26 @@ switch model
                 %shape = 'circular';
                 shape = 'PCHE';
                 
+            case 6
+                eff   = 0.90;
+                ploss = 1e-3;
+                D1    = 5e-3;
+                %shape = 'circular';
+                shape = 'cross-flow';
+                
             case 7
                 % For comparisson with Marchionni2019 - CFD
                 eff   = 0.622;  %design value
                 ploss = 0.001;   %design value
                 D1    = 1.22e-3; %design value
                 shape = 'PCHE';
+                
+            case 10
+                % Nellis&Klein (these performance values are just guesses
+                eff   = 0.25;
+                ploss = 0.001;
+                D1    = 4e-3;
+                shape = 'cross-flow';
                 
             otherwise
                 eff   = 0.97;
@@ -298,7 +333,7 @@ HX = hx_class(name, stage_type, 4, NX, 1, 1, model, par1, par2, par3, par4);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Specify geometry manually
-switch scenario
+switch scenario        
     case 8 % Marchionni2019 - experimental
         HX.D1  = 1.22e-3;
         HX.D2  = 1.22e-3;
@@ -320,6 +355,23 @@ switch scenario
         HX.A2  = 4*HX.Af2*HX.L/HX.D2;
         HX.shape = 'PCHE';
         HX.Lgeom_set = 1;
+    
+    case 10 % Nellis&Klein2009 - cross-flow
+        W1 = 0.2;
+        H1 = 0.26;
+        L1 = 0.06;
+        sigma1 = 0.534;
+        sigma2 = 0.146;
+        HX.D1  = 3.63e-3;
+        HX.D2  = 10.2e-3 - 2*0.9e-3;
+        HX.Af1 = W1*H1*sigma1;
+        HX.Af2 = (HX.D2)^2*pi/4;
+        HX.L1  = L1;
+        HX.L2  = W1*20;
+        HX.A1  = 4*HX.Af1*HX.L1/HX.D1;
+        HX.A2  = 4*HX.Af2*HX.L2/HX.D2;
+        HX.shape = 'cross-flow';
+        HX.Lgeom_set = 1;
 end
 
 %%% DESIGN PERFORMANCE %%%
@@ -338,11 +390,30 @@ if strcmp(HX.model,'geom')
     print_hexs(HX,1,'Summary:\n');
 end
 
+switch scenario
+    case 10
+        ht_w1 = 3496; %W/(m2.K)
+        ht_w2 = interp1(HX.H.T-273.15,HX.H.ht,40,'machima');
+        ht_a1 = 43.7; %W/(m2.K)
+        ht_a2 = interp1(HX.C.T-273.15,HX.C.ht,40,'machima');
+        UA1   = 58.4;
+        UA2   = HX.UA;
+        Dp_a1 = 6.0; %Pa
+        Dp_a2 = HX.DppC*1e5;
+        
+        fprintf(1,'\n\n');
+        fprintf(1,'                    %8s   %8s\n','Nellis','Result')
+        fprintf(1,'ht air   [W/m2/K] = %8.2f   %8.2f\n',ht_a1,ht_a2)
+        fprintf(1,'ht water [W/m2/K] = %8.2f   %8.2f\n',ht_w1,ht_w2)
+        fprintf(1,'UA total [W/K]    = %8.2f   %8.2f\n',UA1,UA2)
+        fprintf(1,'Dp air   [Pa]     = %8.2f   %8.2f\n',Dp_a1,Dp_a2)
+end
+
 % Make plots
 plot_hex(HX,1,10,'C');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%{
+%{
 %%% OFF-DESIGN PERFORMANCE %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Use easier nomenclature for inlet conditions

@@ -87,19 +87,30 @@ switch HX.model
             % value of Af the pressure loss is the same as the objective.
             % Check whether f1 changes sign over interval. If it doesn't,
             % choose Af that is closest to zero.
-            f1 = @(Af) hex_compute_area(HX,iL,'Af',Af,0);
+            switch HX.shape
+                case {'circular','PCHE'}
+                    f1 = @(Af) hex_compute_area(HX,iL,'Af',Af,0);
+                case 'cross-flow'
+                    f1 = @(Af) hex_compute_Xflow(HX,iL,'Af',Af,0);
+                otherwise
+                    error('not implemented')
+            end
             Afmin = 1e-3;
-            Afmax = 1e+3;
+            Afmax = 1e+10;
             f1min = f1(Afmin) ;
             f1max = f1(Afmax) ;
             if f1min*f1max >= 0
                 if abs(f1min) < abs(f1max)
                     Af0 = Afmin ;
+                    warning(['Objective pressure loss can not be met ',...
+                    'because required flow area is below minimum limit.']);
                 else
                     Af0 = Afmax ;
+                    warning(['Objective pressure loss can not be met ',...
+                    'because required flow area is above maximum limit.']);
                 end
             else
-                opt = optimset('TolX',Afmin/1e3,'Display','notify');
+                opt = optimset('TolX',Afmin/1e4,'Display','notify');
                 Af0 = fzero(f1,[Afmin,Afmax],opt);
             end
             [~,HX] = f1(Af0);
@@ -131,16 +142,27 @@ switch HX.model
         % value of Af the pressure loss is the same as the objective.
         % Check whether f1 changes sign over interval. If it doesn't,
         % choose Af that is closest to zero.
-        f1 = @(Af) hex_compute_area(HX,iL,'Af',Af,0);
+        switch HX.shape
+            case {'circular','PCHE'}
+                f1 = @(Af) hex_compute_area(HX,iL,'Af',Af,0);
+            case 'cross-flow'
+                f1 = @(Af) hex_compute_Xflow(HX,iL,'Af',Af,0);
+            otherwise
+                error('not implemented')
+        end
         Afmin = 1e-3;
-        Afmax = 1e+3;
+        Afmax = 1e+6;
         f1min = f1(Afmin) ;
         f1max = f1(Afmax) ;
         if f1min*f1max >= 0
             if abs(f1min) < abs(f1max)
                 Af0 = Afmin ;
+                warning(['Objective pressure loss can not be met ',...
+                    'because required flow area is below minimum limit.']);
             else
                 Af0 = Afmax ;
+                warning(['Objective pressure loss can not be met ',...
+                    'because required flow area is above maximum limit.']);
             end
         else
             opt = optimset('TolX',Afmin/1e4,'Display','notify');
