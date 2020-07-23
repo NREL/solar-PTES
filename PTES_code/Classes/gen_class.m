@@ -67,13 +67,18 @@ classdef gen_class
             figure(10)
             x = linspace(0.05,2.5,100)';
             y = interp1(PPN,eta,x,'spline');
-            plot(PPN,eta,'s',x,y)
+            plot(PPN,eta,'s',x,y); hold on;
+            PPN_Patnode = linspace(0.05,1.0,100)';
+            eta_Patnode = 0.9 + 0.258*PPN_Patnode - 0.3*PPN_Patnode.^2 ...
+                + 0.12*PPN_Patnode.^3;
+            plot(PPN_Patnode,eta_Patnode,'-.'); hold off;
             xlim([0 2.2])
-            ylim([92 100])
+            ylim([0.92 1.0])
             xlabel('Part load, P/PN')
             ylabel('Motor-generator efficiency [$\%$]')
-            legend('NASA 2005','Interpolation','Location','East')
+            legend('NASA 2005','Interpolation','Padnode 2006','Location','East')
             grid on;
+            keyboard
             %}
         end
         
