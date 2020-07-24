@@ -24,10 +24,16 @@ if strcmp(stream.name,stream.name)
 else
     error('stream1 and stream2 must be the same fluid')
 end
-if abs((stateM.p - stateS.p)/stateM.p) > 1e-10
-    error('stream1 and stream2 must have the same pressure')
+if abs((stateM.p - stateS.p)/stateM.p) > 1e-9
+    warning('stream1 and stream2 must have the same pressure')
+    p = min(stateM.p,stateS.p);
+    if stateM.p > stateS.p
+        stateM.p = p ;
+    else
+        stateS.p = p ;
+    end
 end
-p = stateM.p;
+
 
 % Mass conservation
 Mdot = stateM.mdot + stateS.mdot;

@@ -21,6 +21,8 @@ if design_mode == 1
     gas.state(iL,iReg2).p = pbot;
     gas.state(iL,iReg2).mdot = gas.state(iL,1).mdot;
     [gas] = update(gas,[iL,iReg2],1);
+    TOLconv = 1e-3 ;
+    environ.T0 = T0 ;
     
 else
     % Set up matrix that guesses the converged solution
@@ -31,9 +33,13 @@ else
         
         % For inventory control, assume that the pressure scales with the off-design mass flow rate
         %gas.state(iL,ii).p = CCMP.Pin * Load.mdot(iL) / CCMP.mdot0 ;
-        gas.state(iL,ii).p = gas.state(iL,ii).p * Load.mdot(iL) / CCMP.mdot0 ;
+        gas.state(iL,ii).p = gas0.state(1,ii).p * Load.mdot(iL) / CCMP.mdot0 ; % First ever run is charging
         [gas] = update(gas,[iL,ii],1);
-    end  
+        
+    end 
+    environ.T0 = T0_off(iL) ;
+    
+    TOLconv = 1e-1 ;
 end
 
 if Load.mode==3
@@ -59,7 +65,7 @@ end
 
 % Set matrix of temperature and pressure points to test convergence
 C_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-max_iter=100;
+max_iter=50;
 for counter=1:max_iter
     
     fprintf(1,['Charging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
@@ -97,9 +103,14 @@ for counter=1:max_iter
     
     % REJECT HEAT (external HEX)
     T_aim = environ.T0 + T0_inc;    
-    air.state(iL,iA).T = T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
-    [HX(ihx_rejc), gas, iG, air, iA] = hex_func(HX(ihx_rejc),iL,gas,iG,air,iA,5,T_aim);
-    [CFAN(1),air,iA] = compexp_func (CFAN(1),iL,air,iA,'Paim',p0,1);
+    air.state(iL,iA).T = environ.T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
+    if T_aim >= gas.state(iL,iG).T
+        gas.state(iL,iG+1) = gas.state(iL,iG) ;
+        iG = iG + 1 ;
+    else
+        [HX(ihx_rejc), gas, iG, air, iA] = hex_func(HX(ihx_rejc),iL,gas,iG,air,iA,5,T_aim);
+        [CFAN(1),air,iA] = compexp_func (CFAN(1),iL,air,iA,'Paim',p0,1);
+    end
         
     for iN = 1:Ne_ch
         % EXPAND
@@ -172,8 +183,7 @@ for counter=1:max_iter
     
     % Determine convergence and proceed
     C = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-    convergence = all(abs((C(C~=0) - C_0(C~=0))./C(C~=0))*100 < 1e-3);
-    
+    convergence = all(abs((C(C~=0) - C_0(C~=0))./C(C~=0))*100 < TOLconv);
     if (convergence && strcmp(HX_model_temp,HX_model)) || counter==max_iter % is charge cycle converged?
 
         % Close working fluid streams
@@ -201,13 +211,13 @@ for counter=1:max_iter
         end
         
         % Uncomment these lines to print states
-        %{
-        print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
-        print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
-        print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);
-        print_states(air,iL,1:air.Nstg(iL)+1,Load);
-        print_states(HTF,iL,1:HTF.Nstg(iL)+1,Load);
-        keyboard
+        
+        %print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
+        %print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
+        %print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);
+        %print_states(air,iL,1:air.Nstg(iL)+1,Load);
+        %print_states(HTF,iL,1:HTF.Nstg(iL)+1,Load);
+        %keyboard
         %}
         
         % Exit loop
@@ -238,9 +248,11 @@ for counter=1:max_iter
 %             fprintf('T1:   %13.8f \n',gas.state(iL,1).T)
 %             fprintf('TEND: %13.8f \n\n',gas.state(iL,iG).T)
             % Reduce smoothing factor with number of iterations
-            smooth = 0.10;% / double(counter)^0.2 ; 
-            gas.state(iL,1).p = gas.state(iL,1).p - smooth * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
+            smooth = 0.05;% / double(counter)^0.2 ; 
+            %print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
             gas.state(iL,1).T = gas.state(iL,1).T + smooth * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
+            %gas.state(iL,1).T = gas.state(iL,1).T ;
+            gas.state(iL,1).p = gas.state(iL,1).p - smooth * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
                       
             gas.state(iL,1).mdot = Load.mdot(iL);
             [gas] = update(gas,[iL,1],1);

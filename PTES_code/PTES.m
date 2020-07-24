@@ -114,9 +114,10 @@ for ix = 1:1
             
             if optimise % obtain optimal PRr
                 error('not implemented')
+                mode = 0 ;
                 f = @(PRr) ptes_discharge_function(gas, fluidH, fluidC, HT, CT, environ,...
-                    T0, T1, pbot, PRr, PRch, Load.mdot(iL), Nc_dis, Ne_dis,...
-                    eta, eff, ploss, Load.time(iL), mode);
+                    T0, T1, pbot, PRr, PRch, Nc_dis, Ne_dis,...
+                    eta, eff, ploss, Load, iL-1, design_mode, HX_model,mode);
                 
                 [PRr,ineff,xv,yv,iter] = golden_search(f,PRr_min,PRr_max,0.005,'Min',100);
             end
@@ -151,7 +152,6 @@ if make_hex_plots
     PLOT_HEXS
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 %%% FINISH PROGRAM %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

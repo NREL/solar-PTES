@@ -93,13 +93,17 @@ classdef compexp_class
                     obj.pr(iL)   = 1 ;
                 else
                     obj = compexp_offdesign (obj , state, iL , aim, 1) ;
+                    %obj.eta(iL)  = obj.eta0 ;
+                    %obj.mdot(iL) = state.mdot ;
+                    %obj.pr(iL)   = 1 ;
                 end
             end
             etaI = obj.eta(iL) ;     
             
             % If not at the design pressure ratio then calculate the
             % required pressure ratio
-            if obj.pr(iL) ~= 1
+            %if obj.pr(iL) ~= 1
+            if ~design_mode
                obj.aim_mode = 'Paim' ;
                if strcmp(obj.type,'comp')
                    aim = fluid.state(iL,i).p * obj.pr0 * obj.pr(iL) ;
@@ -259,7 +263,8 @@ classdef compexp_class
                     end
                 end
                 if err(i1)>1e-6
-                    error('***Convergence not found***')
+                    %error('***Convergence not found***')
+                    warning('***Convergence not found***')
                 end
                 %     % Plot convergence
                 %     figure(5)
@@ -343,16 +348,18 @@ classdef compexp_class
                             mr = (obj.mdot(iL) / obj.mdot0) * (T1/obj.Tin)^0.5 * (obj.Pin/P1) ; % Reduced mass
                             Nr = (obj.N(iL) / obj.N0) * (T1/obj.Tin)^0.5 ; % Reduced speed
                             
-                            t1 = (1.4 - 0.4 * Nr)^0.5 ;
+                            t1 = (1.4 - 0.4 * obj.N(iL) / obj.N0)^0.5 ;
                             t2 = 0.3 ;
                             
                             % PR equations in references seem to be wrong -
                             % based on Stodola's ellipse - use this!
                             %obj.pr(iL)  = (1+(obj.pr0^2 - 1)*(T1/obj.Tin)*(mr/t1)^2)^0.5;
-                            obj.pr(iL)  = (1./((1.-(1-1./obj.pr0^2)*(T1/obj.Tin)*(mr/t1)^2)))^0.5;
+                            mrat = (obj.mdot(iL) / obj.mdot0) * (T1/obj.Tin)^0.5 ;
+                            obj.pr(iL)  = (1./((1.-(1-1./obj.pr0^2)*(mr/t1)^2)))^0.5;
                             obj.pr(iL) = obj.pr(iL) / obj.pr0 ;
                             if imag(obj.pr(iL)) > 0
-                                warning('Imaginary pressure ratios achieved in off-design expander')
+                                warning('Imaginary pressure ratios achieved in off-design expander. If this occurs in the final converged solution you have a problem')
+                                obj.pr(iL) = 1.;
                             end
                             obj.eta(iL) = obj.eta0 *(1-t2*(1-Nr)^2)*(Nr/mr)*(2-Nr/mr) ;
                             
@@ -646,6 +653,9 @@ classdef compexp_class
                     RHO0  = 1.225 ; % Density of air at standard conditions
                     n     = 1 ; % This allows you to modify how strongly the cost is reduced
                     scale = (RHOout / RHO0)^n ;
+                    if isinf(scale)
+                        scale = 1 ;
+                    end
                     
                     COST = COST / scale ; 
                     

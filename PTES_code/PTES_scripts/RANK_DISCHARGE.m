@@ -144,7 +144,7 @@ for counter=1:max_iter
         steam.state(iL,iSA).p = steam.state(iL,iG).p ;
         [steam] = update(steam,[iL,iSA],1);
         
-        x1 = DEXP(1).mdot0 - DEXP(2).mdot0 ;
+        x1 = (DEXP(1).mdot0 - DEXP(2).mdot0)/steam.state(iL,iG).mdot ;
     else
         f1 = @(x1) dT_from_mix_obj(x1,steam,iL,iG,iSA,iP2,Ran_Tmid1-1,MIX(1));
         %plot_function(f1,0.0,1.0,100,10)
@@ -186,7 +186,7 @@ for counter=1:max_iter
         % efficiency of DEXP(3) decreases a bit as flow separates on the
         % blades.
         if DEXP(3).pr(iL) > 1.0
-            x2 = DEXP(2).mdot(iL) - DEXP(3).mdot(iL) ;
+            x2 = (DEXP(2).mdot(iL) - DEXP(3).mdot(iL))/DEXP(2).mdot(iL) ;
         else
             f2 = @(x2) dT_from_mix_obj(x2,steam,iL,iG,iSB,iP1,Ran_Tmid2-1,MIX(1));
             x2  = fzero(f2,[0.0,0.5]);

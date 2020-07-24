@@ -79,6 +79,7 @@ classdef hx_class
        % Costs
        Lgeom_set % Has the geometry been set
        hx_cost = econ_class(0,0,0,0) ;
+       mat_fac % Additional cost factor, depending on material used (temperature dependent).
        
    end
    
@@ -525,6 +526,32 @@ classdef hx_class
                    COST = COST * CEind(curr) / CEind(1998) ;
                    
            end
+           
+           % Find the maximum temperature in the heat exchanger
+           len  = length(obj.H) ;
+           maxT = 0 ;
+           for i = 1 : len
+               temp = max(obj.H(i).T) ;
+               if ~isempty(temp)
+                   maxT = max(maxT,temp) ;
+               end
+           end
+           
+           % Multiply the cost by a factor according to the temperature
+           if maxT <= 400 + 273.15
+               obj.mat_fac = 1.0 ; % Carbon steel
+           elseif maxT > 400 + 273.15 && maxT <= 600 + 273.15
+               obj.mat_fac = 2.0 ; % Stainless steel
+           elseif maxT > 600 + 273.15
+               obj.mat_fac = 5.0 ; % Some kind of nickel alloy
+           end
+           
+           switch obj.hx_cost.cost_mode
+               case {24,25} % These correlations already seem to take material considerations into account
+                   obj.mat_fac = 1.0 ;
+           end
+                      
+           COST = COST * obj.mat_fac ;
            
            obj.hx_cost.COST = COST ;
            obj.Qact         = obj.QS(end,1) ; % Temporary

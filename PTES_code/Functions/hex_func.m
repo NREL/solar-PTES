@@ -96,10 +96,10 @@ mH  = stateH.mdot;
 mC  = stateC.mdot;
 
 % Declare the two fluid streams
-H = stream; H.mdot = mH; H.name = fluidH.name;
+H = stream; H.mdot = mH; H.name = fluidH.name; 
 C = stream; C.mdot = mC; C.name = fluidC.name;
-H.read = fluidH.read; H.handle = fluidH.handle; H.HEOS = fluidH.HEOS;
-C.read = fluidC.read; C.handle = fluidC.handle; C.HEOS = fluidC.HEOS;
+H.read = fluidH.read; H.handle = fluidH.handle; H.HEOS = fluidH.HEOS; H.IDL = fluidH.IDL;
+C.read = fluidC.read; C.handle = fluidC.handle; C.HEOS = fluidC.HEOS; C.IDL = fluidC.IDL;
 switch HX.shape
     case 'cross-flow'
         H.shape = 'circular';
@@ -365,7 +365,7 @@ switch model
                 QT    = mH*(hH2-hH1);
                 mCmin = QT/(hC2_max - hC1)*(0.98);
                 mCmax = mCmin*100; %necessary to find root
-                
+                                
                 % Find value of mC for which DTmin=ref
                 f1 = @(mC) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,compare,ref);
                 %{
@@ -422,7 +422,7 @@ switch model
             case {0,1,2}
                 QMAX0 = min([mC*(hC2_max - hC1),mH*(hH2 - hH1_min)])*(1.01); %necessary to find root
                 hH1_min = hH2 - QMAX0/mH;
-                hH1_max = hH2 - (hH2-hH1_min)*HX.eff*0.90;
+                hH1_max = hH2 - 0.95*HX.eff*QMAX0/mH;
                 
                 % Find value of hH1 for which computed area equals specified area
                 switch HX.shape
@@ -437,6 +437,7 @@ switch model
                 %keyboard
                 opt = optimset('TolX',(hH2-hH1_min)/1e12,'Display','notify');
                 hH1 = fzero(f1,[hH1_min,hH1_max],opt);
+                %hH1 = fzero(f1,hH1_min,opt);
                 
             case 3
                 % Set outlet conditions of cold fluid. Assume small effect
@@ -510,6 +511,7 @@ switch model
                 QT    = mH*(hH2-hH1);
                 mCmin = QT/(hC2_max - hC1)*0.98;
                 mCmax = mCmin*100; %necessary to find root
+                %mCmax = mCmin/(0.2*HX.eff) ;
                 
                 % Find value of mC for which computed area equals specified area
                 %keyboard

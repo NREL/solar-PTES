@@ -315,7 +315,7 @@ switch Load.mode
         Cdata = calc_fcr(Cdata) ;
 
         % Calculate the LCOS
-        Cdata = calc_lcos(Cdata, Win, Wout, Load.time, Nsens) ;
+        Cdata = calc_lcos(Cdata, Win, Wout, Load.time, Nsens, Lsuper) ;
 
     case 1
         pow  = -W_in_chg/t_chg/1e3 ;
@@ -323,6 +323,7 @@ switch Load.mode
         
         Cdata.cap_cost_pow = Cdata.cap_costM / pow ; % Cost, $ / kW
         Cdata.cap_cost_en  = Cdata.cap_costM / Win ;  % Cost, $ / kWh
+        Cdata.lcosM = -1.;
         
     case {2,5,7}
         pow  = W_out_dis/t_dis/1e3 ;
@@ -422,6 +423,9 @@ end
 switch Load.mode
     case {0,3,4,6}
         fprintf(1,'ECONOMIC RESULTS:\n');
+        if Lsuper
+            fprintf(1,'Economic results generated using multiple correlations.\n\n')
+        end
         fprintf(1,'Capital cost:                  %8.1f M$\n',Cdata.cap_costM/1e6);
         fprintf(1,'     Standard deviation:       %8.1f M$\n\n',Cdata.cap_costSD/1e6);
         fprintf(1,'Cost per unit power:           %8.1f $/kW-e\n',Cdata.cap_cost_pow);
@@ -430,6 +434,9 @@ switch Load.mode
         fprintf(1,'     Standard deviation:       %8.3f $/kWh-e\n\n',Cdata.lcosSD);
     case {1,2,5,7}
         fprintf(1,'ECONOMIC RESULTS:\n');
+        if Lsuper
+            fprintf(1,'Economic results generated using multiple correlations.\n\n')
+        end
         fprintf(1,'Capital cost:                  %8.1f M$\n',Cdata.cap_costM/1e6);
         fprintf(1,'     Standard deviation:       %8.1f M$\n\n',Cdata.cap_costSD/1e6);
         fprintf(1,'Cost per unit power:           %8.1f $/kW-e\n',Cdata.cap_cost_pow);
@@ -464,42 +471,56 @@ end
 
 
 % Calculate the levelised cost of energy
-function obj = calc_lcos(obj, Win, Wout, times, Nsens)
+function obj = calc_lcos(obj, Win, Wout, times, Nsens, mode)
 
     % Calculate the total time that elapsed in this run
     totT = sum(times) ; % seconds 
     Ncyc = 8760 * 3600 / totT ; % How many cycles in one year
+    if Ncyc > 365
+        Ncyc = 365 ; % Cycle maximum once per day
+    end
     
     totWin  = Win * Ncyc ;   % Total work input in one year
     totWout = Wout * Ncyc ;  % Total work output in one year
     
-    % Make distributions of OnM, FCR, elec price
-    % Create classes first
-    OnMclass  = econ_class(0, 0.2, 2, 0.3) ;
-    FCRclass  = econ_class(0, 0.2, 2, 0.3) ;
-    ELECclass = econ_class(0, 0.2, 2, 0.3) ;
+    if mode == 0
     
-    OnMclass.COST = obj.OnM ;
-    FCRclass.COST = obj.FCR ;
-    ELECclass.COST = obj.price ;
+        % Make distributions of OnM, FCR, elec price
+        % Create classes first
+        OnMclass  = econ_class(0, 0.2, 2, 0.3) ;
+        FCRclass  = econ_class(0, 0.2, 2, 0.3) ;
+        ELECclass = econ_class(0, 0.2, 2, 0.3) ;
+        
+        OnMclass.COST = obj.OnM ;
+        FCRclass.COST = obj.FCR ;
+        ELECclass.COST = obj.price ;
+        
+        OnM_sens   = cost_sens(OnMclass, Nsens) ;
+        FCR        = cost_sens(FCRclass, Nsens) ;
+        price_sens = cost_sens(ELECclass, Nsens) ;
+        
+        % Total O&M cost
+        OnM = OnM_sens .* obj.cap_sens ;
+        
+        % Total cost of electricity for charging
+        elec = price_sens .* totWin ;
+        
+        % Levelised cost of storage
+        obj.lcos_sens = (obj.cap_sens .* FCR + OnM + elec) ./ totWout ;
+        
+        obj.lcosM  = mean(obj.lcos_sens) ;
+        obj.lcosSD = std(obj.lcos_sens) ;
+        obj.lcos_lo = obj.lcosM - obj.lcosSD ;
+        obj.lcos_hi = obj.lcosM + obj.lcosSD ;
     
-    OnM_sens   = cost_sens(OnMclass, Nsens) ;
-    FCR        = cost_sens(FCRclass, Nsens) ;
-    price_sens = cost_sens(ELECclass, Nsens) ;
-    
-    % Total O&M cost
-    OnM = OnM_sens .* obj.cap_sens ;
-    
-    % Total cost of electricity for charging
-    elec = price_sens .* totWin ;
-    
-    % Levelised cost of storage
-    obj.lcos_sens = (obj.cap_sens .* FCR + OnM + elec) ./ totWout ;
-    
-    obj.lcosM  = mean(obj.lcos_sens) ;
-    obj.lcosSD = std(obj.lcos_sens) ;
-    obj.lcos_lo = obj.lcosM - obj.lcosSD ;
-    obj.lcos_hi = obj.lcosM + obj.lcosSD ;
+    else
+        % Total O&M cost
+        OnM = obj.OnM .* obj.cap_cost ;
+        
+        % Total cost of electricity for charging
+        elec = obj.price .* totWin ;
+        obj.lcosM = (obj.cap_cost * obj.FCR + OnM + elec) / totWout ;
+    end
 
 end
 

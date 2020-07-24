@@ -643,3 +643,8 @@ else
 end
 %%}
 
+%
+if Lreadload
+   ENERGY_LOAD 
+end
+
