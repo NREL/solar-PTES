@@ -136,8 +136,12 @@ classdef gen_class
             eta = interp1(obj.part_load.PPN,obj.part_load.eta,PPN,'makima');
             
             % Print warnings
-            if any(PPN<0.15)
-                warning(['Motor-generator operating in very low part-load'...
+            if any(PPN<0)
+                error(['Motor-generator cannot operate under negative',...
+                    'part-load conditions.'])
+            end
+            if any(0<PPN & PPN<0.15)
+                warning(['Motor-generator operating in very low part-load',...
                     ' conditions. Predicted performance might be innacurate.'])
             end
             if any(PPN>1.2)
