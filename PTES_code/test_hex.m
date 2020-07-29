@@ -36,14 +36,15 @@ load_coolprop
 % 1 = Gas regenerator
 % 2 = SolarSalt and Water
 % 3 = CO2 and Water
-% 4 = Steam and Water
+% 4 = Steam condenser -- Steam and Water, counter-flow
 % 5 = sCO2 and sCO2 (Hoopes2016)
-% 6 = Heat rejection unit (Nigroten and Nitrogen)
+% 6 = Heat rejection unit -- Nigroten and Nitrogen, Xflow
 % 7 = sCO2 and sCO2 (Marchionni2019 - CFD)
 % 8 = sCO2 and sCO2 (Marchionni2019 - experiment)
 % 9 = Helium and Helium (Figley2013)
-%10 = Water and air (Nellis example 8.1-1, cross-flow HEX)
-scenario = 10;
+%10 = Water and air (Nellis example 8.1-1), Xflow
+%11 = Steam condenser -- Steam and air, Xflow
+scenario = 11;
 
 % Save figures?
 save_figures = 0;
@@ -113,13 +114,13 @@ switch scenario
         F1 = fluid_class('Water','WF','CP','TTSE',1,5);
         F1.state(iL,i2).p = 0.1*1e5;
         F1.state(iL,i2).T = 350;
-        F1.state(iL,i2).mdot = 10;
+        F1.state(iL,i2).mdot = 100;
         
         % Water
         F2 = fluid_class('Water','SF','TAB',NaN,1,5);
         F2.state(iL,i1).p = 1e5;
         F2.state(iL,i1).T = 273.15+1;
-        F2.state(iL,i2).mdot = 200;
+        F2.state(iL,i2).mdot = 2000;
         %{
         % MEG
         F2 = fluid_class('INCOMP::MEG2[0.56]','SF','TAB',NaN,1,5);
@@ -239,12 +240,39 @@ switch scenario
         hex_mode = 0;
         par = 0;
         
+    case 11 % Steam condenser (cross-flow air cooler)
+        % Steam
+        F1 = fluid_class('Water','WF','CP','HEOS',1,5);
+        F1.state(1,i1).p = 0.1e5;
+        F1.state(1,i1).Q = 0.8;
+        F1.state(1,i1).mdot = 100;
+        
+        % Nitrogen
+        F2 = fluid_class('Nitrogen','ENV','CP','BICUBIC&HEOS',1,5);
+        F2.state(1,i2).p = 1e5;
+        F2.state(1,i2).T = 10 + 273.15;
+        F2.state(1,i2).mdot = 1e3;
+        
+        % Update fluid states
+        [F1] = update(F1,[iL,i1],3);
+        [F2] = update(F2,[iL,i2],1);
+        
+        % Set hex_mode
+        %hex_mode = 1;
+        %par = 0.5;
+        hex_mode = 5;
+        par = F1.state(1,i1).T-2;
+        
     otherwise
         error('not implemented')
 end
-% Update fluid states
-[F1] = update(F1,[iL,i1],1);
-[F2] = update(F2,[iL,i2],1);
+switch scenario
+    case 11
+    otherwise
+        % Update fluid states
+        [F1] = update(F1,[iL,i1],1);
+        [F2] = update(F2,[iL,i2],1);
+end
 
 % Specify HX settings
 NX   = 100; % Number of sections (grid)
@@ -292,10 +320,9 @@ switch model
                 shape = 'PCHE';
                 
             case 6
-                eff   = 0.90;
+                eff   = 0.80;
                 ploss = 1e-3;
-                D1    = 5e-3;
-                %shape = 'circular';
+                D1    = [];
                 shape = 'cross-flow';
                 
             case 7
@@ -307,13 +334,20 @@ switch model
                 
             case 10
                 % Nellis&Klein (these performance values are just guesses
-                eff   = 0.25;
+                eff   = 0.521;
+                ploss = 6e-5;
+                D1    = [];
+                shape = 'cross-flow';
+                
+            case 11
+                % Nellis&Klein (these performance values are just guesses
+                eff   = 0.80;
                 ploss = 0.001;
-                D1    = 4e-3;
+                D1    = [];
                 shape = 'cross-flow';
                 
             otherwise
-                eff   = 0.97;
+                eff   = 0.95;
                 ploss = 0.01;
                 D1    = 0.01;
                 shape = 'circular';
@@ -402,15 +436,15 @@ switch scenario
         Dp_a2 = HX.DppC*1e5;
         
         fprintf(1,'\n\n');
-        fprintf(1,'                    %8s   %8s\n','Nellis','Result')
-        fprintf(1,'ht air   [W/m2/K] = %8.2f   %8.2f\n',ht_a1,ht_a2)
-        fprintf(1,'ht water [W/m2/K] = %8.2f   %8.2f\n',ht_w1,ht_w2)
-        fprintf(1,'UA total [W/K]    = %8.2f   %8.2f\n',UA1,UA2)
-        fprintf(1,'Dp air   [Pa]     = %8.2f   %8.2f\n',Dp_a1,Dp_a2)
+        fprintf(1,'                    %8s   %8s   %8s\n','Nellis','Result','Error')
+        fprintf(1,'ht air   [W/m2/K] = %8.2f   %8.2f   %6.1f %%\n',ht_a1,ht_a2,abs(ht_a1-ht_a2)/ht_a1*100)
+        fprintf(1,'ht water [W/m2/K] = %8.2f   %8.2f   %6.1f %%\n',ht_w1,ht_w2,abs(ht_w1-ht_w2)/ht_w2*100)
+        fprintf(1,'UA total [W/K]    = %8.2f   %8.2f   %6.1f %%\n',UA1,UA2,abs(UA1-UA2)/UA1*100)
+        fprintf(1,'Dp air   [Pa]     = %8.2f   %8.2f   %6.1f %%\n',Dp_a1,Dp_a2,abs(Dp_a1-Dp_a2)/Dp_a1*100)
 end
 
 % Make plots
-plot_hex(HX,1,10,'C');
+plot_hex(HX,1,10,'C',true);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %{

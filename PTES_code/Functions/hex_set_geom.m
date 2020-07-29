@@ -69,14 +69,26 @@ if HX.Lgeom_set
     return
 end
 
+% Set minimum and maximum mass fluxes, used to compute minimum and maximum
+% flow areas
+Gmin = 0.1;
+Gmax = 1e3;
+
 % Set geometry according to scenario
 switch HX.model
     case 'geom'
         
         % The design process is done twice because the pressure loss of
         % only one of the channels (the channel with the largest pressure
-        % loss) is known a priory.
-        for i0=1:2
+        % loss) is known a priory. For cross-flow geometry pressure losses
+        % are very small and process is done only once.
+        switch HX.shape
+            case {'circular','PCHE'}
+                i0max = 2;
+            case 'cross-flow'
+                i0max = 1;
+        end
+        for i0=1:i0max
             % Use hex_func to obtain temperature profiles. Temporarily set
             % HX.model to 'eff' in order to achieve this.
             HX.model = 'eff';
@@ -95,8 +107,10 @@ switch HX.model
                 otherwise
                     error('not implemented')
             end
-            Afmin = 1e-3;
-            Afmax = 1e+10;
+            mC = HX.C(iL).mdot;
+            mH = HX.H(iL).mdot;
+            Afmin = min([mC,mH])/Gmax;
+            Afmax = max([mC,mH])/Gmin;
             f1min = f1(Afmin) ;
             f1max = f1(Afmax) ;
             if f1min*f1max >= 0
@@ -150,8 +164,10 @@ switch HX.model
             otherwise
                 error('not implemented')
         end
-        Afmin = 1e-3;
-        Afmax = 1e+6;
+        mC = HX.C(iL).mdot;
+        mH = HX.H(iL).mdot;
+        Afmin = min([mC,mH])/Gmax;
+        Afmax = max([mC,mH])/Gmin;
         f1min = f1(Afmin) ;
         f1max = f1(Afmax) ;
         if f1min*f1max >= 0

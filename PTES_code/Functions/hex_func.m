@@ -392,17 +392,18 @@ switch model
         end
         
         % Save variables into C and H stream objects
-        [TC,TH,hC,hH,QS] = compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1);
+        [TC,TH,hC,hH,pC,pH,QS] = compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1);
         C.mdot = mC;
         H.mdot = mH;
         C.T = TC;
         H.T = TH;
         C.h = hC;
         H.h = hH;
+        C.p = pC;
+        H.p = pH;
         HX.C(iL) = C;
         HX.H(iL) = H;
         HX.QS(iL,:) = QS;
-        HX.AS  = [];
         HX.C(iL).pin = pC1;
         HX.H(iL).pin = pH2;
         
@@ -523,7 +524,8 @@ switch model
                     otherwise
                         error('not implemented')
                 end
-                %plot_function(f1,mCmin,mCmax,10,15,'semilogx');
+                %plot_function(f1,mCmin,mCmax,20,15,'semilogx');
+                %keyboard
                 opt = optimset('TolX',(mCmax-mCmin)/1e12,'Display','notify');
                 mC = fzero(f1,[mCmin,mCmax],opt);
                 
@@ -775,12 +777,14 @@ end
 % Assign output arguments
 if nargout == 1
     varargout{1} = solution;
-elseif nargout == 5
+elseif nargout == 7
     varargout{1} = TC;
     varargout{2} = TH;
     varargout{3} = hC;
     varargout{4} = hH;
-    varargout{5} = QS;
+    varargout{5} = pC;
+    varargout{6} = pH;
+    varargout{7} = QS;
 else
     error('Incorrect number of outputs')
 end

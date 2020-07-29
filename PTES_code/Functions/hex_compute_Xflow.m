@@ -14,12 +14,12 @@ function varargout = hex_compute_Xflow(HX,iL,mode,par,varargin)
 %   is employed by the iteration procedure of the calling function to find
 %   the correct value of 'hH1' or 'hC2' for that geometry.
 %
-%   In mode 'Af1', the geometry of the heat exchanger is not know yet, and
+%   In mode 'Af', the geometry of the heat exchanger is not know yet, and
 %   is to be created according to the performance objectives (effectiveness
 %   and pressure loss). Because the effectiveness is specified, the TQ
 %   diagram is known by the calling function. The calling function calls
 %   HEX_COMPUTE_XFLOW while iterating over different 'Af1' values. The
-%   value of 'Af' (stored in the 'par' argument) is used to compute the
+%   value of 'Af1' (stored in the 'par' argument) is used to compute the
 %   mass flux, the Re, St and Cf values at each point and generate a
 %   geometry that satisfies the given TQ diagram. Then, the predicted
 %   pressure losses are compared to the specified pressure loss and the
@@ -37,7 +37,7 @@ function varargout = hex_compute_Xflow(HX,iL,mode,par,varargin)
 %   hex_compute_Xflow(HX,iL,'hH1',hH1,'mH',mH)
 %   hex_compute_Xflow(HX,iL,'hH1',hH1,'mC',mC,true)
 %   hex_compute_Xflow(HX,iL,'hC2',hC2,'mC',mC)
-%   hex_compute_Xflow(HX,iL,'Af1',Af1,0)
+%   hex_compute_Xflow(HX,iL,'Af',Af1,0)
 
 % Check that this is the correct algorithm to be called
 switch HX.shape
@@ -106,8 +106,10 @@ switch mode
 end
 
 % Set pressure arrays (guess)
-H.p = ones(NX+1,1)*H.pin;
-C.p = ones(NX+1,1)*C.pin;
+if isempty(H.p)
+    H.p = ones(NX+1,1)*H.pin;
+    C.p = ones(NX+1,1)*C.pin;
+end
 
 % Heat fluxes
 switch mode
@@ -119,7 +121,6 @@ switch mode
         C.Af = HX.Af1;
         C.A  = HX.A1;
         q  = (H.h(NX+1)-H.h(1))/H.A;
-        QS = mH*(H.h - H.h(1));
         %fprintf(1,'\nHX.A1 = %.3e, HX.A2 = %.3e\n',HX.A1,HX.A2);
         %keyboard
     case 'Af'
@@ -162,12 +163,6 @@ C.shape = 'cross-flow';
 
 switch mode
     case 'Af'
-        % UPDATE PROPERTIES
-        % Cold stream
-        C   = stream_update(C,2);
-        % Hot stream
-        H   = stream_update(H,2);
-        
         % Set fixed geometrical parameters
         DC =  3.63e-3;
         DH = 10.21e-3;
@@ -177,30 +172,78 @@ switch mode
         HX.D1  = DC;            % Hydraulic diameter (air side)
         HX.D2  = DH;            % Hydraulic diameter (working fluid side)
         
-        % Compute NTU using analytical solutions
-        CpC  = ( C.h(NX+1)-C.h(1) )/( C.T(NX+1)-C.T(1) );
-        CpH  = ( H.h(NX+1)-H.h(1) )/( H.T(NX+1)-H.T(1) );
-        Cmax = max([mC*CpC,mH*CpH]);
-        Cmin = min([mC*CpC,mH*CpH]);
-        Cr   = Cmin/Cmax;
-        if 0 < Cr && Cr <= 1
-            fun =@(NTU) 1 - exp( (1/Cr)*NTU.^0.22.*(exp(-Cr*NTU.^0.78) - 1) ) - HX.eff;
-            
-        else
-            fun =@(NTU) 1 - exp(-NTU) - HX.eff;
-        end
-        NTU_needed = fzero(fun,[0 1e4]);
+        % Geometry initial guess
+        L1  = 0.1; % heat exchanger length (air side)
+        WHr = 1;   % Width-to-height ratio (air side)
+end
+
+% UPDATE PROPERTIES
+% Cold stream
+C   = stream_update(C,2);
+% Hot stream
+H   = stream_update(H,2);
+
+% Check if the HEX is a condenser
+if any(H.x >= 0.0 & H.x <= 1.0)
+    Lcondenser = true;
+else
+    Lcondenser = false;
+end
+
+% Heat capacity rates
+CpC  = ( C.h(NX+1)-C.h(1) )/( C.T(NX+1)-C.T(1) );
+CpH  = ( H.h(NX+1)-H.h(1) )/( H.T(NX+1)-H.T(1) );
+%{
+if Lcondenser
+    Cmax = mH*CpH;
+    Cmin = mC*CpC;
+else
+    Cmax = max([mC*CpC,mH*CpH]);
+    Cmin = min([mC*CpC,mH*CpH]);
+end
+%}
+%%{
+Cmax = max([mC*CpC,mH*CpH]);
+Cmin = min([mC*CpC,mH*CpH]);
+%%}
+Cr   = Cmin/Cmax;
+
+% Cummulative and total heat transfer
+QS = mH*(H.h - H.h(1));
+QT = mH*(H.h(NX+1) - H.h(1));
+
+% Compute heat exchanger effectiveness for given hH1
+hH1min = RPN('PT_INPUTS',H.pin,C.T(1),'H',H);
+hC2max = RPN('PT_INPUTS',C.pin,H.T(NX+1),'H',C);
+%%{
+if Lcondenser
+    QMAX = mC*(hC2max - hC1);
+    %QMAX = mH*(hH2 - hH1min);
+else
+    QMAX   = min([mC*(hC2max - hC1),mH*(hH2 - hH1min)]);
+end
+%%}
+%QMAX   = min([mC*(hC2max - hC1),mH*(hH2 - hH1min)]);
+eff    = QT/QMAX;
+
+% Create array to check convergence. First element is computed NTU.
+% Later come the pressure points along each stream
+CON_0 = [0; H.p; C.p]; % initial value
+NI  = 50;
+RES = zeros(1,NI); % residuals
+TOL = 1e-4;
+impossible_p = false; %indicates impossible situations (regarding Dp loss)
+for iI = 1:NI
         
-        % Create array to check convergence. First element is L1. Later
-        % come the pressure points along each stream
-        L1  = 0.1;         % Length (air side - initial guess)
-        WHr = 1;           % Width-to-height ratio (air side - initial guess)
-        CON_0 = [L1; H.p; C.p]; % initial value
-        NI  = 50;
-        RES = zeros(1,NI); % residuals
-        TOL = 1e-4;
-        impossible_p = false; %indicates impossible situations (regarding Dp loss)
-        for iI = 1:NI
+    switch mode
+        case 'Af'
+            % Compute NTU using analytical solutions
+            if Lcondenser || Cr < 1e-3
+                fun =@(NTU) 1 - exp(-NTU) - eff;
+            else
+                fun =@(NTU) 1 - exp( (1/Cr)*NTU.^0.22.*(exp(-Cr*NTU.^0.78) - 1) ) - eff;
+            end
+            NTU_needed = fzero(fun,[0 1e3]);
             
             % Main geometric parameters
             W1     = WHr*sqrt(HX.Af1/sigma1);   % Width  (air side)
@@ -218,281 +261,149 @@ switch mode
             C.D  = HX.D1;
             C.Af = HX.Af1;
             C.A  = HX.A1;
-            
-            % Compute mass fluxes
-            H.G = mH/H.Af;
-            C.G = mC/C.Af;
-            
-            % COMPUTE HEAT TRANSFER AND FRICTION COEFFICIENTS
-            % Cold stream
-            [C] = developed_flow(C,'heating');
-            % Hot stream
-            [H] = developed_flow(H,'cooling');
-            
-            % Compute average heat transfer coefficients
-            htC = mean(C.ht);
-            htH = mean(H.ht);
-            UA  = 1/(1/(htC*C.A) + 1/(htH*H.A));
-            
-            % Compute heat transfer areas
-            NTU_actual = UA/Cmin;
-            AC = C.A*NTU_needed/NTU_actual;
-            AH = H.A*NTU_needed/NTU_actual;
-            
-            % COMPUTE HEAT EXCHANGER LENGTH
+    end
+    
+    % Compute mass fluxes
+    H.G = mH/H.Af;
+    C.G = mC/C.Af;
+    
+    % COMPUTE HEAT TRANSFER AND FRICTION COEFFICIENTS
+    % Cold stream
+    [C] = developed_flow(C,'heating');
+    % Hot stream
+    [H] = developed_flow(H,'cooling');
+    
+    % Compute average heat transfer coefficients
+    htC = mean(C.ht);
+    htH = mean(H.ht);
+    UA  = 1/(1/(htC*C.A) + 1/(htH*H.A));
+    
+    % Compute number of transfer units
+    NTU = UA/Cmin;
+    
+    switch mode
+        case 'Af'
+            % Compute heat transfer areas and channel length
             % By definition of hydraulic diameter, D = 4*Af/P = 4*Af*L/A
+            AC = C.A*NTU_needed/NTU;
+            AH = H.A*NTU_needed/NTU;
             L1 = C.D*AC/(4*C.Af);
-            L1 = max([L1,0.1]);
+            %L1 = max([L1,0.1]);
             
-            % Cummulative heat transfer area, heat transfer and heat flux
-            dQ = mH*(H.h(2:NX+1) - H.h(1:NX));
-            QS = mH*(H.h - H.h(1));
-            QT = mH*(H.h(NX+1) - H.h(1));
-            dAC = ones(size(dQ))*AC/NX;
-            dAH = ones(size(dQ))*AH/NX;
+            % Heat flux
             H.q = QT/AH;
             C.q = q*C.A/H.A;
             
-            % COMPUTE PRESSURE PROFILES
-            % Obtain dL from dAC and AC
-            dL2 = dAH/AH*L2;
-            dL1 = dAC/AC*L1;
-            % Compute arrays of pressure loss due to flow friction
-            Dpf_H = 0.5*(H.dpdL(1:NX) + H.dpdL(2:NX+1)).*dL2;
-            Dpf_C = 0.5*(C.dpdL(1:NX) + C.dpdL(2:NX+1)).*dL1;
-            
-            % In a situation where H.h(NX+1)==H.h(1) (i.e. no heat exchange), the
-            % code above results in dAC=0, AC=0 and Dp_H=NaN, Dp_C=NaN. If so, set
-            % Dp_H and Dp_C to zero and proceed.
-            if any(isnan([Dpf_H;Dpf_C]))
-                if abs(H.h(NX+1)-H.h(1)) < 10*eps(H.h(1))
-                    Dpf_H = zeros(size(Dpf_H));
-                    Dpf_C = zeros(size(Dpf_C));
-                else
-                    error('NaN value found in hex_func!')
-                end
-            end
-            
-            % Compute arrays of pressure loss due to flow acceleration
-            %Dpa_H = -( H.G.^2.*H.v(1:NX) - H.G.^2.*H.v(2:NX+1) );
-            %Dpa_C = -( C.G.^2.*C.v(2:NX+1) - C.G.^2.*C.v(1:NX) );
-            Dpa_H = 0; %ignore flow acceleration
-            Dpa_C = 0; %ignore flow acceleration
-            
-            % Update pressure profiles. Assume a linear profile (to avoid computing
-            % a slow 'for loop') and limit max pressure loss to 80%.
-            DppH = abs(sum(Dpf_H + Dpa_H))/H.pin;
-            DppC = abs(sum(Dpf_C + Dpa_C))/C.pin;
-            if DppH > 0.01
-                WHr  = WHr/2;
-                DppH = DppH/4;
-            end
-            if DppH > 0.8
-                DppH = 0.8;
-            end
-            if DppC > 0.8
-                DppC = 0.8;
-                impossible_p = true;
-            end
-            H.p  = linspace(H.pin*(1-DppH),H.pin,NX+1)';
-            C.p  = linspace(C.pin,C.pin*(1-DppC),NX+1)';
-            
-            % Update convergence array
-            CON = [L1; H.p; C.p];
-            
-            % Compute residual
-            RES(iI) = max(abs((CON - CON_0)./CON));
-            
-            if RES(iI)>TOL
-                if visualise
-                    fprintf(1,'\n iteration = %d, RES = %.6f',iI,RES(iI));
-                end
-                CON_0 = CON;
-            else
-                if visualise
-                    % Make TQ plot
-                    figure(10)
-                    plot(QS./QS(end),H.T,'r'); hold on;
-                    plot(QS./QS(end),C.T,'b'); hold off;
-                    xlabel('Cumulative heat transfer')
-                    ylabel('Temperature')
-                    legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],...
-                        [C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],...
-                        'Location','Best')
-                    
-                    % Make pQ plot
-                    figure(11)
-                    plot(QS./QS(end),H.p/H.pin,'r-'); hold on
-                    plot(QS./QS(end),C.p/C.pin,'b-'); hold off
-                    ylim([0.90 1])
-                    xlabel('Cummulative heat transfer')
-                    ylabel('Relative pressure, p/p0')
-                    legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],...
-                        [C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],...
-                        'Location','Best')
-                    
-                    formatSpec = ['\n\n*** Successful convergence in ',...
-                        'hex_compute_Xflow inner loop after %d iterations***\n'];
-                    fprintf(formatSpec,iI);
-                    keyboard
-                end
-                break
-            end
-            
-        end
-        if all([iI>=NI,RES(iI)>TOL])
-            figure()
-            semilogy(1:iI,RES(1:iI))
-            xlabel('Iteration')
-            ylabel('Convergence residual')
-            error('Convergence not reached after %d iterations***\n',iI);
-        end
-        
-        % Update pressure profiles
-        H.p  = linspace(H.pin*(1-DppH),H.pin,NX+1)';
-        C.p  = linspace(C.pin,C.pin*(1-DppC),NX+1)';
-        
-    case{'hH1','hC2'}
-        
-        % Compute mass fluxes
-        H.G = mH/H.Af;
-        C.G = mC/C.Af;
-        
-        % Create array to check convergence. First element is computed NTU.
-        % Later come the pressure points along each stream
-        CON_0 = [0; H.p; C.p]; % initial value
-        NI    = 50;
-        RES   = zeros(1,NI); % residuals
-        TOL   = 1e-3;
-        impossible_p = false; %indicates impossible situations (regarding Dp loss)
-        for iI = 1:NI
-            
-            % UPDATE PROPERTIES
-            % Cold stream
-            C   = stream_update(C,2);
-            C.q = q;
-            % Hot stream
-            H   = stream_update(H,2);
-            H.q = q;
-            
-            % COMPUTE HEAT TRANSFER COEFFICIENTS
-            % Cold stream
-            [C] = developed_flow(C,'heating');
-            % Hot stream
-            [H] = developed_flow(H,'cooling');
-            
-            % Compute average heat transfer coefficients
-            htC = mean(C.ht);
-            htH = mean(H.ht);
-            UA  = 1/(1/(htC*C.A) + 1/(htH*H.A));
-            
-            % Compute heat exchanger effectiveness using analytical solutions
-            CpC  = ( C.h(NX+1)-C.h(1) )/( C.T(NX+1)-C.T(1) );
-            CpH  = ( H.h(NX+1)-H.h(1) )/( H.T(NX+1)-H.T(1) );
-            Cmax = max([mC*CpC,mH*CpH]);
-            Cmin = min([mC*CpC,mH*CpH]);
-            Cr   = Cmin/Cmax;
-            NTU  = UA/Cmin;
-            if 0 < Cr && Cr <= 1
-                eff_an = 1 - exp( (1/Cr)*NTU.^0.22.*(exp(-Cr*NTU.^0.78) - 1) );
-                
-            else
+        case {'hH1','hC2'}
+            if Lcondenser || Cr < 1e-3
                 eff_an = 1 - exp(-NTU);
+            else
+                eff_an = 1 - exp( (1/Cr)*NTU.^0.22.*(exp(-Cr*NTU.^0.78) - 1) );
             end
-            
-            % Compute heat exchanger effectiveness for given hH1
-            hH1min = RPN('PT_INPUTS',H.pin,C.T(1),'H',H);
-            hC2max = RPN('PT_INPUTS',C.pin,H.T(NX+1),'H',C);
-            QT   = mH*(H.h(NX+1) - H.h(1));
-            QMAX = min([mC*(hC2max - hC1),mH*(hH2 - hH1min)]); 
-            eff  = QT/QMAX;
-            QS   = mH*(H.h - H.h(1));
-            
-            % Compute dL_H and dL_C
             L1 = C.D*C.A/(4*C.Af);
             L2 = H.D*H.A/(4*H.Af);
-            dL2 = L2/NX*ones(NX,1);
-            dL1 = L1/NX*ones(NX,1);
-            % Compute arrays of pressure loss due to flow friction
-            Dpf_H = 0.5*(H.dpdL(1:NX) + H.dpdL(2:NX+1)).*dL2;
-            Dpf_C = 0.5*(C.dpdL(1:NX) + C.dpdL(2:NX+1)).*dL1;
-            
-            % Compute arrays of pressure loss due to flow acceleration
-            %Dpa_H = -( H.G.^2.*H.v(1:NX) - H.G.^2.*H.v(2:NX+1) );
-            %Dpa_C = -( C.G.^2.*C.v(2:NX+1) - C.G.^2.*C.v(1:NX) );
-            Dpa_H = 0; %ignore flow acceleration
-            Dpa_C = 0; %ignore flow acceleration
-            
-            % Update pressure profiles. Assume a linear profile (to avoid computing
-            % a slow 'for loop') and limit max pressure loss to 80%.
-            DppH = abs(sum(Dpf_H + Dpa_H))/H.pin;
-            DppC = abs(sum(Dpf_C + Dpa_C))/C.pin;
-            if DppH > 0.8
-                DppH = 0.8;
+    end
+    
+    % COMPUTE PRESSURE PROFILES
+    % Compute arrays of pressure loss due to flow friction
+    dL2 = L2/NX*ones(NX,1);
+    dL1 = L1/NX*ones(NX,1);
+    Dpf_H = 0.5*(H.dpdL(1:NX) + H.dpdL(2:NX+1)).*dL2;
+    Dpf_C = 0.5*(C.dpdL(1:NX) + C.dpdL(2:NX+1)).*dL1;
+    
+    % In a situation where H.h(NX+1)==H.h(1) (i.e. no heat exchange), the
+    % code above results in dAC=0, AC=0 and Dp_H=NaN, Dp_C=NaN. If so, set
+    % Dp_H and Dp_C to zero and proceed.
+    if any(isnan([Dpf_H;Dpf_C]))
+        if abs(H.h(NX+1)-H.h(1)) < 10*eps(H.h(1))
+            Dpf_H = zeros(size(Dpf_H));
+            Dpf_C = zeros(size(Dpf_C));
+        else
+            error('NaN value found in hex_func!')
+        end
+    end
+    
+    % Compute arrays of pressure loss due to flow acceleration
+    %Dpa_H = -( H.G.^2.*H.v(1:NX) - H.G.^2.*H.v(2:NX+1) );
+    %Dpa_C = -( C.G.^2.*C.v(2:NX+1) - C.G.^2.*C.v(1:NX) );
+    Dpa_H = 0; %ignore flow acceleration
+    Dpa_C = 0; %ignore flow acceleration
+    
+    % Update pressure profiles. Assume a linear profile (to avoid computing
+    % a slow 'for loop') and limit max pressure loss.
+    DppH = abs(sum(Dpf_H + Dpa_H))/H.pin;
+    DppC = abs(sum(Dpf_C + Dpa_C))/C.pin;
+    switch mode
+        case 'Af'
+            if DppH > 0.02
+                WHr  = WHr/max([2,sqrt(DppH)]);
+                DppH = 0.02;
+            end
+            if DppC > 0.2
+                DppC = 0.2;
                 impossible_p = true;
                 break
+            end
+        case {'hH1','hC2'}
+            if DppH > 0.8
+                DppH = 0.8;
             end
             if DppC > 0.8
                 DppC = 0.8;
-                impossible_p = true;
-                break
             end
-            H.p  = linspace(H.pin*(1-DppH),H.pin,NX+1)';
-            C.p  = linspace(C.pin,C.pin*(1-DppC),NX+1)';
-            
-            % Update convergence array
-            CON = [NTU; H.p; C.p]; % initial value
-            
-            % Compute residual
-            RES(iI) = max(abs((CON - CON_0)./CON));
-            
-            if RES(iI)>TOL
-                if visualise
-                    fprintf(1,'\n iteration = %d, RES = %.6f',iI,RES(iI));
-                end
-                CON_0 = CON;
-            else
-                if visualise
-                    % Make TQ plot
-                    figure(10)
-                    plot(QS./QS(end),H.T,'r'); hold on;
-                    plot(QS./QS(end),C.T,'b'); hold off;
-                    xlabel('Cumulative heat transfer')
-                    ylabel('Temperature')
-                    legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],...
-                        [C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],...
-                        'Location','Best')
-                    
-                    % Make pQ plot
-                    figure(11)
-                    plot(QS./QS(end),H.p/H.pin,'r-'); hold on
-                    plot(QS./QS(end),C.p/C.pin,'b-'); hold off
-                    ylim([0.90 1])
-                    xlabel('Cummulative heat transfer')
-                    ylabel('Relative pressure, p/p0')
-                    legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],...
-                        [C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],...
-                        'Location','Best')
-                    
-                    formatSpec = ['\n\n*** Successful convergence in ',...
-                        'hex_compute_area inner loop after %d iterations***\n'];
-                    fprintf(formatSpec,iI);
-                    keyboard
-                end
-                break
-            end
-            
+    end
+    H.p  = linspace(H.pin*(1-DppH),H.pin,NX+1)';
+    C.p  = linspace(C.pin,C.pin*(1-DppC),NX+1)';
+    
+    % Update convergence array
+    CON = [NTU; H.p; C.p];
+    
+    % Compute residual
+    RES(iI) = max(abs((CON - CON_0)./CON));
+    
+    if RES(iI)>TOL
+        if visualise
+            fprintf(1,'\n iteration = %d, RES = %.6f',iI,RES(iI));
         end
-        if all([iI>=NI,RES(iI)>TOL])
-            figure()
-            semilogy(1:iI,RES(1:iI))
-            xlabel('Iteration')
-            ylabel('Convergence residual')
-            error('Convergence not reached after %d iterations***\n',iI);
+        CON_0 = CON;
+    else
+        if visualise
+            % Make TQ plot
+            figure(10)
+            plot(QS./QS(end),H.T,'r'); hold on;
+            plot(QS./QS(end),C.T,'b'); hold off;
+            xlabel('Cumulative heat transfer')
+            ylabel('Temperature')
+            legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],...
+                [C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],...
+                'Location','Best')
+            
+            % Make pQ plot
+            figure(11)
+            plot(QS./QS(end),H.p/H.pin,'r-'); hold on
+            plot(QS./QS(end),C.p/C.pin,'b-'); hold off
+            ylim([0.90 1])
+            xlabel('Cummulative heat transfer')
+            ylabel('Relative pressure, p/p0')
+            legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],...
+                [C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],...
+                'Location','Best')
+            
+            formatSpec = ['\n\n*** Successful convergence in ',...
+                'hex_compute_Xflow inner loop after %d iterations***\n'];
+            fprintf(formatSpec,iI);
+            keyboard
         end
-        
-    otherwise
-        error('not implemented')
+        break
+    end
+    
+end
+if all([iI>=NI,RES(iI)>TOL])
+    figure()
+    semilogy(1:iI,RES(1:iI))
+    xlabel('Iteration')
+    ylabel('Convergence residual')
+    error('Convergence not reached after %d iterations***\n',iI);
 end
 
 switch mode
@@ -504,6 +415,9 @@ switch mode
         % actual area (heat exchanger too large for selected operating
         % conditions).
         solution = eff_an - eff;
+        %formatSpec = 'hH1 = %9.4g, hC2 = %9.4g, mC = %6.0f, mH = %4.1f, UA = %8.3g, NTU = %5.2f, eff_num = %5.3f, eff_an = %5.3f, solution = %9.3g, iter = %2d\n';
+        %fprintf(1,formatSpec,H.h(1),C.h(end),mC,mH,UA,NTU,eff,eff_an,solution,iI)
+        %keyboard
         
     case 'Af'
         % Compare ploss and max_ploss and return the difference. If the
@@ -517,9 +431,24 @@ switch mode
             max_ploss = DppC;%max([DppH,DppC]);
         end
         solution = max_ploss - HX.ploss;
-        %fprintf(1,'For Af1 = %8.3g, L1 = %8.3g, WHr = %6.3g, solution = %9.3g, iter = %2d\n',HX.Af1,L1,WHr,solution,iI)
+        %formatSpec = ['Af1 = %8.3g, L1 = %6.3f, WHr = %5.3f, UA = %8.3g, ',...
+        %    'NTU = %5.2f, NTU2 = %5.2f, eff = %5.3f, htC*AC = %8.3g, htH*AH = %8.3g, solution = %9.3g, iter = %2d\n'];
+        %fprintf(1,formatSpec,HX.Af1,L1,WHr,UA,NTU,NTU_needed,eff,htC*AC,htH*AH,solution,iI)
         %keyboard
 end
+
+%{
+% Make TQ plot
+figure(10)
+plot(QS./QS(end),H.T,'r'); hold on;
+plot(QS./QS(end),C.T,'b'); hold off;
+xlabel('Cumulative heat transfer')
+ylabel('Temperature')
+legend([H.name,', ',sprintf('%.1f',H.pin/1e5),' bar'],...
+    [C.name,', ',sprintf('%.1f',C.pin/1e5),' bar'],...
+    'Location','Best')
+keyboard
+%}
 
 if nargout == 1
     varargout{1} = solution;
@@ -545,6 +474,8 @@ else
     NTU   = UA/Cmin;
     DppH  = (pH2-pH1)/pH2;
     DppC  = (pC1-pC2)/pC1;
+    DTmin = min(H.T - C.T);
+    effDT = 1 - DTmin/(TH2 - TC1);
     
     % Save parameters into HX structure
     HX.H(iL) = H;
@@ -554,6 +485,8 @@ else
     HX.UA(iL)    = UA ;
     HX.DppH(iL) = DppH;
     HX.DppC(iL) = DppC;
+    HX.DTmin(iL) = DTmin;
+    HX.effDT(iL) = effDT;
     HX.QS(iL,:) = QS';
     % Save parameters into HX structure
     HX.L1    = L1;
