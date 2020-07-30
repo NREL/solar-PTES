@@ -108,7 +108,7 @@ for counter=1:max_iter
         gas.state(iL,iG+1) = gas.state(iL,iG) ;
         iG = iG + 1 ;
     else
-        [HX(ihx_rejc), gas, iG, air, iA] = hex_func(HX(ihx_rejc),iL,gas,iG,air,iA,5,T_aim);
+        [HX(ihx_rejc), gas, iG, air, iA] = hex_func(HX(ihx_rejc),iL,gas,iG,air,iA,1,0.5);
         [CFAN(1),air,iA] = compexp_func (CFAN(1),iL,air,iA,'Paim',p0,1);
     end
         

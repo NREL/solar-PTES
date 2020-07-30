@@ -1,9 +1,10 @@
-function [] = plot_hex(HX,iL,fignum,C_or_K)
+function [] = plot_hex(HX,iL,fignum,C_or_K,Lsimple)
 % PLOT_HEX_TQA Make T-Q, T-A and p-A diagrams of a heat exchanger.
 % Use data stored in the HX structure.
 % If the AS array (cummulative area) does not exist (i.e. the HX structure
 % was created by the hex_TQ function, rather than the hex_TQA function),
-% only the T-Q diagram is made. 
+% only the T-Q diagram is made.
+% Use the Lsimple logical to force a single plot output.
 
 % Extract inputs
 C  = HX.C(iL);
@@ -27,13 +28,17 @@ L = {[valid_name(H.name,2),', ',sprintf('%.1f',H.pin/1e5),' bar'],[valid_name(C.
 
 % Plot TQ diagram
 figure(fignum)
+clf(fignum)
 plot(QS./QS(end),H.T-K,'r'); hold on;
 plot(QS./QS(end),C.T-K,'b'); hold off;
 xlabel('Normalised cumulative heat transfer')
 ylabel(ytext)
-legend(L,'Location','Best')
+legend(L,'Location','SouthEast')
+dim = [.2 .6 .3 .3];
+str = {sprintf('DppH = %.3f',HX.DppH(iL)),sprintf('DppC = %.3f',HX.DppC(iL))};
+annotation('textbox',dim,'String',str,'FitBoxToText','on');
 
-if ~isempty(AS)
+if ~isempty(AS) && ~Lsimple
     % Plot T-A diagram
     figure(fignum+1)
     plot(AS./AS(end),H.T-K,'r'); hold on;

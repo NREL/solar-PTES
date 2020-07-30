@@ -126,6 +126,21 @@ end
 %%% SUPPORT FUNCTIONS %%%
 function [ Cf, St, ht ] = single_phase_flow( Re, Pr, G, Cp, shape, Gz )
 
+if strcmp(shape,'cross-flow')
+    % Finned tubes (external transversal flow). Cf and St are only a
+    % function of Re and Pr. There is no transition points
+    
+    % Compute Colburn factor and heat transfer coefficient
+    j  = 0.1733 * Re.^(-0.4071);
+    St = j./Pr.^(2/3);
+    ht = G*Cp.*St;
+    
+    % Fanning friction factor (friction coefficient)
+    Cf = 0.1275 * Re.^(-0.2128);
+    
+    return
+end
+
 % Set regime transition points. 'lim1' is the first limit (laminar to
 % transition). 'lim2' is the second limit (transition to turbulence).
 switch shape

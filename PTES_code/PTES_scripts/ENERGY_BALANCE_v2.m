@@ -459,17 +459,20 @@ if WM==1
     
     % Print working fluid states
     fprintf(1,'Gas states:\n');
-    for iL = i_gas
+    for ip = 1:numel(i_gas)
+        iL = i_gas(ip);
         print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
     end
-    for iL = i_ran
+    for ip = 1:numel(i_ran)
+        iL = i_ran(ip);
         print_states(steam,iL,1:steam.Nstg(iL)+1,Load);
     end
     
     % Print hot streams
     fprintf(1,'\nHot fluid streams:\n');
     fprintf(1,'-->%s\n',fluidH(1).name);
-    for iL = i_act
+    for ip = 1:numel(i_act)
+        iL = i_act(ip);
         for iH=1:numel(fluidH)
             print_states(fluidH(iH),iL,1:fluidH(iH).Nstg(iL)+1,Load)
         end
@@ -478,7 +481,8 @@ if WM==1
     % Print cold streams
     fprintf(1,'\nCold fluid streams:\n');
     fprintf(1,'-->%s\n',fluidC(1).name);
-    for iL = i_act
+    for ip = 1:numel(i_act)
+        iL = i_act(ip);
         for iC=1:numel(fluidC)
             print_states(fluidC(iC),iL,1:fluidC(iC).Nstg(iL)+1,Load)
         end
@@ -624,15 +628,29 @@ if any(Load.mode ==[0,4,6])
     end
 end
 
-% Print HEXs
-%{
+% PRINT HEXs
+% If the heat exchanger was employed with the 'eff' or 'DT' modes, the
+% required geometry is computed now
+for ii = 1 : numel(HX)
+    if any(strcmp(HX(ii).model,{'eff','DT'})) && (~HX(ii).Lgeom_set)
+        HX(ii)   = hex_set_geom(HX(ii));
+    end
+end
+%%{
 fprintf('Heat exchanger summary\n');
-print_hexs(HX,i_chg,'Charge:\n');
-print_hexs(HX,i_dis,'Discharge:\n');
-%}
+if Load.mode==3
+    print_hexs(HX,i_chg,'Charge:');
+    print_hexs(HX,Load.ind(Load.type == 'ran' & logical(Load.options.useCold)),...
+        'Discharge using cold stores:');
+    print_hexs(HX,Load.ind(Load.type == 'ran' & ~logical(Load.options.useCold)),...
+        'Discharge without cold stores:');
+else
+    print_hexs(HX,i_chg,'Charge:');
+    print_hexs(HX,i_dis,'Discharge:');
+end
+%%}
 
-%
+
 if Lreadload
    ENERGY_LOAD 
 end
-

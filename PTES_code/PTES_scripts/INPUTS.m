@@ -33,19 +33,23 @@ end
 Wdis_req = 100e6 ;
 
 % Set heat exchanger parameters
-eff      = 0.97;  % heat exchanger effectiveness
-ploss    = 0.01;  % pressure loss in HEXs
-HX_model = 'geom' ;
-HX_D1    = 0.005; %hydraulic diameter
-HX_shape = 'circular'; %channel shape
-HX_NX    = 100; % number of sections for HEX algorithm
+HX_model  = 'geom' ;
+eff       = 0.97;  % heat exchanger effectiveness
+ploss     = 0.01;  % pressure loss in HEXs
+HX_D1     = 0.005; %hydraulic diameter
+HX_shape  = 'circular';   %channel shape for counter-flow HEXs
+HX_NX     = 100; % number of sections for HEX algorithm
+% For cross-flow HEXs
+effX      = 0.90; 
+plossX    = 0.001;
+HX_shapeX = 'cross-flow';
 
 % Code options
 multi_run   = 0; % run cycle several times with different parameters?
 Lmulti_mdot = 0; % Read data from previous multirun to recalculate what the actual mass flow rates should be for a desired power
 optimise    = 0; % optimise cycle?
 make_plots  = 1; % make plots?
-save_figs   = 0; % save figures at the end?
+save_figs   = 1; % save figures at the end?
 make_hex_plots = 0; % make plots of heat exchangers?
 
 %if (Nc_ch > 1 || Ne_ch > 1) && (Ncld > 1 || Nhot > 1)

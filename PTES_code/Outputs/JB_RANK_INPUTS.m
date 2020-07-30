@@ -106,7 +106,7 @@ switch Load.mode
         Design_Load.time = [10;4;10;10].*3600;          % time spent in each load period, s
         Design_Load.type = ["chg";"str";"ran";"ran"];   % type of load period
         Design_Load.mdot = [10*fac;0;1.0*fac;1.0*fac];      % working fluid mass flow rate, kg/s
-        Design_Load.options.useCold = [0,0,1,0];        % Use cold stores during Rankine discharge? This should be set to 0 for design cases of retrofits.
+        Design_Load.options.useCold = [0;0;1;0];        % Use cold stores during Rankine discharge? This should be set to 0 for design cases of retrofits.
         
         T0_inc    = 5.0 ; % Increase in ambient temperature
         
@@ -117,6 +117,7 @@ switch Load.mode
             Load.mdot = [10*fac;0;1*fac;1*fac];     % working fluid mass flow rate, kg/s
             Load.options.useCold = [0,0,1,0];        % Use cold stores during Rankine discharge?
             T0_off    = [T0-0;T0-10] ;
+
         else
             Load = Design_Load ;
         end
@@ -129,23 +130,23 @@ switch Load.mode
         Design_Load.time = [10;4;10].*3600;          % time spent in each load period, s
         Design_Load.type = ["sol";"str";"ran"];      % type of load period
         Design_Load.mdot = [10*fac;0;1*fac];         % working fluid mass flow rate, kg/s
-        Design_Load.options.useCold = [0,0,0];       % Use cold stores during Rankine discharge? This should be set to 0 for design cases of retrofits.
+        Design_Load.options.useCold = [0;0;0];       % Use cold stores during Rankine discharge? This should be set to 0 for design cases of retrofits.
         
         if Loffdesign
             % This is the actual load profile that the plant meets
             Load.time = [10;4;10].*3600;         % time spent in each load period, s
             Load.type = ["sol";"str";"ran"];     % type of load period
             Load.mdot = [10*fac;0;1*fac];        % working fluid mass flow rate, kg/s
-            Load.options.useCold = [0,0,0];      % Use cold stores during Rankine discharge?
+            Load.options.useCold = [0;0;0];      % Use cold stores during Rankine discharge?
             T0_inc    = 0.0 ; % Increase in ambient temperature
         else
             Load = Design_Load ;
         end
 end
 Design_Load.num  = numel(Design_Load.time);
-Design_Load.ind  = 1:Design_Load.num;
+Design_Load.ind  = (1:Design_Load.num)';
 Load.num  = numel(Load.time);
-Load.ind  = 1:Load.num;
+Load.ind  = (1:Load.num)';
 
 % Hot storage tanks
 switch PBmode

@@ -45,6 +45,13 @@ switch model
         if ~HX.Lgeom_set
             [HX] = hex_set_geom(HX, iL, fluidH, iH, fluidC, iC, mode, par);
         end
+        %fprintf('\nGH = %.2f, GC = %.2f, LH = %.3f, LC = %.3f,\n',HX.H.G,HX.C.G,HX.L2,HX.L1)
+        %disp([HX.H.dpdL, HX.C.dpdL])
+        %disp([HX.H.Cf, HX.C.Cf])
+        %disp([HX.H.ht, HX.C.ht])
+        %disp([HX.H.Re, HX.C.Re])
+        %disp([HX.H.shape,', ',HX.C.shape])
+        %keyboard
         
     otherwise
         error('Invalid heat exchanger model')
@@ -93,8 +100,14 @@ H = stream; H.mdot = mH; H.name = fluidH.name;
 C = stream; C.mdot = mC; C.name = fluidC.name;
 H.read = fluidH.read; H.handle = fluidH.handle; H.HEOS = fluidH.HEOS; H.IDL = fluidH.IDL;
 C.read = fluidC.read; C.handle = fluidC.handle; C.HEOS = fluidC.HEOS; C.IDL = fluidC.IDL;
-H.shape = HX.shape;
-C.shape = HX.shape;
+switch HX.shape
+    case 'cross-flow'
+        H.shape = 'circular';
+        C.shape = 'cross-flow';
+    otherwise
+        H.shape = HX.shape;
+        C.shape = HX.shape;
+end
 H.pin = pH2;
 C.pin = pC1;
 H.hin = hH2;
@@ -379,17 +392,18 @@ switch model
         end
         
         % Save variables into C and H stream objects
-        [TC,TH,hC,hH,QS] = compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1);
+        [TC,TH,hC,hH,pC,pH,QS] = compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1);
         C.mdot = mC;
         H.mdot = mH;
         C.T = TC;
         H.T = TH;
         C.h = hC;
         H.h = hH;
+        C.p = pC;
+        H.p = pH;
         HX.C(iL) = C;
         HX.H(iL) = H;
         HX.QS(iL,:) = QS;
-        HX.AS  = [];
         HX.C(iL).pin = pC1;
         HX.H(iL).pin = pH2;
         
@@ -412,13 +426,19 @@ switch model
                 hH1_max = hH2 - 0.95*HX.eff*QMAX0/mH;
                 
                 % Find value of hH1 for which computed area equals specified area
-                f1 = @(hH1) hex_compute_area(HX,iL,'hH1',hH1);
-                %plot_function(f1,hH1_min,hH2,100,31);
+                switch HX.shape
+                    case {'circular','PCHE'}
+                        f1 = @(hH1) hex_compute_area(HX,iL,'hH1',hH1);
+                    case 'cross-flow'
+                        f1 = @(hH1) hex_compute_Xflow(HX,iL,'hH1',hH1);
+                    otherwise
+                        error('not implemented')
+                end
+                %plot_function(f1,hH1_min,hH1_max,100,31);
                 %keyboard
                 opt = optimset('TolX',(hH2-hH1_min)/1e12,'Display','notify');
-                %hH1 = fzero(f1,[hH1_min,hH2],opt);
-                %hH1 = fzero(f1,[hH1_min,hH1_max],opt);
-                hH1 = fzero(f1,hH1_min,opt);
+                hH1 = fzero(f1,[hH1_min,hH1_max],opt);
+                %hH1 = fzero(f1,hH1_min,opt);
                 
             case 3
                 % Set outlet conditions of cold fluid. Assume small effect
@@ -434,7 +454,14 @@ switch model
                 mCmin = mCmax/1e6;
                 
                 % Find value of mC for which computed area equals specified area
-                f1  = @(mC) hex_compute_area(HX,iL,'hC2',hC2,'mC',mC);
+                switch HX.shape
+                    case {'circular','PCHE'}
+                        f1  = @(mC) hex_compute_area(HX,iL,'hC2',hC2,'mC',mC);
+                    case 'cross-flow'
+                        f1  = @(mC) hex_compute_Xflow(HX,iL,'hC2',hC2,'mC',mC);
+                    otherwise
+                        error('not implemented')
+                end
                 %plot_function(f1,mCmin,mCmax,20,30)
                 %keyboard
                 opt = optimset('TolX',(mCmax-mCmin)/1e12,'Display','notify');
@@ -458,7 +485,14 @@ switch model
                 mHmin = mHmax/1e6;
                 
                 % Find value of mH for which computed area equals specified area
-                f1  = @(mH) hex_compute_area(HX,iL,'hH1',hH1,'mH',mH);
+                switch HX.shape
+                    case {'circular','PCHE'}
+                        f1  = @(mH) hex_compute_area(HX,iL,'hH1',hH1,'mH',mH);
+                    case 'cross-flow'
+                        f1  = @(mH) hex_compute_Xflow(HX,iL,'hH1',hH1,'mH',mH);
+                    otherwise
+                        error('not implemented')
+                end
                 opt = optimset('TolX',(mHmax-mHmin)/1e12,'Display','notify');
                 mH  = fzero(f1,[mHmin,mHmax],opt);
                 
@@ -482,8 +516,16 @@ switch model
                 
                 % Find value of mC for which computed area equals specified area
                 %keyboard
-                f1  = @(mC) hex_compute_area(HX,iL,'hH1',hH1,'mC',mC);
-                %plot_function(f1,mCmin,mCmax,10,15,'semilogx');
+                switch HX.shape
+                    case {'circular','PCHE'}
+                        f1  = @(mC) hex_compute_area(HX,iL,'hH1',hH1,'mC',mC);
+                    case 'cross-flow'
+                        f1  = @(mC) hex_compute_Xflow(HX,iL,'hH1',hH1,'mC',mC);
+                    otherwise
+                        error('not implemented')
+                end
+                %plot_function(f1,mCmin,mCmax,20,15,'semilogx');
+                %keyboard
                 opt = optimset('TolX',(mCmax-mCmin)/1e12,'Display','notify');
                 mC = fzero(f1,[mCmin,mCmax],opt);
                 
@@ -496,9 +538,19 @@ switch model
         % Obtain output parameters for converged solution
         switch mode
             case {0,1,2,4,5}
-                [~,HX] = hex_compute_area(HX,iL,'hH1',hH1);
+                switch HX.shape
+                    case {'circular','PCHE'}
+                        [~,HX] = hex_compute_area(HX,iL,'hH1',hH1);
+                    case 'cross-flow'
+                        [~,HX] = hex_compute_Xflow(HX,iL,'hH1',hH1);
+                end
             case 3
-                [~,HX] = hex_compute_area(HX,iL,'hC2',hC2);
+                switch HX.shape
+                    case {'circular','PCHE'}
+                        [~,HX] = hex_compute_area(HX,iL,'hC2',hC2);
+                    case 'cross-flow'
+                        [~,HX] = hex_compute_Xflow(HX,iL,'hC2',hC2);
+                end
         end
         
         % Extract outlet conditions
@@ -515,46 +567,6 @@ stateH   = update_state(stateH,fluidH,2);
 stateC.h = hC2;
 stateC.p = pC2;
 stateC   = update_state(stateC,fluidC,2);
-
-% Update average specific heat capacities and compute Cmin and NTU. Save
-% into HX structure. Also save DppC nd DppH.
-TH1 = stateH.T;
-TC2 = stateC.T;
-CpHmean = (hH2 - hH1)/(TH2-TH1);
-CpCmean = (hC2 - hC1)/(TC2-TC1);
-Cmin  = min([mC*CpCmean,mH*CpHmean]);
-dQ    = HX.QS(iL,2:NX+1)'-HX.QS(iL,1:NX)';
-DT_AV = 0.5*(HX.H(iL).T(1:NX)+HX.H(iL).T(2:NX+1)) - 0.5*(HX.C(iL).T(1:NX)+HX.C(iL).T(2:NX+1));
-DTmin = min(HX.H(iL).T - HX.C(iL).T);
-effDT = 1 - DTmin/(HX.H(iL).T(end) - HX.C(iL).T(1));
-UA    = sum(dQ./DT_AV);
-NTU   = UA/Cmin;
-DppH  = (pH2-pH1)/pH2;
-DppC  = (pC1-pC2)/pC1;
-
-dTa = HX.H(iL).T(1) - HX.C(iL).T(1) ;
-dTb = HX.H(iL).T(end) - HX.C(iL).T(end) ;
-
-HX.H(iL).Cp_mean = CpHmean;
-HX.C(iL).Cp_mean = CpCmean;
-HX.Cmin(iL)  = Cmin;
-HX.NTU(iL)   = NTU;
-HX.DppH(iL)  = DppH;
-HX.DppC(iL)  = DppC;
-HX.UA(iL)    = UA ;
-HX.LMTD(iL)  = (dTa - dTb) / log(dTa / dTb) ;
-HX.DTmin(iL) = DTmin;
-HX.effDT(iL) = effDT;
-
-% If this is the first time that hex_func is called, save the initial
-% values UA0, NTU0 and LMTD0. Also save iL0, corresponding to the load
-% period in which it is called for the first time.
-if isempty(HX.UA0)
-    HX.UA0   = HX.UA(iL) ;
-    HX.NTU0  = HX.NTU(iL) ;
-    HX.LMTD0 = HX.LMTD(iL) ;
-    HX.iL0   = iL;
-end
 
 % *** DELETE EVENTUALLY >>>
 % Compute stages
@@ -765,12 +777,14 @@ end
 % Assign output arguments
 if nargout == 1
     varargout{1} = solution;
-elseif nargout == 5
+elseif nargout == 7
     varargout{1} = TC;
     varargout{2} = TH;
     varargout{3} = hC;
     varargout{4} = hH;
-    varargout{5} = QS;
+    varargout{5} = pC;
+    varargout{6} = pH;
+    varargout{7} = QS;
 else
     error('Incorrect number of outputs')
 end

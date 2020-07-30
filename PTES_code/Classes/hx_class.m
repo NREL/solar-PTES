@@ -47,7 +47,8 @@ classdef hx_class
        
        % Geometry
        shape
-       L        % Tube length, m
+       L1       % Tube length, m
+       L2
        AfT      % Total flow area, m2
        D1       % Tube diameter, m
        AfR      % Ratio of flow areas (shell/tube)

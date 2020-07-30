@@ -75,10 +75,9 @@ for counter = 1:max_iter
     
     for iN = 1:Nc_dis
         % REJECT HEAT (external HEX)
-        T_aim = environ.T0 + T0_inc;
-        
+        %T_aim = environ.T0 + T0_inc;
         air.state(iL,iA).T = environ.T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
-        [HX(ihx_rejd(iN)), gas, iG, air, iA] = hex_func(HX(ihx_rejd(iN)),iL,gas,iG,air,iA,5,T_aim);
+        [HX(ihx_rejd(iN)), gas, iG, air, iA] = hex_func(HX(ihx_rejd(iN)),iL,gas,iG,air,iA,1,0.5);
         [DFAN(1),air,iA] = compexp_func (DFAN(1),iL,air,iA,'Paim',p0,1);
         
         switch Load.mode

@@ -36,13 +36,15 @@ load_coolprop
 % 1 = Gas regenerator
 % 2 = SolarSalt and Water
 % 3 = CO2 and Water
-% 4 = Steam and Water
+% 4 = Steam condenser -- Steam and Water, counter-flow
 % 5 = sCO2 and sCO2 (Hoopes2016)
-% 6 = Heat rejection unit (Nigroten and Nitrogen)
+% 6 = Heat rejection unit -- Nigroten and Nitrogen, Xflow
 % 7 = sCO2 and sCO2 (Marchionni2019 - CFD)
 % 8 = sCO2 and sCO2 (Marchionni2019 - experiment)
 % 9 = Helium and Helium (Figley2013)
-scenario = 1;
+%10 = Water and air (Nellis example 8.1-1), Xflow
+%11 = Steam condenser -- Steam and air, Xflow
+scenario = 11;
 
 % Save figures?
 save_figures = 0;
@@ -112,13 +114,13 @@ switch scenario
         F1 = fluid_class('Water','WF','CP','TTSE',1,5);
         F1.state(iL,i2).p = 0.1*1e5;
         F1.state(iL,i2).T = 350;
-        F1.state(iL,i2).mdot = 10;
+        F1.state(iL,i2).mdot = 100;
         
         % Water
         F2 = fluid_class('Water','SF','TAB',NaN,1,5);
         F2.state(iL,i1).p = 1e5;
         F2.state(iL,i1).T = 273.15+1;
-        F2.state(iL,i2).mdot = 200;
+        F2.state(iL,i2).mdot = 2000;
         %{
         % MEG
         F2 = fluid_class('INCOMP::MEG2[0.56]','SF','TAB',NaN,1,5);
@@ -154,18 +156,20 @@ switch scenario
         % Nitrogen (WF)
         F1 = fluid_class('Nitrogen','WF','CP','TTSE',1,5);
         F1.state(1,i1).p = 10e5;
-        F1.state(1,i1).T = 100 + 273.15;
+        F1.state(1,i1).T = 30 + 273.15;
         F1.state(1,i1).mdot = 1e3;
         
         % Nitrogen (ENV)
         F2 = fluid_class('Nitrogen','ENV','CP','TTSE',1,5); % storage fluid       
         F2.state(1,i2).p = 1e5;
-        F2.state(1,i2).T = 20 + 273.15;
+        F2.state(1,i2).T = 15 + 273.15;
         F2.state(1,i2).mdot = 0;
         
         % Set hex_mode
-        hex_mode = 5;
-        par = F2.state(1,i2).T + 5;
+        %hex_mode = 5;
+        %par = F2.state(1,i2).T + 5;
+        hex_mode = 1;
+        par = 0.5;
         
     case 7 % Marchionni2019 - CFD validation
         % CO2
@@ -218,12 +222,57 @@ switch scenario
         hex_mode = 0;
         par = 0;
         
+    case 10 % Nellis&Klein2009
+        % Water
+        F1 = fluid_class('Water','WF','CP','BICUBIC&HEOS',1,5);
+        F1.state(1,i1).p = 1e5;
+        F1.state(1,i1).T = 60 + 273.15;
+        F1.state(1,i1).mdot = 0.03;
+        
+        % Nitrogen
+        F2 = fluid_class('Nitrogen','ENV','CP','BICUBIC&HEOS',1,5);
+        F2.state(1,i2).p = 1e5;
+        F2.state(1,i2).T = 20 + 273.15;
+        rho = RPN('PT_INPUTS',F2.state(1,i2).p,F2.state(1,i2).T,'D',F2);
+        F2.state(1,i2).mdot = 0.06*rho;
+        
+        % Set hex_mode
+        hex_mode = 0;
+        par = 0;
+        
+    case 11 % Steam condenser (cross-flow air cooler)
+        % Steam
+        F1 = fluid_class('Water','WF','CP','HEOS',1,5);
+        F1.state(1,i1).p = 0.1e5;
+        F1.state(1,i1).Q = 0.8;
+        F1.state(1,i1).mdot = 100;
+        
+        % Nitrogen
+        F2 = fluid_class('Nitrogen','ENV','CP','BICUBIC&HEOS',1,5);
+        F2.state(1,i2).p = 1e5;
+        F2.state(1,i2).T = 10 + 273.15;
+        F2.state(1,i2).mdot = 1e3;
+        
+        % Update fluid states
+        [F1] = update(F1,[iL,i1],3);
+        [F2] = update(F2,[iL,i2],1);
+        
+        % Set hex_mode
+        %hex_mode = 1;
+        %par = 0.5;
+        hex_mode = 5;
+        par = F1.state(1,i1).T-2;
+        
     otherwise
         error('not implemented')
 end
-% Update fluid states
-[F1] = update(F1,[iL,i1],1);
-[F2] = update(F2,[iL,i2],1);
+switch scenario
+    case 11
+    otherwise
+        % Update fluid states
+        [F1] = update(F1,[iL,i1],1);
+        [F2] = update(F2,[iL,i2],1);
+end
 
 % Specify HX settings
 NX   = 100; % Number of sections (grid)
@@ -270,6 +319,12 @@ switch model
                 %shape = 'circular';
                 shape = 'PCHE';
                 
+            case 6
+                eff   = 0.80;
+                ploss = 1e-3;
+                D1    = [];
+                shape = 'cross-flow';
+                
             case 7
                 % For comparisson with Marchionni2019 - CFD
                 eff   = 0.622;  %design value
@@ -277,8 +332,22 @@ switch model
                 D1    = 1.22e-3; %design value
                 shape = 'PCHE';
                 
+            case 10
+                % Nellis&Klein (these performance values are just guesses
+                eff   = 0.521;
+                ploss = 6e-5;
+                D1    = [];
+                shape = 'cross-flow';
+                
+            case 11
+                % Nellis&Klein (these performance values are just guesses
+                eff   = 0.80;
+                ploss = 0.001;
+                D1    = [];
+                shape = 'cross-flow';
+                
             otherwise
-                eff   = 0.97;
+                eff   = 0.95;
                 ploss = 0.01;
                 D1    = 0.01;
                 shape = 'circular';
@@ -298,7 +367,7 @@ HX = hx_class(name, stage_type, 4, NX, 1, 1, model, par1, par2, par3, par4);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Specify geometry manually
-switch scenario
+switch scenario        
     case 8 % Marchionni2019 - experimental
         HX.D1  = 1.22e-3;
         HX.D2  = 1.22e-3;
@@ -320,6 +389,23 @@ switch scenario
         HX.A2  = 4*HX.Af2*HX.L/HX.D2;
         HX.shape = 'PCHE';
         HX.Lgeom_set = 1;
+    
+    case 10 % Nellis&Klein2009 - cross-flow
+        W1 = 0.2;
+        H1 = 0.26;
+        L1 = 0.06;
+        sigma1 = 0.534;
+        sigma2 = 0.146;
+        HX.D1  = 3.63e-3;
+        HX.D2  = 10.2e-3 - 2*0.9e-3;
+        HX.Af1 = W1*H1*sigma1;
+        HX.Af2 = (HX.D2)^2*pi/4;
+        HX.L1  = L1;
+        HX.L2  = W1*20;
+        HX.A1  = 4*HX.Af1*HX.L1/HX.D1;
+        HX.A2  = 4*HX.Af2*HX.L2/HX.D2;
+        HX.shape = 'cross-flow';
+        HX.Lgeom_set = 1;
 end
 
 %%% DESIGN PERFORMANCE %%%
@@ -338,11 +424,30 @@ if strcmp(HX.model,'geom')
     print_hexs(HX,1,'Summary:\n');
 end
 
+switch scenario
+    case 10
+        ht_w1 = 3496; %W/(m2.K)
+        ht_w2 = interp1(HX.H.T-273.15,HX.H.ht,40,'machima');
+        ht_a1 = 43.7; %W/(m2.K)
+        ht_a2 = interp1(HX.C.T-273.15,HX.C.ht,40,'machima');
+        UA1   = 58.4;
+        UA2   = HX.UA;
+        Dp_a1 = 6.0; %Pa
+        Dp_a2 = HX.DppC*1e5;
+        
+        fprintf(1,'\n\n');
+        fprintf(1,'                    %8s   %8s   %8s\n','Nellis','Result','Error')
+        fprintf(1,'ht air   [W/m2/K] = %8.2f   %8.2f   %6.1f %%\n',ht_a1,ht_a2,abs(ht_a1-ht_a2)/ht_a1*100)
+        fprintf(1,'ht water [W/m2/K] = %8.2f   %8.2f   %6.1f %%\n',ht_w1,ht_w2,abs(ht_w1-ht_w2)/ht_w2*100)
+        fprintf(1,'UA total [W/K]    = %8.2f   %8.2f   %6.1f %%\n',UA1,UA2,abs(UA1-UA2)/UA1*100)
+        fprintf(1,'Dp air   [Pa]     = %8.2f   %8.2f   %6.1f %%\n',Dp_a1,Dp_a2,abs(Dp_a1-Dp_a2)/Dp_a1*100)
+end
+
 % Make plots
-plot_hex(HX,1,10,'C');
+plot_hex(HX,1,10,'C',true);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%{
+%{
 %%% OFF-DESIGN PERFORMANCE %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Use easier nomenclature for inlet conditions

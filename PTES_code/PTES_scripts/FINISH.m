@@ -5,12 +5,12 @@ if ~multi_run
     diary off
     % Save plots
     if save_figs == 1
-        save_fig(1,'./Outputs/T-s',0,0,0)
-        save_fig(8,'./Outputs/Losses',0,0,0)
-        save_fig(9,'./Outputs/Costs',0,0,0)
-        %save_fig(10,'./Outputs/TQ_hex',0,0,0)
+        formats = {'epsc','fig'};
+        save_fig(1, './Outputs/T-s',formats)
+        save_fig(8, './Outputs/Losses',formats)
+        save_fig(77,'./Outputs/Costs',formats)
         if Load.mode==3
-            save_fig(2,'./Outputs/T-s_Rankine',0,0,0)
+            save_fig(2,'./Outputs/T-s_Rankine',formats)
         end
         % Also save workspace
         save('./Outputs/vars.mat')
