@@ -293,6 +293,7 @@ for counter=1:max_iter
         for ihx=1:length(HX)
             HX(ihx).model = HX_model_temp;
         end
+        HX(ihx_JB+3).model = 'eff';
         steam.state(iL,1) = steam.state(iL,iG);
         A_0 = A;
         

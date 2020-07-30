@@ -16,7 +16,7 @@ if strcmp(Load(Iload),'c')
     % Find steam input conditions. Assume conditions are constant along
     % pipe for the starting point
     if Lreadload
-        mdot(Iload) = (dsg_mdot(Iload) - dsg_mdot0) / Npipe ;
+        mdot(Iload) = (dsg_mdot(Iload) - load_mdot0) / Npipe ; % Split the mass flow equally between the tanks
         xs    = dsg_q(Iload) * ones(Nx,2) ; % Dryness fraction
         Gs    = mdot(Iload)  * ones(Nx,2) / Ap ; % Mass flux
         Ts    = dsg_T(Iload) * ones(Nx,2) ; % Temperature
@@ -45,6 +45,8 @@ if strcmp(Load(Iload),'c')
         fprintf('Charging cycle not started as storage is already charged.\n');
     end
     
+    Itank(Iload) = -1 ; % Negative number indicates all tanks charged simultaneously together
+    
     hl = hlC ;
     hv = hvC ;
     vl = vlC ;
@@ -55,7 +57,7 @@ if strcmp(Load(Iload),'c')
     Vcoef = VcoefC ;
 elseif strcmp(Load(Iload),'d')
     if Lreadload
-        mdot(Iload) = (dsg_mdot0 - dsg_mdot(Iload)) / Npipe ; % Probably need something more sophisticated than this based on power
+        mdot(Iload) = (load_mdot0 - dsg_mdot(Iload)) * Ntank / Npipe ; % Probably need something more sophisticated than this based on power
         xs    = zeros(Nx,2) ; % Dryness fraction. Comes in as water, but aim to leave as dsg_q0
         Gs    = mdot(Iload)  * ones(Nx,2) / Ap ; % Mass flux
         Ts    = TsD  * ones(Nx,2) ; % Temperature
@@ -77,12 +79,23 @@ elseif strcmp(Load(Iload),'d')
         us    = Gs ./ rhos ;
     end
     
-    
-    % Check whether fully discharged
-    % Refine this later
-    if mean(xp(:,1)) < XPend_dis % if average melted fraction is < 10% consider it to be fully discharged
-        Lend = true ;
-        fprintf('Discharging cycle not started as storage is already discharged.\n');
+    % Select a tank: choose the first tank that isn't fully discharged
+    Itank(Iload) = 0 ;
+    i = 1 ;
+    Lend = true ;
+    while Itank(Iload) == 0 && i <= Ntank
+        % Check whether fully discharged
+        if mean(XPlast(:,i)) < XPend_dis % if average melted fraction is < 10% consider it to be fully discharged
+            fprintf('Tank #%i is fully discharged.\n',i);
+        else
+            Itank(Iload) = i ;
+            Lend = false ;
+        end
+        i = i + 1 ;
+    end
+    if Lend
+        Itank(Iload) = 1 ; % This is just a dummy allocation that helps the rest of the code
+        fprintf('Discharging cycle not started as all storage is already discharged.\n');
     end
          
     hl = hlD ;

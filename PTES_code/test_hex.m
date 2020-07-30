@@ -42,7 +42,7 @@ load_coolprop
 % 7 = sCO2 and sCO2 (Marchionni2019 - CFD)
 % 8 = sCO2 and sCO2 (Marchionni2019 - experiment)
 % 9 = Helium and Helium (Figley2013)
-scenario = 9;
+scenario = 1;
 
 % Save figures?
 save_figures = 0;

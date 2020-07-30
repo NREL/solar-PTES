@@ -39,7 +39,7 @@ else
     end 
     environ.T0 = T0_off(iL) ;
     
-    TOLconv = 1e-1 ;
+    TOLconv = 1e-3 ;
 end
 
 if Load.mode==3
@@ -65,7 +65,7 @@ end
 
 % Set matrix of temperature and pressure points to test convergence
 C_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-max_iter=50;
+max_iter=100;
 for counter=1:max_iter
     
     fprintf(1,['Charging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])

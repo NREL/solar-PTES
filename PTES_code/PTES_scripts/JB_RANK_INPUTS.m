@@ -45,8 +45,10 @@ switch Load.mode
             if ~Lreadload
                 Load.time = [stH;stH].*3600;      % time spent in each load period, s
                 Load.type = ["chg";"dis"];    % type of load period
+                %Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
+                %T0_off    = T0IN;
                 Load.mdot = [100.*fac;100.*fac];      % working fluid mass flow rate, kg/s
-                T0_off    = [T0+0;T0+0] ;
+                T0_off    = [T0+15;T0+15] ;
             else
                 fload     = './Data/load2.csv';
                 fdat      = readmatrix(fload,'Range','A:B') ;
@@ -114,7 +116,7 @@ switch Load.mode
             Load.type = ["chg";"str";"ran";"ran"];  % type of load period
             Load.mdot = [10*fac;0;1*fac;1*fac];     % working fluid mass flow rate, kg/s
             Load.options.useCold = [0,0,1,0];        % Use cold stores during Rankine discharge?
-            T0_off    = [T0;T0] ;
+            T0_off    = [T0-0;T0-10] ;
         else
             Load = Design_Load ;
         end

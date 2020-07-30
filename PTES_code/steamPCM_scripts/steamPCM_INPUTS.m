@@ -4,7 +4,7 @@ dp          =       0.02 ;          % Pipe diameter
 
 % STORAGE SIZING
 Pmax        =       1e6 ;            % Maximum power input, W    
-tN          =       4 ;              % Nominal duration of charge, hours
+tN          =       6 ;              % Nominal duration of charge, hours
 
 % STEAM CHARGING CONDITIONS
 PsatC       =       20e5 ;          % Saturation pressure
@@ -25,15 +25,21 @@ Lpcm        =       245e3 ;           % Latent heat of PCM, J/kg
 kpcm        =       5 ;             % Thermal conductivity of PCM
 
 XPend_chg   =       0.9 ;           % When PCM melted fraction exceeds this, end the charging cycle
-XPend_dis   =       0.1 ;           % When PCM melted fraction is less than this, end the discharging cycle
+XPend_dis   =       0.15 ;           % When PCM melted fraction is less than this, end the discharging cycle
 
 % GRID AND TIME STEPS
-CFL         =       0.1 ;           % Courant-Freidrich-Lewy number
+CFL         =       10 ;           % Courant-Freidrich-Lewy number
 Nx          =       100 ;          % Number of gridsteps
 Nload       =       2 ;             % Number of loads (charge and discharge are separate loads)
 Load        =       ["c";"d";"c"];  % 'c' - charge. 'd' - discharge, duh. 
 PCMiterations =     2 ;             % Number of times to iterate PCM equation. 2 gives good results. 1 is satisfactory.
 
 % Read input load data
-Lreadload   =       false ;         % Is load data being read from a file? If not, use the data below
-fload       =       '.\steamPCM_scripts\data\hourly_data_short.csv' ;
+Lreadload   =       true ;         % Is load data being read from a file? If not, use the data below
+fload       =       '.\steamPCM_scripts\data\hourly_data_short_July20.csv' ;
+SM          =       1.5 ;             % Solar multiple
+dsg_Tin     =       180 + 273.15 ;  % Temperature into the DSG solar field
+dsg_Pin     =       20e5 ;          % Pressure of DSG solar field
+
+mdotC_fac   =       1.0 ;
+mdotD_fac   =       1.0 ;

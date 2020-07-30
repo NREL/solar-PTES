@@ -13,8 +13,8 @@
 % Mode 20: PTES-LAES. Combined cycle energy storage (CCES)
 
 % Call the correct input file
-Load.mode  = 3 ;
-Loffdesign = 1 ; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
+Load.mode  = 0 ;
+Loffdesign = 0 ; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
 Lreadload  = 0 ;
 PBmode     = 0 ; % Liquid stores = 0; Packed beds = 1; Heat exchangers between power cycle and a storage fluid, which then passes through packed beds = 2
 
@@ -106,16 +106,17 @@ environ = environment_class(T0,p0,Load.num,10);
 % have been defined in the SET_MULTI_RUN script
 if multi_run==1
     % Set variable along curves
-    Vpnt = 'TH_dis0';  % variable along curve
+    Vpnt = 'mdot_off';  % variable along curve
     Npnt = 10;            % points on curve
-    pnt1 = 100+273.15;    % min value
-    pnt2 = 250+273.15;    % max value
+    pnt1 = 0.25;    % min value
+    pnt2 = 1;    % max value
     Apnt = linspace(pnt1,pnt2,Npnt); % array
     
     % Set variable between curves
-    Vcrv = 'ploss';
-    %Acrv = [10,5,0,-5,-10,-15,-20];
-    Acrv = [0.01];
+    Vcrv = 'T0_off';
+    %Acrv = [-25,-15,-5,0,5,15,25];
+    Acrv = [-5];
+    %Acrv = [0.01];
     Ncrv = numel(Acrv);
     
     if Lmulti_mdot

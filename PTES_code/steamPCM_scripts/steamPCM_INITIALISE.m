@@ -15,12 +15,12 @@ TsC   = TsatC ;
 PsC   = PsatC ;
 
 TsatD = RP1('PQ_INPUTS',PsatD,0.0,'T',steam) ; % Saturation temperature
-TsD   = TsatD - 30 ;
+TsD   = 180+273.15;%TsatD - 30 ;
 PsD   = PsatD ;
 
 Tpm   = TsC - 10 ; % Melting point of PCM
 TpC   = TsC - 5 ; % Charged temperature of PCM
-TpD   = TsC - 50 ; % Discharged temperature of PCM
+TpD   = TsD ; % Discharged temperature of PCM
 
 cpD   = cps;
 rhopD = rhops ;
@@ -38,10 +38,10 @@ end
 if Lreadload
     dat      = readmatrix(fload,'Range',[2 2]) ;   % Read load file
     Nload    = length(dat(:,1)) ;                  % Number of load periods
-    dsg_pow  = dat(:,1) * 1e6 ; % Power coming from DSG plant, W
+    dsg_pow  = dat(:,1) * 1e6 * SM; % Power coming from DSG plant, W
     dsg_q    = dat(:,2) ;       % Quality coming from DSG plant
     dsg_T    = dat(:,3)+273.15 ;% Temperature coming from DSG plant
-    dsg_mdot = dat(:,4) ;       % Mass flow rate coming from DSG plant
+    dsg_mdot = dat(:,4) * SM ;  % Mass flow rate coming from DSG plant
     load_dur = 3600 ;           % Duration of each load cycle in seconds.
     
     Load     = strings(Nload,1) ;
@@ -50,7 +50,8 @@ if Lreadload
     % Run through each load cycle and decide what load type it is
     for i = 1 : Nload
         if dsg_pow(i) < 0
-            dsg_pow(i) = 0 ;
+            dsg_pow(i)  = 0 ;
+            dsg_mdot(i) = 0 ;
         end
         if dsg_pow(i) > Pmax
             Load(i) = "c" ;
@@ -62,43 +63,42 @@ if Lreadload
     end
     
     % What is the mass flow rate corresponding to Pmax
-    diff      = abs(tes_pow) ; % When tes_pow = 0, this is when P = Pmax
-    tes_pow_temp = tes_pow ;
     nbest     = 3 ;
-    mdot_pmax = zeros(nbest,1) ;
-    pow_pmax  = zeros(nbest,1) ;
-    q_pmax    = zeros(nbest,1) ;
-    mdot_tes  = zeros(nbest,1) ;
-    pow_tes   = zeros(nbest,1) ;
-    q_tes     = zeros(nbest,1) ;
+    dsg_mdot_max = zeros(nbest,1) ;
+    tes_pow_max  = zeros(nbest,1) ;
+    dsg_q_max    = zeros(nbest,1) ;
     
     for i = 1 : nbest
-        % Find the nbest lowest values
-        [~,ind]      = min(diff) ;
-        mdot_pmax(i) = dsg_mdot(ind) ;
-        pow_pmax(i)  = dsg_pow(ind) ;
-        q_pmax(i)    = dsg_q(ind) ;
-        diff(ind)    = 1e11 ;
-        
-        % Also consider max power inputs to TES to find design power, mdot
-        [~,ind]      = max(tes_pow_temp) ;
-        mdot_tes(i) = dsg_mdot(ind) ;
-        pow_tes(i)  = tes_pow(ind) ;
-        q_tes(i)    = dsg_q(ind) ;
-        tes_pow_temp(ind) = -1e11 ;
+        % Find the max power inputs to TES to find design power, mdot
+        [~,ind]         = max(dsg_pow) ;
+        dsg_mdot_max(i) = dsg_mdot(ind) ;
+        tes_pow_max(i)  = tes_pow(ind) ;
+        dsg_q_max(i)    = dsg_q(ind) ;
     end
-    % Design values - these are the targets for PCM discharge
-    dsg_mdot0 = mean(mdot_pmax) ;
-    dsg_q0    = mean(q_pmax) ;
+    
+    dsg_q0    = mean(dsg_q_max) ;
     dsg_P0    = Pmax ;
     
+    % Find mass flow that corresponds to Pmax (load power)
+    dsg_Hin  = RP1('PT_INPUTS',dsg_Pin,dsg_Tin,'H',steam) ;
+    dsg_Hout = RP1('PQ_INPUTS',dsg_Pin,dsg_q0,'H',steam) ;
+    
+    load_mdot0 = Pmax / (dsg_Hout - dsg_Hin) ;
+    
     % Design charging inputs
-    tes_mdot0 = mean(mdot_tes) - dsg_mdot0 ;
-    tes_pow0  = mean(pow_tes) ;
-    tes_q0    = mean(q_tes) ;
+    tes_mdot0 = mean(dsg_mdot_max) - load_mdot0 ;
+    tes_pow0  = mean(tes_pow_max) ;
+    xsC    = dsg_q0 ;
     
-    xsC       = tes_q0 ;
+    tes_mdot0  = tes_mdot0 * mdotC_fac ;
+    load_mdot0 = load_mdot0 * mdotD_fac ;
     
+    % Ideally want the charging and discharging mass flow rates to be
+    % similar so that the profiles are nice and even.
+    % Introduce multiple tanks that are charged simultaneously and discharged sequentially.
+    Ntank = round(tes_mdot0/load_mdot0) ; % Each tank ideally has load_mdot0 passing through it in charge and discharge
+    Itank = ones(Nload,1) ; % Tank being used at each load number
+        
 else
     load_dur = tN ; % The duration of each load cycle
 end
