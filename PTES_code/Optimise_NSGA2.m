@@ -14,9 +14,9 @@ global V M xl xu etac etam pop_size pm
 %    constraint violation (if the input was provided) in the column (V+M+1), Rank in (V+M+2), Distance in (V+M+3).
 %% code starts
 M=2;                     %Number of objectives
-pop_size=5;             % Population size
+pop_size=3;             % Population size
 no_runs=1;               % Number of runs
-gen_max=5;              % MAx number of generations - stopping criteria
+gen_max=3;              % MAx number of generations - stopping criteria
  
 V=3;                     %Nr of variables
 xl=[523   0.8  0.8];      % lower bound vector
@@ -37,7 +37,7 @@ Obj2='LCOS [USD/kWh]';
 Obj3='Capital Cost [USD]';
 
 Par1='Compressor Inlet Temperature';
-Par2='Discharge Pressure Ratio';
+Par2='Number of expansion stages';
 Par3='Effectiveness';
 for run = 1:no_runs
     
