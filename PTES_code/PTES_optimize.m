@@ -1,4 +1,4 @@
-function [fit err extra]=PTES_optimize(x)
+function [fit, err, extra]=PTES_optimize(x)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % PTES
 % This code employs thermodynamic and economic models to predict the
@@ -29,9 +29,20 @@ set_graphics
 load_coolprop
 
 %Optimization inputs
+if x(1) == 0
+    multi_run = 0;
+end
+
+if x(1) == 1
+    multi_run=1;
+end
+
+if x(1) ~= 1
 TH_dis0 = x(1);
 Ne_ch   = round (x(2));
 eff = x(3);
+multi_run=0;
+end
 
 % SET INPUTS
 INPUTS
@@ -125,18 +136,19 @@ for ix = 1:1
 end
 toc %stop timer
 err= zeros(1,1);
-%if fluidH.state(2,3).T <TH_dis0
- %  f1=0.8+(0.9-0.8)*rand(1);
-  % f2=0.8+(0.9-0.8)*rand(1);
-  % extra=1000000000;
+if fluidH.state(2,3).T <TH_dis0
+   f1=0.8+(0.9-0.8)*rand(1);
+   f2=0.8+(0.9-0.8)*rand(1);
+   extra=1000000000;
     
-%else
+else
     f1=1-chi_PTES_para;
     f2=Cdata.lcosM;
     extra=Cdata.cap_costM;
-    
-%end
+        
+end
 fit=[f1 f2];
+
 catch
     f1= 0.8+(0.9-0.8)*rand(1);
     f2= 0.8+(0.9-0.8)*rand(1);
