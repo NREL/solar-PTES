@@ -1,4 +1,5 @@
-function [fit, err, extra]=PTES_optimize(x)
+function [fit, err, extra]=PTES_optimize2(x)
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % PTES
 % This code employs thermodynamic and economic models to predict the
@@ -7,7 +8,10 @@ function [fit, err, extra]=PTES_optimize(x)
 % Authors: Pau Farres-Antunez and Joshua Dominic McTigue
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Enter debugging mode if an error occurs
+
+%%% START PROGRAM %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 dbstop if error
 %dbclear all
 
@@ -37,7 +41,7 @@ if x(1) == 1
     multi_run=1;
 end
 
-if x(1) ~= 1
+if x(1) > 1
 TH_dis0 = x(1);
 Ne_ch   = round (x(2));
 eff = x(3);
@@ -64,10 +68,10 @@ for ix = 1:1
             % Reinitialise arrays (gas, fluids and tanks) to zero and do
             % other preliminary tasks
             INITIALISE
-                             
+            
             for iix = 1:(Loffdesign+1)
                 %fprintf(['\n',line,txt(iix,:),line,'\n'])
-                iL=1; 
+                iL=1;
                 while iL <= Load.num
                     switch Load.type(iL)
                         case 'chg'
@@ -121,10 +125,20 @@ for ix = 1:1
                 
             end
             
+            if optimise % obtain optimal PRr
+                error('not implemented')
+                mode = 0 ;
+                f = @(PRr) ptes_discharge_function(gas, fluidH, fluidC, HT, CT, environ,...
+                    T0, T1, pbot, PRr, PRch, Nc_dis, Ne_dis,...
+                    eta, eff, ploss, Load, iL-1, design_mode, HX_model,mode);
+                
+                [PRr,ineff,xv,yv,iter] = golden_search(f,PRr_min,PRr_max,0.005,'Min',100);
+            end
+            
             % Compute energy balance
             %ENERGY_BALANCE
             ENERGY_BALANCE_v2
-                        
+            
             % Evaluate the system cost
             PTES_ECONOMICS
             
@@ -135,6 +149,22 @@ for ix = 1:1
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 end
 toc %stop timer
+
+
+%%% MAKE PLOTS %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if make_plots
+    PLOT_CYCLE
+    PLOT_LOSSES
+    PLOT_COSTS
+    if multi_run
+        PLOT_MULTI_RUN %#ok<*UNRCH>
+    end
+end
+if make_hex_plots
+    PLOT_HEXS
+end
+
 err= zeros(1,1);
 if fluidH.state(2,3).T <TH_dis0
    f1=0.8+(0.9-0.8)*rand(1);
@@ -158,4 +188,9 @@ fit=[f1 f2];
     
 %end
 end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%%% FINISH PROGRAM %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Close files, save plots and release CoolProp AbstractStates
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
