@@ -15,12 +15,12 @@ TsC   = TsatC ;
 PsC   = PsatC ;
 
 TsatD = RP1('PQ_INPUTS',PsatD,0.0,'T',steam) ; % Saturation temperature
-TsD   = 180+273.15;%TsatD - 30 ;
+TsD   = TsatD - 0 ;%180+273.15;
 PsD   = PsatD ;
 
 Tpm   = TsC - 10 ; % Melting point of PCM
 TpC   = TsC - 5 ; % Charged temperature of PCM
-TpD   = TsD ; % Discharged temperature of PCM
+TpD   = TsD+15 ; % Discharged temperature of PCM
 
 cpD   = cps;
 rhopD = rhops ;
@@ -97,10 +97,15 @@ if Lreadload
     % similar so that the profiles are nice and even.
     % Introduce multiple tanks that are charged simultaneously and discharged sequentially.
     Ntank = round(tes_mdot0/load_mdot0) ; % Each tank ideally has load_mdot0 passing through it in charge and discharge
+    if Ntank < 1
+        Ntank = 1;
+    end
     Itank = ones(Nload,1) ; % Tank being used at each load number
         
 else
     load_dur = tN ; % The duration of each load cycle
+    Ntank    = 1 ;
+    Itank    = ones(Nload,1) ;
 end
 
 Tload = load_dur * ones(Nload,1) ; % Array that contains the duration of each load

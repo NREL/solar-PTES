@@ -14,7 +14,7 @@
 
 % Call the correct input file
 Load.mode  = 0 ;
-Loffdesign = 0 ; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
+Loffdesign = 1 ; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
 Lreadload  = 0 ;
 PBmode     = 0 ; % Liquid stores = 0; Packed beds = 1; Heat exchangers between power cycle and a storage fluid, which then passes through packed beds = 2
 
@@ -49,7 +49,7 @@ multi_run   = 0; % run cycle several times with different parameters?
 Lmulti_mdot = 0; % Read data from previous multirun to recalculate what the actual mass flow rates should be for a desired power
 optimise    = 0; % optimise cycle?
 make_plots  = 1; % make plots?
-save_figs   = 1; % save figures at the end?
+save_figs   = 0; % save figures at the end?
 make_hex_plots = 0; % make plots of heat exchangers?
 
 %if (Nc_ch > 1 || Ne_ch > 1) && (Ncld > 1 || Nhot > 1)

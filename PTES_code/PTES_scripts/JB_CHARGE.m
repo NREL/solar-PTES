@@ -39,7 +39,7 @@ else
     end 
     environ.T0 = T0_off(iL) ;
     
-    TOLconv = 1e-3 ;
+    TOLconv = 1e-1 ;
 end
 
 if Load.mode==3
@@ -65,7 +65,7 @@ end
 
 % Set matrix of temperature and pressure points to test convergence
 C_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-max_iter=100;
+max_iter=150;
 for counter=1:max_iter
     
     fprintf(1,['Charging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
@@ -248,7 +248,7 @@ for counter=1:max_iter
 %             fprintf('T1:   %13.8f \n',gas.state(iL,1).T)
 %             fprintf('TEND: %13.8f \n\n',gas.state(iL,iG).T)
             % Reduce smoothing factor with number of iterations
-            smooth = 0.05;% / double(counter)^0.2 ; 
+            smooth = 0.025;% / double(counter)^0.2 ; 
             %print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
             gas.state(iL,1).T = gas.state(iL,1).T + smooth * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
             %gas.state(iL,1).T = gas.state(iL,1).T ;

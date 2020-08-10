@@ -1,5 +1,5 @@
 % Set atmospheric conditions and cycle parameters
-T0      = 35 + 273.15;  % ambient temp, K
+T0      = 25 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 25e5;         % top pressure, Pa
 PRch    = 1.5;          % charge pressure ratio
@@ -48,7 +48,7 @@ switch Load.mode
                 %Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
                 %T0_off    = T0IN;
                 Load.mdot = [100.*fac;100.*fac];      % working fluid mass flow rate, kg/s
-                T0_off    = [T0+15;T0+15] ;
+                T0_off    = [T0-20;T0-20] ;
             else
                 fload     = './Data/load2.csv';
                 fdat      = readmatrix(fload,'Range','A:B') ;
@@ -213,7 +213,7 @@ DCMPmode = [10,12,15] ; % Discharging compressor cost mode. Removed mode 13.
 DEXPmode = [41,43,44] ; % Discharging expander cost mode
 
 PMPmode = [60,61,62]; % Pump cost mode
-FANmode = [70,71]; % Fan cost mode. Removed mode 72.
+FANmode = [72,70,71]; % Fan cost mode. Removed mode 72.
 
 hotHXmode = [1,3,4,5,10,11]; % Heat exchanger - hot cost mode. Removed mode 2.
 cldHXmode = [1,3,4,5,10,11]; % Heat exchanger - cold cost mode. Removed mode 2.

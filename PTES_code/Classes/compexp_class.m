@@ -772,9 +772,9 @@ classdef compexp_class
                     
                 case 72
                     % Fans from Benato 2017 - very high
-                    COST = exp(6.6547 + 0.79 * log(obj.W0)) ;
+                    COST = exp(6.6547 + 0.79 * log(obj.W0/1e3)) ;
                     COST = COST * CEind(curr) / CEind(2017) ;
-
+    
             end
                                     
             obj.cmpexp_cost.COST = COST ;

@@ -206,13 +206,21 @@ for i = 1 : Nn
                 Lend = true ;
                 Tload(Iload) = time ;
             end
-            mdotI = abs(tes_pow(Iload) / (hs(end,1) - hs(1,1))) / Npipe ;
+            if Lreadload
+                mdotI = abs(tes_pow(Iload) / (hs(end,1) - hs(1,1))) / Npipe ;
+            else
+                mdotI = mdot(Iload) ;
+            end
         elseif strcmp(Load(Iload),'d')
             if mean(xp(:,1)) < XPend_dis
                 Lend = true ;
                 Tload(Iload) = time ;
             end
-            mdotI = abs(tes_pow(Iload) / (hs(end,1) - hs(1,1))) * Ntank / Npipe ;
+            if Lreadload
+                mdotI = abs(tes_pow(Iload) / (hs(end,1) - hs(1,1))) * Ntank / Npipe ;
+            else
+                mdotI = mdot(Iload) ;
+            end
         end
         Gs    = mdotI * ones(Nx,2) / Ap ; % Mass flux
         us    = Gs ./ rhos ;
