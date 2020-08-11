@@ -103,7 +103,7 @@ end
 chi_mat  = var_extract('chi_PTES_para',Npnt,Ncrv);
 lcos_mat = var_extract('lcosM',Npnt,Ncrv);
 capcost_mat = var_extract('cap_costM',Npnt,Ncrv);
-Wdis_mat = var_extract('W_net_dis',Npnt,Ncrv);
+Wdis_mat = var_extract('E_net_dis',Npnt,Ncrv);
 tdis_mat = var_extract('t_dis',Npnt,Ncrv);
 
 Wpow_mat = Wdis_mat ./ tdis_mat ./ 1e6 ;
