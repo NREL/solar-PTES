@@ -14,8 +14,8 @@ switch Load.mode
         Ttop         = gas.state(1,2).T ;
         Tbot         = gas.state(1,6).T ;
         
-        W_net_chg    = 0;
-        W_net_dis    = 0;
+        %W_net_chg    = 0;
+        %W_net_dis    = 0;
         
         
         save(filename,'PRch','PRr','eta','eff','ploss','pmax','chi_PTES','chi_PTES_para','rhoE',...
