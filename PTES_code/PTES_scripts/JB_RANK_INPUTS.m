@@ -1,5 +1,5 @@
 % Set atmospheric conditions and cycle parameters
-T0      = 25 + 273.15;  % ambient temp, K
+T0      = 40 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 25e5;         % top pressure, Pa
 PRch    = 1.5;          % charge pressure ratio
@@ -35,9 +35,9 @@ switch Load.mode
         stH = 10 ;
         % This is the load scenario the plant is designed for
         Design_Load      = Load ;
-        Design_Load.time = [stH;stH].*3600;  % time spent in each load period, s
-        Design_Load.type = ["chg";"dis"];    % type of load period
-        Design_Load.mdot = [100*fac;100*fac];  % working fluid mass flow rate, kg/s
+        Design_Load.time = [stH;2;stH].*3600;  % time spent in each load period, s
+        Design_Load.type = ["chg";"str";"dis"];    % type of load period
+        Design_Load.mdot = [100*fac;0;100*fac];  % working fluid mass flow rate, kg/s
         T0_inc    = 3.0 ; % Increment above ambient temperature that gas is cooled to
         
         if Loffdesign
@@ -48,7 +48,7 @@ switch Load.mode
                 %Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
                 %T0_off    = T0IN;
                 Load.mdot = [100.*fac;100.*fac];      % working fluid mass flow rate, kg/s
-                T0_off    = [T0-20;T0-20] ;
+                T0_off    = [T0;T0] ;
             else
                 fload     = './Data/load2.csv';
                 fdat      = readmatrix(fload,'Range','A:B') ;
@@ -116,7 +116,7 @@ switch Load.mode
             Load.type = ["chg";"str";"ran";"ran"];  % type of load period
             Load.mdot = [10*fac;0;1*fac;1*fac];     % working fluid mass flow rate, kg/s
             Load.options.useCold = [0,0,1,0];        % Use cold stores during Rankine discharge?
-            T0_off    = [T0-0;T0-10] ;
+            T0_off    = [T0-0;T0-0] ;
 
         else
             Load = Design_Load ;

@@ -1,12 +1,14 @@
-
+%{
 % #1
 clear
 clear global
 
-T0 = 25 + 273.15 ; fac = 10 ;
-mdotIN = [20.*fac;20.*fac]; T0IN =[T0-30;T0-30] ;
+T0 = 40 + 273.15 ; fac = 10 ;
+mdotIN = [20.*fac;20.*fac]; T0IN =[T0+5;T0+5] ;
 PTES
-
+if ~exist('./Outputs/Multi_run','dir')
+    mkdir('./Outputs/Multi_run')
+end
 filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',1,1);
 
 cap_costM = Cdata.cap_costM ; cap_costSD = Cdata.cap_costSD ; cap_cost_pow = Cdata.cap_cost_pow ;
@@ -26,8 +28,8 @@ save(filename,'PRch','PRr','eta','eff','ploss','pmax','chi_PTES','chi_PTES_para'
 clear
 clear global
 
-T0 = 25 + 273.15 ; fac = 10 ;
-mdotIN = [25.*fac;25.*fac]; T0IN =[T0-30;T0-30] ;
+T0 = 40 + 273.15 ; fac = 10 ;
+mdotIN = [25.*fac;25.*fac]; T0IN =[T0+5;T0+5] ;
 PTES
 
 filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',1,2);
@@ -48,8 +50,8 @@ save(filename,'PRch','PRr','eta','eff','ploss','pmax','chi_PTES','chi_PTES_para'
 clear
 clear global
 
-T0 = 25 + 273.15 ; fac = 10 ;
-mdotIN = [30.*fac;30.*fac]; T0IN =[T0-30;T0-30] ;
+T0 = 40 + 273.15 ; fac = 10 ;
+mdotIN = [30.*fac;30.*fac]; T0IN =[T0+5;T0+5] ;
 PTES
 
 filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',1,3);
@@ -69,8 +71,8 @@ save(filename,'PRch','PRr','eta','eff','ploss','pmax','chi_PTES','chi_PTES_para'
 clear
 clear global
 
-T0 = 25 + 273.15 ; fac = 10 ;
-mdotIN = [35.*fac;35.*fac]; T0IN =[T0-30;T0-30] ;
+T0 = 40 + 273.15 ; fac = 10 ;
+mdotIN = [35.*fac;35.*fac]; T0IN =[T0+5;T0+5] ;
 PTES
 
 filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',1,4);
@@ -90,8 +92,8 @@ save(filename,'PRch','PRr','eta','eff','ploss','pmax','chi_PTES','chi_PTES_para'
 clear
 clear global
 
-T0 = 25 + 273.15 ; fac = 10 ;
-mdotIN = [40.*fac;40.*fac]; T0IN =[T0-30;T0-30] ;
+T0 = 40 + 273.15 ; fac = 10 ;
+mdotIN = [40.*fac;40.*fac]; T0IN =[T0+5;T0+5] ;
 PTES
 
 filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',1,5);
@@ -111,8 +113,8 @@ save(filename,'PRch','PRr','eta','eff','ploss','pmax','chi_PTES','chi_PTES_para'
 clear
 clear global
 
-T0 = 25 + 273.15 ; fac = 10 ;
-mdotIN = [45.*fac;45.*fac]; T0IN =[T0-30;T0-30] ;
+T0 = 40 + 273.15 ; fac = 10 ;
+mdotIN = [45.*fac;45.*fac]; T0IN =[T0+5;T0+5] ;
 PTES
 
 filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',1,6);
@@ -132,8 +134,8 @@ save(filename,'PRch','PRr','eta','eff','ploss','pmax','chi_PTES','chi_PTES_para'
 clear
 clear global
 
-T0 = 25 + 273.15 ; fac = 10 ;
-mdotIN = [50.*fac;50.*fac]; T0IN =[T0-30;T0-30] ;
+T0 = 40 + 273.15 ; fac = 10 ;
+mdotIN = [50.*fac;50.*fac]; T0IN =[T0+5;T0+5] ;
 PTES
 
 filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',1,7);
@@ -154,8 +156,8 @@ save(filename,'PRch','PRr','eta','eff','ploss','pmax','chi_PTES','chi_PTES_para'
 clear
 clear global
 
-T0 = 25 + 273.15 ; fac = 10 ;
-mdotIN = [55.*fac;55.*fac]; T0IN =[T0-30;T0-30] ;
+T0 = 40 + 273.15 ; fac = 10 ;
+mdotIN = [55.*fac;55.*fac]; T0IN =[T0+5;T0+5] ;
 PTES
 
 filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',1,8);
@@ -176,8 +178,8 @@ save(filename,'PRch','PRr','eta','eff','ploss','pmax','chi_PTES','chi_PTES_para'
 clear
 clear global
 
-T0 = 25 + 273.15 ; fac = 10 ;
-mdotIN = [60.*fac;60.*fac]; T0IN =[T0-30;T0-30] ;
+T0 = 40 + 273.15 ; fac = 10 ;
+mdotIN = [60.*fac;60.*fac]; T0IN =[T0+5;T0+5] ;
 PTES
 
 filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',1,9);
@@ -197,8 +199,8 @@ save(filename,'PRch','PRr','eta','eff','ploss','pmax','chi_PTES','chi_PTES_para'
 clear
 clear global
 
-T0 = 25 + 273.15 ; fac = 10 ;
-mdotIN = [65.*fac;65.*fac]; T0IN =[T0-30;T0-30] ;
+T0 = 40 + 273.15 ; fac = 10 ;
+mdotIN = [65.*fac;65.*fac]; T0IN =[T0+5;T0+5] ;
 PTES
 
 filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',1,10);
@@ -218,8 +220,8 @@ save(filename,'PRch','PRr','eta','eff','ploss','pmax','chi_PTES','chi_PTES_para'
 clear
 clear global
 
-T0 = 25 + 273.15 ; fac = 10 ;
-mdotIN = [70.*fac;70.*fac]; T0IN =[T0-30;T0-30] ;
+T0 = 40 + 273.15 ; fac = 10 ;
+mdotIN = [70.*fac;70.*fac]; T0IN =[T0+5;T0+5] ;
 PTES
 
 filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',1,11);
@@ -239,8 +241,8 @@ save(filename,'PRch','PRr','eta','eff','ploss','pmax','chi_PTES','chi_PTES_para'
 clear
 clear global
 
-T0 = 25 + 273.15 ; fac = 10 ;
-mdotIN = [75.*fac;75.*fac]; T0IN =[T0-30;T0-30] ;
+T0 = 40 + 273.15 ; fac = 10 ;
+mdotIN = [75.*fac;75.*fac]; T0IN =[T0+5;T0+5] ;
 PTES
 
 filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',1,12);
@@ -260,8 +262,8 @@ save(filename,'PRch','PRr','eta','eff','ploss','pmax','chi_PTES','chi_PTES_para'
 clear
 clear global
 
-T0 = 25 + 273.15 ; fac = 10 ;
-mdotIN = [80.*fac;80.*fac]; T0IN =[T0-30;T0-30] ;
+T0 = 40 + 273.15 ; fac = 10 ;
+mdotIN = [80.*fac;80.*fac]; T0IN =[T0+5;T0+5] ;
 PTES
 
 filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',1,13);
@@ -282,8 +284,8 @@ save(filename,'PRch','PRr','eta','eff','ploss','pmax','chi_PTES','chi_PTES_para'
 clear
 clear global
 
-T0 = 25 + 273.15 ; fac = 10 ;
-mdotIN = [85.*fac;85.*fac]; T0IN =[T0-30;T0-30] ;
+T0 = 40 + 273.15 ; fac = 10 ;
+mdotIN = [85.*fac;85.*fac]; T0IN =[T0+5;T0+5] ;
 PTES
 
 filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',1,14);
@@ -305,8 +307,8 @@ save(filename,'PRch','PRr','eta','eff','ploss','pmax','chi_PTES','chi_PTES_para'
 clear
 clear global
 
-T0 = 25 + 273.15 ; fac = 10 ;
-mdotIN = [90.*fac;90.*fac]; T0IN =[T0-30;T0-30] ;
+T0 = 40 + 273.15 ; fac = 10 ;
+mdotIN = [90.*fac;90.*fac]; T0IN =[T0+5;T0+5] ;
 PTES
 
 filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',1,15);
@@ -327,8 +329,8 @@ save(filename,'PRch','PRr','eta','eff','ploss','pmax','chi_PTES','chi_PTES_para'
 clear
 clear global
 
-T0 = 25 + 273.15 ; fac = 10 ;
-mdotIN = [95.*fac;95.*fac]; T0IN =[T0-30;T0-30] ;
+T0 = 40 + 273.15 ; fac = 10 ;
+mdotIN = [95.*fac;95.*fac]; T0IN =[T0+5;T0+5] ;
 PTES
 
 filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',1,16);
@@ -348,8 +350,8 @@ save(filename,'PRch','PRr','eta','eff','ploss','pmax','chi_PTES','chi_PTES_para'
 clear
 clear global
 
-T0 = 25 + 273.15 ; fac = 10 ;
-mdotIN = [100.*fac;100.*fac]; T0IN =[T0-30;T0-30] ;
+T0 = 40 + 273.15 ; fac = 10 ;
+mdotIN = [100.*fac;100.*fac]; T0IN =[T0+5;T0+5] ;
 PTES
 
 filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',1,17);
@@ -365,3 +367,6 @@ save(filename,'PRch','PRr','eta','eff','ploss','pmax','chi_PTES','chi_PTES_para'
     'QH_chg','QH_dis','QC_chg','QC_dis','Heat_rejected','WL_PTES_chg','WL_PTES_dis','t_chg','t_dis','mdot',...
     'cap_costM','cap_costSD','cap_cost_pow','cap_cost_en','lcosM','lcosSD',    'Ttop','Tbot','First_law_error','Second_law_error');
 
+
+load gong.mat
+sound(y)

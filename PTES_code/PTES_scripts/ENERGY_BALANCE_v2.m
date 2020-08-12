@@ -57,6 +57,9 @@ end
 switch Load.mode
     case {2,7}
         error('not implemented yet')
+    case {3}
+        GEN(1) = gen_power(GEN(1),CCMP,CEXP,DCMP,DEXP,Load.time);
+        GEN(2) = gen_power(GEN(2),CCMP,CEXP,DCMP,DEXP,Load.time);
     otherwise
         GEN = gen_power(GEN,CCMP,CEXP,DCMP,DEXP,Load.time);
 end
@@ -167,8 +170,10 @@ for iL=1:Load.num
         end
         
         % Electricity from Motor
-        E_in_chg   = E_in_chg   + GEN.E(iL);
-        WL_mot_chg = WL_mot_chg - GEN.WL(iL);
+        for ii = 1 : numel(GEN)
+            E_in_chg   = E_in_chg   + GEN(ii).E(iL);
+            WL_mot_chg = WL_mot_chg - GEN(ii).WL(iL);
+        end
         
         % Work lost in other components (mixers, seperators, work left in tanks, mixing losses)
         % ...
@@ -226,8 +231,10 @@ for iL=1:Load.num
         end
         
         % Electricity from Generator
-        E_out_dis  = E_out_dis  + GEN.E(iL);
-        WL_gen_dis = WL_gen_dis - GEN.WL(iL);
+        for ii = 1 : numel(GEN)
+            E_out_dis  = E_out_dis  + GEN(ii).E(iL);
+            WL_gen_dis = WL_gen_dis - GEN(ii).WL(iL);
+        end
         
         % Work lost in other components
         for ii = 1:length(MIX)

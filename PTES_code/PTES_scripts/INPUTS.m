@@ -45,7 +45,7 @@ plossX    = 0.001;
 HX_shapeX = 'cross-flow';
 
 % Code options
-multi_run   = 1; % run cycle several times with different parameters?
+multi_run   = 0; % run cycle several times with different parameters?
 Lmulti_mdot = 0; % Read data from previous multirun to recalculate what the actual mass flow rates should be for a desired power
 optimise    = 0; % optimise cycle?
 make_plots  = 1; % make plots?

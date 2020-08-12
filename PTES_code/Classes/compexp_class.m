@@ -92,10 +92,10 @@ classdef compexp_class
                     obj.mdot(iL) = state.mdot ;
                     obj.pr(iL)   = 1 ;
                 else
-                    obj = compexp_offdesign (obj , state, iL , aim, 1) ;
-                    %obj.eta(iL)  = obj.eta0 ;
-                    %obj.mdot(iL) = state.mdot ;
-                    %obj.pr(iL)   = 1 ;
+                    %obj = compexp_offdesign (obj , state, iL , aim, 1) ;
+                    obj.eta(iL)  = obj.eta0 ;
+                    obj.mdot(iL) = state.mdot ;
+                    obj.pr(iL)   = 1 ;
                 end
             end
             etaI = obj.eta(iL) ;     
