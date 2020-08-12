@@ -11,8 +11,7 @@
 % Mode 7: Steam-Rankine heat engine (discharge only)
 %
 % Mode 20: PTES-LAES. Combined cycle energy storage (CCES)
-
-% Call the correct input file
+ % Call the correct input file
 Load.mode  = 0 ;
 Loffdesign = 0 ; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
 Lreadload  = 0 ;
@@ -45,7 +44,12 @@ plossX    = 0.001;
 HX_shapeX = 'cross-flow';
 
 % Code options
-%multi_run   = 1; % run cycle several times with different parameters?
+if x(1) == 1
+    multi_run=1;
+else
+    multi_run=0;
+end
+%multi_run   = 1; 
 Lmulti_mdot = 0; % Read data from previous multirun to recalculate what the actual mass flow rates should be for a desired power
 optimise    = 0; % optimise cycle?
 make_plots  = 1; % make plots?

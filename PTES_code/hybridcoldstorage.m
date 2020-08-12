@@ -1,7 +1,7 @@
 clc
 clear all
 
-dbstop if error
+%dbstop if error
 
 % Determine Operating System
 c = computer();
@@ -20,48 +20,12 @@ set_graphics
 % Load CoolProp library (low-level interface)
 load_coolprop
 
-Printresults=1;
+%Printresutls
+%1 - Three cases for single material
+%2 - Compare different materials for hybrid storage
 
-%Bed Properties
- phi = 0.4; %Porosity of bed assumed
-%D = 1.64; %Diameter of the bed in m
-%dp = 0.05; %Diameter of the particle in m
-
-%Limestone, Al2O3, Fe2O3, Fe3O4, SiO2, TiO2
-Bed='Limestone';
-switch Bed
-    case 'Limestone'
-    Cp_bed=840; %Specific heat capacity of average rock
-    k_particle=2.15; %Thermal conductivity of marble; k of rock varies from 0.4 to 7
-    rho_particle = 2700; %Density of the particle
-    
-    case 'Al2O3'
-    Cp_bed=540; %Specific heat capacity of average rock
-    k_particle=56.8; %Thermal conductivity of marble; k of rock varies from 0.4 to 7
-    rho_particle = 4040; %Density of the particle
-    
-    case 'Fe2O3'
-    Cp_bed=500; %Specific heat capacity of average rock
-    k_particle=6.95; %Thermal conductivity of marble; k of rock varies from 0.4 to 7
-    rho_particle = 5242; %Density of the particle
-    
-    case 'Fe3O4'
-    Cp_bed=520; %Specific heat capacity of average rock
-    k_particle=3.94; %Thermal conductivity of marble; k of rock varies from 0.4 to 7
-    rho_particle = 5175; %Density of the particle
-    
-    case 'SiO2'
-    Cp_bed=570; %Specific heat capacity of average rock
-    k_particle=22.5; %Thermal conductivity of marble; k of rock varies from 0.4 to 7
-    rho_particle = 2650; %Density of the particle
-    
-    case 'TiO2'
-    Cp_bed=550; %Specific heat capacity of average rock
-    k_particle=11; %Thermal conductivity of marble; k of rock varies from 0.4 to 7
-    rho_particle = 4230; %Density of the particle
-    
-end
-    
+Printresults=2;
+  
 % Set indices
 iL = 1; i1 = 1; i2 = 1; ii=1;
 m_cold_PB = zeros(3);
@@ -70,6 +34,8 @@ m_cold_MS = zeros(3);
 Vol_hot_MS = zeros(3);
 V_coldtank =zeros(3);
 Tankcost = zeros(3);
+
+%Bed = cell.empty( 100, 0 );
 
 %Temperature assumptions of cold store
 T_cold_initial =-50+273;
@@ -101,13 +67,59 @@ state_cryogen_PB = F2.statehybrid(i1,i2);
 rho_cryogen_PB=state_cryogen_PB.rho;
 Cp_cryogen_PB = state_cryogen_PB.Cp; % specific heat
 
+%Bed Properties
+ phi = 0.4; %Porosity of bed assumed
+%D = 1.64; %Diameter of the bed in m
+%dp = 0.05; %Diameter of the particle in m
+
+%Limestone, Al2O3, Fe2O3, Fe3O4, SiO2, TiO2
+Bed(1)="Limestone";
+M=1; %index for the loop
+
+if Printresults ==2
+    Bed=["Limestone", "Al2O3", "Fe2O3", "Fe3O4", "SiO2", "TiO2"];
+    M=6; %index for the loop
+end
+
+for nn=1:M
+
+switch Bed(nn)
+    case 'Limestone'
+    Cp_bed=840; %Specific heat capacity of average rock
+    k_particle=2.15; %Thermal conductivity of marble; k of rock varies from 0.4 to 7
+    rho_particle = 2700; %Density of the particle
+    
+    case 'Al2O3'
+    Cp_bed=540; %Specific heat capacity of average rock
+    k_particle=56.8; %Thermal conductivity of marble; k of rock varies from 0.4 to 7
+    rho_particle = 4040; %Density of the particle
+    
+    case 'Fe2O3'
+    Cp_bed=500; %Specific heat capacity of average rock
+    k_particle=6.95; %Thermal conductivity of marble; k of rock varies from 0.4 to 7
+    rho_particle = 5242; %Density of the particle
+    
+    case 'Fe3O4'
+    Cp_bed=520; %Specific heat capacity of average rock
+    k_particle=3.94; %Thermal conductivity of marble; k of rock varies from 0.4 to 7
+    rho_particle = 5175; %Density of the particle
+    
+    case 'SiO2'
+    Cp_bed=570; %Specific heat capacity of average rock
+    k_particle=22.5; %Thermal conductivity of marble; k of rock varies from 0.4 to 7
+    rho_particle = 2650; %Density of the particle
+    
+    case 'TiO2'
+    Cp_bed=550; %Specific heat capacity of average rock
+    k_particle=11; %Thermal conductivity of marble; k of rock varies from 0.4 to 7
+    rho_particle = 4230; %Density of the particle
+    
+end
+
 %Heat requried to be stored in the TES system
 Qcoldstore = 2894*10^6*3600; %Heat energy transfered to hot tank (from PTES code) in Joules
 Qcoldstore = 863*10^6*3600;
 
-%Temperature assumptions of cold store
-T_cold_initial =-50+273;
-T_cold_final =10+273;
 
 %Volume of hot tank calculations
 Qcoldstore_delT=Qcoldstore/(T_cold_final-T_cold_initial); %Qcoldstore / delT
@@ -125,6 +137,7 @@ V_coldtank(3)=Qcoldstore_delT/(rho_particle*(1-phi)*Cp_bed+rho_cryogen*phi*Cp_cr
 
 maxV  = 50e3 ;
 Vol_PB = V_coldtank;
+V_hybrid(nn) = V_coldtank(3);
 
 for ii=1:3
     
@@ -188,6 +201,10 @@ end
 
 ED(2)=ED(2)/2; %Taking 2 tanks into consideration
 Tankcost(2)=2*Tankcost(2); %Taking 2 tanks into consideration
+ED_hybrid(nn) = ED(3);
+Tankcost_hybrid(nn) = Tankcost(3); %Total cost hybrid
+
+end
 
 if Printresults==1
     
@@ -211,6 +228,12 @@ fprintf('%6.2f %14.2f %18.2e %18.2e%16.2e %12.2e %13.2e %16.2e %14.2e %12.2e\n',
 
 end
 
+if Printresults==2
+    fprintf('Hybrid system - Cold Storage (Solid Material + Methanol)\n\n');
+    fprintf(' Materials   Hybrid Energy Density\n')  
+    fprintf(' Limestone   %4.2e\n Al2O3       %4.2e\n Fe2O3       %4.2e\n Fe3O4       %4.2e\n SiO2        %4.2e\n TiO2        %4.2e\n',...
+        ED_hybrid(1),ED_hybrid(2),ED_hybrid(3),ED_hybrid(4),ED_hybrid(5),ED_hybrid(6))
+end
 
 function CEindex = create_CEindex()
 

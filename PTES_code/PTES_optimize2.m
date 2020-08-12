@@ -32,28 +32,16 @@ set_graphics
 % Load CoolProp library (low-level interface)
 load_coolprop
 
-%Optimization inputs
-if x(1) == 0
-    multi_run = 0;
-end
-
-if x(1) == 1
-    multi_run=1;
-end
-
-if x(1) > 1
-TH_dis0 = x(1);
-Ne_ch   = round (x(2));
-eff = x(3);
-multi_run=0;
-end
-
 % SET INPUTS
 INPUTS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%Check for optimization calling
+if x(1) > 1
+   SET_OPTIMIZE_RUN
+end
 
 tic % start timer
-%try
+try
 for ix = 1:1
     %%% RUN CYCLE LOOP %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -179,14 +167,14 @@ else
 end
 fit=[f1 f2];
 
-%catch
+catch
     f1= 0.8+(0.9-0.8)*rand(1);
     f2= 0.8+(0.9-0.8)*rand(1);
     extra=1000000000;
     err= zeros(1,1);
     fit=[f1 f2];
     
-%end
+end
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
