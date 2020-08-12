@@ -74,6 +74,7 @@ if design_mode == 1
     steam.state(iL,iG).p = Ran_pmid2;
     [steam] = update(steam,[iL,iG],1);
     
+    environ.T0 = T0 ;
     
     % Set matrix of temperature and pressure points to test convergence
     A_0 = [[steam.state(iL,:).T];[steam.state(iL,:).p]];
@@ -90,6 +91,17 @@ else
         [steam] = update(steam,[iL,ii],1);
     end 
     
+    environ.T0 = T0_off(iL) ; % This also affects the bottom pressure if not using cold storage
+    if ~Load.options.useCold(iL)
+        Ran_Tbot = environ.T0 + 5;
+        Ran_pbot  = RPN('QT_INPUTS',0.0,Ran_Tbot,'P',steam);
+    end
+    
+    if Ran_pbot < Ran_pbotMIN % Check bottom pressure doesn't exceed lower bound
+        Ran_pbot = Ran_pbotMIN ;
+        Ran_Tbot  = RPN('PQ_INPUTS',Ran_pbot,0.0,'T',steam);
+    end
+
     Ran_ptop  = Ran_ptop * Load.mdot(iL) / DEXP(1).mdot0 ; % This accounts for part-load operation
     PR_dis    = Ran_ptop/Ran_pbot; % Total pressure ratio
     Ran_pmid1 = Ran_ptop/(PR_dis0)^(1/3);  % pressure at HPT outlet. First two stages pressure ratios are kept constant. Only final LP stage pressure ratio changes.
@@ -219,7 +231,7 @@ for counter=1:max_iter
     else
         % REJECT HEAT (external HEX) (7-->8)
         T_aim = Ran_Tbot - 1;
-        air.state(iL,1).T = T0; air.state(iL,1).p = p0; air = update(air,[iL,1],1);
+        air.state(iL,1).T = environ.T0; air.state(iL,1).p = p0; air = update(air,[iL,1],1);
         [HX(ihx_JB+3), steam, iG, air, iA] = hex_func(HX(ihx_JB+3),iL,steam,iG,air,iA,5,T_aim);
         [DFAN(1),air,iA] = compexp_func (DFAN(1),iL,air,iA,'Paim',p0,1);
     end
