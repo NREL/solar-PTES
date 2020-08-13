@@ -396,6 +396,22 @@ classdef compexp_class
                                     obj.eta(iL) = obj.eta0 * (1. - 0.191 + 0.409*mout/obj.mdot0 - 0.218*(mout/obj.mdot0)^2) ; % Correlation from Patnode thesis, p.68
                                 end
                             end
+                            
+                            % Now multiply by an additional factor - the exhaust loss. This correlation is extracted
+                            % from numerical data provided by Will Hamilton. Proper correlations calculate exit
+                            % velocities and exhaust losses. Here I just correlated the change in condenser pressure
+                            % with the loss in enthalpy. Only applies to the final stage.
+                            dP = pout/pout0 ;
+                            if pout < 0.2e5
+                                if dP < 0.7
+                                    fac = -1.0102*dP^2 + 1.5671*dP + 0.2897 ;
+                                else
+                                    fac = -0.528*dP^2 + 0.6723*dP + 0.6896 ;
+                                end
+                                fac = fac / 0.8339 ; % So that fac = 1 when dP = 1
+                                obj.eta(iL) = obj.eta(iL) * fac ;
+                            end
+                            
                         case 3
                             error('Not implemented')
                     end

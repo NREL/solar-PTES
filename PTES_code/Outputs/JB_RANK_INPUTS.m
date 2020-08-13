@@ -11,7 +11,7 @@ Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 
 % Set Rankine-specific parameters
 Ran_ptop    = 100e5;
-Ran_pbotMIN = 0.05e5 ; % If condenser pressure decreases below this, the final stage chokes. Can't go to pressures below this, because who knows what happens.
+Ran_pbotMIN = 0.02e5 ; % If condenser pressure decreases below this, the final stage chokes. Can't go to pressures below this, because who knows what happens.
 Ran_Tbot0   = T0 + 5; %when discharging against the environment. This sets design condenser pressure.
 Ran_TbotC   = 273.15+20; %when discharging against the cold stores
 
@@ -116,7 +116,7 @@ switch Load.mode
             Load.type = ["chg";"str";"ran";"ran"];  % type of load period
             Load.mdot = [10*fac;0;1*fac;1*fac];     % working fluid mass flow rate, kg/s
             Load.options.useCold = [0;0;1;0];        % Use cold stores during Rankine discharge?
-            T0_off    = [T0-0;T0-0;T0-20;T0-20] ;
+            T0_off    = [T0-0;T0-0;T0-0;T0-0] ;
 
         else
             Load = Design_Load ;
