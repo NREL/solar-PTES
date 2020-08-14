@@ -41,9 +41,11 @@ Par1='Compressor Inlet Temperature';
 Par2='Discharge Pressure Ratio';
 Par3='Effectiveness';
 
+Allfigures=0;
+
     % Parameters
-    Np = 5;        % Population size
-    Nr = 5;        % Repository size
+    Np = 3;        % Population size
+    Nr = 3;        % Repository size
     maxgen = 5;    % Maximum number of generations
     W = 0.4;         % Inertia weight
     C1 = 2;          % Individual confidence factor
@@ -172,6 +174,8 @@ end
 
             plot(REP.pos_fit(:,1),REP.pos_fit(:,2),'ok')
             grid on; xlabel(Obj1); ylabel(Obj2);
+            
+           if Allfigures==1
 
             figure(2)
             plot(REP.pos(:,1),REP.pos_fit(:,1),'ok')
@@ -196,6 +200,7 @@ end
             figure(7)
             plot(REP.pos(:,3),REP.pos_fit(:,2),'db')
             grid on; xlabel(Par3); ylabel(Obj2);
+           end
 
         end
 
@@ -203,6 +208,8 @@ end
             
            plot3(REP.pos_fit(:,1),REP.pos_fit(:,2),REP.pos_fit(:,3),'ok'); hold on;
            grid on; xlabel(Obj1); ylabel(Obj2); zlabel(Obj3);
+           
+           if Allfigures==1
            
            figure(2)
             plot(REP.pos(:,1),REP.pos_fit(:,1),'ok')
@@ -238,7 +245,9 @@ end
             
             figure(10)
             plot(REP.pos(:,3),REP.pos_fit(:,3),'db')
-            grid on; xlabel(Par3); ylabel(Obj3);        
+            grid on; xlabel(Par3); ylabel(Obj3);  
+            
+           end
             
         end
         

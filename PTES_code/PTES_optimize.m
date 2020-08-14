@@ -1,4 +1,4 @@
-function [fit, err, extra]=PTES_optimize(x)
+function [fit, err, extra]=PTES_optimize2(x)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % PTES
 % This code employs thermodynamic and economic models to predict the
@@ -7,7 +7,10 @@ function [fit, err, extra]=PTES_optimize(x)
 % Authors: Pau Farres-Antunez and Joshua Dominic McTigue
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Enter debugging mode if an error occurs
+
+%%% START PROGRAM %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 dbstop if error
 %dbclear all
 
@@ -28,28 +31,16 @@ set_graphics
 % Load CoolProp library (low-level interface)
 load_coolprop
 
-%Optimization inputs
-if x(1) == 0
-    multi_run = 0;
-end
-
-if x(1) == 1
-    multi_run=1;
-end
-
-if x(1) ~= 1
-TH_dis0 = x(1);
-Ne_ch   = round (x(2));
-eff = x(3);
-multi_run=0;
-end
-
 % SET INPUTS
 INPUTS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%Check for optimization calling
+if x(1) > 1 %First variable in optimization is always a Temperature
+   SET_OPTIMIZE_RUN
+end
 
 tic % start timer
-%try
+try
 for ix = 1:1
     %%% RUN CYCLE LOOP %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -64,10 +55,10 @@ for ix = 1:1
             % Reinitialise arrays (gas, fluids and tanks) to zero and do
             % other preliminary tasks
             INITIALISE
-                             
+            
             for iix = 1:(Loffdesign+1)
                 %fprintf(['\n',line,txt(iix,:),line,'\n'])
-                iL=1; 
+                iL=1;
                 while iL <= Load.num
                     switch Load.type(iL)
                         case 'chg'
@@ -124,7 +115,7 @@ for ix = 1:1
             % Compute energy balance
             %ENERGY_BALANCE
             ENERGY_BALANCE_v2
-                        
+            
             % Evaluate the system cost
             PTES_ECONOMICS
             
@@ -135,27 +126,33 @@ for ix = 1:1
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 end
 toc %stop timer
-err= zeros(1,1);
-if fluidH.state(2,3).T <TH_dis0
-   f1=0.8+(0.9-0.8)*rand(1);
-   f2=0.8+(0.9-0.8)*rand(1);
-   extra=1000000000;
-    
-else
-    f1=1-chi_PTES_para;
-    f2=Cdata.lcosM;
-    extra=Cdata.cap_costM;
-        
-end
-fit=[f1 f2];
 
-%catch
-    f1= 0.8+(0.9-0.8)*rand(1);
-    f2= 0.8+(0.9-0.8)*rand(1);
-    extra=1000000000;
-    err= zeros(1,1);
-    fit=[f1 f2];
-    
-%end
+
+%%% MAKE PLOTS %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if make_plots
+    PLOT_CYCLE
+    PLOT_LOSSES
+    PLOT_COSTS
+    if multi_run
+        PLOT_MULTI_RUN %#ok<*UNRCH>
+    end
+end
+if make_hex_plots
+    PLOT_HEXS
 end
 
+if x(1) > 1
+CONSTRAINT_AND_OUTPUT
+end
+
+catch
+ERROR    
+end
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% FINISH PROGRAM %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Close files, save plots and release CoolProp AbstractStates
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

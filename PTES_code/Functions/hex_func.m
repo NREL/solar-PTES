@@ -63,7 +63,7 @@ if TC1 > TH2 % swap needed
     error(['Swap not implemented for hx_class and hex_set_geom. Make sure',...
         ' that fluidH is fluidH and fluidC is fluidC when calling hex_func'])
     %{
-    swap = 1;
+    swap = 1
     fluidH0 = fluidH;
     fluidH  = fluidC;
     fluidC  = fluidH0;

@@ -13,10 +13,13 @@ global V M xl xu etac etam pop_size pm
 %    variables in the coumns (1:V), objectives in the columns (V+1 to V+M),
 %    constraint violation (if the input was provided) in the column (V+M+1), Rank in (V+M+2), Distance in (V+M+3).
 %% code starts
-M=2;                     %Number of objectives
-pop_size=15;             % Population size
+M=3;                     %Number of objectives, Also go to CONSTRAINT_AND_OUTPUT file
+                         %and ERROR file to change 'fit' accordingly.
+pop_size=3;             % Population size
 no_runs=1;               % Number of runs
-gen_max=15;              % MAx number of generations - stopping criteria
+gen_max=3;              % MAx number of generations - stopping criteria
+
+extra = zeros(pop_size,1); %To collect Capital cost in two objective optimization
  
 V=3;                     %Nr of variables
 xl=[523  1  0.8];      % lower bound vector
@@ -131,6 +134,7 @@ for iii =1:pop_size %This loop is a repetition just to find the capital cost. Ne
     end
 end
 format long
+extra;
 Final_results=[new_pop(:,1:V+M) extra];
 
 if M==2
