@@ -633,6 +633,20 @@ if any(Load.mode ==[0,4,6])
     if problem
         warning('Unsustainable discharge of a cold reservoir!')
     end
+    
+    chi_PTES_true = chi_PTES_para ;
+    % If the hot fluid gets cooled down to a temperature below its original
+    % value, calculate the heat required to boost it back. Then find the
+    % 'true' round-trip efficiency assuming this heat is provided by an
+    % electrical heater
+    if fluidH.state(end,3).T < fluidH.state(1,1).T
+        warning('Unsustainable discharge of a hot reservoir!')
+        warning('Hot fluid cooled down too much in discharge. Calculating new roundtrip efficiency')
+        heater_in =  (fluidH.state(1,1).h - fluidH.state(end,3).h) * fluidH.state(end,3).mdot * t_dis;
+        chi_PTES_true = -(E_net_dis - heater_in) / E_net_chg ;
+        fprintf(1,'TRUE round trip eff. (inc. heating):   %8.2f %%\n\n',chi_PTES_true*100);
+    end
+    
 end
 
 % PRINT HEXs

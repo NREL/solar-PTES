@@ -32,7 +32,7 @@ Cdata.indirect    = 0;%0.25 ;        % Indirect costs
 
 if Lsuper
     Nsens    = 1 ;      % How many points to take from distribution for sensitivity analysis
-    Ncomb    = 1000 ;   % How many combinations of cost correlations?
+    Ncomb    = 5000 ;   % How many combinations of cost correlations?
     
     costMAT      = zeros(Ncomb,1) ;
     cost_enMAT   = zeros(Ncomb,1) ;

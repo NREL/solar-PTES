@@ -12,11 +12,11 @@ mdot_multirun   = zeros(Npnt,Ncrv);
 for icrv=1:Ncrv
     for ipnt=1:Npnt
         filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',icrv,ipnt);
-        S1 = load(filename,'W_net_dis');
+        S1 = load(filename,'E_net_dis');
         S2 = load(filename,'t_dis');
         S3 = load(filename,'mdot');
 
-        Wact = S1.W_net_dis / S2.t_dis ; % Actual average power output, W
+        Wact = S1.E_net_dis / S2.t_dis ; % Actual average power output, W
         fac  = W0 / Wact ;
         
         if fac < 0

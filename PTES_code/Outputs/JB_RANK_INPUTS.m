@@ -1,9 +1,9 @@
 % Set atmospheric conditions and cycle parameters
-T0      = 40 + 273.15;  % ambient temp, K
+T0      = 25 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 25e5;         % top pressure, Pa
 PRch    = 1.5;          % charge pressure ratio
-PRr     = 1.26;          % discharge pressure ratio: PRdis = PRch*PRr
+PRr     = 1.0;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 setTmax = 1;            % set Tmax? (this option substitutes PRch)
@@ -11,7 +11,7 @@ Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 
 % Set Rankine-specific parameters
 Ran_ptop    = 100e5;
-Ran_pbotMIN = 0.02e5 ; % If condenser pressure decreases below this, the final stage chokes. Can't go to pressures below this, because who knows what happens.
+Ran_pbotMIN = 0.04e5 ; % If condenser pressure decreases below this, the final stage chokes. Can't go to pressures below this, because who knows what happens.
 Ran_Tbot0   = T0 + 5; %when discharging against the environment. This sets design condenser pressure.
 Ran_TbotC   = 273.15+20; %when discharging against the cold stores
 
@@ -31,13 +31,13 @@ Nhot = 1; % number of hot stores. Not implemented for >2
 % Set parameters of Load structure
 switch Load.mode
     case 0 % PTES
-        fac = 10; % This can be used to more easily set the mass flow to obtain a desired power output
+        fac = 10/1.1627; % This can be used to more easily set the mass flow to obtain a desired power output
         stH = 10 ;
         % This is the load scenario the plant is designed for
         Design_Load      = Load ;
-        Design_Load.time = [stH;2;stH].*3600;  % time spent in each load period, s
-        Design_Load.type = ["chg";"str";"dis"];    % type of load period
-        Design_Load.mdot = [100*fac;0;100*fac];  % working fluid mass flow rate, kg/s
+        Design_Load.time = [stH;stH].*3600;  % time spent in each load period, s
+        Design_Load.type = ["chg";"dis"];    % type of load period
+        Design_Load.mdot = [100*fac;100*fac];  % working fluid mass flow rate, kg/s
         T0_inc    = 3.0 ; % Increment above ambient temperature that gas is cooled to
         
         if Loffdesign
@@ -152,7 +152,7 @@ Load.ind  = (1:Load.num)';
 switch PBmode
     case 0
         fHname  = 'SolarSalt';  % fluid name
-        TH_dis0 = 300 + 273.15; % initial temperature of discharged hot fluid, K
+        TH_dis0 = 500 + 273.15; % initial temperature of discharged hot fluid, K
         MH_dis0 = 1e9;          % initial mass of discharged hot fluid, kg
         TH_chg0 = 570 + 273.15; % initial temperature of charged hot fluid, K
         MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
@@ -232,7 +232,7 @@ HTmode.AR        = 1.0 ; % Aspect ratio (L/D) of tank
 HTmode.over_fac  = 1.1 ; % How much larger is inner tank volume than the fluid volume
 
 CTmode.tankmode  = [5,1,2,3,4,6] ; % Cost mode for cold tank container cost
-CTmode.fld_cost  = [0.3,0.1,1] ; % Cold tank fluid cost, $/kg. Water: [0.01,0.05,0.1]. Methanol [0.3,0.1,1]
+CTmode.fld_cost  = [0.3,0.1,1.5] ; % Cold tank fluid cost, $/kg. Water: [0.01,0.05,0.1]. Methanol [0.3,0.1,1]
 CTmode.ins_cost  = [30,5,50] ; % Insulation material, %/kg
 CTmode.ins_k     = 0.08 ; % Thermal conductivity of insulation
 CTmode.ins_rho   = 150 ; % Density of insulation
