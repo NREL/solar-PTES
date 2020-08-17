@@ -6,7 +6,7 @@
 % calculate the sensitivity assuming each cost is normally distributed
 % TRUE: Calculate the cost numerous times using different combinations of
 % different cost correlations
-Lsuper = 1 ;
+Lsuper = 0 ;
 
 % Some input variables - move these to an input file?
 price = [0.033,0.025,0.06] ;
@@ -32,7 +32,7 @@ Cdata.indirect    = 0;%0.25 ;        % Indirect costs
 
 if Lsuper
     Nsens    = 1 ;      % How many points to take from distribution for sensitivity analysis
-    Ncomb    = 1000 ;   % How many combinations of cost correlations?
+    Ncomb    = 5000 ;   % How many combinations of cost correlations?
     
     costMAT      = zeros(Ncomb,1) ;
     cost_enMAT   = zeros(Ncomb,1) ;
@@ -112,7 +112,9 @@ if Lsuper
         CT(ii).insB_cost.cost_mode = CTmode.ins_cost(randi(nI)) ;
     end
     
-    GEN.gen_cost.cost_mode = GENmode(randi(length(GENmode))) ;
+    for ii = 1 : numel(GEN)
+        GEN(ii).gen_cost.cost_mode = GENmode(randi(length(GENmode))) ;
+    end
     
     Cdata.lifetime = life(randi(length(life))) ;
     Cdata.price    = price(randi(length(price))) ;
@@ -227,9 +229,11 @@ end
 if Load.mode == 7
     GEN.gen_cost.cost_mode = 0 ;
 end
-GEN = gen_econ(GEN,CEind) ;
-cap_cost = cap_cost + GEN.gen_cost.COST ;
-cap_sens = cap_sens + cost_sens(GEN.gen_cost, Nsens) ;
+for ii = 1 : numel(GEN)
+    GEN(ii) = gen_econ(GEN(ii),CEind) ;
+    cap_cost = cap_cost + GEN(ii).gen_cost.COST ;
+    cap_sens = cap_sens + cost_sens(GEN(ii).gen_cost, Nsens) ;
+end
     
    
 % Electric heater
@@ -397,7 +401,9 @@ if Lsuper
    end
    
    % Generator/motor
-   compMAT(jj,13) = compMAT(jj,13) + GEN.gen_cost.COST;
+   for ii = 1 : numel(GEN)
+       compMAT(jj,13) = compMAT(jj,13) + GEN(ii).gen_cost.COST;
+   end
 end
 
 end

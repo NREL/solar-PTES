@@ -92,10 +92,10 @@ classdef compexp_class
                     obj.mdot(iL) = state.mdot ;
                     obj.pr(iL)   = 1 ;
                 else
-                    obj = compexp_offdesign (obj , state, iL , aim, 1) ;
-                    %obj.eta(iL)  = obj.eta0 ;
-                    %obj.mdot(iL) = state.mdot ;
-                    %obj.pr(iL)   = 1 ;
+                    %obj = compexp_offdesign (obj , state, iL , aim, 1) ;
+                    obj.eta(iL)  = obj.eta0 ;
+                    obj.mdot(iL) = state.mdot ;
+                    obj.pr(iL)   = 1 ;
                 end
             end
             etaI = obj.eta(iL) ;     
@@ -396,6 +396,22 @@ classdef compexp_class
                                     obj.eta(iL) = obj.eta0 * (1. - 0.191 + 0.409*mout/obj.mdot0 - 0.218*(mout/obj.mdot0)^2) ; % Correlation from Patnode thesis, p.68
                                 end
                             end
+                            
+                            % Now multiply by an additional factor - the exhaust loss. This correlation is extracted
+                            % from numerical data provided by Will Hamilton. Proper correlations calculate exit
+                            % velocities and exhaust losses. Here I just correlated the change in condenser pressure
+                            % with the loss in enthalpy. Only applies to the final stage.
+                            dP = pout/pout0 ;
+                            if pout < 0.2e5
+                                if dP < 0.7
+                                    fac = -1.0102*dP^2 + 1.5671*dP + 0.2897 ;
+                                else
+                                    fac = -0.528*dP^2 + 0.6723*dP + 0.6896 ;
+                                end
+                                fac = fac / 0.8339 ; % So that fac = 1 when dP = 1
+                                obj.eta(iL) = obj.eta(iL) * fac ;
+                            end
+                            
                         case 3
                             error('Not implemented')
                     end
@@ -772,9 +788,9 @@ classdef compexp_class
                     
                 case 72
                     % Fans from Benato 2017 - very high
-                    COST = exp(6.6547 + 0.79 * log(obj.W0)) ;
+                    COST = exp(6.6547 + 0.79 * log(obj.W0/1e3)) ;
                     COST = COST * CEind(curr) / CEind(2017) ;
-
+    
             end
                                     
             obj.cmpexp_cost.COST = COST ;

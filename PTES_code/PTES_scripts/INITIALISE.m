@@ -270,7 +270,14 @@ switch Load.mode
 end
 
 % Motor-generator
-GEN        = gen_class('gen',GENmode(1)) ;
+if Load.mode == 3
+    % Probably have a separate generator and motor for solar-PTES
+    GEN(1)     = gen_class('mot',GENmode(1)) ;
+    GEN(2)     = gen_class('gen',0) ; % Generator costs nothing as part of Rankine cycle already
+else
+    GEN        = gen_class('mot-gen',GENmode(1)) ;
+end
+    
 
 % Fans 
 CFAN(1:10) = compexp_class('comp', 'isen', FANmode(1), 0.75, Load.num) ;

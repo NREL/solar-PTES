@@ -57,6 +57,9 @@ end
 switch Load.mode
     case {2,7}
         error('not implemented yet')
+    case {3}
+        GEN(1) = gen_power(GEN(1),CCMP,CEXP,DCMP,DEXP,Load.time);
+        GEN(2) = gen_power(GEN(2),CCMP,CEXP,DCMP,DEXP,Load.time);
     otherwise
         GEN = gen_power(GEN,CCMP,CEXP,DCMP,DEXP,Load.time);
 end
@@ -167,8 +170,10 @@ for iL=1:Load.num
         end
         
         % Electricity from Motor
-        E_in_chg   = E_in_chg   + GEN.E(iL);
-        WL_mot_chg = WL_mot_chg - GEN.WL(iL);
+        for ii = 1 : numel(GEN)
+            E_in_chg   = E_in_chg   + GEN(ii).E(iL);
+            WL_mot_chg = WL_mot_chg - GEN(ii).WL(iL);
+        end
         
         % Work lost in other components (mixers, seperators, work left in tanks, mixing losses)
         % ...
@@ -226,8 +231,10 @@ for iL=1:Load.num
         end
         
         % Electricity from Generator
-        E_out_dis  = E_out_dis  + GEN.E(iL);
-        WL_gen_dis = WL_gen_dis - GEN.WL(iL);
+        for ii = 1 : numel(GEN)
+            E_out_dis  = E_out_dis  + GEN(ii).E(iL);
+            WL_gen_dis = WL_gen_dis - GEN(ii).WL(iL);
+        end
         
         % Work lost in other components
         for ii = 1:length(MIX)
@@ -626,6 +633,20 @@ if any(Load.mode ==[0,4,6])
     if problem
         warning('Unsustainable discharge of a cold reservoir!')
     end
+    
+    chi_PTES_true = chi_PTES_para ;
+    % If the hot fluid gets cooled down to a temperature below its original
+    % value, calculate the heat required to boost it back. Then find the
+    % 'true' round-trip efficiency assuming this heat is provided by an
+    % electrical heater
+    if fluidH.state(end,3).T < fluidH.state(1,1).T
+        warning('Unsustainable discharge of a hot reservoir!')
+        warning('Hot fluid cooled down too much in discharge. Calculating new roundtrip efficiency')
+        heater_in =  (fluidH.state(1,1).h - fluidH.state(end,3).h) * fluidH.state(end,3).mdot * t_dis;
+        chi_PTES_true = -(E_net_dis - heater_in) / E_net_chg ;
+        fprintf(1,'TRUE round trip eff. (inc. heating):   %8.2f %%\n\n',chi_PTES_true*100);
+    end
+    
 end
 
 % PRINT HEXs

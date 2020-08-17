@@ -46,7 +46,7 @@ else
         gas.state(iL,ii).p = gas0.state(2,ii).p * Load.mdot(iL) / DEXP.mdot0 ; % Second ever run is discharging
         [gas] = update(gas,[iL,ii],1);
         environ.T0 = T0_off(iL) ;
-        TOLconv = 1e-3 ;
+        TOLconv = 1e-1 ;
     end    
 end
 
@@ -66,7 +66,7 @@ end
 
 % Set matrix of temperature and pressure points to test convergence
 D_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-max_iter = 200;
+max_iter = 250;
 for counter = 1:max_iter
     fprintf(1,['Discharging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
     

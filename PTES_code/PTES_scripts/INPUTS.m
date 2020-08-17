@@ -34,7 +34,7 @@ Wdis_req = 100e6 ;
 
 % Set heat exchanger parameters
 HX_model  = 'geom' ;
-eff       = 0.97;  % heat exchanger effectiveness
+eff       = 0.95;  % heat exchanger effectiveness
 ploss     = 0.01;  % pressure loss in HEXs
 HX_D1     = 0.005; %hydraulic diameter
 HX_shape  = 'circular';   %channel shape for counter-flow HEXs
@@ -111,19 +111,24 @@ environ = environment_class(T0,p0,Load.num,10);
 if multi_run==1
     % Set variable along curves
     Vpnt = 'TH_dis0';  % variable along curve
-    Npnt = 10;            % points on curve
-    pnt1 = 100+273.15;    % min value
-    pnt2 = 250+273.15;    % max value
+    Npnt = 2;            % points on curve
+    pnt1 = 250 + 273.15;    % min value
+    pnt2 = 500 + 273.15;    % max value
     Apnt = linspace(pnt1,pnt2,Npnt); % array
     
     % Set variable between curves
     Vcrv = 'ploss';
-    %Acrv = [10,5,0,-5,-10,-15,-20];
+    %Acrv = [-25,-15,-5,0,5,15,25];
     Acrv = [0.01];
+    %Acrv = [0.01];
     Ncrv = numel(Acrv);
     
     if Lmulti_mdot
         multi_mdot = mdot_extract(Npnt,Ncrv,Wdis_req) ;
+    end
+    
+    if ~exist('./Outputs/Multi_run','dir')
+        mkdir('./Outputs/Multi_run')
     end
     
     % Delete previous files

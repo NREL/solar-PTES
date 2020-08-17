@@ -3,7 +3,7 @@ set_graphics
 stl = {'-s','-.s','--s',':s',... % line styles
     '-^','-.^','--^',':^'};
 fignum = 20;
-save_multi_figs = 1;
+save_multi_figs = 0;
 
 % Load Multi_run_var file. This contains information about the variables
 % being changed along the multi-run calls
@@ -103,7 +103,7 @@ end
 chi_mat  = var_extract('chi_PTES_para',Npnt,Ncrv);
 lcos_mat = var_extract('lcosM',Npnt,Ncrv);
 capcost_mat = var_extract('cap_costM',Npnt,Ncrv);
-Wdis_mat = var_extract('W_net_dis',Npnt,Ncrv);
+Wdis_mat = var_extract('E_net_dis',Npnt,Ncrv);
 tdis_mat = var_extract('t_dis',Npnt,Ncrv);
 
 Wpow_mat = Wdis_mat ./ tdis_mat ./ 1e6 ;
