@@ -63,6 +63,7 @@ classdef hx_class
        Af2      % Flow area
        A1       % Heat transfer area
        A2       % Heat transfer area
+       Afin_A1  % Finned area to total heat transfer area ratio (Xflow)
        Vm       % Volume of metal
        
        % Loss factors - one for each time period

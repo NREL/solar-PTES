@@ -423,7 +423,7 @@ switch model
             case {0,1,2}
                 QMAX0 = min([mC*(hC2_max - hC1),mH*(hH2 - hH1_min)])*(1.01); %necessary to find root
                 hH1_min = hH2 - QMAX0/mH;
-                hH1_max = hH2 - 0.95*HX.eff*QMAX0/mH;
+                hH1_max = hH2 - 0.90*HX.eff*QMAX0/mH;
                 
                 % Find value of hH1 for which computed area equals specified area
                 switch HX.shape
