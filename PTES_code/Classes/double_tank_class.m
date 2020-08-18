@@ -364,7 +364,7 @@ classdef double_tank_class
                          nA = VA / maxV; % Number of maxV tanks
                          VA = maxV ;
                      end
-                     
+                    
                      VB   = obj.tank_volB ;
                      nB   = 1;
                      if VB > maxV

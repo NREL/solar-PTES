@@ -1,4 +1,4 @@
-function [fit, err, extra]=PTES_optimize2(x)
+function [fit, err, extra]=PTES_optimize(x)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % PTES
 % This code employs thermodynamic and economic models to predict the

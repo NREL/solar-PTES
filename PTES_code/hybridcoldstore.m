@@ -29,10 +29,10 @@ Printresults=1;
 % Set indices
 iL = 1; i1 = 1; i2 = 1; ii=1;
 m_hot_PB = zeros(3,1);
-Vol_hot_PB = zeros(3,1);
-m_hot_MS = zeros(3,1);
-Vol_hot_MS = zeros(3,1);
-V_hottank =zeros(3,1);
+Vol_cold_PB = zeros(3,1);
+m_cold_MS = zeros(3,1);
+Vol_cold_MS = zeros(3,1);
+V_coldtank =zeros(3,1);
 Tankcost = zeros(3,1);
 mu_fluid = zeros(3,1);
 
@@ -122,11 +122,11 @@ switch Bed(nn)
 end
 
 %Heat requried to be stored in the TES system
-Qcoldstore = 2894*10^6*3600; %Heat energy transfered to hot tank (from PTES code) in Joules
+Qcoldstore = 2894*10^6*3600; %Heat energy transfered to cold tank (from PTES code) in Joules
 Qcoldstore = 863*10^6*3600;
 
 
-%Volume of hot tank calculations
+%Volume of cold tank calculations
 Qcoldstore_delT=Qcoldstore/(T_cold_final-T_cold_initial); %Qcoldstore / delT
 
 %Volume of tank for a completely packed bed based TES system
@@ -238,8 +238,8 @@ ED_hybrid(nn) = ED(3);
 Tankcost_hybrid(nn) = Tankcost(3); %Total cost hybrid
 
 P_drop_PB(nn) = delP_cold(1); %Storing Pressure drop values of Packed bed only case for different material(nn=1:6)
-P_drop_MS(nn) = delP_cold(2); %Storing Pressure drop values (Zero)of Molten salt only case for different material(nn=1:6)
-P_drop_hyb(nn) = delP_cold(3); %Storing Pressure drop values (Zero)of Molten salt only case for different material(nn=1:6)
+P_drop_MS(nn) = delP_cold(2); %Storing Pressure drop values (Zero)of cryogen only case for different material(nn=1:6)
+P_drop_hyb(nn) = delP_cold(3); %Storing Pressure drop values of hybrid
 
 end
 

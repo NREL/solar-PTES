@@ -56,8 +56,16 @@ Allfigures=0;
 
     fname     = 'PTES_optimize';
     nVar    = 3;
+    
+    mode=csvread('./Data/mode');  %specified in main.m
+    if mode == 0
+        var_min = [523; 0.8; 0.8;];
+        var_max = [723; 1.6; 0.97];
+    end
+    if mode == 3
     var_min = [523; 1; 0.8;];
     var_max = [723; 5; 0.97];
+    end
     
     xl=var_min';
     xu=var_max';
@@ -252,7 +260,7 @@ end
         end
         
         Results=[REP.pos REP.pos_fit];
-        csvwrite('./Data/SolarPop3',Results);
+        %csvwrite('./Data/SolarPop3',Results);
       
 
 % Function that updates the repository given a new population and its

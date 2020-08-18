@@ -13,17 +13,29 @@ global V M xl xu etac etam pop_size pm
 %    variables in the coumns (1:V), objectives in the columns (V+1 to V+M),
 %    constraint violation (if the input was provided) in the column (V+M+1), Rank in (V+M+2), Distance in (V+M+3).
 %% code starts
-M=3;                     %Number of objectives, Also go to CONSTRAINT_AND_OUTPUT file
-                         %and ERROR file to change 'fit' accordingly.
-pop_size=3;             % Population size
+%Number of objectives, Fix it in INPUTS                       
+try 
+    M=csvread('./Data/objectives');
+catch
+    M=3;
+end
+pop_size=2;             % Population size
 no_runs=1;               % Number of runs
-gen_max=3;              % MAx number of generations - stopping criteria
+gen_max=2;              % MAx number of generations - stopping criteria
 
 extra = zeros(pop_size,1); %To collect Capital cost in two objective optimization
  
 V=3;                     %Nr of variables
-xl=[523  1  0.8];      % lower bound vector
-xu=[723  5  0.97];     % upper bound vector
+
+mode=csvread('./Data/mode'); %specified in main.m
+    if mode == 0
+       xl=[523  0.8  0.8];      % lower bound vector
+       xu=[723  1.6  0.97];     % upper bound vector
+    end
+    if mode == 3
+       xl=[523  1  0.8];      % lower bound vector
+       xu=[723  5  0.97];     % upper bound vector
+    end
  
 Allfigures=0;
 
