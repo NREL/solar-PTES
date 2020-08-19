@@ -46,6 +46,15 @@ switch Vpnt
     case 'T0_off'
         Tpnt = 'Change in ambient temperature';
         Upnt = 'K' ;
+    case 'Wdis_req'
+        Tpnt = 'Discharging power output';
+        Upnt = ' MW$$_e$$';
+    case 'stH'
+        Tpnt = 'Discharging duration';
+        Upnt = ' h';
+    case 'unbalanced'
+        Tpnt = 'Charge duration / discharge duration' ;
+        Upnt = ' ';
     otherwise
         error('not implemented')
 end
@@ -91,6 +100,12 @@ switch Vcrv
     case 'T0_off'
         Tcrv = 'Change in ambient temperature';
         Ucrv = 'K' ;
+    case 'Wdis_req'
+        Tcrv = 'Discharging power output';
+        Ucrv = ' MW$$_e$$';
+    case 'stH'
+        Tcrv = 'Discharging duration';
+        Ucrv = ' h';
     otherwise
         error('not implemented')
 end

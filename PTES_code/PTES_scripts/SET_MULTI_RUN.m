@@ -25,6 +25,17 @@ switch Vpnt
         Load0.mdot = Design_Load.mdot .* Apnt(ipnt) ;
     case 'T0_off'
         T0_off    = (T0 + Acrv(icrv)) * ones(Load.num,1) ;
+    case 'Wdis_req'
+        Wdis_req = Apnt(ipnt);
+    case 'stH'
+        Design_Load.time = Design_Load.time + Apnt(ipnt) * 3600;
+        Load.time = Design_Load.time ;
+        Load0.time = Design_Load.time ;
+    case 'unbalanced'
+        Design_Load.time = [stH/Apnt(ipnt);stH;stH/Apnt(ipnt);stH;stH/Apnt(ipnt);stH]*3600.;  % time spent in each load period, s
+        Design_Load.mdot = [fac*Apnt(ipnt);fac;fac*Apnt(ipnt);fac;fac*Apnt(ipnt);fac];  % working fluid mass flow rate, kg/s
+        Load  = Design_Load ;
+        Load0 = Design_Load ;
     otherwise
         error('not implemented')
 end
@@ -56,6 +67,12 @@ switch Vcrv
         Load0.mdot = Design_Load.mdot .* Acrv(icrv) ;
     case 'T0_off'
         T0_off    = (T0 + Acrv(icrv)) * ones(Load.num,1) ;
+    case 'Wdis_req'
+        Wdis_req = Acrv(icrv);
+    case 'stH'
+        Design_Load.time = Design_Load.time + Acrv(ipnt) * 3600;
+        Load.time = Design_Load.time ;
+        Load0.time = Design_Load.time ;
     otherwise
         error('not implemented')
 end

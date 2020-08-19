@@ -92,7 +92,7 @@ classdef compexp_class
                     obj.mdot(iL) = state.mdot ;
                     obj.pr(iL)   = 1 ;
                 else
-                    %obj = compexp_offdesign (obj , state, iL , aim, 1) ;
+                    obj = compexp_offdesign (obj , state, iL , aim, 1) ;
                     obj.eta(iL)  = obj.eta0 ;
                     obj.mdot(iL) = state.mdot ;
                     obj.pr(iL)   = 1 ;
@@ -376,7 +376,8 @@ classdef compexp_class
                                 obj.pr(iL) = (P1 / paim) / obj.pr0 ; % Reduce pout and pr accordingly
                                 
                                 % Calculate mass from Stodola
-                                mout = obj.mdot0 * sqrt ( (1. - (pout/P1)^2)/(1. - (pout0/obj.Pin)^2)) ;
+                                %mout = obj.mdot0 * sqrt ( (1. - (pout/P1)^2)/(1. - (pout0/obj.Pin)^2)) ;
+                                mout = obj.mdot(iL) * sqrt ( (1. - (pout/P1)^2)/(1. - (pout0/obj.Pin)^2)) ;
                                 if mout > obj.mdot0 % If an increased mass is required, specify this
                                     obj.mdot(iL) = mout ; 
                                 elseif mout < obj.mdot0 %If a reduced mass is required, use the original mass but reduce the efficiency

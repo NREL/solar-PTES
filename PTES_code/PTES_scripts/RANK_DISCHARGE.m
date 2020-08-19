@@ -102,7 +102,7 @@ else
         Ran_Tbot  = RPN('PQ_INPUTS',Ran_pbot,0.0,'T',steam);
     end
 
-    Ran_ptop  = Ran_ptop * Load.mdot(iL) / DEXP(1).mdot0 ; % This accounts for part-load operation
+    Ran_ptop  = DEXP(1).Pin * Load.mdot(iL) / DEXP(1).mdot0 ; % This accounts for part-load operation
     PR_dis    = Ran_ptop/Ran_pbot; % Total pressure ratio
     Ran_pmid1 = Ran_ptop/(PR_dis0)^(1/3);  % pressure at HPT outlet. First two stages pressure ratios are kept constant. Only final LP stage pressure ratio changes.
     Ran_pmid2 = Ran_pmid1/(PR_dis0)^(1/3); % pressure at IPT outlet
@@ -112,7 +112,8 @@ else
     DEXP(3).mdot(iL) = DEXP(3).mdot0 ;
     DEXP(3).pr(iL) = 1.0 ;
     
-    DEXP(3).eta0 = 0.9 * sqrt(Load.mdot(iL) / DEXP(1).mdot0) ;
+    %DEXP(3).eta0 = 0.9 * sqrt(Load.mdot(iL) / DEXP(1).mdot0) ; % Can't
+    %remember why this is here! Looks bad!
     
 end
 
@@ -156,7 +157,7 @@ for counter=1:max_iter
         steam.state(iL,iSA).p = steam.state(iL,iG).p ;
         [steam] = update(steam,[iL,iSA],1);
         
-        x1 = (DEXP(1).mdot0 - DEXP(2).mdot0)/steam.state(iL,iG).mdot ;
+        x1 = (DEXP(1).mdot0 - DEXP(2).mdot0)/ DEXP(1).mdot0;
     else
         f1 = @(x1) dT_from_mix_obj(x1,steam,iL,iG,iSA,iP2,Ran_Tmid1-1,MIX(1));
         %plot_function(f1,0.0,1.0,100,10)

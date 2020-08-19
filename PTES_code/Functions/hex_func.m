@@ -44,9 +44,9 @@ switch model
         % Set heat exchanger geometry (first time only)
         if ~HX.Lgeom_set
             [HX] = hex_set_geom(HX, iL, fluidH, iH, fluidC, iC, mode, par);
-            %if iL==1
-                %HX.Lgeom_set = false ;
-            %end
+%             if iL==1
+%                 HX.Lgeom_set = false ;
+%             end
         end
         %fprintf('\nGH = %.2f, GC = %.2f, LH = %.3f, LC = %.3f,\n',HX.H.G,HX.C.G,HX.L2,HX.L1)
         %disp([HX.H.dpdL, HX.C.dpdL])

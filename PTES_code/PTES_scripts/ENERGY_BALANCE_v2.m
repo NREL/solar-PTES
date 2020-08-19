@@ -607,6 +607,7 @@ end
 % temperature. If stores are above T0 when discharged, then they must be
 % returned to their original temp or greater. If stores are below T0 when
 % discharged, then they must be returned to original temp or lower.
+heater_in = 0;
 if any(Load.mode ==[0,4,6])
     problem = 0 ;
     

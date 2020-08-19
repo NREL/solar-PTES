@@ -303,6 +303,9 @@ if LPRr
     end
     phi = (Gama/(CCMP.eta(iL)*(Gama-1))) ;
     PRr = ((Tin/Tout)^phi) / PRch ;
+    %if PRr > 1.25
+    %    PRr = 1.25;
+    %end
     %{ 
     % Tried to calculate the expansion properly, but it gives worse results
     than the method above

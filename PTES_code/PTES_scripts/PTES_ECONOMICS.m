@@ -303,9 +303,9 @@ Cdata.cap_cost_hi  = Cdata.cap_costM + Cdata.cap_costSD ;
 
 switch Load.mode
     case {0,3,4,6}
-        pow  = W_out_dis/t_dis/1e3 ;
-        Wout = W_out_dis/(1e3*3600) ;
-        Win  = -W_in_chg/(1e3*3600) ;
+        pow  = (E_net_dis- heater_in)/t_dis/1e3 ;
+        Wout = (E_net_dis - heater_in)/(1e3*3600) ;
+        Win  = -E_net_chg/(1e3*3600) ;
 
         Cdata.cap_cost_pow = Cdata.cap_costM / pow ; % Cost, $ / kW
         Cdata.cap_cost_en  = Cdata.cap_costM / Wout ;  % Cost, $ / kWh
