@@ -177,9 +177,15 @@ switch mode
         % be previously specified
         if mC == 0, error('mC must be known in mode==4'); end
         if mH == 0, mH = []; end
-        if any([par<=THmin,par>=TH2])
-            warning(strcat('Condition THmin<par<TH2 must be true in mode==4. ',...
-                'Changing to mode==2 with Crat=1'));
+        if isempty(HX.eff)
+            error('eff must be defined for hex_func to operate in mode==4')
+        end
+        cond4a = par < TH2;
+        cond4b = par > TH2 - HX.eff*(TH2-TC1);
+        if any([~cond4a,~cond4b])
+            fprintf(1,['\nNote: Condition THmin<par<TH2 must be true ',...
+                'in mode==4. Changing to mode==2 with Crat=1\n\n']);
+            %keyboard
             mode = 2;
             Crat = 1.0; %Crat = mH*CpH / (mC*CpC)
             mH = Crat*mC*CpCmean/CpHmean;
@@ -342,11 +348,13 @@ switch model
                 
                 % Find value of mH for which DTmin=ref
                 f1 = @(mH) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,compare,ref);
-                %{
-                plot_function(f1,mHmin,mHmax,100,11)
-                f2 = @(mH) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,compare,ref,true);
-                plot_function(f2,mHmin,mHmax,100,11)
-                %}
+                if f1(mHmin)*f1(mHmax) > 0
+                    warning('f1(mHmin) and f1(mHmax) should have different signs')
+                    plot_function(f1,mHmin,mHmax,100,11)
+                    keyboard
+                    f2 = @(mH) compute_TQ(fluidH,fluidC,mH,mC,hH2,pH2,pH1,hC1,pC1,pC2,NX,'hH1',hH1,compare,ref,true);
+                    plot_function(f2,mHmin,mHmax,100,11)
+                end
                 mH = fzero(f1,[mHmin,mHmax],options);
                 
                 % Store new mH value into stateH structure

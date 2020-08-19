@@ -3,10 +3,10 @@ T0      = 25 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 25e5;         % top pressure, Pa
 PRch    = 1.5;          % charge pressure ratio
-PRr     = 1.2;          % discharge pressure ratio: PRdis = PRch*PRr
+PRr     = 2.0;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
-LPRr    = 1 ;           % Logical. Estimate optimal PRr after charging run.
+LPRr    = 0 ;           % Logical. Estimate optimal PRr after charging run.
 setTmax = 1;            % set Tmax? (this option substitutes PRch)
 Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 
@@ -153,7 +153,7 @@ Load.ind  = (1:Load.num)';
 switch PBmode
     case 0
         fHname  = 'SolarSalt';  % fluid name
-        TH_dis0 = 500 + 273.15; % initial temperature of discharged hot fluid, K
+        TH_dis0 = 250 + 273.15; % initial temperature of discharged hot fluid, K
         MH_dis0 = 1e9;          % initial mass of discharged hot fluid, kg
         TH_chg0 = 570 + 273.15; % initial temperature of charged hot fluid, K
         MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
