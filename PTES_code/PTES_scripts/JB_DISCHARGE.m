@@ -107,7 +107,7 @@ for counter = 1:max_iter
         [fluidH] = update(fluidH,[iL,iH],1);
         Taim = THmin;
 
-        [HX(ihx_hot(iN)),fluidH,iH,gas,iG] = hex_func(HX(ihx_hot(iN)),iL,fluidH,iH,gas,iG,2,1.0);
+        [HX(ihx_hot(iN)),fluidH,iH,gas,iG] = hex_func(HX(ihx_hot(iN)),iL,fluidH,iH,gas,iG,4,THmin);
         [DPMP(iPMP),fluidH,iH] = compexp_func (DPMP(iPMP),iL,fluidH,iH,'Paim',fluidH.state(iL,1).p,1);
         iH=iH+1; iPMP=iPMP+1;
         

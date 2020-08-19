@@ -1,12 +1,12 @@
 % Set atmospheric conditions and cycle parameters
-T0      = 40 + 273.15;  % ambient temp, K
+T0      = 25 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 25e5;         % top pressure, Pa
 PRch    = 1.5;          % charge pressure ratio
 PRr     = 1.0;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
-LPRr    = 0 ;           % Logical. Estimate optimal PRr after charging run.
+LPRr    = 1 ;           % Logical. Estimate optimal PRr after charging run.
 setTmax = 1;            % set Tmax? (this option substitutes PRch)
 Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 
@@ -21,7 +21,7 @@ eta   = 0.90;  % polytropic efficiency
 
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
-Ne_ch = 2; % number of expansions during charge
+Ne_ch = 1; % number of expansions during charge
 nH    = max([2,Nc_ch]); % number of hot fluid streams
 nC    = Ne_ch;          % number of cold fluid streams
 
@@ -116,11 +116,11 @@ switch Load.mode
             fac = 30 ;
             Load.time = [10;4;10;10].*3600;         % time spent in each load period, s
             Load.type = ["chg";"str";"ran";"ran"];  % type of load period
-            %Load.mdot = [10*fac;0;1*fac;1*fac];     % working fluid mass flow rate, kg/s
+            Load.mdot = [10*fac;0;1*fac;1*fac];     % working fluid mass flow rate, kg/s
             Load.options.useCold = [0;0;1;0];        % Use cold stores during Rankine discharge?
-            %T0_off    = [T0-0;T0-0;T0-0;T0-0] ;
-            Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
-            T0_off    = T0IN;
+            T0_off    = [T0-0;T0-0;T0-0;T0-0] ;
+            %Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
+            %T0_off    = T0IN;
 
         else
             Load = Design_Load ;

@@ -394,16 +394,28 @@ switch scenario
         W1 = 0.2;
         H1 = 0.26;
         L1 = 0.06;
+        D1 = 3.63e-3;
+        Dout = 10.2e-3;
+        t2 = 0.9e-3;
+        D2 = Dout - 2*t2;
+        Ntubes = 20;
         sigma1 = 0.534;
-        sigma2 = 0.146;
-        HX.D1  = 3.63e-3;
-        HX.D2  = 10.2e-3 - 2*0.9e-3;
+        sigma2 = 0.099;
+        pfins  = 1/315;
+        Nfins  = W1/pfins;
+        Afins  = 2*Nfins*(H1*L1 - pi/4*Dout^2*Ntubes);
+        Anotf  = pi*Dout*W1*Ntubes;
+        A1tot  = Afins + Anotf;
+        Afin_A1= Afins/A1tot;
+        HX.D1  = D1;
+        HX.D2  = D2;
         HX.Af1 = W1*H1*sigma1;
         HX.Af2 = (HX.D2)^2*pi/4;
         HX.L1  = L1;
-        HX.L2  = W1*20;
+        HX.L2  = W1*Ntubes;
         HX.A1  = 4*HX.Af1*HX.L1/HX.D1;
         HX.A2  = 4*HX.Af2*HX.L2/HX.D2;
+        HX.Afin_A1 = Afin_A1;
         HX.shape = 'cross-flow';
         HX.Lgeom_set = 1;
 end
@@ -434,6 +446,8 @@ switch scenario
         UA2   = HX.UA;
         Dp_a1 = 6.0; %Pa
         Dp_a2 = HX.DppC*1e5;
+        Dp_w1 = NaN; %Pa
+        Dp_w2 = HX.DppH*1e5;
         
         fprintf(1,'\n\n');
         fprintf(1,'                    %8s   %8s   %8s\n','Nellis','Result','Error')
@@ -441,6 +455,7 @@ switch scenario
         fprintf(1,'ht water [W/m2/K] = %8.2f   %8.2f   %6.1f %%\n',ht_w1,ht_w2,abs(ht_w1-ht_w2)/ht_w2*100)
         fprintf(1,'UA total [W/K]    = %8.2f   %8.2f   %6.1f %%\n',UA1,UA2,abs(UA1-UA2)/UA1*100)
         fprintf(1,'Dp air   [Pa]     = %8.2f   %8.2f   %6.1f %%\n',Dp_a1,Dp_a2,abs(Dp_a1-Dp_a2)/Dp_a1*100)
+        fprintf(1,'Dp water [Pa]     = %8.2f   %8.2f   %6.1f %%\n',Dp_w1,Dp_w2,abs(Dp_w1-Dp_w2)/Dp_w1*100)
 end
 
 % Make plots
