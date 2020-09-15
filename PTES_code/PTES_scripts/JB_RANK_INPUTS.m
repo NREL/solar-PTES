@@ -1,9 +1,9 @@
 % Set atmospheric conditions and cycle parameters
-T0      = 25 + 273.15;  % ambient temp, K
+T0      = 30 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 25e5;         % top pressure, Pa
 PRch    = 1.5;          % charge pressure ratio
-PRr     = 1.0;          % discharge pressure ratio: PRdis = PRch*PRr
+PRr     = 1.;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 LPRr    = 1 ;           % Logical. Estimate optimal PRr after charging run.
@@ -32,7 +32,7 @@ Nhot = 1; % number of hot stores. Not implemented for >2
 % Set parameters of Load structure
 switch Load.mode
     case 0 % PTES
-        fac = 10*100/1.1627; % This can be used to more easily set the mass flow to obtain a desired power output
+        fac = 10*100/1.1618/1.11; % This can be used to more easily set the mass flow to obtain a desired power output
         stH = 10 ;
         % This is the load scenario the plant is designed for
         Design_Load      = Load ;
@@ -113,14 +113,14 @@ switch Load.mode
         
         if Loffdesign
             % This is the actual load profile that the plant meets
-            fac = 30 ;
+            fac = 100 ;
             Load.time = [10;4;10;10].*3600;         % time spent in each load period, s
             Load.type = ["chg";"str";"ran";"ran"];  % type of load period
-            Load.mdot = [10*fac;0;1*fac;1*fac];     % working fluid mass flow rate, kg/s
+            %Load.mdot = [10*fac;0;1*fac;1*fac];     % working fluid mass flow rate, kg/s
             Load.options.useCold = [0;0;1;0];        % Use cold stores during Rankine discharge?
-            T0_off    = [T0-0;T0-0;T0-0;T0-0] ;
-            %Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
-            %T0_off    = T0IN;
+            %T0_off    = [T0-0;T0-0;T0-0;T0-0] ;
+            Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
+            T0_off    = T0IN;
 
         else
             Load = Design_Load ;

@@ -6,7 +6,7 @@
 % calculate the sensitivity assuming each cost is normally distributed
 % TRUE: Calculate the cost numerous times using different combinations of
 % different cost correlations
-Lsuper = 0 ;
+Lsuper = 1 ;
 
 % Some input variables - move these to an input file?
 price = [0.033,0.025,0.06] ;
@@ -55,6 +55,12 @@ if Lsuper
     for ii = 1 : length(CCMP)
         CCMP(ii).cmpexp_cost.cost_mode = CCMPmode(randi(length(CCMPmode))) ;    
     end
+    if Load.mode == 4 || Load.mode == 5 || Load.mode == 6
+        %Recompressor
+        for ii = 1 : length(RCMP)
+            RCMP(ii).cmpexp_cost.cost_mode = RCMPmode(randi(length(RCMPmode))) ;
+        end
+    end
     for ii = 1 : length(DCMP)
         DCMP(ii).cmpexp_cost.cost_mode = DCMPmode(randi(length(DCMPmode))) ;    
     end
@@ -78,7 +84,11 @@ if Lsuper
     end
     for ii = 1 : numel(HX)
         if strcmp(HX(ii).name,'hot')
-            HX(ii).hx_cost.cost_mode = hotHXmode(randi(length(hotHXmode))) ;
+            if Load.mode == 6 && ii == 1
+                HX(ii).hx_cost.cost_mode = 0;
+            else
+                HX(ii).hx_cost.cost_mode = hotHXmode(randi(length(hotHXmode))) ;
+            end
         elseif strcmp(HX(ii).name,'cold')
             HX(ii).hx_cost.cost_mode = cldHXmode(randi(length(cldHXmode))) ;
         elseif strcmp(HX(ii).name,'regen')
@@ -146,12 +156,13 @@ for ii = 1 : length(CCMP)
     cap_sens = cap_sens + cost_sens(CCMP(ii).cmpexp_cost, Nsens) ;
 end
 for ii = 1 : length(DEXP)
-    if Load.mode == 1 || (Lretro && Load.mode == 3)
+    if Load.mode == 1 || (Lretro && Load.mode == 3) || Load.mode == 6
         DEXP(ii).cmpexp_cost.COST = 0.01 ;
     else
         DEXP(ii) = compexp_econ(DEXP(ii), CEind, gas)  ;
     end
     cap_cost = cap_cost + DEXP(ii).cmpexp_cost.COST ;
+    
     cap_sens = cap_sens + cost_sens(DEXP(ii).cmpexp_cost, Nsens) ;
 end
 for ii = 1 : length(CEXP)
@@ -160,11 +171,12 @@ for ii = 1 : length(CEXP)
     else
         CEXP(ii) = compexp_econ(CEXP(ii), CEind, gas)  ;
     end
+
     cap_cost = cap_cost + CEXP(ii).cmpexp_cost.COST ;
     cap_sens = cap_sens + cost_sens(CEXP(ii).cmpexp_cost, Nsens) ;
 end
 for ii = 1 : length(DCMP)
-    if Load.mode == 1 || (Lretro && Load.mode == 3)
+    if Load.mode == 1 || (Lretro && Load.mode == 3) 
         DCMP(ii).cmpexp_cost.COST = 0.01 ;
     else
         DCMP(ii) = compexp_econ(DCMP(ii), CEind, gas)  ;
@@ -173,7 +185,7 @@ for ii = 1 : length(DCMP)
     cap_sens = cap_sens + cost_sens(DCMP(ii).cmpexp_cost, Nsens) ;
 end
 
-if Load.mode == 4 || Load.mode == 5 || Load.mode == 6
+if Load.mode == 4 || Load.mode == 5 
     %Recompressor
     if Lrcmp
         RCMP     = compexp_econ(RCMP, CEind, gas) ;
@@ -269,6 +281,8 @@ for ii = 1 : Nhot
         HT(ii).tankA_cost.COST = 0.01 ;
         HT(ii).tankB_cost.COST = 0.01 ;
         HT(ii).fluid_cost.COST = 0.01 ;
+        HT(ii).insA_cost.COST = 0.01 ;
+        HT(ii).insB_cost.COST = 0.01 ;
     else
         HT(ii) = tank_cost(HT(ii), CEind) ;
         HT(ii) = ins_cost(HT(ii), CEind) ;
@@ -477,8 +491,8 @@ function obj = calc_lcos(obj, Win, Wout, times, Nsens, mode)
     % Calculate the total time that elapsed in this run
     totT = sum(times) ; % seconds 
     Ncyc = 8760 * 3600 / totT ; % How many cycles in one year
-    if Ncyc > 365
-        Ncyc = 365 ; % Cycle maximum once per day
+    if Ncyc > 2*365
+        Ncyc = 2*365 ; % Cycle maximum once per day
     end
     
     totWin  = Win * Ncyc ;   % Total work input in one year

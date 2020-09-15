@@ -33,8 +33,8 @@ end
 Wdis_req = 100e6 ;
 
 % Set heat exchanger parameters
-HX_model  = 'geom' ;
-eff       = 0.95;  % heat exchanger effectiveness
+HX_model  = 'eff' ;
+eff       = 0.97;  % heat exchanger effectiveness
 ploss     = 0.01;  % pressure loss in HEXs
 HX_D1     = 0.005; %hydraulic diameter
 HX_shape  = 'circular';   %channel shape for counter-flow HEXs
@@ -49,7 +49,7 @@ multi_run   = 0; % run cycle several times with different parameters?
 Lmulti_mdot = 0; % Read data from previous multirun to recalculate what the actual mass flow rates should be for a desired power
 optimise    = 0; % optimise cycle?
 make_plots  = 1; % make plots?
-save_figs   = 0; % save figures at the end?
+save_figs   = 1; % save figures at the end?
 make_hex_plots = 0; % make plots of heat exchangers?
 
 %if (Nc_ch > 1 || Ne_ch > 1) && (Ncld > 1 || Nhot > 1)
@@ -110,10 +110,10 @@ environ = environment_class(T0,p0,Load.num,10);
 % have been defined in the SET_MULTI_RUN script
 if multi_run==1
     % Set variable along curves
-    Vpnt = 'unbalanced';  % variable along curve
-    Npnt = 15;            % points on curve
-    pnt1 = 1;    % min value
-    pnt2 = 3;    % max value
+    Vpnt = 'PRr';  % variable along curve
+    Npnt = 20;            % points on curve
+    pnt1 = 0.8;    % min value
+    pnt2 = 2.0;    % max value
     Apnt = linspace(pnt1,pnt2,Npnt); % array
     
     % Set variable between curves
