@@ -5,6 +5,7 @@ Obj(3).type = 'CAPC';
 Par(1).type = 'TH_dis0';
 Par(2).type = 'PRr';
 Par(3).type = 'eff';
+Par(4).type = 'ploss';
 
 nVar  = numel(Par);
 Nobjs = numel(Obj); %Number of objectives = 2 or 3.
@@ -40,6 +41,11 @@ for i = 1 : nVar
            Par(i).title = 'Effectiveness';
            Par(i).var_min = 0.8 ;
            Par(i).var_max = 0.99 ;
+           
+       case 'ploss'
+           Par(i).title = 'Pressure loss';
+           Par(i).var_min = 0.005 ;
+           Par(i).var_max = 0.025 ;
            
        case 'NEXP'
            Par(i).title = 'Number of expansions';

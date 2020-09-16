@@ -14,11 +14,14 @@ function [fit, err, extra]=PTES_optimize(x,opt_par,Nobjs)
 dbstop if error
 %dbclear all
 
+% Set properties for plots
+set_graphics
+
 % SET INPUTS
 INPUTS
 
 %Check for optimization calling
-if x(1) > 1 %First variable in optimization is always a Temperature
+if Nobjs > 1 %First variable in optimization is always a Temperature
    SET_OPTIMIZE_RUN
 end
 
@@ -125,12 +128,16 @@ if make_hex_plots
     PLOT_HEXS
 end
 
-if x(1) > 1
+if Nobjs > 1
     CONSTRAINT_AND_OUTPUT
 end
 
 catch
-ERROR    
+    if Nobjs > 1
+        OPT_ERROR
+    else
+        warning('An error occured somewhere in the code')
+    end
 end
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

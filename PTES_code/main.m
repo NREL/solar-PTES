@@ -1,5 +1,4 @@
-% Determine Operating System
-clc
+%clc
 clear all
 
 % Determine Operating System
@@ -13,9 +12,6 @@ switch computer
         addpath('.\Classes\','.\Generic\','.\Functions\','.\PTES_scripts\','.\Other\','.\LIB\','.\Optimization')
 end
 
-% Set properties for plots
-set_graphics
-
 % Load CoolProp library (low-level interface)
 load_coolprop
 
@@ -28,9 +24,9 @@ fname='PTES_optimize';
 
 switch run_mode
     case 0
-        feval(fname, 0);
+        feval(fname, 0, 0, 0);
     case 1
-        feval(fname, 1);
+        feval(fname, 1, 0, 0);
     case 2
         Optimize_NSGA2;
     case 3
