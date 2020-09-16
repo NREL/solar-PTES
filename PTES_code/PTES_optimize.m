@@ -1,4 +1,4 @@
-function [fit, err, extra]=PTES_optimize(x)
+function [fit, err, extra]=PTES_optimize(x,opt_par,Nobjs)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % PTES
 % This code employs thermodynamic and economic models to predict the
@@ -14,29 +14,13 @@ function [fit, err, extra]=PTES_optimize(x)
 dbstop if error
 %dbclear all
 
-% Determine Operating System
-c = computer();
-
-% Add paths
-switch computer
-    case 'GLNXA64' %Linux
-        addpath('./Classes/','./Generic/','./Functions/','./PTES_scripts/','./Other/','./LIB/')
-    case 'PCWIN64' %Windows
-        addpath('.\Classes\','.\Generic\','.\Functions\','.\PTES_scripts\','.\Other\','.\LIB\')
-end
-
-% Set properties for plots
-set_graphics
-
-% Load CoolProp library (low-level interface)
-load_coolprop
-
 % SET INPUTS
 INPUTS
 
 %Check for optimization calling
 if x(1) > 1 %First variable in optimization is always a Temperature
    SET_OPTIMIZE_RUN
+   %Nobjs = No;
 end
 
 tic % start timer

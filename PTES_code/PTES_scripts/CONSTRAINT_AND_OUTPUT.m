@@ -1,4 +1,4 @@
-objectives = csvread('./Data/objectives');
+%objectives = csvread('./Data/objectives');
 if fluidH.state(2,3).T <TH_dis0
    f1=0.8+(0.9-0.8)*rand(1);
    f2=0.8+(0.9-0.8)*rand(1);
@@ -13,10 +13,10 @@ else
     f3=Cdata.cap_costM;
     err= zeros(1,1);        
 end
-if objectives ==2
+if Nobjs ==2
     fit = [f1 f2];  %For two objectives
 end
-if objectives==3
+if Nobjs==3
     fit=[f1 f2 f3]; %For three objectives
 end
 

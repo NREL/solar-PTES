@@ -6,7 +6,7 @@
 % calculate the sensitivity assuming each cost is normally distributed
 % TRUE: Calculate the cost numerous times using different combinations of
 % different cost correlations
-Lsuper = 0 ;
+Lsuper = 1 ;
 
 % Some input variables - move these to an input file?
 price = [0.033,0.025,0.06] ;

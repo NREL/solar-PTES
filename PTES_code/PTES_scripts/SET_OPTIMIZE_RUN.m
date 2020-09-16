@@ -1,11 +1,16 @@
-if Load.mode == 0
-TH_dis0 = x(1);
-PRr = x(2);
-eff = x(3);
-end
-
-if Load.mode==3
-TH_dis0 = x(1);
-Ne_ch   = round (x(2));
-eff = x(3);
+for i = 1 : numel(x)
+   switch opt_par(i).type
+       
+       case 'TH_dis0'
+           TH_dis0 = x(i);           
+       case 'PRr'
+           PRr = x(i) ;
+           
+       case 'eff'
+           eff = x(i) ;
+           
+       case 'NEXP'
+          Ne_ch   = round (x(i)); 
+           
+   end
 end

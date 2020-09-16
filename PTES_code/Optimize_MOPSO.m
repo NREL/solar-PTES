@@ -17,9 +17,9 @@
 %                   optimization functions.                               %
 %           * MultiObj.fun:     Anonymous multi-obj function to minimize. %
 %           * MultiObj.nVar:    Number of variables.                      %
-%           * MultiObj.var_min: Vector that indicates the minimum values  %
+%           * MultiObj.xl: Vector that indicates the minimum values  %
 %                               of the search space in each dimension.    %
-%           * MultiObj.var_max: Same than 'var_min' with the maxima.      %
+%           * MultiObj.xu: Same than 'xl' with the maxima.      %
 %   References:                                                           %
 %    [1]Coello, C. A. C., Pulido, G. T., & Lechuga, M. S. (2004). Handling%
 %       multiple objectives with particle swarm optimization. IEEE Tran-  %
@@ -30,45 +30,30 @@
 %       dominance. In International Conference on Evolutionary Multi-Crite%
 %       rion Optimization (pp. 505-519). Springer Berlin Heidelberg.      %
 % ----------------------------------------------------------------------- %
-clc
-clear all
+%clc
+%clear all
 
-Obj1='1 - Roundtrip efficiency';
-Obj2='LCOS [USD/kWh]';
-Obj3='Capital Cost [USD]';
-
-Par1='Compressor Inlet Temperature';
-Par2='Discharge Pressure Ratio';
-Par3='Effectiveness';
-
+OPT_INPUTS
 Allfigures=0;
 
     % Parameters
-    Np = 3;        % Population size
-    Nr = 3;        % Repository size
-    maxgen = 5;    % Maximum number of generations
+    Np = 50;        % Population size
+    Nr = 25;        % Repository size
+    maxgen = 3;%50;    % Maximum number of generations
     W = 0.4;         % Inertia weight
     C1 = 2;          % Individual confidence factor
     C2 = 2;          % Swarm confidence factor
     ngrid = 20;      % Number of grids in each dimension
     maxvel = 5;      % Maxmium vel in percentage
     u_mut = 0.5;     % Uniform mutation percentage
-
-    fname     = 'PTES_optimize';
-    nVar    = 3;
     
-    mode=csvread('./Data/mode');  %specified in main.m
-    if mode == 0
-        var_min = [523; 0.8; 0.8;];
-        var_max = [723; 1.6; 0.97];
-    end
-    if mode == 3
-    var_min = [523; 1; 0.8;];
-    var_max = [723; 5; 0.97];
-    end
+    xl = zeros(nVar,1);
+    xu = zeros(nVar,1);
     
-    xl=var_min';
-    xu=var_max';
+    for i = 1 : nVar
+       xl(i) = Par(i).var_min ;
+       xu(i) = Par(i).var_max ;
+    end
     
     POS=zeros(Np,nVar);
     %Wdamp=0.99;
@@ -76,13 +61,14 @@ Allfigures=0;
     % Initialization
     
     %Want to use previous data? change previousdata to 1
-    previousdata=0;
+    previousdata=1;
     if previousdata==0
-    POS = repmat((var_max-var_min)',Np,1).*rand(Np,nVar) + repmat(var_min',Np,1);
+    POS = repmat((xu-xl)',Np,1).*rand(Np,nVar) + repmat(xl',Np,1);
     end
     %Getting previous data from the IntialPop.csv file in outputs folder
 if previousdata==1
-    A=csvread('./Data/IntialPop');
+    A=load('./Data/previous_pop');
+    A = A.pop ;
     lengthcheck=size(POS,1)-size(A,1);
     
     if lengthcheck==0
@@ -90,7 +76,7 @@ if previousdata==1
     end
     
     if lengthcheck>0
-        POS(1:size(A,1),1:nVar)=A(:,1:nVar)
+        POS(1:size(A,1),1:nVar)=A(:,1:nVar);
         L1=size(A,1)+1; %if size(Nr of rows) of POS is 40 and A is 30, then L1=31 and L2=40
         L2=size(POS,1);
         for jj=L1:L2
@@ -107,7 +93,7 @@ end
     VEL = zeros(Np,nVar);
     for i =1:Np
     
-    [POS_fit(i,:)] =feval(fname, POS(i,:));          % Objective function evaulation 
+    [POS_fit(i,:)] =feval(fname, POS(i,:), Par, Nobjs);          % Objective function evaulation 
     
     end
     if size(POS,1) ~= size(POS_fit,1)
@@ -121,7 +107,7 @@ end
     REP.pos_fit = POS_fit(~DOMINATED,:);
 
     REP      = updateGrid(REP,ngrid);
-    maxvel   = (var_max-var_min).*maxvel./100;
+    maxvel   = (xu-xl).*maxvel./100;
     gen      = 1;
 
 
@@ -139,15 +125,15 @@ end
         POS = POS + VEL;
         
         % Perform mutation
-        POS = mutation(POS,gen,maxgen,Np,var_max,var_min,nVar,u_mut);
+        POS = mutation(POS,gen,maxgen,Np,xu,xl,nVar,u_mut);
         
         % Check boundaries
-        [POS,VEL] = checkBoundaries(POS,VEL,maxvel,var_max,var_min);       
+        [POS,VEL] = checkBoundaries(POS,VEL,maxvel,xu,xl);       
         
         % Evaluate the population
         for ii =1:Np
             
-                [POS_fit(ii,:)] =feval(fname, POS(ii,:));          % Objective function evaulation 
+                [POS_fit(ii,:)] =feval(fname, POS(ii,:), Par, Nobjs);          % Objective function evaulation 
             
         end
         
@@ -176,84 +162,92 @@ end
         if(gen>maxgen), stopCondition = true; end
     end
     
+    saveall = 1 ;
+    if saveall
+        pop = POS ;
+    else
+        pop = REP.pos ;
+    end
+    save('Data/previous_pop','pop')
+    
 % Plotting and verbose
         if(size(POS_fit,2)==2)
             figure(1)
-
             plot(REP.pos_fit(:,1),REP.pos_fit(:,2),'ok')
-            grid on; xlabel(Obj1); ylabel(Obj2);
+            grid on; xlabel(Obj(1).title); ylabel(Obj(2).title);
             
            if Allfigures==1
 
             figure(2)
             plot(REP.pos(:,1),REP.pos_fit(:,1),'ok')
-            grid on; xlabel(Par1); ylabel(Obj1);
+            grid on; xlabel(Par(1).title); ylabel(Obj(1).title);
             
             figure(3)
             plot(REP.pos(:,2),REP.pos_fit(:,1),'sr')
-            grid on; xlabel(Par2); ylabel(Obj1);
+            grid on; xlabel(Par(2).title); ylabel(Obj(1).title);
             
             figure(4)
             plot(REP.pos(:,3),REP.pos_fit(:,1),'db')
-            grid on; xlabel(Par3); ylabel(Obj1);
+            grid on; xlabel(Par(3).title); ylabel(Obj(1).title);
             
             figure(5)
             plot(REP.pos(:,1),REP.pos_fit(:,2),'ok')
-            grid on; xlabel(Par1); ylabel(Obj2);
+            grid on; xlabel(Par(1).title); ylabel(Obj(2).title);
             
             figure(6)
             plot(REP.pos(:,2),REP.pos_fit(:,2),'sr')
-            grid on; xlabel(Par2); ylabel(Obj2);
+            grid on; xlabel(Par(2).title); ylabel(Obj(2).title);
             
             figure(7)
             plot(REP.pos(:,3),REP.pos_fit(:,2),'db')
-            grid on; xlabel(Par3); ylabel(Obj2);
+            grid on; xlabel(Par(3).title); ylabel(Obj(2).title);
            end
 
         end
 
         if(size(POS_fit,2)==3)
             
-           plot3(REP.pos_fit(:,1),REP.pos_fit(:,2),REP.pos_fit(:,3),'ok'); hold on;
-           grid on; xlabel(Obj1); ylabel(Obj2); zlabel(Obj3);
+           figure(1) 
+           plot3(REP.pos_fit(:,1),REP.pos_fit(:,2),REP.pos_fit(:,3),'ok'); 
+           grid on; xlabel(Obj(1).title); ylabel(Obj(2).title); zlabel(Obj(3).title);
            
            if Allfigures==1
            
            figure(2)
             plot(REP.pos(:,1),REP.pos_fit(:,1),'ok')
-            grid on; xlabel(Par1); ylabel(Obj1);
+            grid on; xlabel(Par(1).title); ylabel(Obj(1).title);
             
             figure(3)
             plot(REP.pos(:,2),REP.pos_fit(:,1),'sr')
-            grid on; xlabel(Par2); ylabel(Obj1);
+            grid on; xlabel(Par(2).title); ylabel(Obj(1).title);
             
             figure(4)
             plot(REP.pos(:,3),REP.pos_fit(:,1),'db')
-            grid on; xlabel(Par3); ylabel(Obj1);
+            grid on; xlabel(Par(3).title); ylabel(Obj(1).title);
             
             figure(5)
             plot(REP.pos(:,1),REP.pos_fit(:,2),'ok')
-            grid on; xlabel(Par1); ylabel(Obj2);
+            grid on; xlabel(Par(1).title); ylabel(Obj(2).title);
             
             figure(6)
             plot(REP.pos(:,2),REP.pos_fit(:,2),'sr')
-            grid on; xlabel(Par2); ylabel(Obj2);
+            grid on; xlabel(Par(2).title); ylabel(Obj(2).title);
             
             figure(7)
             plot(REP.pos(:,3),REP.pos_fit(:,2),'db')
-            grid on; xlabel(Par3); ylabel(Obj2);
+            grid on; xlabel(Par(3).title); ylabel(Obj(2).title);
       
             figure(8)
             plot(REP.pos(:,1),REP.pos_fit(:,3),'ok')
-            grid on; xlabel(Par1); ylabel(Obj3);
+            grid on; xlabel(Par(1).title); ylabel(Obj(3).title);
             
             figure(9)
             plot(REP.pos(:,2),REP.pos_fit(:,3),'sr')
-            grid on; xlabel(Par2); ylabel(Obj3);
+            grid on; xlabel(Par(2).title); ylabel(Obj(3).title);
             
             figure(10)
             plot(REP.pos(:,3),REP.pos_fit(:,3),'db')
-            grid on; xlabel(Par3); ylabel(Obj3);  
+            grid on; xlabel(Par(3).title); ylabel(Obj(3).title);  
             
            end
             
@@ -280,11 +274,11 @@ end
 
 % Function that corrects the positions and velocities of the particles that
 % exceed the boundaries
-function [POS,VEL] = checkBoundaries(POS,VEL,maxvel,var_max,var_min)
+function [POS,VEL] = checkBoundaries(POS,VEL,maxvel,xu,xl)
     % Useful matrices
     Np = size(POS,1);
-    MAXLIM   = repmat(var_max(:)',Np,1);
-    MINLIM   = repmat(var_min(:)',Np,1);
+    MAXLIM   = repmat(xu(:)',Np,1);
+    MINLIM   = repmat(xl(:)',Np,1);
     MAXVEL   = repmat(maxvel(:)',Np,1);
     MINVEL   = repmat(-maxvel(:)',Np,1);
     
@@ -386,7 +380,7 @@ end
 
 % Function that performs the mutation of the particles depending on the
 % current generation
-function POS = mutation(POS,gen,maxgen,Np,var_max,var_min,nVar,u_mut)
+function POS = mutation(POS,gen,maxgen,Np,xu,xl,nVar,u_mut)
     % Sub-divide the swarm in three parts [2]
     fract     = Np/3 - floor(Np/3);
     if(fract<0.5), sub_sizes =[ceil(Np/3) round(Np/3) round(Np/3)];
@@ -399,7 +393,7 @@ function POS = mutation(POS,gen,maxgen,Np,var_max,var_min,nVar,u_mut)
     nmut = round(u_mut*sub_sizes(2));
     if(nmut>0)
         idx = cum_sizes(1) + randperm(sub_sizes(2),nmut);
-        POS(idx,:) = repmat((var_max-var_min)',nmut,1).*rand(nmut,nVar) + repmat(var_min',nmut,1);
+        POS(idx,:) = repmat((xu-xl)',nmut,1).*rand(nmut,nVar) + repmat(xl',nmut,1);
     end
     
     % Third part: non-uniform mutation
@@ -407,6 +401,6 @@ function POS = mutation(POS,gen,maxgen,Np,var_max,var_min,nVar,u_mut)
     nmut    = round(per_mut*sub_sizes(3));
     if(nmut>0)
         idx = cum_sizes(2) + randperm(sub_sizes(3),nmut);
-        POS(idx,:) = repmat((var_max-var_min)',nmut,1).*rand(nmut,nVar) + repmat(var_min',nmut,1);
+        POS(idx,:) = repmat((xu-xl)',nmut,1).*rand(nmut,nVar) + repmat(xl',nmut,1);
     end
 end
