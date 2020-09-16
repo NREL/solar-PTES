@@ -1,7 +1,18 @@
+% Generation information
+Np = 5;        % Population size
+Nr = 5;        % Repository size
+maxgen = 3;    % Maximum number of generations
+
+%Want to use previous data? change previousdata to 1
+previousdata=0;
+Allfigures=0;
+
+% Objective names
 Obj(1).type = 'RTeff'; 
 Obj(2).type = 'LCOS';
 Obj(3).type = 'CAPC';
 
+% Decision variable names
 Par(1).type = 'TH_dis0';
 Par(2).type = 'PRr';
 Par(3).type = 'eff';
