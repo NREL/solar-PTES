@@ -5,7 +5,7 @@ if ~multi_run
     diary off
     % Save plots
     if save_figs == 1
-        formats = {'epsc','fig'};
+        formats = {'epsc','fig','svg'};
         save_fig(1, './Outputs/T-s',formats)
         save_fig(8, './Outputs/Losses',formats)
         save_fig(77,'./Outputs/Costs',formats)

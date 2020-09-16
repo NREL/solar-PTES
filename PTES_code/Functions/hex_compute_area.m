@@ -331,7 +331,11 @@ switch mode
         if impossible_p
             max_ploss = 1.0;
         else
-            max_ploss = max([DppH,DppC]);
+            if impossible_h
+                max_ploss = 1.0;
+            else
+                max_ploss = max([DppH,DppC]);
+            end
         end
         solution = max_ploss - HX.ploss;
 end

@@ -33,7 +33,7 @@ load_coolprop
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Choose scenario
-% 1 = Gas regenerator
+% 1 = Helium regenerator
 % 2 = SolarSalt and Water
 % 3 = CO2 and Water
 % 4 = Steam condenser -- Steam and Water, counter-flow
@@ -44,7 +44,8 @@ load_coolprop
 % 9 = Helium and Helium (Figley2013)
 %10 = Water and air (Nellis example 8.1-1), Xflow
 %11 = Steam condenser -- Steam and air, Xflow
-scenario = 11;
+%12 = Nitrogen regenerator
+scenario = 12;
 
 % Save figures?
 save_figures = 0;
@@ -263,6 +264,23 @@ switch scenario
         hex_mode = 5;
         par = F1.state(1,i1).T-2;
         
+    case 12 % Nitrogen regenerator
+        % Nitrogen (hot, high pressure)
+        F1 = fluid_class('Nitrogen','WF','CP','TTSE',1,5);
+        F1.state(iL,i1).p = 7e5;
+        F1.state(iL,i1).T = 600;
+        F1.state(iL,i1).mdot = 100;
+        
+        % Nitrogen (cold, low pressure)
+        F2 = fluid_class('Nitrogen','WF','CP','TTSE',1,5);
+        F2.state(iL,i2).p = 30e5;
+        F2.state(iL,i2).T = 300;
+        F2.state(iL,i2).mdot = 100;
+        
+        % Set hex_mode
+        hex_mode = 0;
+        par = 0;
+        
     otherwise
         error('not implemented')
 end
@@ -349,7 +367,7 @@ switch model
             otherwise
                 eff   = 0.95;
                 ploss = 0.01;
-                D1    = 0.01;
+                D1    = 0.005;
                 shape = 'circular';
         end
         
@@ -394,16 +412,28 @@ switch scenario
         W1 = 0.2;
         H1 = 0.26;
         L1 = 0.06;
+        D1 = 3.63e-3;
+        Dout = 10.2e-3;
+        t2 = 0.9e-3;
+        D2 = Dout - 2*t2;
+        Ntubes = 20;
         sigma1 = 0.534;
-        sigma2 = 0.146;
-        HX.D1  = 3.63e-3;
-        HX.D2  = 10.2e-3 - 2*0.9e-3;
+        sigma2 = 0.099;
+        pfins  = 1/315;
+        Nfins  = W1/pfins;
+        Afins  = 2*Nfins*(H1*L1 - pi/4*Dout^2*Ntubes);
+        Anotf  = pi*Dout*W1*Ntubes;
+        A1tot  = Afins + Anotf;
+        Afin_A1= Afins/A1tot;
+        HX.D1  = D1;
+        HX.D2  = D2;
         HX.Af1 = W1*H1*sigma1;
         HX.Af2 = (HX.D2)^2*pi/4;
         HX.L1  = L1;
-        HX.L2  = W1*20;
+        HX.L2  = W1*Ntubes;
         HX.A1  = 4*HX.Af1*HX.L1/HX.D1;
         HX.A2  = 4*HX.Af2*HX.L2/HX.D2;
+        HX.Afin_A1 = Afin_A1;
         HX.shape = 'cross-flow';
         HX.Lgeom_set = 1;
 end
@@ -434,6 +464,8 @@ switch scenario
         UA2   = HX.UA;
         Dp_a1 = 6.0; %Pa
         Dp_a2 = HX.DppC*1e5;
+        Dp_w1 = NaN; %Pa
+        Dp_w2 = HX.DppH*1e5;
         
         fprintf(1,'\n\n');
         fprintf(1,'                    %8s   %8s   %8s\n','Nellis','Result','Error')
@@ -441,13 +473,14 @@ switch scenario
         fprintf(1,'ht water [W/m2/K] = %8.2f   %8.2f   %6.1f %%\n',ht_w1,ht_w2,abs(ht_w1-ht_w2)/ht_w2*100)
         fprintf(1,'UA total [W/K]    = %8.2f   %8.2f   %6.1f %%\n',UA1,UA2,abs(UA1-UA2)/UA1*100)
         fprintf(1,'Dp air   [Pa]     = %8.2f   %8.2f   %6.1f %%\n',Dp_a1,Dp_a2,abs(Dp_a1-Dp_a2)/Dp_a1*100)
+        fprintf(1,'Dp water [Pa]     = %8.2f   %8.2f   %6.1f %%\n',Dp_w1,Dp_w2,abs(Dp_w1-Dp_w2)/Dp_w1*100)
 end
 
 % Make plots
 plot_hex(HX,1,10,'C',true);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%{
+%%{
 %%% OFF-DESIGN PERFORMANCE %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Use easier nomenclature for inlet conditions
@@ -459,10 +492,10 @@ pH2 = HX.H.pin;
 % Load and pre-process data from literature (when needed for comparisson)
 % and create mass flow rate arrays
 switch scenario
-    case 1
-        n = 20;
-        mdot1 = F1.state(iL,i1).mdot*linspace(0.25,1.0,n)';
-        mdot2 = F2.state(iL,i1).mdot*linspace(0.25,1.0,n)';
+    case {1,12}
+        n = 50;
+        mdot1 = F1.state(iL,i1).mdot*linspace(0.20,1.0,n)';
+        mdot2 = F2.state(iL,i1).mdot*linspace(0.20,1.0,n)';
         %mdot2 = F2.state(iL,i1).mdot*ones(size(mdot1));
         
     case 5 % Hoopes2016
@@ -517,6 +550,9 @@ ReH_num = zeros(size(mdot1));
 ReC_num = zeros(size(mdot1));
 htH_num = zeros(size(mdot1));
 htC_num = zeros(size(mdot1));
+CfH_num = zeros(size(mdot1));
+CfC_num = zeros(size(mdot1));
+NTU_num = zeros(size(mdot1));
 U_num   = zeros(size(mdot1));
 % Allocate arrays (analytical results)
 TH1_an = zeros(size(mdot1));
@@ -540,10 +576,13 @@ for im = 1:n
     pC2_num(im) = HX.C.p(HX.NX+1);
     DpH_num(im) = HX.H.pin-HX.H.p(1);
     DpC_num(im) = HX.C.pin-HX.C.p(HX.NX+1);
-    ReH_num(im) = sum(0.5*(HX.H.Re(1:end-1)+HX.H.Re(2:end)).*HX.dL')./HX.L;
-    ReC_num(im) = sum(0.5*(HX.C.Re(1:end-1)+HX.C.Re(2:end)).*HX.dL')./HX.L;
-    htH_num(im) = sum(0.5*(HX.H.ht(1:end-1)+HX.H.ht(2:end)).*HX.dL')./HX.L;
-    htC_num(im) = sum(0.5*(HX.C.ht(1:end-1)+HX.C.ht(2:end)).*HX.dL')./HX.L;
+    ReH_num(im) = sum(0.5*(HX.H.Re(1:end-1)+HX.H.Re(2:end)).*HX.dL')./HX.L1;
+    ReC_num(im) = sum(0.5*(HX.C.Re(1:end-1)+HX.C.Re(2:end)).*HX.dL')./HX.L1;
+    htH_num(im) = sum(0.5*(HX.H.ht(1:end-1)+HX.H.ht(2:end)).*HX.dL')./HX.L1;
+    htC_num(im) = sum(0.5*(HX.C.ht(1:end-1)+HX.C.ht(2:end)).*HX.dL')./HX.L1;
+    CfH_num(im) = sum(0.5*(HX.H.Cf(1:end-1)+HX.H.Cf(2:end)).*HX.dL')./HX.L1;
+    CfC_num(im) = sum(0.5*(HX.C.Cf(1:end-1)+HX.C.Cf(2:end)).*HX.dL')./HX.L1;
+    NTU_num(im) = HX.NTU;
     U_num(im)   = HX.UA/HX.A1;
     
     switch scenario
@@ -759,6 +798,64 @@ switch scenario
         ylabel('Error [$\%$]')
         legend('Numerical','Figley2013','Error','Location','Best')
         
+    case 12
+        
+        %{
+        TH1_num(im) = HX.H.T(1);
+    TC2_num(im) = HX.C.T(NX+1);
+    pH1_num(im) = HX.H.p(1);
+    pC2_num(im) = HX.C.p(HX.NX+1);
+    DpH_num(im) = HX.H.pin-HX.H.p(1);
+    DpC_num(im) = HX.C.pin-HX.C.p(HX.NX+1);
+    ReH_num(im) = sum(0.5*(HX.H.Re(1:end-1)+HX.H.Re(2:end)).*HX.dL')./HX.L;
+    ReC_num(im) = sum(0.5*(HX.C.Re(1:end-1)+HX.C.Re(2:end)).*HX.dL')./HX.L;
+    htH_num(im) = sum(0.5*(HX.H.ht(1:end-1)+HX.H.ht(2:end)).*HX.dL')./HX.L;
+    htC_num(im) = sum(0.5*(HX.C.ht(1:end-1)+HX.C.ht(2:end)).*HX.dL')./HX.L;
+    U_num(im)   = HX.UA/HX.A1;
+        %}
+        Relim1 = 2e3;
+        Relim2 = 3e3;
+        xlam = interp1(ReC_num,mdot1,Relim1);
+        xtur = interp1(ReC_num,mdot1,Relim2);
+        
+        % Plot figures
+        figure(25)
+        plot(mdot1,ReC_num,mdot1,ReH_num)
+        xline(xlam,'k')
+        xline(xtur,'k')
+        yline(Relim1,'k','laminar')
+        yline(Relim2,'k','turbulent')
+        xlabel('$\dot{m}$ [kg/s]')
+        ylabel('$\overline{\mathrm{Re}}$')
+        legend('Cold stream','Hot stream','Location','Best')
+        
+        figure(26)
+        yyaxis left
+        plot(mdot1,htC_num,mdot1,htH_num)
+        xlabel('$\dot{m}$ [kg/s]')
+        ylabel('$\overline{h_\mathrm{t}} \: [\mathrm{W/(m^2 K)}]$')
+        ylim([0 max(htC_num)*1.1])
+        yyaxis right
+        plot(mdot1,NTU_num,'-.')
+        xline(xlam,'k','laminar')
+        xline(xtur,'k','turbulent')
+        ylabel('NTU')
+        ylim([0 max(NTU_num)*1.3])
+        legend('Cold stream','Hot stream','NTU','Location','Best')
+        
+        figure(27)
+        yyaxis left
+        plot(mdot1,CfC_num,mdot1,CfH_num)
+        xlabel('$\dot{m}$ [kg/s]')
+        ylabel('$\overline{c_\mathrm{f}}$')
+        ylim([0 max(CfC_num)*1.3])
+        yyaxis right
+        semilogy(mdot1,DpC_num/pC1,mdot1,DpH_num/pH2)
+        xline(xlam,'k','laminar')
+        xline(xtur,'k','turbulent')
+        ylabel('$\Delta p/p$')
+        legend('Cold stream','Hot stream','Location','Best')
+        
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -767,7 +864,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 switch save_figures
     case 1
-        formats = {'fig','epsc','emf'};
+        formats = {'fig','epsc'};
+        %formats = {'fig','epsc','emf'};
         
         save_fig(10,'./Results/T_Q',formats)
         save_fig(11,'./Results/T_A',formats)
@@ -780,11 +878,17 @@ switch save_figures
                 save_fig(25,'./Results/TH1_analytic',formats)
                 save_fig(26,'./Results/TC2_analytic',formats)
                 save_fig(27,'./Results/Dpp_analytic',formats)
+                
             case 5
                 save_fig(30,'./Results/TH1',formats)
                 save_fig(31,'./Results/TC2',formats)
                 save_fig(32,'./Results/pH1',formats)
                 save_fig(33,'./Results/pC2',formats)
+                
+            case 12
+                save_fig(25,'./Results/Re',formats)
+                save_fig(26,'./Results/ht',formats)
+                save_fig(27,'./Results/cf',formats)
         end
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -1,18 +1,19 @@
 % Set atmospheric conditions and cycle parameters
-T0      = 35 + 273.15;  % ambient temp, K
+T0      = 30 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 25e5;         % top pressure, Pa
 PRch    = 1.5;          % charge pressure ratio
-PRr     = 1.26;          % discharge pressure ratio: PRdis = PRch*PRr
+PRr     = 1.;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
+LPRr    = 1 ;           % Logical. Estimate optimal PRr after charging run.
 setTmax = 1;            % set Tmax? (this option substitutes PRch)
 Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 
 % Set Rankine-specific parameters
 Ran_ptop    = 100e5;
 Ran_pbotMIN = 0.05e5 ; % If condenser pressure decreases below this, the final stage chokes. Can't go to pressures below this, because who knows what happens.
-Ran_Tbot0   = 30 + 273.15+15; %when discharging against the environment. This sets design condenser pressure.
+Ran_Tbot0   = T0 + 5; %when discharging against the environment. This sets design condenser pressure.
 Ran_TbotC   = 273.15+20; %when discharging against the cold stores
 
 % Set compressor/expander parameters
@@ -31,13 +32,13 @@ Nhot = 1; % number of hot stores. Not implemented for >2
 % Set parameters of Load structure
 switch Load.mode
     case 0 % PTES
-        fac = 10; % This can be used to more easily set the mass flow to obtain a desired power output
+        fac = 10*100/1.1618/1.11; % This can be used to more easily set the mass flow to obtain a desired power output
         stH = 10 ;
         % This is the load scenario the plant is designed for
         Design_Load      = Load ;
-        Design_Load.time = [stH;stH].*3600;  % time spent in each load period, s
+        Design_Load.time = [stH/1;stH].*3600;  % time spent in each load period, s
         Design_Load.type = ["chg";"dis"];    % type of load period
-        Design_Load.mdot = [100*fac;100*fac];  % working fluid mass flow rate, kg/s
+        Design_Load.mdot = [fac*1;fac];  % working fluid mass flow rate, kg/s
         T0_inc    = 3.0 ; % Increment above ambient temperature that gas is cooled to
         
         if Loffdesign
@@ -45,8 +46,10 @@ switch Load.mode
             if ~Lreadload
                 Load.time = [stH;stH].*3600;      % time spent in each load period, s
                 Load.type = ["chg";"dis"];    % type of load period
+                %Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
+                %T0_off    = T0IN;
                 Load.mdot = [100.*fac;100.*fac];      % working fluid mass flow rate, kg/s
-                T0_off    = [T0+0;T0+0] ;
+                T0_off    = [T0;T0] ;
             else
                 fload     = './Data/load2.csv';
                 fdat      = readmatrix(fload,'Range','A:B') ;
@@ -103,18 +106,22 @@ switch Load.mode
         Design_Load      = Load ;
         Design_Load.time = [10;4;10;10].*3600;          % time spent in each load period, s
         Design_Load.type = ["chg";"str";"ran";"ran"];   % type of load period
-        Design_Load.mdot = [10*fac;0;1.0*fac;1.0*fac];      % working fluid mass flow rate, kg/s
+        Design_Load.mdot = [10*fac;0;1.0*fac;1.0*fac];  % working fluid mass flow rate, kg/s
         Design_Load.options.useCold = [0;0;1;0];        % Use cold stores during Rankine discharge? This should be set to 0 for design cases of retrofits.
         
         T0_inc    = 5.0 ; % Increase in ambient temperature
         
         if Loffdesign
             % This is the actual load profile that the plant meets
+            fac = 100 ;
             Load.time = [10;4;10;10].*3600;         % time spent in each load period, s
             Load.type = ["chg";"str";"ran";"ran"];  % type of load period
-            Load.mdot = [10*fac;0;1*fac;1*fac];     % working fluid mass flow rate, kg/s
+            %Load.mdot = [10*fac;0;1*fac;1*fac];     % working fluid mass flow rate, kg/s
             Load.options.useCold = [0;0;1;0];        % Use cold stores during Rankine discharge?
-            T0_off    = [T0;T0] ;
+            %T0_off    = [T0-0;T0-0;T0-0;T0-0] ;
+            Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
+            T0_off    = T0IN;
+
         else
             Load = Design_Load ;
         end
@@ -210,7 +217,7 @@ DCMPmode = [10,12,15] ; % Discharging compressor cost mode. Removed mode 13.
 DEXPmode = [41,43,44] ; % Discharging expander cost mode
 
 PMPmode = [60,61,62]; % Pump cost mode
-FANmode = [70,71]; % Fan cost mode. Removed mode 72.
+FANmode = [72,70,71]; % Fan cost mode. Removed mode 72.
 
 hotHXmode = [1,3,4,5,10,11]; % Heat exchanger - hot cost mode. Removed mode 2.
 cldHXmode = [1,3,4,5,10,11]; % Heat exchanger - cold cost mode. Removed mode 2.
@@ -229,7 +236,7 @@ HTmode.AR        = 1.0 ; % Aspect ratio (L/D) of tank
 HTmode.over_fac  = 1.1 ; % How much larger is inner tank volume than the fluid volume
 
 CTmode.tankmode  = [5,1,2,3,4,6] ; % Cost mode for cold tank container cost
-CTmode.fld_cost  = [0.3,0.1,1] ; % Cold tank fluid cost, $/kg. Water: [0.01,0.05,0.1]. Methanol [0.3,0.1,1]
+CTmode.fld_cost  = [0.3,0.1,1.5] ; % Cold tank fluid cost, $/kg. Water: [0.01,0.05,0.1]. Methanol [0.3,0.1,1]
 CTmode.ins_cost  = [30,5,50] ; % Insulation material, %/kg
 CTmode.ins_k     = 0.08 ; % Thermal conductivity of insulation
 CTmode.ins_rho   = 150 ; % Density of insulation

@@ -130,15 +130,15 @@ switch Load.mode
         end
         
     case {6} % sCO2-PTES type cycles
-        CCMP(1:Nc_ch) = compexp_class('comp', 'poly', 0, eta, Load.num) ; % Charging compressors
-        DEXP(1:Nc_ch) = compexp_class('exp', 'poly', 0, eta, Load.num) ; % Discharging expanders
+        CCMP(1:Nc_ch) = compexp_class('comp', 'poly', CCMPmode(1), eta, Load.num) ; % Charging compressors
+        DEXP(1:Nc_ch) = compexp_class('exp', 'poly', DEXPmode(1), eta, Load.num) ; % Discharging expanders
         
-        CEXP(1:Ne_ch) = compexp_class('exp', 'poly', 17, eta, Load.num) ; % Charging expanders
-        DCMP(1:Ne_ch) = compexp_class('comp', 'poly', 7, eta, Load.num) ; % Discharging compressors
+        CEXP(1:Ne_ch) = compexp_class('exp', 'poly', CEXPmode(1), eta, Load.num) ; % Charging expanders
+        DCMP(1:Ne_ch) = compexp_class('comp', 'poly', DCMPmode(1), eta, Load.num) ; % Discharging compressors
         
         %Recompressor
         if Lrcmp
-            RCMP = compexp_class('comp', 'poly', 0, eta, Load.num) ; % Re-compressors
+            RCMP = compexp_class('comp', 'poly', CCMPmode(1), eta, Load.num) ; % Re-compressors
         end
         
     case 20 % CCES
@@ -239,17 +239,23 @@ switch Load.mode
     
     case 5
         % Heat exchangers set up to match Ty's work
-        HX(1) = hx_class('hot',   'hex',   25, HX_NX, Load.num, Load.num, 'eff', 0.879, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
-        HX(2) = hx_class('cold',  'hex',   25, HX_NX, Load.num, Load.num, 'eff',   eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
-        HX(3) = hx_class('regen', 'regen', 25, HX_NX, Load.num, Load.num, 'eff', 0.968, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
-        HX(4) = hx_class('regen', 'regen', 25, HX_NX, Load.num, Load.num, 'eff', 0.937, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        %HX(1) = hx_class('hot',   'hex',   25, HX_NX, Load.num, Load.num, 'eff', 0.879, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        %HX(2) = hx_class('cold',  'hex',   25, HX_NX, Load.num, Load.num, 'eff',   eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        %HX(3) = hx_class('regen', 'regen', 25, HX_NX, Load.num, Load.num, 'eff', 0.968, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        %HX(4) = hx_class('regen', 'regen', 25, HX_NX, Load.num, Load.num, 'eff', 0.937, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        
+        HX(1) = hx_class('hot',   'hex',   25, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        HX(2) = hx_class('cold',  'hex',   25, HX_NX, Load.num, Load.num, HX_model,   eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        HX(3) = hx_class('regen', 'regen', 25, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        HX(4) = hx_class('regen', 'regen', 25, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        
         
     case 6
-        HX(1) = hx_class('hot',   'hex',    0, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
-        HX(2) = hx_class('hot',   'hex',   25, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
-        HX(3) = hx_class('cold',  'hex',   25, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Cold heat exchanger
-        HX(4) = hx_class('regen', 'regen',  0, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Recuperator exchanger
-        HX(5) = hx_class('regen', 'regen',  0, HX_NX, Load.num, Load.num, 'eff', eff, ploss, HX_D1, HX_shape) ; % Recuperator heat exchanger    
+        HX(1) = hx_class('hot',   'hex',    0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        HX(2) = hx_class('hot',   'hex',   hotHXmode(1), HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
+        HX(3) = hx_class('cold',  'hex',   cldHXmode(1), HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Cold heat exchanger
+        HX(4) = hx_class('regen', 'regen',  0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Recuperator exchanger
+        HX(5) = hx_class('regen', 'regen',  0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Recuperator heat exchanger    
         
     case 20
         % HEXs for the LAES side
@@ -270,7 +276,14 @@ switch Load.mode
 end
 
 % Motor-generator
-GEN        = gen_class('gen',GENmode(1)) ;
+if Load.mode == 3 || Load.mode == 6
+    % Probably have a separate generator and motor for solar-PTES
+    GEN(1)     = gen_class('mot',GENmode(1)) ;
+    GEN(2)     = gen_class('gen',0) ; % Generator costs nothing as part of Rankine cycle already
+else
+    GEN        = gen_class('mot-gen',GENmode(1)) ;
+end
+    
 
 % Fans 
 CFAN(1:10) = compexp_class('comp', 'isen', FANmode(1), 0.75, Load.num) ;

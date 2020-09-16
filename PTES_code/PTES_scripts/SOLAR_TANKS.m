@@ -10,7 +10,7 @@ if setTmax
 else
     switch Load.mode
         case {5,6}
-            HT(1) = reset_tanks(HT(1),TH_dis0(1),p0,0,TH_chg0(1),p0,1e6,T0);
+            HT(1) = reset_tanks(HT(1),TH_dis0(1),p0,0,TH_chg0(1),p0,1e9,T0);
     
             HT(1).A(2) = HT(1).A(1);
             HT(1).B(2) = HT(1).B(1);

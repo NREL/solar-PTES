@@ -38,6 +38,9 @@ if isempty(LIB)
         LIB.Water.PQ_INPUTS     = LIB_THERM('Water','PQ_INPUTS',1e3);
         toc
         LIB.Water.name = 'Water';
+        if ~exist('./LIB/LIB','dir')
+            mkdir('./LIB/LIB')
+        end
         save('./LIB/LIB/LIB.mat','LIB')
     end
     

@@ -120,20 +120,27 @@ Ux    = UC   * ones(Nx,2) ;
 
 % Values to save
 Nprof = 20 ;
-GSsave   = zeros(Nx,Nprof,Nload) ;
-HSsave   = zeros(Nx,Nprof,Nload) ;
-TSsave   = zeros(Nx,Nprof,Nload) ;
-XSsave   = zeros(Nx,Nprof,Nload) ;
-RHOSsave = zeros(Nx,Nprof,Nload) ;
-SSsave   = zeros(Nx,Nprof,Nload) ;
+GSsave   = zeros(Nx,Nprof+1,Nload,Ntank) ; % The +1 allows the very final profile to be saved too
+HSsave   = zeros(Nx,Nprof+1,Nload,Ntank) ;
+TSsave   = zeros(Nx,Nprof+1,Nload,Ntank) ;
+XSsave   = zeros(Nx,Nprof+1,Nload,Ntank) ;
+RHOSsave = zeros(Nx,Nprof+1,Nload,Ntank) ;
+SSsave   = zeros(Nx,Nprof+1,Nload,Ntank) ;
 
-TPsave   = zeros(Nx,Nprof,Nload) ;
-HPsave   = zeros(Nx,Nprof,Nload) ;
-XPsave   = zeros(Nx,Nprof,Nload) ;
-RHOPsave = zeros(Nx,Nprof,Nload) ;
+TPsave   = zeros(Nx,Nprof+1,Nload,Ntank) ;
+HPsave   = zeros(Nx,Nprof+1,Nload,Ntank) ;
+XPsave   = zeros(Nx,Nprof+1,Nload,Ntank) ;
+RHOPsave = zeros(Nx,Nprof+1,Nload,Ntank) ;
 
-UXsave   = zeros(Nx,Nprof,Nload) ;
+UXsave   = zeros(Nx,Nprof+1,Nload,Ntank) ;
+MDOTsave = zeros(Nprof+1,Nload,Ntank) ;
 
 % Save some power input and output values too
-HINsave  = zeros(Nprof,Nload) ;
-HOUTsave = zeros(Nprof,Nload) ;
+HINsave  = zeros(Nprof+1,Nload,Ntank) ;
+HOUTsave = zeros(Nprof+1,Nload,Ntank) ;
+
+TPlast = TpD * ones(Nx,Ntank) ;
+HPlast = hpD * ones(Nx,Ntank) ;
+XPlast = xpD * ones(Nx,Ntank) ;
+RHOPlast = rhopD * ones(Nx,Ntank) ;
+UXlast = UC * ones(Nx,Ntank) ;

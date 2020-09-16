@@ -65,7 +65,7 @@ end
 
 % Set matrix of temperature and pressure points to test convergence
 C_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-max_iter=50;
+max_iter=150;
 for counter=1:max_iter
     
     fprintf(1,['Charging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
@@ -248,7 +248,7 @@ for counter=1:max_iter
 %             fprintf('T1:   %13.8f \n',gas.state(iL,1).T)
 %             fprintf('TEND: %13.8f \n\n',gas.state(iL,iG).T)
             % Reduce smoothing factor with number of iterations
-            smooth = 0.05;% / double(counter)^0.2 ; 
+            smooth = 0.025;% / double(counter)^0.2 ; 
             %print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
             gas.state(iL,1).T = gas.state(iL,1).T + smooth * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
             %gas.state(iL,1).T = gas.state(iL,1).T ;
@@ -277,3 +277,44 @@ HT = run_tanks(HT,iL,fluidH,iH_out,iH_in,Load,T0);
 CT = run_tanks(CT,iL,fluidC,iC_out,iC_in,Load,T0);
 % Atmospheric tanks
 AT = run_tanks(AT,iL,air,iA_out,iA_in,Load,T0);
+
+
+% Can try to estimate discharging pressure ratio to minimize tank losses
+% and also avoid over-cooling hot fluid
+if LPRr
+    
+    if Nc_ch > 1 || Ne_ch > 1
+        error('Estimating discharging pressure ratio NOT IMPLEMENTED') 
+    end
+    Tin    = 2*fluidH.state(iL,2).T - gas.state(iL,2).T ; % Turbine inlet temperature estimate
+    dTrcp  = gas.state(iL,3).T-gas.state(iL,1).T ; % Temp difference in recuperator
+    dT_Hhx = gas.state(iL,3).T-fluidH.state(iL,1).T ; % Temp difference at hot heat exchanger outlet
+    Tout   = fluidH.state(iL,1).T + dTrcp - dT_Hhx ; % Turbine outlet temperature estimate
+    Tout   = Tout - 3 ; % Remove a couple of degrees as method is a bit conservative
+    
+    % Now the temperature ratio is known, estimate the pressure ratio
+    % Obtain PRch from maximum temperature and estimated temperature ratio
+    if strcmp(gas.read,'IDL')
+        Gama = gas.IDL.gam ;
+    else
+        Pav = 0.5 * (gas.state(iL,1).p + gas.state(iL,2).p) ;
+        Tav = 0.5 * (Tin + Tout) ;
+        Gama = RPN('PT_INPUTS',Pav,Tav,'CPMASS',gas)/RPN('PT_INPUTS',Pav,Tav,'CVMASS',gas);
+    end
+    phi = (Gama/(CCMP.eta(iL)*(Gama-1))) ;
+    PRr = ((Tin/Tout)^phi) / PRch ;
+    %if PRr > 1.25
+    %    PRr = 1.25;
+    %end
+    %{ 
+    % Tried to calculate the expansion properly, but it gives worse results
+    than the method above
+    EDUM = DEXP(1) ;
+    GDUM = gas ;
+    GDUM.state(1,1).T = Tin ;
+    GDUM.state(1,1).p = gas.state(iL,2).p * PRr ;
+    [GDUM] = update(GDUM,[1,1],1);
+    [EDUM,GDUM,~] = compexp_func (EDUM,1,GDUM,1,'Taim',Tout, design_mode) ;
+    PRr = (GDUM.state(1,1).p / GDUM.state(1,2).p) / PRch ;
+    %}
+end

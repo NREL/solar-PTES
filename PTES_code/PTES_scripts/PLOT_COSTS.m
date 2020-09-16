@@ -72,7 +72,9 @@ switch Load.mode
         
         % OTHER
         % Motor-generator
-        Cmatrix(9,7) = GEN.gen_cost.COST ;
+        for ii = 1 : numel(GEN)
+            Cmatrix(9,7) = Cmatrix(9,7) + GEN(ii).gen_cost.COST ;
+        end
         
         
         b = bar(Cmatrix,'stacked');

@@ -1,7 +1,7 @@
 % Class for motors-generators
 classdef gen_class
     properties
-        type      % "gen" or "motor"
+        type      % "gen" or "motor" or "mot-gen"
         
         pow0      % nominal power (W)
         
@@ -94,6 +94,9 @@ classdef gen_class
                 WOUT0 = WOUT0 + CEXP(ii).W0;
             end
             MOT_pow0 = abs(WIN0 - WOUT0);
+            if strcmp(obj.type,'gen')
+                MOT_pow0 = 0 ;
+            end
             
             % Compute nominal generator power
             WIN0 = 0.; WOUT0 = 0.;
@@ -104,6 +107,9 @@ classdef gen_class
                 WOUT0 = WOUT0 + DEXP(ii).W0;
             end
             GEN_pow0 = abs(WIN0 - WOUT0);
+            if strcmp(obj.type,'mot')
+                GEN_pow0 = 0 ;
+            end
             
             % Set nominal power for the motor-generator couple as the
             % maximum of the two
@@ -127,8 +133,17 @@ classdef gen_class
             for ii = 1 : length(DEXP)
                 WOUT = WOUT + DEXP(ii).W;
             end
+                                    
             MOT_GEN_pow = (WIN + WOUT)./T;
             
+            for ii = 1:length(MOT_GEN_pow)
+                if MOT_GEN_pow(ii) > 0 && strcmp(obj.type,'mot')
+                    MOT_GEN_pow(ii) = 0 ;
+                elseif MOT_GEN_pow(ii) < 0 && strcmp(obj.type,'gen')
+                    MOT_GEN_pow(ii) = 0 ;
+                end
+            end
+           
             % Obtain the part-load fraction for each load period
             PPN = abs(MOT_GEN_pow)/obj.pow0;
             

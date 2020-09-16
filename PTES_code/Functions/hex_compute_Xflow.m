@@ -143,10 +143,11 @@ C.q = q*C.A/H.A;
 %
 % Geometry-specific characteristics:
 % The air side hydraulic diameter is      DC =  3.63 mm
-% The working fluid hydraulic diameter is DH = 10.21 mm
+% The working fluid hydraulic diameter is DH = 10.2 - 2*0.9 = 8.4 mm
+% The fins pitch is                       pfin = 315 1/m
 % The air's free-flow area to frontal area ratio is sigma1 = 0.534.
 % The definition of sigma means that: W1 = H1 = sqrt(Af1/sigma1);
-% The working fluid's free-flow area ratio was computed as sigma2 = 0.146
+% The working fluid's free-flow area ratio was computed as sigma2 = 0.099
 
 % Check that the cold stream is environmental air
 cond1 = any(strcmp(C.name,{'Air','Nitrogen'}));      % check name
@@ -165,12 +166,13 @@ switch mode
     case 'Af'
         % Set fixed geometrical parameters
         DC =  3.63e-3;
-        DH = 10.21e-3;
+        DH = 10.21e-3 - 2*0.9e-3;
         sigma1 = 0.534;
-        sigma2 = 0.146;
+        sigma2 = 0.099;
         
         HX.D1  = DC;            % Hydraulic diameter (air side)
         HX.D2  = DH;            % Hydraulic diameter (working fluid side)
+        HX.Afin_A1 = 0.913;
         
         % Geometry initial guess
         L1  = 0.1; % heat exchanger length (air side)
@@ -193,19 +195,8 @@ end
 % Heat capacity rates
 CpC  = ( C.h(NX+1)-C.h(1) )/( C.T(NX+1)-C.T(1) );
 CpH  = ( H.h(NX+1)-H.h(1) )/( H.T(NX+1)-H.T(1) );
-%{
-if Lcondenser
-    Cmax = mH*CpH;
-    Cmin = mC*CpC;
-else
-    Cmax = max([mC*CpC,mH*CpH]);
-    Cmin = min([mC*CpC,mH*CpH]);
-end
-%}
-%%{
 Cmax = max([mC*CpC,mH*CpH]);
 Cmin = min([mC*CpC,mH*CpH]);
-%%}
 Cr   = Cmin/Cmax;
 
 % Cummulative and total heat transfer
@@ -215,15 +206,11 @@ QT = mH*(H.h(NX+1) - H.h(1));
 % Compute heat exchanger effectiveness for given hH1
 hH1min = RPN('PT_INPUTS',H.pin,C.T(1),'H',H);
 hC2max = RPN('PT_INPUTS',C.pin,H.T(NX+1),'H',C);
-%%{
 if Lcondenser
     QMAX = mC*(hC2max - hC1);
-    %QMAX = mH*(hH2 - hH1min);
 else
     QMAX   = min([mC*(hC2max - hC1),mH*(hH2 - hH1min)]);
 end
-%%}
-%QMAX   = min([mC*(hC2max - hC1),mH*(hH2 - hH1min)]);
 eff    = QT/QMAX;
 
 % Create array to check convergence. First element is computed NTU.
@@ -250,6 +237,7 @@ for iI = 1:NI
             H1     = sqrt(HX.Af1/sigma1)/WHr;   % Height (air side)
             L2     = W1;                        % Length (working fluid side)
             H2     = H1;                        % Height (working fluid side)
+            
             HX.Af2 = L1*H2*sigma2;              % Free-flow area (working fluid side)
             HX.A1  = 4*HX.Af1*L1/HX.D1;         % Heat transfer area (air side)
             HX.A2  = 4*HX.Af2*L2/HX.D2;         % Heat transfer area (wf side)
@@ -276,7 +264,32 @@ for iI = 1:NI
     % Compute average heat transfer coefficients
     htC = mean(C.ht);
     htH = mean(H.ht);
-    UA  = 1/(1/(htC*C.A) + 1/(htH*H.A));
+    
+    % Account for fin efficiency
+    Lf   = 13.3e-3; % fin length (approximately half the spacing between the finned tubes)
+    kf   = 400;     % thermal conductivity (copper)
+    tf   = 0.33e-3; % fin thickness
+    mf   = sqrt(2*htC/(kf*tf));
+    etaf = tanh(mf*Lf)/(mf*Lf);
+    eta0 = 1 - HX.Afin_A1*(1-etaf);
+    
+    % Account for metal wall resistance (this turn out to be negligible)
+    %{
+    kw    = kf;   % wall conductivity
+    tw    = 0.9e-3; % wall thickness
+    Rcond = tw/(kw*H.A);
+    %}
+    Rcond = 0;
+    
+    % Account for fouling resistance
+    %{
+    Rf_fact = 0.0002; % Fouling factor treated water
+    Rfoul   = Rf_fact/H.A;
+    %}
+    Rfoul = 0;
+    
+    % Compute heat exchanger conductance
+    UA   = 1/(1/(eta0*htC*C.A) + 1/(htH*H.A) + Rcond + Rfoul);
     
     % Compute number of transfer units
     NTU = UA/Cmin;

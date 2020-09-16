@@ -20,7 +20,6 @@ INPUTS
 %Check for optimization calling
 if x(1) > 1 %First variable in optimization is always a Temperature
    SET_OPTIMIZE_RUN
-   %Nobjs = No;
 end
 
 tic % start timer
@@ -127,7 +126,7 @@ if make_hex_plots
 end
 
 if x(1) > 1
-CONSTRAINT_AND_OUTPUT
+    CONSTRAINT_AND_OUTPUT
 end
 
 catch

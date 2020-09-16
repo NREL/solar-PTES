@@ -37,8 +37,8 @@ OPT_INPUTS
 Allfigures=0;
 
     % Parameters
-    Np = 50;        % Population size
-    Nr = 25;        % Repository size
+    Np = 5;        % Population size
+    Nr = 5;        % Repository size
     maxgen = 3;%50;    % Maximum number of generations
     W = 0.4;         % Inertia weight
     C1 = 2;          % Individual confidence factor
@@ -61,7 +61,7 @@ Allfigures=0;
     % Initialization
     
     %Want to use previous data? change previousdata to 1
-    previousdata=1;
+    previousdata=0;
     if previousdata==0
     POS = repmat((xu-xl)',Np,1).*rand(Np,nVar) + repmat(xl',Np,1);
     end

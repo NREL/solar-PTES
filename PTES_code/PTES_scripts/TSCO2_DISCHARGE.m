@@ -65,7 +65,7 @@ while 1
     [gas,environ,iG,iE] = hex_set(gas,[iL,iG],environ,[iL,iE],T_aim,eff,ploss);
     
     % Mixer
-    [gas,iG,~] = mix_streams(gas,[iL,iG],[iL,iCLD+1]) ;
+    [MIX(1),gas,iG,~] = mix_streams(MIX(1),gas,[iL,iG],[iL,iCLD+1]) ;
     
     PRc_dis = (PRdis)^(1/Nc_dis)/(1-ploss)^1; % expansion pressure ratio
     
@@ -92,7 +92,7 @@ while 1
     [HX(Nhot),fluidH(2),iH(2),gas,~] = hex_func(HX(Nhot),iL,fluidH(2),iH(2),gas,iCLD+2,4,THmin); % Require cold side to reach a certain temp
     iH(2) = iH(2) + 1;
     
-    [gas,~,~] = mix_streams(gas,[iL,iG],[iL,iCLD+3]) ;
+    [MIX(2),gas,~,~] = mix_streams(MIX(2),gas,[iL,iG],[iL,iCLD+3]) ;
     
     % High-temp recuperator
     [HX(Nhot+Ncld+1),~,~,gas,iG] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg2,0,0);

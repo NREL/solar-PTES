@@ -57,6 +57,14 @@ end
 switch Load.mode
     case {2,7}
         error('not implemented yet')
+    case {3}
+        GEN(1) = gen_power(GEN(1),CCMP,CEXP,DCMP,DEXP,Load.time);
+        GEN(2) = gen_power(GEN(2),CCMP,CEXP,DCMP,DEXP,Load.time);
+    case {4,5}
+        GEN = gen_power(GEN,CCMP,CEXP,[DCMP RCMP],DEXP,Load.time);
+    case {6}
+        GEN(1) = gen_power(GEN(1),CCMP,CEXP,[DCMP RCMP],DEXP,Load.time);
+        GEN(2) = gen_power(GEN(2),CCMP,CEXP,[DCMP RCMP],DEXP,Load.time);
     otherwise
         GEN = gen_power(GEN,CCMP,CEXP,DCMP,DEXP,Load.time);
 end
@@ -167,8 +175,10 @@ for iL=1:Load.num
         end
         
         % Electricity from Motor
-        E_in_chg   = E_in_chg   + GEN.E(iL);
-        WL_mot_chg = WL_mot_chg - GEN.WL(iL);
+        for ii = 1 : numel(GEN)
+            E_in_chg   = E_in_chg   + GEN(ii).E(iL);
+            WL_mot_chg = WL_mot_chg - GEN(ii).WL(iL);
+        end
         
         % Work lost in other components (mixers, seperators, work left in tanks, mixing losses)
         % ...
@@ -226,8 +236,10 @@ for iL=1:Load.num
         end
         
         % Electricity from Generator
-        E_out_dis  = E_out_dis  + GEN.E(iL);
-        WL_gen_dis = WL_gen_dis - GEN.WL(iL);
+        for ii = 1 : numel(GEN)
+            E_out_dis  = E_out_dis  + GEN(ii).E(iL);
+            WL_gen_dis = WL_gen_dis - GEN(ii).WL(iL);
+        end
         
         % Work lost in other components
         for ii = 1:length(MIX)
@@ -386,10 +398,19 @@ switch Load.mode
             HEeffRC = (W_out_disRC + W_fan_disRC + W_pmp_disRC) / QH_disRC ; % Efficiency for cycles where only cold tanks are used for condensing
             HEeffNC = W_out_disNC / QH_disNC ; % Efficiency for cycles where cold tanks are NOT used for condensing
         elseif Load.mode == 6
+            QH_sol = 0;
+            EX_sol = 0;
+            for ii=1:Load.num
+               if strcmp(Load.type(ii),'disTSCO2')
+                  QH_sol = QH_sol + fluidH(1).state(ii,1).mdot * (fluidH(1).state(ii,1).h-fluidH(1).state(ii,2).h) * Load.time(ii) ;
+                  EX_sol = EX_sol + fluidH(1).state(ii,1).mdot * (fluidH(1).state(ii,1).h-fluidH(1).state(ii,2).h-T0*(fluidH(1).state(ii,1).s-fluidH(1).state(ii,2).s)) * Load.time(ii) ;
+               end
+            end
+            QH_chg  = (gas.state(1,4).h-gas.state(1,2).h)*gas.state(1,3).mdot*Load.time(1) ;
             SOLeff  = E_net_dis / QH_sol ; % Solar conversion efficiency
             HEeff   = E_net_dis / QH_dis ; % Heat engine efficiency
-            NETeff  = (E_net_dis - E_net_chg) / QH_sol ; % Net efficiency
-            EXeff   = E_net_dis / (E_net_chg + EX_sol) ; % Exergetic efficiency
+            NETeff  = (E_net_dis + E_net_chg) / QH_sol ; % Net efficiency
+            EXeff   = E_net_dis / (-E_net_chg + EX_sol) ; % Exergetic efficiency
         end
         
     case 1 % Heat pump only
@@ -600,6 +621,7 @@ end
 % temperature. If stores are above T0 when discharged, then they must be
 % returned to their original temp or greater. If stores are below T0 when
 % discharged, then they must be returned to original temp or lower.
+heater_in = 0;
 if any(Load.mode ==[0,4,6])
     problem = 0 ;
     
@@ -626,6 +648,20 @@ if any(Load.mode ==[0,4,6])
     if problem
         warning('Unsustainable discharge of a cold reservoir!')
     end
+    
+    chi_PTES_true = chi_PTES_para ;
+    % If the hot fluid gets cooled down to a temperature below its original
+    % value, calculate the heat required to boost it back. Then find the
+    % 'true' round-trip efficiency assuming this heat is provided by an
+    % electrical heater
+    if fluidH(1).state(end,3).T < fluidH(1).state(1,1).T
+        warning('Unsustainable discharge of a hot reservoir!')
+        warning('Hot fluid cooled down too much in discharge. Calculating new roundtrip efficiency')
+        heater_in =  (fluidH.state(1,1).h - fluidH.state(end,3).h) * fluidH.state(end,3).mdot * t_dis;
+        chi_PTES_true = -(E_net_dis - heater_in) / E_net_chg ;
+        fprintf(1,'TRUE round trip eff. (inc. heating):   %8.2f %%\n\n',chi_PTES_true*100);
+    end
+    
 end
 
 % PRINT HEXs
