@@ -6,7 +6,7 @@
 % calculate the sensitivity assuming each cost is normally distributed
 % TRUE: Calculate the cost numerous times using different combinations of
 % different cost correlations
-Lsuper = 0 ;
+Lsuper = 1 ;
 
 % Some input variables - move these to an input file?
 price = [0.033,0.025,0.06] ;
@@ -32,7 +32,7 @@ Cdata.indirect    = 0;%0.25 ;        % Indirect costs
 
 if Lsuper
     Nsens    = 1 ;      % How many points to take from distribution for sensitivity analysis
-    Ncomb    = 5000 ;   % How many combinations of cost correlations?
+    Ncomb    = 1000 ;   % How many combinations of cost correlations?
     
     costMAT      = zeros(Ncomb,1) ;
     cost_enMAT   = zeros(Ncomb,1) ;
@@ -424,7 +424,7 @@ end
 
 if Lsuper
     % Plot box and whisker plot of component costs
-    PLOT_BOX(compMAT) ;
+    %PLOT_BOX(compMAT) ;
     
     Cdata.cap_costM    = mean(costMAT) ;
     Cdata.cap_costSD   = std(costMAT) ;

@@ -33,7 +33,7 @@ end
 Wdis_req = 100e6 ;
 
 % Set heat exchanger parameters
-HX_model  = 'eff' ;
+HX_model  = 'geom' ;
 eff       = 0.97;  % heat exchanger effectiveness
 ploss     = 0.01;  % pressure loss in HEXs
 HX_D1     = 0.005; %hydraulic diameter

@@ -109,6 +109,8 @@ gen      = 1;
 stopCondition = false;
 while ~stopCondition
     
+    fprintf(1,['\n\n\nMOPSO OPTIMIZATION: generation #',int2str(gen),' \n\n\n'])
+    
     % Select leader
     h = selectLeader(REP);
     
@@ -247,7 +249,7 @@ if(size(POS_fit,2)==3)
 end
 
 Results=[REP.pos REP.pos_fit];
-%csvwrite('./Data/SolarPop3',Results);
+csvwrite('./Outputs/Optimization_results.csv',Results);
 
 
 % Function that updates the repository given a new population and its

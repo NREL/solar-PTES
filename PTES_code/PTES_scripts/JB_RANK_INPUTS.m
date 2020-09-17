@@ -1,5 +1,5 @@
 % Set atmospheric conditions and cycle parameters
-T0      = 30 + 273.15;  % ambient temp, K
+T0      = 25 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 25e5;         % top pressure, Pa
 PRch    = 1.5;          % charge pressure ratio
@@ -8,7 +8,7 @@ PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
 LPRr    = 0 ;           % Logical. Estimate optimal PRr after charging run.
 setTmax = 1;            % set Tmax? (this option substitutes PRch)
-Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
+Tmax    = 750 + 273.15; % maximum temp at compressor outlet, K
 
 % Set Rankine-specific parameters
 Ran_ptop    = 100e5;
@@ -155,10 +155,10 @@ Load.ind  = (1:Load.num)';
 % Hot storage tanks
 switch PBmode
     case 0
-        fHname  = 'SolarSalt';  % fluid name
-        TH_dis0 = 300 + 273.15; % initial temperature of discharged hot fluid, K
+        fHname  = 'ChlorideSalt';  % fluid name
+        TH_dis0 = 500 + 273.15; % initial temperature of discharged hot fluid, K
         MH_dis0 = 1e9;          % initial mass of discharged hot fluid, kg
-        TH_chg0 = 570 + 273.15; % initial temperature of charged hot fluid, K
+        TH_chg0 = 750 + 273.15; % initial temperature of charged hot fluid, K
         MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
         
         switch Load.mode
@@ -227,7 +227,7 @@ rejHXmode = [33,32,30]; % Heat exchanger - rejection cost mode. Removed mode 31.
 GENmode = [2,1,3] ; % Motor-generator
 
 HTmode.tankmode  = [5,1,2,3,4,6] ; % Cost mode for hot tank container cost
-HTmode.fld_cost  = [0.8,0.5,1.3] ; % Hot tank fluid cost, $/kg solarsalt : [0.8,0.5,1.3]. Mineral oil: [1.6,0.5,2.5]. Therminol: [3.1,0.5,2.5]. Chloride Salt: [0.64,0.4,1.1]
+HTmode.fld_cost  = [0.64,0.4,1.1] ; % Hot tank fluid cost, $/kg solarsalt : [0.8,0.5,1.3]. Mineral oil: [1.6,0.5,2.5]. Therminol: [3.1,0.5,2.5]. Chloride Salt: [0.64,0.4,1.1]
 HTmode.ins_cost  = [30,5,50] ; % Insulation material, %/kg
 HTmode.ins_k     = 0.08 ; % Thermal conductivity of insulation
 HTmode.ins_rho   = 150 ; % Density of insulation
