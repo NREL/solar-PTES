@@ -59,7 +59,7 @@ end
 
 % Set matrix of temperature and pressure points to test convergence
 A_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-max_iter=200;
+max_iter=300;
 for counter=1:max_iter
     
     fprintf(1,['Charging sCO2 PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])

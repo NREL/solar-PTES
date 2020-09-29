@@ -1,7 +1,7 @@
 % Generation information
 Np = 50;        % Population size
 Nr = 25;        % Repository size
-maxgen = 20;    % Maximum number of generations
+maxgen = 25;    % Maximum number of generations
 
 %Want to use previous data? change previousdata to 1
 previousdata=1;
@@ -40,7 +40,7 @@ for i = 1 : nVar
        
        case 'TH_dis0'
            Par(i).title = 'Compressor Inlet Temperature';
-           Par(i).var_min = 673 ;
+           Par(i).var_min = 723 ;
            Par(i).var_max = 923 ;
            
        case 'PRr'

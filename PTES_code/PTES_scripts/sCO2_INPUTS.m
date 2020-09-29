@@ -4,7 +4,7 @@ T0      = 30 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 250e5;         % top pressure, Pa
 PRch    = 3;          % charge pressure ratio
-PRr     = 1.0;          % discharge pressure ratio: PRdis = PRch*PRr
+PRr     = 1.15;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3;          % maximum PRr for optimisation
 setTmax = 0;            % set Tmax? (this option substitutes PRch)
@@ -25,7 +25,7 @@ Nhot = 1; % number of hot stores. Not implemented for >2
 
 switch Load.mode
     case 4
-        fac = 10/1 ; % THis can be used to more easily set the mass flow to obtain a desired power output
+        fac = 10/1.099 ; % THis can be used to more easily set the mass flow to obtain a desired power output
         Load.time = [12;4;12].*3600;          % time spent in each load period, s
         Load.type = ["chgCO2";"str";"disCO2"]; % type of load period
         Load.mdot = [100*fac;0;100*fac];              % working fluid mass flow rate, kg/s
@@ -143,7 +143,7 @@ switch Nrcp
                 fHname  = 'SolarSalt';  % fluid name
                 TH_dis0 = 400. + 273.15;  % initial temperature of discharged hot fluid, K
                 MH_dis0 = 1e9;              % initial mass of discharged hot fluid, kg
-                TH_chg0 = 750 + 273.15;     % initial temperature of charged hot fluid, K
+                TH_chg0 = 570 + 273.15;     % initial temperature of charged hot fluid, K
                 MH_chg0 = 0.0*1.e6;         % initial mass of charged hot fluid, kg
                 % Cold storage tanks
                 fCname  = 'INCOMP::MEG2[0.56]'; % fluid name
@@ -218,7 +218,7 @@ FANmode = [70,71]; % Fan cost mode
 
 hotHXmode = [24,20,1,3,4,5,10,11]; % Heat exchanger - hot cost mode
 cldHXmode = [32,30,1,3,4,5,10,11]; % Heat exchanger - cold cost mode
-rcpHXmode = [0,0]; % Heat exchanger - recuperator cost mode
+rcpHXmode = [25,22,1,3,4,5,10,11];%[0,0]; % Heat exchanger - recuperator cost mode
 rejHXmode = [32,30,33]; % Heat exchanger - rejection cost mode
 
 GENmode = [2,1,3] ; % Motor-generator

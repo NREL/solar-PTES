@@ -1,6 +1,6 @@
 % If the hot store or cold store don't return to their original values (to within a small margin) then
 % a constraint is exceeded
-if fluidC.state(end,2).T < TC_dis0 - 5 || fluidH.state(end,2).T < TH_dis0 - 5
+if fluidC.state(end,2).T < TC_dis0 - 5 || fluidH.state(end,2).T < TH_dis0 - 5 || Cdata.lcosM < 0
     
     f1 = 1e12 ;
     f2 = 1e12 ;

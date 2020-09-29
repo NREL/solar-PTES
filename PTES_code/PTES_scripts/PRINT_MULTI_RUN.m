@@ -1,7 +1,7 @@
 filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',icrv,ipnt);
 
 switch Load.mode
-    case 0
+    case {0,4}
         chi = chi_PTES;
         
         cap_costM    = Cdata.cap_costM ;
