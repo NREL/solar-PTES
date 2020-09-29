@@ -245,6 +245,9 @@ if Load.mode == 7
 end
 for ii = 1 : numel(GEN)
     GEN(ii) = gen_econ(GEN(ii),CEind) ;
+    if (Load.mode==3 && Lretro && strcmp(GEN(ii).type,'gen'))
+        GEN(ii).gen_cost.COST = 0.01 ;
+    end
     cap_cost = cap_cost + GEN(ii).gen_cost.COST ;
     cap_sens = cap_sens + cost_sens(GEN(ii).gen_cost, Nsens) ;
 end
