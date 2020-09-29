@@ -1,5 +1,5 @@
 % Set atmospheric conditions and cycle parameters
-T0      = 30 + 273.15;  % ambient temp, K
+T0      = 40 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 25e5;         % top pressure, Pa
 PRch    = 1.5;          % charge pressure ratio
@@ -12,7 +12,7 @@ Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 
 % Set Rankine-specific parameters
 Ran_ptop    = 100e5;
-Ran_pbotMIN = 0.05e5 ; % If condenser pressure decreases below this, the final stage chokes. Can't go to pressures below this, because who knows what happens.
+Ran_pbotMIN = 0.02e5 ; % If condenser pressure decreases below this, the final stage chokes. Can't go to pressures below this, because who knows what happens.
 Ran_Tbot0   = T0 + 5; %when discharging against the environment. This sets design condenser pressure.
 Ran_TbotC   = 273.15+20; %when discharging against the cold stores
 
@@ -236,7 +236,7 @@ HTmode.AR        = 1.0 ; % Aspect ratio (L/D) of tank
 HTmode.over_fac  = 1.1 ; % How much larger is inner tank volume than the fluid volume
 
 CTmode.tankmode  = [5,1,2,3,4,6] ; % Cost mode for cold tank container cost
-CTmode.fld_cost  = [0.3,0.1,1.5] ; % Cold tank fluid cost, $/kg. Water: [0.01,0.05,0.1]. Methanol [0.3,0.1,1]
+CTmode.fld_cost  = [0.01,0.05,0.1] ; % Cold tank fluid cost, $/kg. Water: [0.01,0.05,0.1]. Methanol [0.3,0.1,1]
 CTmode.ins_cost  = [30,5,50] ; % Insulation material, %/kg
 CTmode.ins_k     = 0.08 ; % Thermal conductivity of insulation
 CTmode.ins_rho   = 150 ; % Density of insulation
@@ -247,6 +247,8 @@ CTmode.over_fac  = 1.1 ; % How much larger is inner tank volume than the fluid v
 ATmode.tankmode = 0 ;
 ATmode.fld_cost  = 0 ; % Cold tank fluid cost, $/kg
 ATmode.ins_cost  = 0 ; % Insulation material, %/kg
+
+steamC = [500,750,1000]; % Price of a steam turbine $/kW
 
 % Set fluids. 'WF' or 'SF' indicates working fluid or storage fluid. 'CP'
 % or 'TAB' indicate CoolProp or Tabular reading modes. 'backend' is used by

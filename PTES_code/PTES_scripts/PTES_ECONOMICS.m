@@ -8,6 +8,9 @@
 % different cost correlations
 Lsuper = 1 ;
 
+% Retrofit? Then don't pay for steam turbine or hot storage system        
+Lretro = true ; 
+
 % Some input variables - move these to an input file?
 price = [0.033,0.025,0.06] ;
 life  = [25,30,35];
@@ -126,6 +129,10 @@ if Lsuper
         GEN(ii).gen_cost.cost_mode = GENmode(randi(length(GENmode))) ;
     end
     
+    if (Load.mode==3 && ~Lretro)
+        STcost_mode  = steamC(randi(length(steamC))) ;
+    end
+    
     Cdata.lifetime = life(randi(length(life))) ;
     Cdata.price    = price(randi(length(price))) ;
     Cdata.OnM      = OnM(randi(length(OnM))) ;
@@ -134,16 +141,11 @@ if Lsuper
 end
 
     
-
-
 % Make array of chemical engineering cost indices
 CEind = create_CEindex() ;
 
 cap_cost = 0 ;
 cap_sens = zeros(Nsens,1) ;
-
-% Retrofit? Then don't pay for steam turbine or hot storage system        
-Lretro = true ; 
 
 % Compressors and expanders
 for ii = 1 : length(CCMP)
@@ -156,7 +158,7 @@ for ii = 1 : length(CCMP)
     cap_sens = cap_sens + cost_sens(CCMP(ii).cmpexp_cost, Nsens) ;
 end
 for ii = 1 : length(DEXP)
-    if Load.mode == 1 || (Lretro && Load.mode == 3) || Load.mode == 6
+    if Load.mode == 1 || (Load.mode == 3) || Load.mode == 6
         DEXP(ii).cmpexp_cost.COST = 0.01 ;
     else
         DEXP(ii) = compexp_econ(DEXP(ii), CEind, gas)  ;
@@ -176,7 +178,7 @@ for ii = 1 : length(CEXP)
     cap_sens = cap_sens + cost_sens(CEXP(ii).cmpexp_cost, Nsens) ;
 end
 for ii = 1 : length(DCMP)
-    if Load.mode == 1 || (Lretro && Load.mode == 3) 
+    if Load.mode == 1 || (Load.mode == 3) 
         DCMP(ii).cmpexp_cost.COST = 0.01 ;
     else
         DCMP(ii) = compexp_econ(DCMP(ii), CEind, gas)  ;
@@ -225,7 +227,7 @@ for ii = 1 : length(CFAN)
     cap_sens = cap_sens + cost_sens(CFAN(ii).cmpexp_cost, Nsens) ;
 end
 for ii = 1 : length(DFAN)
-    if DFAN(ii).W0 == 0 || (Lretro && Load.mode == 3)
+    if DFAN(ii).W0 == 0 || (Load.mode == 3)
         DFAN(ii).cmpexp_cost.COST = 0.01 ;
     else
         DFAN(ii) = compexp_econ(DFAN(ii), CEind, gas)  ;
@@ -243,10 +245,21 @@ if Load.mode == 7
 end
 for ii = 1 : numel(GEN)
     GEN(ii) = gen_econ(GEN(ii),CEind) ;
+    if (Load.mode==3 && Lretro && strcmp(GEN(ii).type,'gen'))
+        GEN(ii).gen_cost.COST = 0.01 ;
+    end
     cap_cost = cap_cost + GEN(ii).gen_cost.COST ;
     cap_sens = cap_sens + cost_sens(GEN(ii).gen_cost, Nsens) ;
 end
-    
+  
+% Steam turbine
+if Load.mode == 3 && ~Lretro
+   NetW = W_out_disNC/(t_dis-t_disRC) ; % Net discharging work
+   STcost = econ_class(0, 0.2, 5, 0.2) ; % Economics class for steam turbine
+   STcost.COST = STcost_mode * NetW / 1e3 ;
+   cap_cost = cap_cost + STcost.COST ;
+   cap_sens = cap_sens + cost_sens(STcost, Nsens) ;
+end
    
 % Electric heater
 if any(Load.mode == [2,7])
@@ -264,7 +277,15 @@ end
 
 % Heat exchangers
 for ii = 1 : numel(HX)
-    HX(ii)   = HX_cost(HX(ii), CEind) ;
+    if (Lretro && Load.mode == 3 && ii > ihx_JB) 
+        if ii == ihx_JB+2
+            HX(ii)   = HX_cost(HX(ii), CEind) ;
+        else
+            HX(ii).hx_cost.COST = 0.01 ;
+        end
+    else
+        HX(ii)   = HX_cost(HX(ii), CEind) ;
+    end
     cap_cost = cap_cost + HX(ii).hx_cost.COST ;
     cap_sens = cap_sens + cost_sens(HX(ii).hx_cost, Nsens) ;
 end

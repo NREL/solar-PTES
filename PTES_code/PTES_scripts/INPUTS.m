@@ -13,7 +13,7 @@
 % Mode 20: PTES-LAES. Combined cycle energy storage (CCES)
 
 % Call the correct input file
-Load.mode  = 0 ;
+Load.mode  = 3 ;
 Loffdesign = 0 ; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
 Lreadload  = 0 ;
 PBmode     = 0 ; % Liquid stores = 0; Packed beds = 1; Heat exchangers between power cycle and a storage fluid, which then passes through packed beds = 2
@@ -33,7 +33,7 @@ end
 Wdis_req = 100e6 ;
 
 % Set heat exchanger parameters
-HX_model  = 'eff' ;
+HX_model  = 'geom' ;
 eff       = 0.97;  % heat exchanger effectiveness
 ploss     = 0.01;  % pressure loss in HEXs
 HX_D1     = 0.005; %hydraulic diameter
