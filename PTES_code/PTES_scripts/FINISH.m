@@ -10,7 +10,7 @@ if ~multi_run
         save_fig(8, './Outputs/Losses',formats)
         save_fig(77,'./Outputs/Costs',formats)
         if Load.mode==3
-            save_fig(2,'./Outputs/T-s_Rankine',formats)
+            save_fig(2,'./Results/T-s_Rankine',formats)
         end
         % Also save workspace
         save('./Outputs/vars.mat')

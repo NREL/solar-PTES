@@ -114,8 +114,13 @@ switch Load.mode
         CEXP(1:Ne_ch) = compexp_class('exp', 'poly', CEXPmode(1), eta, Load.num) ; % Charging expanders
         
         % Discharging components
-        DCMP(1:3) = compexp_class('comp', 'isen', 0, eta, Load.num) ; % Discharging compressors
-        DEXP(1:3) = compexp_class('exp', 'isen', 0, eta, Load.num) ; % Discharging expanders
+        if ~Load.options.superRank
+            DCMP(1:3) = compexp_class('comp', 'isen', 0, eta, Load.num) ; % Discharging compressors
+            DEXP(1:3) = compexp_class('exp', 'isen', 0, eta, Load.num) ; % Discharging expanders
+        else
+            DCMP(1:4) = compexp_class('comp', 'isen', 0, eta, Load.num) ; % Discharging compressors
+            DEXP(1:4) = compexp_class('exp', 'isen', 0, eta, Load.num) ; % Discharging expanders
+        end
         
     case {4,5} % sCO2-PTES type cycles
         CCMP(1:Nc_ch) = compexp_class('comp', 'poly', CCMPmode(1), eta, Load.num) ; % Charging compressors
@@ -197,22 +202,37 @@ switch Load.mode
         
     case {3,7}
         % Call HX classes for ideal-gas PTES heat pump with Rankine cycle discharge
-        ihx_hot  = 1:Nc_ch;
-        ihx_reg  = ihx_hot(end)+1;
-        ihx_rejc = ihx_reg(end)+1;
-        ihx_cld  = ihx_rejc(end)+(1:Ne_ch);
-        ihx_htf  = ihx_cld(end)+(1:Ne_ch);
-        ihx_JB   = ihx_htf(end);
-        HX(ihx_hot)  = hx_class('hot',  'hex',   hotHXmode(1), HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape)  ; % Hot heat exchanger
-        HX(ihx_reg)  = hx_class('regen','regen', rcpHXmode(1), HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape)  ; % Recuperator
-        HX(ihx_rejc) = hx_class('rej',  'hex',   rejHXmode(1), HX_NX, Load.num, Load.num, HX_model, effX, plossX, HX_D1, HX_shapeX) ; % Heat rejection unit (charge)
-        HX(ihx_cld)  = hx_class('cold', 'hex',   cldHXmode(1), HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape)  ; % Cold heat exchanger
-        HX(ihx_htf)  = hx_class('htf',  'hex',   cldHXmode(1), HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape)  ; % Intermediate HTF loop
+        ihx_hot = 1:Nc_ch;
+        ihx_reg = ihx_hot(end)+1;
+        %ihx_rejc= ihx_reg(end)+1;
+        %ihx_hin = ihx_rejc(end)+(1:Ne_ch);
+        ihx_hin = ihx_reg(end)+(1:Ne_ch);
+        ihx_cld = ihx_hin(end)+(1:Ne_ch);
+        ihx_htf = ihx_cld(end)+(1:Ne_ch);
+        ihx_JB  = ihx_htf(end);
+        HX(ihx_hot) = hx_class('hot',  'hex',   hotHXmode(1), HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape)  ; % Hot heat exchanger
+        HX(ihx_reg) = hx_class('regen','regen', rcpHXmode(1), HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape)  ; % Recuperator
+        %HX(ihx_rejc)= hx_class('rej',  'hex',   rejHXmode(1), HX_NX, Load.num, Load.num, HX_model, effX, plossX, HX_D1, HX_shapeX) ; % Heat rejection unit (charge)
+        HX(ihx_hin) = hx_class('hin',  'hex',   rejHXmode(1), HX_NX, Load.num, Load.num, HX_model, effX, plossX, HX_D1, HX_shape)  ; % Heat intake unit      (no cold tanks scenario)
+        HX(ihx_cld) = hx_class('cold', 'hex',   cldHXmode(1), HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape)  ; % Cold heat exchanger   (cold tanks)
+        HX(ihx_htf) = hx_class('htf',  'hex',   cldHXmode(1), HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape)  ; % Intermediate HTF loop (cold tanks)
         
-        HX(ihx_JB+1) = hx_class('hot',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape)  ; % Reheat
-        HX(ihx_JB+2) = hx_class('cold', 'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape)  ; % Condenser
-        HX(ihx_JB+3) = hx_class('rej',  'regen', 0, HX_NX, Load.num, Load.num, HX_model, effX, plossX, HX_D1, HX_shapeX) ; % Air-cooled condenser
-        HX(ihx_JB+4) = hx_class('hot',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape)  ; % Boiler
+        
+        
+        % Normal Rankine
+        if ~Load.options.superRank
+            HX(ihx_JB+1) = hx_class('hot',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape)  ; % Reheat
+            HX(ihx_JB+2) = hx_class('cold', 'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape)  ; % Condenser
+            HX(ihx_JB+3) = hx_class('rej',  'regen', 0, HX_NX, Load.num, Load.num, HX_model, effX, plossX, HX_D1, HX_shapeX) ; % Air-cooled condenser
+            HX(ihx_JB+4) = hx_class('hot',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape)  ; % Boiler
+        else
+            % Supercritical Rankine
+            HX(ihx_JB+1) = hx_class('hot',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape)  ; % First Reheat
+            HX(ihx_JB+2) = hx_class('hot',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape)  ; % Second Reheat
+            HX(ihx_JB+3) = hx_class('cold', 'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape)  ; % Condenser
+            HX(ihx_JB+4) = hx_class('rej',  'regen', 0, HX_NX, Load.num, Load.num, HX_model, effX, plossX, HX_D1, HX_shapeX) ; % Air-cooled condenser
+            HX(ihx_JB+5) = hx_class('hot',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape)  ; % Boiler
+        end
         
     case 4
         
@@ -289,7 +309,7 @@ DPMP(1:10) = compexp_class('pump', 'isen', PMPmode(1), 0.8, Load.num) ;
 
 
 % Mixers may be required (e.g. in Rankine cycle)
-MIX(1:2)    = misc_class('mix',Load.num) ;
+MIX(1:3)    = misc_class('mix',Load.num) ;
 
 % Put design case load cycles in load for the first iteration.
 if Loffdesign

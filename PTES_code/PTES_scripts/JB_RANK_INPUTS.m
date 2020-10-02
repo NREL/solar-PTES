@@ -1,5 +1,4 @@
 % Set atmospheric conditions and cycle parameters
-T0      = 25 + 273.15;  % ambient temp, K
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 25e5;         % top pressure, Pa
 PRch    = 1.5;          % charge pressure ratio
@@ -11,10 +10,17 @@ setTmax = 1;            % set Tmax? (this option substitutes PRch)
 Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 
 % Set Rankine-specific parameters
-Ran_ptop    = 100e5;
-Ran_pbotMIN = 0.05e5 ; % If condenser pressure decreases below this, the final stage chokes. Can't go to pressures below this, because who knows what happens.
-Ran_Tbot0   = T0 + 5; %when discharging against the environment. This sets design condenser pressure.
-Ran_TbotC   = 273.15+20; %when discharging against the cold stores
+switch Load.mode
+    case {0,1,2}
+        T0 = 25 + 273.15; % ambient temp, K
+        
+    case 3
+        T0          = 40 + 273.15; % ambient temp
+        Ran_ptop    = 100e5;
+        Ran_pbotMIN = 0.02e5 ; % If condenser pressure decreases below this, the final stage chokes. Can't go to pressures below this, because who knows what happens.
+        Ran_Tbot0   = T0 + 5; %when discharging against the environment. This sets design condenser pressure.
+        Ran_TbotC   = T0 + 5; %when discharging against the cold stores
+end
 
 % Set compressor/expander parameters
 eta   = 0.90;  % polytropic efficiency
@@ -100,6 +106,7 @@ switch Load.mode
         end
         
     case 3 % JB charge, Rankine discharge
+        LPRr= 0 ;           % Logical. Estimate optimal PRr after charging run.
         fac = 100.0 ; % This can be used to more easily set the mass flow to obtain a desired power output 
         
         % This is the load scenario the plant is designed for
@@ -107,7 +114,9 @@ switch Load.mode
         Design_Load.time = [10;4;10;10].*3600;          % time spent in each load period, s
         Design_Load.type = ["chg";"str";"ran";"ran"];   % type of load period
         Design_Load.mdot = [10*fac;0;1.0*fac;1.0*fac];  % working fluid mass flow rate, kg/s
-        Design_Load.options.useCold = [0;0;1;0];        % Use cold stores during Rankine discharge? This should be set to 0 for design cases of retrofits.
+        %Design_Load.options.useCold = [0;0;1;0];        % Use cold stores during Rankine discharge? This should be set to 0 for design cases of retrofits.
+        Design_Load.options.useCold = [0;0;0;0];        % Use cold stores during Rankine discharge? This should be set to 0 for design cases of retrofits.
+        Design_Load.options.superRank = 0;
         
         T0_inc    = 5.0 ; % Increase in ambient temperature
         
@@ -156,7 +165,7 @@ Load.ind  = (1:Load.num)';
 switch PBmode
     case 0
         fHname  = 'SolarSalt';  % fluid name
-        TH_dis0 = 300 + 273.15; % initial temperature of discharged hot fluid, K
+        TH_dis0 = 290 + 273.15; % initial temperature of discharged hot fluid, K
         MH_dis0 = 1e9;          % initial mass of discharged hot fluid, kg
         TH_chg0 = 570 + 273.15; % initial temperature of charged hot fluid, K
         MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
@@ -175,7 +184,7 @@ switch PBmode
                 fCname  = 'Water';      % cold fluid name
                 TC_dis0 = T0;           % initial temperature of discharged cold fluid, K
                 MC_dis0 = 1e9;          % initial mass of discharged cold fluid, kg
-                TC_chg0 = 273.15+1;     % initial temperature of charged cold fluid, K
+                TC_chg0 = T0;%273.15+1; % initial temperature of charged cold fluid, K
                 MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
                 HTFname = 'INCOMP::MEG2[0.56]'; % secondary heat transfer fluid name
                 HTF     = fluid_class(HTFname,'SF','TAB',NaN,Load.num,30); % Storage fluid

@@ -45,7 +45,7 @@ load_coolprop
 %10 = Water and air (Nellis example 8.1-1), Xflow
 %11 = Steam condenser -- Steam and air, Xflow
 %12 = Nitrogen regenerator
-scenario = 12;
+scenario = 5;
 
 % Save figures?
 save_figures = 0;
@@ -334,8 +334,8 @@ switch model
                 eff   = 0.9697;  %design value
                 ploss = 0.02625;   %design value
                 D1    = 0.611*2.00e-3; %design value
-                %shape = 'circular';
-                shape = 'PCHE';
+                shape = 'circular';
+                %shape = 'PCHE';
                 
             case 6
                 eff   = 0.80;

@@ -11,6 +11,10 @@ switch Vpnt
         TH_dis0 = Apnt(ipnt);
     case 'Ran_TbotC'
         Ran_TbotC = Apnt(ipnt);
+    case 'Ran_Tbot0'
+        Ran_Tbot0 = Apnt(ipnt);
+    case 'Ran_ptop'
+        Ran_ptop = Apnt(ipnt);
     case 'eff'
         eff = Apnt(ipnt);
     case 'ploss'
@@ -53,6 +57,10 @@ switch Vcrv
         TH_dis0 = Acrv(icrv);
     case 'Ran_TbotC'
         Ran_TbotC = Acrv(icrv);
+    case 'Ran_Tbot0'
+        Ran_Tbot0 = Acrv(icrv);
+    case 'Ran_ptop'
+        Ran_ptop = Acrv(icrv);
     case 'eff'
         eff = Acrv(icrv);
     case 'ploss'

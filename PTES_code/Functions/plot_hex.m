@@ -34,9 +34,9 @@ plot(QS./QS(end),C.T-K,'b'); hold off;
 xlabel('Normalised cumulative heat transfer')
 ylabel(ytext)
 legend(L,'Location','SouthEast')
-dim = [.2 .6 .3 .3];
-str = {sprintf('DppH = %.3f',HX.DppH(iL)),sprintf('DppC = %.3f',HX.DppC(iL))};
-annotation('textbox',dim,'String',str,'FitBoxToText','on');
+%dim = [.2 .6 .3 .3];
+%str = {sprintf('DppH = %.3f',HX.DppH(iL)),sprintf('DppC = %.3f',HX.DppC(iL))};
+%annotation('textbox',dim,'String',str,'FitBoxToText','on');
 
 if ~isempty(AS) && ~Lsimple
     % Plot T-A diagram

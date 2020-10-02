@@ -1,32 +1,41 @@
-%%% RANKINE PLANT LAYOUT %%%
+%%% SUPER-CRITICAL RANKINE PLANT LAYOUT %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %  1: Boiler outlet
-%  2: HPT outlet
+%  2: SCT outlet
 %  3: Separator outlet (first steam extraction)
-%  4: Reheater outlet
-%  5: IPT outlet
-%  6: Separator outlet (second stream extraction)
-%  7: LPT outlet
-%  8: Condenser outlet
-%  9: Pump outlet (mixing with second steam extraction)
-% 10: Mixer outlet
-% 11: Pump outlet (mixing with first steam extraction)
-% 12: Mixer outlet
-% 13: Pump outlet
-% 14: Boiler outlet (end main stream, same as point 1 at convergence)
-% 15: Separator outlet (first steam extraction)  - secondary stream A
-% 16: Mixer outlet (end secondary stream A)
-% 17: Separator outlet (second steam extraction) - secondary stream B
-% 18: Mixer outlet (end secondary stream B)
+%  4: First reheater outlet
+%  5: HPT outlet
+%  6: Separator outlet (second steam extraction)
+%  7: Seconds reheater outlet
+%  8: IPT outlet
+%  9: Separator outlet (third stream extraction)
+% 10: LPT outlet
+% 11: Condenser outlet
+% 12: Pump outlet (mixing with third steam extraction)
+% 13: Mixer outlet
+% 14: Pump outlet (mixing with second steam extraction)
+% 15: Mixer outlet
+% 16: Pump outlet (mixing with first steam extraction)
+% 17: Mixer outlet
+% 18: Pump outlet
+% 19: Boiler outlet (end main stream, same as point 1 at convergence)
+% 20: Separator outlet (first steam extraction)  - secondary stream A
+% 21: Mixer outlet (end secondary stream A)
+% 22: Separator outlet (second steam extraction) - secondary stream B
+% 23: Mixer outlet (end secondary stream B)
+% 24: Separator outlet (third steam extraction)  - secondary stream C
+% 25: Mixer outlet (end secondary stream C)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Set indices for first and second pump outlets
-iP1 = 9;  % same pressure as IPT outlet
-iP2 = 11; % same pressure as HPT outlet
+iP1 = 12; % same pressure as IPT outlet
+iP2 = 14; % same pressure as HPT outlet
+iP3 = 16; % same pressure as SCT outlet
 
-% Set indices for secondary streams A and B
-iSA = 15;
-iSB = 17;
+% Set indices for secondary streams A, B and C
+iSA = 20;
+iSB = 22;
+iSC = 24;
 
 % Set main pressure and temperature levels along the cycle (apart from
 % Ran_ptop and Ran_Tbot, defined in INPUTS file)
@@ -46,10 +55,12 @@ if design_mode == 1
 
     PR_dis    = Ran_ptop/Ran_pbot ; % Total pressure ratio
     PR_dis0   = PR_dis; % Total pressure ratio - deisgn point
-    Ran_pmid1 = Ran_ptop/(PR_dis0)^(1/3);  % pressure at HPT outlet. First two stages pressure ratios are kept constant. Only final LP stage pressure ratio changes.
-    Ran_pmid2 = Ran_pmid1/(PR_dis0)^(1/3); % pressure at IPT outlet
+    Ran_pmid1 = Ran_ptop/(PR_dis0)^(1/4);  % pressure at SCT outlet. First tthree stages pressure ratios are kept constant. Only final LP stage pressure ratio changes.
+    Ran_pmid2 = Ran_pmid1/(PR_dis0)^(1/4); % pressure at HPT outlet.
+    Ran_pmid3 = Ran_pmid2/(PR_dis0)^(1/4); % pressure at IPT outlet
     Ran_Tmid1 = RPN('PQ_INPUTS',Ran_pmid1,0.0,'T',steam); %wet saturated temp1
     Ran_Tmid2 = RPN('PQ_INPUTS',Ran_pmid2,0.0,'T',steam); %wet saturated temp2
+    Ran_Tmid3 = RPN('PQ_INPUTS',Ran_pmid3,0.0,'T',steam); %wet saturated temp3
    
     % Initial guess of discharge conditions (Point 1)
     iG = 1;
@@ -58,20 +69,28 @@ if design_mode == 1
     steam.state(iL,iG).mdot = Load.mdot(iL);
     [steam] = update(steam,[iL,iG],1);
     
-    % Initial guess of conditions at point 11 (second pump outlet). This is
+    % Initial guess of conditions at point 16 (third pump outlet). This is
     % necessary to predict the x1 fraction to obtain wet saturated steam at
-    % point 12.
-    iG = 11;
+    % point 17.
+    iG = 16;
     steam.state(iL,iG).T = Ran_Tmid2;
     steam.state(iL,iG).p = Ran_pmid1;
     [steam] = update(steam,[iL,iG],1);
     
-    % Initial guess of conditions at point 9 (first pump outlet). This is
+    % Initial guess of conditions at point 14 (second pump outlet). This is
     % necessary to predict the x2 fraction to obtain wet saturated steam at
-    % point 10.
-    iG = 9;
-    steam.state(iL,iG).T = Ran_Tbot;
+    % point 15.
+    iG = 14;
+    steam.state(iL,iG).T = Ran_Tmid3;
     steam.state(iL,iG).p = Ran_pmid2;
+    [steam] = update(steam,[iL,iG],1);
+    
+    % Initial guess of conditions at point 12 (first pump outlet). This is
+    % necessary to predict the x3 fraction to obtain wet saturated steam at
+    % point 13.
+    iG = 12;
+    steam.state(iL,iG).T = Ran_Tbot;
+    steam.state(iL,iG).p = Ran_pmid3;
     [steam] = update(steam,[iL,iG],1);
     
     environ.T0 = T0 ;
@@ -104,15 +123,17 @@ else
 
     Ran_ptop  = DEXP(1).Pin * Load.mdot(iL) / DEXP(1).mdot0 ; % This accounts for part-load operation
     PR_dis    = Ran_ptop/Ran_pbot; % Total pressure ratio
-    Ran_pmid1 = Ran_ptop/(PR_dis0)^(1/3);  % pressure at HPT outlet. First two stages pressure ratios are kept constant. Only final LP stage pressure ratio changes.
-    Ran_pmid2 = Ran_pmid1/(PR_dis0)^(1/3); % pressure at IPT outlet
+    Ran_pmid1 = Ran_ptop/(PR_dis0)^(1/4);  % pressure at SCT outlet. First tthree stages pressure ratios are kept constant. Only final LP stage pressure ratio changes.
+    Ran_pmid2 = Ran_pmid1/(PR_dis0)^(1/4); % pressure at HPT outlet.
+    Ran_pmid3 = Ran_pmid2/(PR_dis0)^(1/4); % pressure at IPT outlet
     Ran_Tmid1 = RPN('PQ_INPUTS',Ran_pmid1,0.0,'T',steam); %wet saturated temp1
     Ran_Tmid2 = RPN('PQ_INPUTS',Ran_pmid2,0.0,'T',steam); %wet saturated temp2
+    Ran_Tmid3 = RPN('PQ_INPUTS',Ran_pmid3,0.0,'T',steam); %wet saturated temp3
     
-    DEXP(3).mdot(iL) = DEXP(3).mdot0 ;
-    DEXP(3).pr(iL) = 1.0 ;
+    DEXP(4).mdot(iL) = DEXP(4).mdot0 ;
+    DEXP(4).pr(iL)   = 1.0 ;
     
-    %DEXP(3).eta0 = 0.9 * sqrt(Load.mdot(iL) / DEXP(1).mdot0) ; % Can't
+    %DEXP(4).eta0 = 0.9 * sqrt(Load.mdot(iL) / DEXP(1).mdot0) ; % Can't
     %remember why this is here! Looks bad!
     
 end
@@ -152,14 +173,14 @@ for counter=1:max_iter
     % set to ensure that pump inlet temperature is just below wet saturated
     % conditions
     if ~design_mode
-        steam.state(iL,iP2).p = steam.state(iL,iG).p ;
-        [steam] = update(steam,[iL,iP2],1);
+        steam.state(iL,iP3).p = steam.state(iL,iG).p ;
+        [steam] = update(steam,[iL,iP3],1);
         steam.state(iL,iSA).p = steam.state(iL,iG).p ;
         [steam] = update(steam,[iL,iSA],1);
         
         x1 = (DEXP(1).mdot0 - DEXP(2).mdot0)/ DEXP(1).mdot0;
     else
-        f1 = @(x1) dT_from_mix_obj(x1,steam,iL,iG,iSA,iP2,Ran_Tmid1-1,MIX(1));
+        f1 = @(x1) dT_from_mix_obj(x1,steam,iL,iG,iSA,iP3,Ran_Tmid1-1,MIX(1));
         %plot_function(f1,0.0,1.0,100,10)
         %TolX = 1e-6; %tolerance
         %options = optimset('TolX',TolX,'Display','iter');
@@ -171,7 +192,7 @@ for counter=1:max_iter
     % SEPARATE (2-->3)
     [steam,iG] = split_stream(steam,iL,iG,iSA,x1);
     
-    % REHEAT (gas-liquid) (3-->4)
+    % FIRST REHEAT (gas-liquid) (3-->4)
     fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p;
     [fluidH] = update(fluidH,[iL,iH],1);
     Taim = HT.A(iL).T;
@@ -188,78 +209,122 @@ for counter=1:max_iter
     % set to ensure that pump inlet temperature is just below wet saturated
     % conditions
     if ~design_mode
-        steam.state(iL,iP1).p = steam.state(iL,iG).p ;
-        [steam] = update(steam,[iL,iP1],1);
+        steam.state(iL,iP2).p = steam.state(iL,iG).p ;
+        [steam] = update(steam,[iL,iP2],1);
         steam.state(iL,iSB).p = steam.state(iL,iG).p ;
         [steam] = update(steam,[iL,iSB],1);
         
-        % The mass flow rate through the final stage is determined by
-        % Stodola's ellipse if pcond < pcond0. If pcond >= pcond0, then
-        % the mass flow is calculated in the original way, but the
-        % efficiency of DEXP(3) decreases a bit as flow separates on the
-        % blades.
-        if DEXP(3).pr(iL) > 1.0
-            x2 = (DEXP(2).mdot(iL) - DEXP(3).mdot(iL))/DEXP(2).mdot(iL) ;
-        else
-            f2 = @(x2) dT_from_mix_obj(x2,steam,iL,iG,iSB,iP1,Ran_Tmid2-1,MIX(1));
-            x2  = fzero(f2,[0.0,0.5]);
-        end
+        x2 = (DEXP(2).mdot0 - DEXP(3).mdot0)/ DEXP(2).mdot0;
     else
-        f2 = @(x2) dT_from_mix_obj(x2,steam,iL,iG,iSB,iP1,Ran_Tmid2-1,MIX(1));
+        f2 = @(x2) dT_from_mix_obj(x2,steam,iL,iG,iSB,iP2,Ran_Tmid2-1,MIX(1));
         %plot_function(f1,0.0,1.0,100,10)
         %TolX = 1e-6; %tolerance
         %options = optimset('TolX',TolX,'Display','iter');
         x2  = fzero(f2,[0.0,0.5]);%,options);
         %keyboard
-        %%%%%%%%%%%
-       
+        %%%%%%%%%%%    
     end
     
     % SEPARATE (5-->6)
     [steam,iG] = split_stream(steam,iL,iG,iSB,x2);
-    % EXPAND (6-->7)
+    
+    % SECOND REHEAT (gas-liquid) (6-->7)
+    fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p;
+    [fluidH] = update(fluidH,[iL,iH],1);
+    Taim = HT.A(iL).T;
+    [HX(ihx_JB+2),fluidH,iH,steam,iG] = hex_func(HX(ihx_JB+2),iL,fluidH,iH,steam,iG,4,Taim);
+    [DPMP(iPMP),fluidH,iH] = compexp_func (DPMP(iPMP),iL,fluidH,iH,'Paim',fluidH.state(iL,1).p,1);
+    iH=iH+1; iPMP=iPMP+1;
+    
+    % EXPAND (7-->8)
+    [DEXP(3),steam,iG] = compexp_func (DEXP(3),iL,steam,iG,'Paim',Ran_pmid3,design_mode) ;
+    
+    % FIND x3 %
+    %%%%%%%%%%%
+    % x3 is the fraction of steam for the third steam extraction). It is
+    % set to ensure that pump inlet temperature is just below wet saturated
+    % conditions
+    if ~design_mode
+        steam.state(iL,iP1).p = steam.state(iL,iG).p ;
+        [steam] = update(steam,[iL,iP1],1);
+        steam.state(iL,iSC).p = steam.state(iL,iG).p ;
+        [steam] = update(steam,[iL,iSC],1);
+        
+        % The mass flow rate through the final stage is determined by
+        % Stodola's ellipse if pcond < pcond0. If pcond >= pcond0, then
+        % the mass flow is calculated in the original way, but the
+        % efficiency of DEXP(4) decreases a bit as flow separates on the
+        % blades.
+        if DEXP(4).pr(iL) > 1.0
+            x3 = (DEXP(3).mdot(iL) - DEXP(4).mdot(iL))/DEXP(3).mdot(iL) ;
+        else
+            f3 = @(x3) dT_from_mix_obj(x3,steam,iL,iG,iSC,iP1,Ran_Tmid3-1,MIX(1));
+            x3  = fzero(f3,[0.0,0.5]);
+        end
+    else
+        f3 = @(x3) dT_from_mix_obj(x3,steam,iL,iG,iSC,iP1,Ran_Tmid3-1,MIX(1));
+        %plot_function(f1,0.0,1.0,100,10)
+        %TolX = 1e-6; %tolerance
+        %options = optimset('TolX',TolX,'Display','iter');
+        x3  = fzero(f3,[0.0,0.5]);%,options);
+        %keyboard
+        %%%%%%%%%%%
+       
+    end
+    
+    % SEPARATE (8-->9)
+    [steam,iG] = split_stream(steam,iL,iG,iSC,x3);
+    
+    % EXPAND (9-->10)
     p_aim     = Ran_pbot ; %steam.state(iL,iG).p/(PR_dis)^(1/3);
-    [DEXP(3),steam,iG] = compexp_func (DEXP(3),iL,steam,iG,'Paim',p_aim,design_mode) ;
+    [DEXP(4),steam,iG] = compexp_func (DEXP(4),iL,steam,iG,'Paim',p_aim,design_mode) ;
     
     if Load.options.useCold(iL)
         % COOL (condense using cold tanks)
         fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p; %#ok<*SAGROW>
         [fluidC] = update(fluidC,[iL,iC],1);
         T_aim = RPN('PQ_INPUTS',steam.state(iL,iG).p,0.0,'T',steam) - 1; %wet saturated
-        [HX(ihx_JB+2),steam,iG,fluidC,iC] = hex_func(HX(ihx_JB+2),iL,steam,iG,fluidC,iC,5,T_aim);
+        [HX(ihx_JB+3),steam,iG,fluidC,iC] = hex_func(HX(ihx_JB+3),iL,steam,iG,fluidC,iC,5,T_aim);
         [DPMP(iPMP),fluidC,iC] = compexp_func (DPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
         iC=iC+1; iPMP=iPMP+1;
     else
-        % REJECT HEAT (external HEX) (7-->8)
+        % REJECT HEAT (external HEX) (10-->11)
         T_aim = Ran_Tbot - 1;
         air.state(iL,1).T = environ.T0; air.state(iL,1).p = p0; air = update(air,[iL,1],1);
-        [HX(ihx_JB+3), steam, iG, air, iA] = hex_func(HX(ihx_JB+3),iL,steam,iG,air,iA,5,T_aim);
+        [HX(ihx_JB+4), steam, iG, air, iA] = hex_func(HX(ihx_JB+4),iL,steam,iG,air,iA,5,T_aim);
         [DFAN(1),air,iA] = compexp_func (DFAN(1),iL,air,iA,'Paim',p0,1);
     end
     
-    % COMPRESS (8-->9)
-    p_aim = steam.state(iL,iSB).p;
+    % COMPRESS (11-->12)
+    p_aim = steam.state(iL,iSC).p;
     [DCMP(1),steam,iG] = compexp_func (DCMP(1),iL,steam,iG,'Paim',p_aim,1);
     
-    % MIX (9-->10)
-    [MIX(1),steam,iG,~] = mix_streams(MIX(1),steam,[iL,iG],[iL,iSB]);
+    % MIX (12-->13)
+    [MIX(1),steam,iG,~] = mix_streams(MIX(1),steam,[iL,iG],[iL,iSC]);
     
-    % COMPRESS (10-->11)
-    p_aim = steam.state(iL,iSA).p;
+    % COMPRESS (13-->14)
+    p_aim = steam.state(iL,iSB).p;
     [DCMP(2),steam,iG] = compexp_func (DCMP(2),iL,steam,iG,'Paim',p_aim,1);
     
-    % MIX (11-->12)
-    [MIX(2),steam,iG,~] = mix_streams(MIX(2),steam,[iL,iG],[iL,iSA]);
+    % MIX (14-->15)
+    [MIX(2),steam,iG,~] = mix_streams(MIX(2),steam,[iL,iG],[iL,iSB]);
     
-    % COMPRESS (12-->13)
+    % COMPRESS (15-->16)
+    p_aim = steam.state(iL,iSA).p;
+    [DCMP(3),steam,iG] = compexp_func (DCMP(3),iL,steam,iG,'Paim',p_aim,1);
+    
+    % MIX (16-->17)
+    [MIX(3),steam,iG,~] = mix_streams(MIX(3),steam,[iL,iG],[iL,iSA]);
+    
+    % COMPRESS (17-->18)
     p_aim = Ran_ptop;
-    [DCMP(3),steam,iG] = compexp_func (DCMP(3),iL,steam,iG,'Paim',p_aim,1   );
+    [DCMP(4),steam,iG] = compexp_func (DCMP(4),iL,steam,iG,'Paim',p_aim,1);
     
-    % HEAT (2-phase-liquid) (13-->1)
+    % HEAT (2-phase-liquid) (18-->1)
     fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p; %#ok<*SAGROW>
     [fluidH] = update(fluidH,[iL,iH],1);
     Taim = HT.A(iL).T;
-    [HX(ihx_JB+4),fluidH,iH,steam,iG] = hex_func(HX(ihx_JB+4),iL,fluidH,iH,steam,iG,4,Taim);
+    [HX(ihx_JB+5),fluidH,iH,steam,iG] = hex_func(HX(ihx_JB+5),iL,fluidH,iH,steam,iG,4,Taim);
     [DPMP(iPMP),fluidH,iH] = compexp_func (DPMP(iPMP),iL,fluidH,iH,'Paim',fluidH.state(iL,1).p,1);
     iH=iH+1; iPMP=iPMP+1;
     

@@ -74,7 +74,11 @@ for ix = 1:1
                             JB_DISCHARGE_PB
                             
                         case 'ran'
-                            RANK_DISCHARGE
+                            if Load.options.superRank
+                                SUPER_RANK_DISCHARGE
+                            else
+                                RANK_DISCHARGE
+                            end
                             iL=iL+1;
                         case 'chgCO2'
                             sCO2_CHARGE
