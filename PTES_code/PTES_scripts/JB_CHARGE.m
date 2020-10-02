@@ -4,11 +4,20 @@ iH = 1;  % keeps track of the Hot fluid stream number
 iC = 1;  % keeps track of the Cold fluid stream number
 iA = 1;  % keeps track of the Air (heat rejection) stream number
 iPMP = 1 ; % Keeps track of which pump is being used
+iFAN = 1 ; % Keeps track of which fan is being used
 iHTF = 1 ; % Keeps track of the heat transfer fluid stream number
 
 % Regenerator inlet indices
-iReg1 = 1 + Nc_ch*2;         % index hot regenerator inlet (after compression + cooling)
-iReg2 = iReg1 + 2 + Ne_ch*2; % index cold regenerator inlet (after regeneration + heat_reject + expansion + heating)
+switch Load.mode
+    case {0,1,2}
+        iReg1 = 1 + Nc_ch*2;             % index hot regenerator inlet (after compression + cooling)
+        iReg2 = iReg1 + 1 + 1 + Ne_ch*2; % index cold regenerator inlet (after regeneration + heat_reject + expansion + heating)
+    case 3
+        iReg1 = 1 + Nc_ch*2;         % index hot regenerator inlet (after compression + cooling)
+        iReg2 = iReg1 + 1 + Ne_ch*2; % index cold regenerator inlet (after regeneration + expansion + heating)
+    otherwise
+        error('not implemented')
+end
 
 if design_mode == 1
     % Initial guess of charge conditions
@@ -102,14 +111,21 @@ for counter=1:max_iter
     [HX(ihx_reg),gas,iG,~,~] = hex_func(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
     
     % REJECT HEAT (external HEX)
-    T_aim = environ.T0 + T0_inc;    
-    air.state(iL,iA).T = environ.T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
-    if T_aim >= gas.state(iL,iG).T
-        gas.state(iL,iG+1) = gas.state(iL,iG) ;
-        iG = iG + 1 ;
-    else
-        [HX(ihx_rejc), gas, iG, air, iA] = hex_func(HX(ihx_rejc),iL,gas,iG,air,iA,1,0.5);
-        [CFAN(1),air,iA] = compexp_func (CFAN(1),iL,air,iA,'Paim',p0,1);
+    switch Load.mode
+        case {0,1,2}
+            T_aim = environ.T0 + T0_inc;
+            if T_aim >= gas.state(iL,iG).T
+                gas.state(iL,iG+1) = gas.state(iL,iG) ;
+                iG = iG + 1 ;
+            else
+                air.state(iL,iA).T = environ.T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
+                [HX(ihx_rejc), gas, iG, air, iA] = hex_func(HX(ihx_rejc),iL,gas,iG,air,iA,1,0.5);
+                [CFAN(iFAN),air,iA] = compexp_func (CFAN(iFAN),iL,air,iA,'Paim',p0,1);
+                iA=iA+1; iFAN=iFAN+1;
+            end
+        case 3
+        otherwise
+            error('not implemented')
     end
         
     for iN = 1:Ne_ch
@@ -129,53 +145,75 @@ for counter=1:max_iter
                 iC=iC+1; iPMP=iPMP+1;
                 
             case 3
-                % Use secondary heat transfer loop between gas and cold
-                % storage fluid (i.e. water) to avoid freezing
                 
-                % Store current state of indices and iterate over the two
-                % heat transfer processes until HTF temperatures become
-                % stable
-                iHTF_0 = iHTF;
-                iG_0   = iG;
-                iC_0   = iC;
-                iPMP_0 = iPMP;
-                HTF_max_iter = 10;
-                for HTF_iter=1:HTF_max_iter
-                    % HEAT (gas-HTF)
-                    Taim = 273.15+1;
-                    [HX(ihx_cld(iN)),HTF,iHTF,gas,iG] = hex_func(HX(ihx_cld(iN)),iL,HTF,iHTF,gas,iG,4,Taim);
+                if any(Load.options.useCold) % Charge cold stores
                     
-                    % HEAT (HTF-liquid)
-                    fluidC.state(iL,iC).T = CT.A(iL).T; fluidC.state(iL,iC).p = CT.A(iL).p;
-                    [fluidC] = update(fluidC,[iL,iC],1);
-                    [HX(ihx_htf(iN)),fluidC,iC,HTF,iHTF] = hex_func(HX(ihx_htf(iN)),iL,fluidC,iC,HTF,iHTF,2,1.0);
+                    % Use secondary heat transfer loop between gas and cold
+                    % storage fluid (i.e. water) to avoid freezing
                     
-                    % Pump HTF and fluidC back to original pressures
-                    [CPMP(iPMP),HTF,iHTF] = compexp_func (CPMP(iPMP),iL,HTF,iHTF,'Paim',p0,1);
-                    iPMP=iPMP+1;
-                    [CPMP(iPMP),fluidC,iC] = compexp_func (CPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
-                    iC=iC+1; iPMP=iPMP+1;
-                    
-                    %disp(HTF.state(iL,iHTF).T)
-                    
-                    % Evaluate convergence and proceed
-                    HTFconvergence = abs(HTF.state(iL,iHTF_0).T - HTF.state(iL,iHTF).T) < 1e-3;
-                    if HTFconvergence
-                        break
-                    else
-                        HTF.state(iL,iHTF_0).T = HTF.state(iL,iHTF).T;
-                        iHTF = iHTF_0;
-                        iG   = iG_0;
-                        iC   = iC_0;
-                        iPMP = iPMP_0;
-                        [HTF] = update(HTF,[iL,iHTF],1);
+                    % Store current state of indices and iterate over the two
+                    % heat transfer processes until HTF temperatures become
+                    % stable
+                    iHTF_0 = iHTF;
+                    iG_0   = iG;
+                    iC_0   = iC;
+                    iPMP_0 = iPMP;
+                    iFAN_0 = iFAN;
+                    HTF_max_iter = 10;
+                    for HTF_iter=1:HTF_max_iter
+                        % HEAT (gas-HTF)
+                        Taim = 273.15+1;
+                        [HX(ihx_cld(iN)),HTF,iHTF,gas,iG] = hex_func(HX(ihx_cld(iN)),iL,HTF,iHTF,gas,iG,4,Taim);
+                        
+                        % HEAT (HTF-liquid)
+                        fluidC.state(iL,iC).T = CT.A(iL).T; fluidC.state(iL,iC).p = CT.A(iL).p;
+                        [fluidC] = update(fluidC,[iL,iC],1);
+                        [HX(ihx_htf(iN)),fluidC,iC,HTF,iHTF] = hex_func(HX(ihx_htf(iN)),iL,fluidC,iC,HTF,iHTF,2,1.0);
+                        
+                        % Pump HTF and fluidC back to original pressures
+                        [CPMP(iPMP),HTF,iHTF] = compexp_func (CPMP(iPMP),iL,HTF,iHTF,'Paim',p0,1);
+                        iPMP=iPMP+1;
+                        [CPMP(iPMP),fluidC,iC] = compexp_func (CPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
+                        iC=iC+1; iPMP=iPMP+1;
+                        
+                        %disp(HTF.state(iL,iHTF).T)
+                        
+                        % Evaluate convergence and proceed
+                        HTFconvergence = abs(HTF.state(iL,iHTF_0).T - HTF.state(iL,iHTF).T) < 1e-3;
+                        if HTFconvergence
+                            break
+                        else
+                            HTF.state(iL,iHTF_0).T = HTF.state(iL,iHTF).T;
+                            iHTF = iHTF_0;
+                            iG   = iG_0;
+                            iC   = iC_0;
+                            iPMP = iPMP_0;
+                            iFAN = iFAN_0;
+                            [HTF] = update(HTF,[iL,iHTF],1);
+                        end
                     end
+                    if HTF_iter>=HTF_max_iter
+                        error('convergence not reached')
+                    end
+                    
+                else % Take heat in from the environment
+                    % REJECT HEAT (external HEX)
+                    T_aim = environ.T0 - T0_inc;
+                    if T_aim <= gas.state(iL,iG).T
+                        gas.state(iL,iG+1) = gas.state(iL,iG) ;
+                        iG = iG + 1 ;
+                    else
+                        air.state(iL,iA).T = environ.T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
+                        [HX(ihx_hin(iN)), air, iA, gas, iG] = hex_func(HX(ihx_hin(iN)),iL,air,iA,gas,iG,2,2.0);
+                        [CFAN(iFAN),air,iA] = compexp_func (CFAN(iFAN),iL,air,iA,'Paim',p0,1);
+                        iA=iA+1; iFAN=iFAN+1;
+                    end
+                    
                 end
-                if HTF_iter>=HTF_max_iter
-                    error('convergence not reached')
-                end
+                
+            otherwise
+                error('not implemented')
         end
-
     end
     
     % REGENERATE (gas-gas)
@@ -233,7 +271,7 @@ for counter=1:max_iter
         end
         gas.state(iL,1) = gas.state(iL,iG);
         C_0 = C;
-        iG=1; iH=1; iC=1; iA=1; iPMP=1; iHTF=1;
+        iG=1; iH=1; iC=1; iA=1; iPMP=1; iFAN=1; iHTF=1;
         
     else
         
@@ -262,7 +300,7 @@ for counter=1:max_iter
         end
         
         C_0 = C;
-        iG=1; iH=1; iC=1; iA=1; iPMP=1; iHTF=1;
+        iG=1; iH=1; iC=1; iA=1; iPMP=1; iFAN=1; iHTF=1;
         
     end
 end

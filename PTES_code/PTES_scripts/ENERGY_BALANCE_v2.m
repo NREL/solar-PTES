@@ -97,6 +97,7 @@ QC_chg     = 0;  % heat from cold tanks
 QC_dis     = 0;  % heat to cold tanks
 QE_dis     = 0;  % heat rejected to environment
 
+E_out_disRC = 0; % Electricity output (after generator losses) for cycle using cold stores
 W_out_disRC = 0;
 W_fan_disRC = 0;  % Parasitic work input - nice to separate this out
 W_pmp_disRC = 0;  % Parasitic work input - nice to separate this out
@@ -162,6 +163,9 @@ for iL=1:Load.num
             % Heat out of cycle to the environment
             if strcmp(HX(ii).name,'rej')
                 QE_chg = QE_chg + HX(ii).Q(iL,1) ;
+                WL_PTES_chg(4) = WL_PTES_chg(4) + T0 * HX(ii).Sirr(iL,2) ; % Loss due to heat exchange with environment
+            elseif strcmp(HX(ii).name,'hin')
+                QE_chg = QE_chg + HX(ii).Q(iL,2) ;
                 WL_PTES_chg(4) = WL_PTES_chg(4) + T0 * HX(ii).Sirr(iL,2) ; % Loss due to heat exchange with environment
             else
                 WL_PTES_chg(3) = WL_PTES_chg(3) + T0 * HX(ii).Sirr(iL,2) ; % Loss due to heat exchange
@@ -241,7 +245,7 @@ for iL=1:Load.num
             WL_PTES_dis(6) = WL_PTES_dis(6) + T0 * MIX(ii).Sirr(iL,2) ;
         end
         
-        % Calculate heat and work terms seperately for a Rankine cycle that uses cooling
+        % Calculate heat and work terms separately for a Rankine cycle that uses cooling
         if strcmp(Load.type(iL),'ran') && Load.options.useCold(iL) == 1
                        
             % Work into cycle
@@ -252,6 +256,11 @@ for iL=1:Load.num
             % Work out of cycle
             for ii = 1:length(DEXP)
                 W_out_disRC = W_out_disRC + DEXP(ii).W(iL) ;
+            end
+            
+            % Electricity from Generator
+            for ii = 1 : numel(GEN)
+                E_out_disRC  = E_out_disRC  + GEN(ii).E(iL);
             end
             
             % Parasitic work into cycle
@@ -281,6 +290,16 @@ for iL=1:Load.num
         
     end
     
+end
+
+if Load.mode == 3
+    % Calculate heat and work terms separately for a Rankine cycle that does not use cooling
+    W_out_disNC = W_out_dis - W_out_disRC;
+    E_out_disNC = E_out_dis - E_out_disRC;
+    W_fan_disNC = W_fan_dis - W_fan_disRC;
+    W_pmp_disNC = W_pmp_dis - W_pmp_disRC;
+    QH_disNC    = QH_dis    - QH_disRC;
+    QC_disNC    = QC_dis    - QC_disRC;
 end
 
 % Add in losses from tanks (mixing and exergy left inside)
@@ -376,22 +395,60 @@ switch Load.mode
         chi_PTES = -W_out_dis/W_in_chg;
         chi_PTES_para = -E_net_dis / E_net_chg ;
         
-        vol = 0.0; % Calculate storage volume
-        for ii = 1:Nhot; vol = vol + HT(ii).tank_volA + HT(ii).tank_volB ; end
-        for ii = 1:Ncld; vol = vol + CT(ii).tank_volA + CT(ii).tank_volB ; end
+        % Calculate storage volume
+        volH = 0.0; % Calculate storage volume
+        volC = 0.0; % Calculate storage volume
+        for ii = 1:Nhot; volH = volH + HT(ii).tank_volA + HT(ii).tank_volB ; end
+        for ii = 1:Ncld; volC = volC + CT(ii).tank_volA + CT(ii).tank_volB ; end
+        vol  = volH + volC;
         
+        % Energy density
         rhoE = E_net_dis /fact/vol*1e3; %kWh/m3
         
         % Calculate some special metrics for certain cycles
         if Load.mode == 3
+            if i_chg == 1 && i_dis(1) == 3 && i_dis(2) == 4
+                Exergy_into_hot_tanks    = (HT.A(2).B - HT.A(1).B) + (HT.B(2).B - HT.B(1).B);
+                Exergy_into_cold_tanks   = (CT.A(2).B - CT.A(1).B) + (CT.B(2).B - CT.B(1).B);
+                Exergy_from_hot_tanks    = (HT.A(3).B - HT.A(5).B) + (HT.B(3).B - HT.B(5).B);
+                Exergy_from_hot_tanksRC  = (HT.A(3).B - HT.A(4).B) + (HT.B(3).B - HT.B(4).B);
+                Exergy_from_hot_tanksNC  = (HT.A(4).B - HT.A(5).B) + (HT.B(4).B - HT.B(5).B);
+                Exergy_from_cold_tanks   = (CT.A(3).B - CT.A(5).B) + (CT.B(3).B - CT.B(5).B);
+                Exergy_from_cold_tanksRC = (CT.A(3).B - CT.A(4).B) + (CT.B(3).B - CT.B(4).B);
+                Exergy_from_cold_tanksNC = (CT.A(4).B - CT.A(5).B) + (CT.B(4).B - CT.B(5).B);
+                Exergy_into_tanks   = Exergy_into_hot_tanks   + Exergy_into_cold_tanks;
+                Exergy_from_tanks   = Exergy_from_hot_tanks   + Exergy_from_cold_tanks;
+                Exergy_from_tanksRC = Exergy_from_hot_tanksRC + Exergy_from_cold_tanksRC;
+                Exergy_from_tanksNC = Exergy_from_hot_tanksNC + Exergy_from_cold_tanksNC;
+            else
+                warning('Exergy efficiencies not computed')
+                Exergy_into_hot_tanks  = NaN;
+                Exergy_into_cold_tanks = NaN;
+                Exergy_from_hot_tanks  = NaN;
+                Exergy_from_cold_tanks = NaN;
+            end
             
-            W_out_disNC = E_net_dis - (W_out_disRC + W_fan_disRC + W_pmp_disRC) ;
-            QH_disNC = QH_dis - QH_disRC ;
-            QC_disNC = QC_dis - QC_disRC ;
+            if ~any(Load.options.useCold)
+                vol  = volH;
+                rhoE = E_net_dis /fact/vol*1e3; %kWh/m3
+            end
             
-            HEeff   = E_net_dis / QH_dis ; % Heat engine average efficiency
-            HEeffRC = (W_out_disRC + W_fan_disRC + W_pmp_disRC) / QH_disRC ; % Efficiency for cycles where only cold tanks are used for condensing
-            HEeffNC = W_out_disNC / QH_disNC ; % Efficiency for cycles where cold tanks are NOT used for condensing
+            E_net_disRC = E_out_disRC + W_fan_disRC + W_pmp_disRC;
+            E_net_disNC = E_out_disNC + W_fan_disNC + W_pmp_disNC;
+            
+            % COP and heat engine efficiency (including parasitics)
+            COP     = QH_chg / E_net_chg;
+            HEeff   = E_net_dis   / QH_dis ;   % Heat engine average efficiency
+            HEeffRC = E_net_disRC / QH_disRC ; % Efficiency for cycles where only cold tanks are used for condensing
+            HEeffNC = E_net_disNC / QH_disNC ; % Efficiency for cycles where cold tanks are NOT used for condensing
+            
+            % Heat Pump and Heat Engine exergetic efficiencies (including
+            % parasitics)
+            HPexergy_eff   = Exergy_into_tanks / (-E_net_chg); % Heat pump average exergetic efficiency
+            HEexergy_eff   = E_net_dis / Exergy_from_tanks; % Heat engine average exergetic efficiency
+            HEexergy_effRC = E_net_disRC / Exergy_from_tanksRC;
+            HEexergy_effNC = E_net_disNC / Exergy_from_tanksNC;
+
         elseif Load.mode == 6
             SOLeff  = E_net_dis / QH_sol ; % Solar conversion efficiency
             HEeff   = E_net_dis / QH_dis ; % Heat engine efficiency
@@ -608,6 +665,7 @@ end
 % returned to their original temp or greater. If stores are below T0 when
 % discharged, then they must be returned to original temp or lower.
 heater_in = 0;
+chi_PTES_true = chi_PTES_para ;
 if any(Load.mode ==[0,4,6])
     problem = 0 ;
     
@@ -635,7 +693,6 @@ if any(Load.mode ==[0,4,6])
         warning('Unsustainable discharge of a cold reservoir!')
     end
     
-    chi_PTES_true = chi_PTES_para ;
     % If the hot fluid gets cooled down to a temperature below its original
     % value, calculate the heat required to boost it back. Then find the
     % 'true' round-trip efficiency assuming this heat is provided by an
@@ -647,7 +704,6 @@ if any(Load.mode ==[0,4,6])
         chi_PTES_true = -(E_net_dis - heater_in) / E_net_chg ;
         fprintf(1,'TRUE round trip eff. (inc. heating):   %8.2f %%\n\n',chi_PTES_true*100);
     end
-    
 end
 
 % PRINT HEXs
