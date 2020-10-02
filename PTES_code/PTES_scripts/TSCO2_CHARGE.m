@@ -26,11 +26,11 @@ if iL == 1
     % Extract key design points from the sCO2-recompression cycle
     TH_dis0(2) = gas.state(1,5).T ;
     TH_chg0(2) = gas.state(1,6).T ;
-    HT(2)  = double_tank_class(fluidH(2),TH_dis0(2),p0,MH_dis0(2),TH_chg0(2),p0,MH_chg0(2),T0,Load.num+1); %hot double tank
+    HT(2)  = double_tank_class(fluidH(2),TH_dis0(2),p0,MH_dis0(2),TH_chg0(2),p0,MH_chg0(2),T0,HTmode,Load.num+1); %hot double tank
     
     TC_dis0 =  gas.state(1,3).T ;
     TC_chg0 =  gas.state(1,4).T ;
-    CT  = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,Load.num+1); %cold double tank
+    CT  = double_tank_class(fluidC,TC_dis0,p0,MC_dis0,TC_chg0,p0,MC_chg0,T0,CTmode,Load.num+1); %cold double tank
     
     Load.mdot(iL) = gas.state(1,11).mdot ;
     
@@ -53,6 +53,18 @@ if iL == 1
     
     for ir = 1:length(fluidH)
         fluidH(ir) = reset_fluid(fluidH(ir)); %#ok<*SAGROW>
+    end
+    
+    % Reset compressors/expanders
+    CCMP(1:Nc_ch) = compexp_class('comp', 'poly', CCMPmode(1), eta, Load.num) ; % Charging compressors
+    DEXP(1:Nc_ch) = compexp_class('exp', 'poly', DEXPmode(1), eta, Load.num) ; % Discharging expanders
+    
+    CEXP(1:Ne_ch) = compexp_class('exp', 'poly', CEXPmode(1), eta, Load.num) ; % Charging expanders
+    DCMP(1:Ne_ch) = compexp_class('comp', 'poly', DCMPmode(1), eta, Load.num) ; % Discharging compressors
+    
+    %Recompressor
+    if Lrcmp
+        RCMP = compexp_class('comp', 'poly', CCMPmode(1), eta, Load.num) ; % Re-compressors
     end
 
 end

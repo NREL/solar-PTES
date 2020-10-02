@@ -60,6 +60,11 @@ switch Load.mode
     case {3}
         GEN(1) = gen_power(GEN(1),CCMP,CEXP,DCMP,DEXP,Load.time);
         GEN(2) = gen_power(GEN(2),CCMP,CEXP,DCMP,DEXP,Load.time);
+    case {4,5}
+        GEN = gen_power(GEN,CCMP,CEXP,[DCMP RCMP],DEXP,Load.time);
+    case {6}
+        GEN(1) = gen_power(GEN(1),CCMP,CEXP,[DCMP RCMP],DEXP,Load.time);
+        GEN(2) = gen_power(GEN(2),CCMP,CEXP,[DCMP RCMP],DEXP,Load.time);
     otherwise
         GEN = gen_power(GEN,CCMP,CEXP,DCMP,DEXP,Load.time);
 end
@@ -450,10 +455,19 @@ switch Load.mode
             HEexergy_effNC = E_net_disNC / Exergy_from_tanksNC;
 
         elseif Load.mode == 6
+            QH_sol = 0;
+            EX_sol = 0;
+            for ii=1:Load.num
+               if strcmp(Load.type(ii),'disTSCO2')
+                  QH_sol = QH_sol + fluidH(1).state(ii,1).mdot * (fluidH(1).state(ii,1).h-fluidH(1).state(ii,2).h) * Load.time(ii) ;
+                  EX_sol = EX_sol + fluidH(1).state(ii,1).mdot * (fluidH(1).state(ii,1).h-fluidH(1).state(ii,2).h-T0*(fluidH(1).state(ii,1).s-fluidH(1).state(ii,2).s)) * Load.time(ii) ;
+               end
+            end
+            QH_chg  = (gas.state(1,4).h-gas.state(1,2).h)*gas.state(1,3).mdot*Load.time(1) ;
             SOLeff  = E_net_dis / QH_sol ; % Solar conversion efficiency
             HEeff   = E_net_dis / QH_dis ; % Heat engine efficiency
-            NETeff  = (E_net_dis - E_net_chg) / QH_sol ; % Net efficiency
-            EXeff   = E_net_dis / (E_net_chg + EX_sol) ; % Exergetic efficiency
+            NETeff  = (E_net_dis + E_net_chg) / QH_sol ; % Net efficiency
+            EXeff   = E_net_dis / (-E_net_chg + EX_sol) ; % Exergetic efficiency
         end
         
     case 1 % Heat pump only
@@ -697,7 +711,7 @@ if any(Load.mode ==[0,4,6])
     % value, calculate the heat required to boost it back. Then find the
     % 'true' round-trip efficiency assuming this heat is provided by an
     % electrical heater
-    if fluidH.state(end,3).T < fluidH.state(1,1).T
+    if fluidH(1).state(end,3).T < fluidH(1).state(1,1).T
         warning('Unsustainable discharge of a hot reservoir!')
         warning('Hot fluid cooled down too much in discharge. Calculating new roundtrip efficiency')
         heater_in =  (fluidH.state(1,1).h - fluidH.state(end,3).h) * fluidH.state(end,3).mdot * t_dis;

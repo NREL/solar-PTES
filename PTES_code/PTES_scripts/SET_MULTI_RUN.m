@@ -32,7 +32,7 @@ switch Vpnt
     case 'Wdis_req'
         Wdis_req = Apnt(ipnt);
     case 'stH'
-        Design_Load.time = Design_Load.time + Apnt(ipnt) * 3600;
+        Design_Load.time = Apnt(ipnt) * 3600 * ones(Load.num,1);
         Load.time = Design_Load.time ;
         Load0.time = Design_Load.time ;
     case 'unbalanced'
@@ -78,7 +78,7 @@ switch Vcrv
     case 'Wdis_req'
         Wdis_req = Acrv(icrv);
     case 'stH'
-        Design_Load.time = Design_Load.time + Acrv(ipnt) * 3600;
+        Design_Load.time = Acrv(ipnt) * 3600 * ones(Load.num,1);
         Load.time = Design_Load.time ;
         Load0.time = Design_Load.time ;
     otherwise

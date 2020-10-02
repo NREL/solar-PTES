@@ -670,7 +670,7 @@ classdef compexp_class
                     RHO0  = 1.225 ; % Density of air at standard conditions
                     n     = 1 ; % This allows you to modify how strongly the cost is reduced
                     scale = (RHOout / RHO0)^n ;
-                    if isinf(scale)
+                    if isinf(scale) || isnan(scale)
                         scale = 1 ;
                     end
                     
@@ -788,7 +788,7 @@ classdef compexp_class
                     COST = COST * CEind(curr) / CEind(2010) ;
                     
                 case 72
-                    % Fans from Benato 2017 - very high
+                    % Fans from Benato 2019 - very high
                     COST = exp(6.6547 + 0.79 * log(obj.W0/1e3)) ;
                     COST = COST * CEind(curr) / CEind(2017) ;
     

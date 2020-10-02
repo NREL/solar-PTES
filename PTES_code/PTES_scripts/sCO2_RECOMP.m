@@ -107,7 +107,7 @@ while 1
     [HX(Nhot+Ncld+2),~,~,gas,iG] = hex_func(HX(Nhot+Ncld+2),iL,gas,iReg1+1,gas,iReg3,3,min(TthreshD,gas.state(iL,iReg1+1).T-5)); % Require cold side to reach a certain temp
     gas.state(iL,iRCMP).mdot   = gas.state(iL,iReg1).mdot - gas.state(iL,iReg3).mdot ;
     gas.state(iL,iRCMP+1).mdot = gas.state(iL,iRCMP).mdot ;
-    [gas,~,~] = mix_streams(gas,[iL,iG],[iL,iRCMP+1]) ;
+    [MIX(1),gas,~,~] = mix_streams(MIX(1),gas,[iL,iG],[iL,iRCMP+1]) ;
     [HX(Nhot+Ncld+1),~,~,gas,iG] = hex_func(HX(Nhot+Ncld+1),iL,gas,iReg1,gas,iReg2,0,0);
     
     for iN = 1:Ne_dis

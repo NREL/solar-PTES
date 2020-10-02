@@ -94,7 +94,7 @@ end
 
 % Set matrix of temperature and pressure points to test convergence
 A_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-max_iter=200;
+max_iter=100;
 for counter=1:max_iter
     fprintf(1,['Discharging sCO2 PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
     % REGENERATE (gas-gas)
@@ -155,7 +155,8 @@ for counter=1:max_iter
                     TCoutMIN = min(gas.state(iL,iG).T-1,CT(ii).A(1).T) ;
                     [fluidC(ii)] = update(fluidC(ii),[iL,iC(ii)],1);
                     %[HX(Nhot+ii),gas,iG,fluidC(ii),iC(ii)] = hex_func(HX(Nhot+ii),iL,gas,iG,fluidC(ii),iC(ii),3,TCoutMIN);
-                    [HX(Nhot+ii),gas,iG,fluidC(ii),iC(ii)] = hex_func(HX(Nhot+ii),iL,gas,iG,fluidC(ii),iC(ii),1,0.75);
+                    %[HX(Nhot+ii),gas,iG,fluidC(ii),iC(ii)] = hex_func(HX(Nhot+ii),iL,gas,iG,fluidC(ii),iC(ii),1,0.75);
+                    [HX(Nhot+ii),gas,iG,fluidC(ii),iC(ii)] = hex_func(HX(Nhot+ii),iL,gas,iG,fluidC(ii),iC(ii),1,1);
                     [DPMP(iPMP),fluidC(ii),iC(ii)] = compexp_func (DPMP(iPMP),iL,fluidC(ii),iC(ii),'Paim',fluidC(ii).state(iL,1).p,1);
                     iC(ii) = iC(ii) + 1 ; iPMP=iPMP+1;
                 end
