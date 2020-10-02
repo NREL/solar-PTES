@@ -31,6 +31,14 @@ switch Vpnt
         Tpnt = '$$ T_{\mathrm{condenser}} $$';
         Upnt = ' [$$^{\circ}$$C]';
         Apnt = Apnt - 273.15;
+    case 'Ran_Tbot0'
+        Tpnt = '$$ T_{\mathrm{condenser}} $$';
+        Upnt = ' [$$^{\circ}$$C]';
+        Apnt = Apnt - 273.15;
+    case 'Ran_ptop'
+        Tpnt = '$$ p_{\mathrm{top,\; Rankine}} $$';
+        Upnt = ' [bar]';
+        Apnt = Apnt/1e5;
     case 'eff'
         Tpnt = '$$ \epsilon $$';
         Upnt = ' ';
@@ -78,6 +86,10 @@ switch Vcrv
         Tcrv = '$$ T__{\mathrm{bot}} $$';
         Ucrv = ' [$$^{\circ}$$C]';
         Acrv = Acrv - 273.15;
+    case 'Ran_Tbot0'
+        Tcrv = '$$ T__{\mathrm{condenser}} $$';
+        Ucrv = ' [$$^{\circ}$$C]';
+        Acrv = Acrv - 273.15;
     case 'Ran_TbotC'
         Tcrv = '$$ T__{\mathrm{condenser}} $$';
         Ucrv = ' [$$^{\circ}$$C]';
@@ -115,11 +127,13 @@ for icrv=1:Ncrv
 end
 
 % EXTRACT DATA INTO ARRAYS
-chi_mat  = var_extract('chi_PTES_para',Npnt,Ncrv);
-lcos_mat = var_extract('lcosM',Npnt,Ncrv);
-capcost_mat = var_extract('cap_costM',Npnt,Ncrv);
+chi_mat      = var_extract('chi_PTES',Npnt,Ncrv);
+chi_para_mat = var_extract('chi_PTES_para',Npnt,Ncrv);
+lcos_mat     = var_extract('lcosM',Npnt,Ncrv);
+capcost_mat  = var_extract('cap_costM',Npnt,Ncrv);
 Wdis_mat = var_extract('E_net_dis',Npnt,Ncrv);
 tdis_mat = var_extract('t_dis',Npnt,Ncrv);
+rhoE_mat = var_extract('rhoE',Npnt,Ncrv);
 
 Wpow_mat = Wdis_mat ./ tdis_mat ./ 1e6 ;
 
@@ -132,12 +146,18 @@ Ttop_mat = var_extract('Ttop',Npnt,Ncrv);
 % WL_5_mat = var_extract('WL_mix_liq',Npnt,Ncrv);
 % WL_6_mat = var_extract('WL_mix_gas',Npnt,Ncrv);
 % WL_7_mat = var_extract('WL_tanks',  Npnt,Ncrv);
-% HEeff_mat   = var_extract('HEeff',  Npnt,Ncrv);
-% HEeffRC_mat = var_extract('HEeffRC',Npnt,Ncrv);
-% HEeffNC_mat = var_extract('HEeffNC',Npnt,Ncrv);
-% t_dis_mat   = var_extract('t_dis',  Npnt,Ncrv);
-% tdRC_mat    = var_extract('t_disRC',Npnt,Ncrv);
-% tdNC_mat    = var_extract('t_disNC',Npnt,Ncrv);
+HEeff_mat   = var_extract('HEeff',  Npnt,Ncrv);
+HEeffRC_mat = var_extract('HEeffRC',Npnt,Ncrv);
+HEeffNC_mat = var_extract('HEeffNC',Npnt,Ncrv);
+t_chg_mat   = var_extract('t_chg',  Npnt,Ncrv);
+t_dis_mat   = var_extract('t_dis',  Npnt,Ncrv);
+tdRC_mat    = var_extract('t_disRC',Npnt,Ncrv);
+tdNC_mat    = var_extract('t_disNC',Npnt,Ncrv);
+COP_mat     = var_extract('COP', Npnt,Ncrv);
+HEexergy_eff_mat = var_extract('HEexergy_eff',Npnt,Ncrv);
+HEexergy_effRC_mat = var_extract('HEexergy_effRC',Npnt,Ncrv);
+HEexergy_effNC_mat = var_extract('HEexergy_effNC',Npnt,Ncrv);
+HPexergy_eff_mat = var_extract('HPexergy_eff',Npnt,Ncrv);
 
 
 % Exergetic efficiency
@@ -145,12 +165,16 @@ figure(fignum);
 for icrv=1:Ncrv
     plot(Apnt,chi_mat(:,icrv)*100,stl{icrv}); hold on;
 end
+for icrv=1:Ncrv
+    plot(Apnt,chi_para_mat(:,icrv)*100,stl{icrv}); hold on;
+end
 hold off;
+title('No cold store')
 xlabel([Tpnt,Upnt])
 ylabel('Roundtrip efficiency [$$\%$$]')
-ylim([20 80])
-legend(Lcrv,'Location','Best')
-grid on;
+ylim([52 62])
+legend([Lcrv(:)',{[Lcrv{:},', + parasitics']}],'Location','Best')
+%grid on;
 
 % LCOS
 figure(fignum+1);
@@ -160,7 +184,7 @@ end
 hold off;
 xlabel([Tpnt,Upnt])
 ylabel('LCOS [$$\$$$/kWh]')
-ylim([0 0.5])
+%ylim([0 0.5])
 legend(Lcrv,'Location','Best')
 grid on;
 
@@ -188,47 +212,22 @@ ylim([0 200])
 legend(Lcrv,'Location','Best')
 grid on;
 
-
-
 %{
-% Efficiency Rankine cycle
-figure(fignum+1);
-yyaxis left
-plot(Apnt,HEeffRC_mat(:,1)*100,stl{1}); hold on;
-plot(Apnt,HEeffNC_mat(:,1)*100,stl{2}); hold on;
-hold off;
-xlabel([Tpnt,' (when using cold tanks)',Upnt])
-ylabel('Heat engine efficiency [$$\%$$]')
-L = cell(1,2+Ncrv);
-L{1} = 'Using cold tanks';
-L{2} = 'No cold tanks';
-ylim([41 47])
-yyaxis right
-for icrv=1:Ncrv
-    plot(Apnt,tdRC_mat(:,icrv)/3600,stl{4+icrv}); hold on;
-    L{2+icrv} = Lcrv{icrv};
-end
-hold off;
-ylabel('Discharge time of cold tanks [h]')
-ylim([0 8])
-legend(L,'Location','North')
-grid on;
-%}
-
-%{
-%Exergetic efficiency and COP
-figure(fignum+2);
+%Exergetic efficiency heat pump and COP
+figure(fignum+4);
 yyaxis left
 for icrv=1:Ncrv
-    plot(Apnt(OKpnts),chi_mat(OKpnts,icrv)*100); hold on;
+    plot(Apnt,HPexergy_eff_mat(:,icrv)*100); hold on;
 end
 hold off;
-xlabel(strcat(Lpnt,Upnt))
-ylabel('Exergetic efficiency  [$$\%$$]')
+xlabel(Lpnt)
+ylabel('Exergetic efficiency heat pump  [$$\%$$]')
 %ylim([65 80])
 yyaxis right
+L = cell(1,Ncrv);
 for icrv=1:Ncrv
-    plot(Apnt(OKpnts),COP_mat(OKpnts,icrv)); hold on;
+    plot(Apnt,COP_mat(:,icrv)); hold on;
+    L{icrv} = Lcrv{icrv};
 end
 hold off;
 ylabel('COP')
@@ -236,6 +235,104 @@ ylim([1.0 1.8])
 legend(L,'Location','Best')
 grid on;
 %}
+
+%%{
+%Exergetic efficiency heat pump and COP
+figure(fignum+4);
+subplot(1,2,1);
+for icrv=1:Ncrv
+    plot(Apnt,HPexergy_eff_mat(:,icrv)*100,stl{icrv}); hold on;
+end
+hold off;
+title('Brayton heat pump')
+xlabel(Lpnt)
+ylabel('Exergy efficiency [$$\%$$]')
+%ylim([65 80])
+xlim([-Inf Inf])
+legend(Lcrv,'Location','South')
+subplot(1,2,2);
+for icrv=1:Ncrv
+    plot(Apnt,COP_mat(:,icrv),stl{icrv}); hold on;
+end
+hold off;
+title('Brayton heat pump')
+xlabel(Lpnt)
+ylabel('COP')
+xlim([-Inf Inf])
+%ylim([1.0 1.8])
+legend(Lcrv,'Location','South')
+%}
+
+%{
+% Exergetic efficiency and heat engine efficiency Rankine cycle
+figure(fignum+5);
+yyaxis left
+plot(Apnt,HEexergy_effRC_mat(:,1)*100,stl{1}); hold on;
+plot(Apnt,HEexergy_effNC_mat(:,1)*100,stl{2}); hold on;
+hold off;
+xlabel([Tpnt,Upnt])
+ylabel('Exergetic efficiency heat engine [$$\%$$]')
+L = cell(1,2);
+L{1} = 'Using cold tanks';
+L{2} = 'No cold tanks';
+ylim([60 76])
+yyaxis right
+plot(Apnt,HEeffRC_mat(:,1)*100,stl{1}); hold on;
+plot(Apnt,HEeffNC_mat(:,1)*100,stl{2}); hold on;
+hold off;
+ylabel('Heat engine efficiency [$$\%$$]')
+ylim([36 50])
+legend(L,'Location','South')
+grid on;
+%}
+
+%%{
+% Exergetic efficiency and heat engine efficiency Rankine cycle
+figure(fignum+5);
+subplot(1,2,1);
+plot(Apnt,HEexergy_eff_mat(:,1)*100,stl{1}); hold on;
+hold off;
+title('Rankine cycle')
+xlabel([Tpnt,Upnt])
+ylabel('Exergy efficiency[$$\%$$]')
+%ylim([66,76])
+%L = cell(1,2);
+%L{1} = 'Using cold tanks';
+%L{2} = 'No cold tanks';
+%legend(L,'Location','South')
+subplot(1,2,2);
+plot(Apnt,HEeff_mat(:,1)*100,stl{1}); hold on;
+hold off;
+title('Rankine cycle')
+xlabel([Tpnt,Upnt])
+ylabel('Efficiency [$$\%$$]')
+%ylim([36,44])
+%}
+
+% Energy density
+figure(fignum+6);
+for icrv=1:Ncrv
+    plot(Apnt,rhoE_mat(:,icrv),stl{icrv}); hold on;
+end
+hold off;
+xlabel([Tpnt,Upnt])
+ylabel('Energy density [$$\mathrm{kWh/m^3}$$]')
+%ylim([45 60])
+legend(Lcrv,'Location','Best')
+%grid on;
+
+% Cooling duration
+figure(fignum+7);
+for icrv=1:Ncrv
+    plot(Apnt,tdRC_mat(:,icrv),stl{icrv}); hold on;
+end
+hold off;
+xlabel([Tpnt,Upnt])
+ylabel('Cooling duration [h]')
+%ylim([45 60])
+legend(Lcrv,'Location','Best')
+%grid on;
+
 %{
 WL_mat = zeros(Npnt,7,Ncrv);
 for icrv=1:Ncrv
@@ -273,9 +370,11 @@ end
 %}
 switch save_multi_figs
     case 1
-        formats = {'epsc'};
-        save_fig(fignum,'./Outputs/exergy_eff',formats);
-        save_fig(fignum+1,'./Outputs/HEeff_and_time',formats);
+        formats = {'fig','epsc'};
+        save_fig(fignum,'./Results/Roundtrip_eff',formats);
+        save_fig(fignum+4,'./Results/Exergy_heat_pump',formats,[20 10]);
+        save_fig(fignum+5,'./Results/Exergy_heat_engine',formats,[20 10]);
+        save_fig(fignum+6,'./Results/Energy_density',formats);
         %{
         for icrv=1:Ncrv
             savename = strcat('./Outputs/WL_mat_',sprintf('%d',icrv));
