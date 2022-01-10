@@ -2,18 +2,24 @@
 Load = Load0;
 
 switch Load.mode
-    case {0,1,2,3,4,5,6,7}
+    case {0,1,2,3,4,5,6,7,20,22,24}
         
         % Reset fluid states and stages
         gas = reset_fluid(gas);
         if any(Load.mode==[3,7])
             steam = reset_fluid(steam);
         end
+        if Load.mode == 20
+            gas2 = reset_fluid(gas2);
+        end
         
         % These storage fluid streams only exist in certain cases
         if PBmode == 0 || PBmode == 2
             for ir = 1:length(fluidH)
                 fluidH(ir) = reset_fluid(fluidH(ir)); %#ok<*SAGROW>
+            end
+            for ir = 1:length(fluidM)
+                fluidM(ir) = reset_fluid(fluidM(ir));
             end
             for ir = 1:length(fluidC)
                 fluidC(ir) = reset_fluid(fluidC(ir));
@@ -24,11 +30,35 @@ switch Load.mode
                 CT(ir) = reset_tanks(CT(ir),TC_dis0(ir),p0,MC_dis0(ir),TC_chg0(ir),p0,MC_chg0(ir),T0);
             end
             
+            % Reset medium tanks
+            for ir = 1 : Nmid
+                MT(ir) = reset_tanks(MT(ir),TM_dis0(ir),p0,MM_dis0(ir),TM_chg0(ir),p0,MM_chg0(ir),T0);
+            end
+            
             % Reset hot tanks
             for ir = 1 : Nhot
                 HT(ir) = reset_tanks(HT(ir),TH_dis0(ir),p0,MH_dis0(ir),TH_chg0(ir),p0,MH_chg0(ir),T0);
             end
+            
+            if any(Load.mode == [20,22,24])
+                % Reset liquid air tanks
+                LAT(ir) = reset_single_tank(LAT(ir),TLA_chg0(ir),p0,MLA_chg0(ir),T0);
+                
+                % Reset atmospheric tank
+                AT = reset_single_tank(AT,TAT_chg0,p0,MAT_chg0,T0);
+                
+            else 
+                % Reset atmospheric tanks
+                AT = reset_tanks(AT,T0,p0,0,T0,p0,0,T0);
+            end
         end
+        
+    otherwise
+        error('not implemented')
+end
+
+switch Load.mode
+    case {0,1,2,3,4,5,6,7}
         
         % Estimate cycle pressures and temperatures
         % Set bottom pressure line based on maximum pressure and pressure ratio
@@ -87,18 +117,7 @@ switch Load.mode
         % and discharge
         Nc_dis = Ne_ch; % compressions during discharge
         Ne_dis = Nc_ch; % expansions during discharge
-        
-    case 20 % CCES
-        % Reset fluid states and stages
-        gas1 = reset_fluid(gas1);
-        gas2 = reset_fluid(gas2);
-        
-    otherwise
-        error('not implemented')
 end
-
-% Reset atmospheric tanks
-AT = reset_tanks(AT,T0,p0,0,T0,p0,0,T0);
 
 % Construct compressor and expander classes
 switch Load.mode
@@ -147,12 +166,30 @@ switch Load.mode
         end
         
     case 20 % CCES
-        CCMP(1:4) = compexp_class('comp', 'poly', CCMPmode(1), eta, Load.num) ; % Charging compressors
-        DEXP(1:3) = compexp_class('exp',  'poly', DEXPmode(1), eta, Load.num) ; % Discharging expanders
+        CCMP(1:2) = compexp_class('comp', 'poly', CCMPmode(1), eta, Load.num) ; % Charging compressors (LAES)
+        CCMP(3:4) = compexp_class('comp', 'poly', CCMPmode(1), eta, Load.num) ; % Charging compressors (PTES)
+        CEXP(1)   = compexp_class('exp',  'isen', CEXPmode(1), eta_cryo_exp, Load.num) ; % Cryo expander (LAES side)
+        CEXP(2:4) = compexp_class('exp',  'poly', CEXPmode(1), eta, Load.num) ; % Charging expanders (PTES side)
         
-        CEXP(1)   = compexp_class('exp',  'poly', CEXPmode(1), eta, Load.num) ; % Cryo expander (LAES side)
-        CEXP(2)   = compexp_class('exp',  'poly', CEXPmode(1), eta, Load.num) ; % Charging expander (PTES side)
-        DCMP(1:3) = compexp_class('comp', 'poly', DCMPmode(1), eta, Load.num) ; % Discharging compressors
+        DCMP(1)   = compexp_class('comp', 'isen', DCMPmode(1), eta_cryo_pump, Load.num) ; % Cryo pump (LAES side)
+        DCMP(2:5) = compexp_class('comp', 'poly', DCMPmode(1), eta, Load.num) ; % Disch. compressors (PTES side)
+        DEXP(1:2) = compexp_class('exp',  'poly', DEXPmode(1), eta, Load.num) ; % Discharging expanders (LAES)
+        DEXP(3)   = compexp_class('exp',  'poly', DEXPmode(1), eta, Load.num) ; % Discharging expanders (PTES)
+        
+    case {22,24} % Integrated PLAES
+        % Charging turbomachines:
+        % 1 shared compressor, 1 LAES compressor,
+        % 1 cryogenic (liquid) expander, and 2 PTES turbines
+        CCMP(1:2) = compexp_class('comp', 'poly', CCMPmode(1), eta, Load.num) ;
+        CEXP(1)   = compexp_class('exp',  'isen', CEXPmode(1), eta_cryo_exp, Load.num) ;
+        CEXP(2:3) = compexp_class('exp',  'poly', CEXPmode(1), eta, Load.num) ;
+        
+        % Discharging turbomachines:
+        % 1 cryogenic pump; 2 PTES compressors and 1 auxiliary compressor;
+        % and % 1 LAES turbine and 1 shared turbine.
+        DCMP(1)   = compexp_class('comp', 'isen', DCMPmode(1), eta_cryo_pump, Load.num) ;
+        DCMP(2:4) = compexp_class('comp', 'poly', DCMPmode(1), eta, Load.num) ;
+        DEXP(1:2) = compexp_class('exp',  'poly', DEXPmode(1), eta, Load.num) ;
 end
 
 % Construct heat exchangers
@@ -279,20 +316,68 @@ switch Load.mode
         
     case 20
         % HEXs for the LAES side
-        HX(1) = hx_class('hot_LA', 'hex', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
-        HX(2) = hx_class('med_LA', 'hex', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Medium heat exchanger
-        HX(3) = hx_class('med_LA', 'hex', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Medium heat exchanger
-        HX(4) = hx_class('cold',   'hex', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Cold heat exchanger
+        HX(1) = hx_class('hot', 'hex', 0, HX_NX, Load.num, Load.num, HX_model, 1-(1-eff)/2,  ploss,  HX_D1, HX_shape) ; % Hot heat exchanger 1
+        HX(2) = hx_class('hot', 'hex', 0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape) ; % Hot heat exchanger 2
+        HX(3) = hx_class('rej', 'hex', 0, HX_NX, Load.num, Load.num, HX_model, effX, plossX, HX_D1, HX_shape) ; % Heat rejection unit
         
-        % Coupler
-        HX(5) = hx_class('coupler','regen', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Recuperator (air-neon)
+        % Couplers
+        HX(4) = hx_class('regen','regen', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Coupler A (air-neon)
+        HX(5) = hx_class('regen','regen', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Coupler B (air-neon)
+        HX(6) = hx_class('regen','regen', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Coupler C (air-neon)
         
         % HEXs for the PTES side
-        HX(6) = hx_class('hot_LA', 'hex', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Hot heat exchanger
-        HX(7) = hx_class('med_LA', 'hex', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Medium heat exchanger
-        HX(8) = hx_class('rej',    'hex', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Heat rejection unit
-        HX(9) = hx_class('regen','regen', 0, HX_NX, Load.num, Load.num, HX_model, eff, ploss, HX_D1, HX_shape) ; % Recuperator
+        HX(7) = hx_class('hot',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape) ; % Hot heat exchanger
+        HX(8) = hx_class('regen','regen', 0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape) ; % Regen A
+        HX(9) = hx_class('rej',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, effX, plossX, HX_D1, HX_shape) ; % Heat rejection unit
+        HX(10)= hx_class('regen','regen', 0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape) ; % Regen B
+        HX(11)= hx_class('regen','regen', 0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape) ; % Regen C
         
+    case {22}
+        % Shared hot HEX and Heat Rejection Unit
+        % EXTRA EFFECTIVE (AND DOUBLE PRESSURE LOSS) AS IT SIMULATES TWO HEXS IN SERIES!
+        HX(1) = hx_class('hot', 'hex',    0, HX_NX, Load.num, Load.num, HX_model, 1-(1-eff)/2,  2*ploss,  HX_D1, HX_shape) ; % Hot heat exchanger A
+        %HX(1) = hx_class('hot', 'hex',    0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape) ; % Hot heat exchanger A
+        HX(2) = hx_class('rej',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, effX, plossX, HX_D1, HX_shape) ; % Heat rejection unit
+        
+        % LAES hot HEX and Heat Rejection Unit
+        % EXTRA EFFECTIVE (AND DOUBLE PRESSURE LOSS) AS IT SIMULATES TWO HEXS IN SERIES!
+        HX(3) = hx_class('hot', 'hex',    0, HX_NX, Load.num, Load.num, HX_model, 1-(1-eff)/2,  2*ploss,  HX_D1, HX_shape) ; % Hot heat exchanger B
+        %HX(3) = hx_class('hot', 'hex',    0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape) ; % Hot heat exchanger B
+        HX(4) = hx_class('rej', 'hex',    0, HX_NX, Load.num, Load.num, HX_model, effX, plossX, HX_D1, HX_shape) ; % Heat rejection unit
+        
+        % Couplers
+        HX(5) = hx_class('regen','regen', 0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape) ; % Coupler A
+        HX(6) = hx_class('regen','regen', 0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape) ; % Coupler B
+        
+        % Regen for the PTES side and discharge Heat Rejection Unit
+        HX(7) = hx_class('regen','regen', 0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape) ; % Regen
+        HX(8) = hx_class('rej', 'hex',    0, HX_NX, Load.num, Load.num, HX_model, effX, plossX, HX_D1, HX_shape) ; % Heat rejection unit
+        
+        % Discharge coupler
+        HX(9) = hx_class('regen','regen', 0, HX_NX, Load.num, Load.num, HX_model, 1-(1-eff)/2,  2*ploss,  HX_D1, HX_shape) ; % Coupler B
+        
+    case {24}
+        % Shared hot HEX and Heat Rejection Unit
+        % EXTRA EFFECTIVE (AND DOUBLE PRESSURE LOSS) AS IT SIMULATES TWO HEXS IN SERIES!
+        HX(1) = hx_class('hot', 'hex',    0, HX_NX, Load.num, Load.num, HX_model, 1-(1-eff)/2,  2*ploss,  HX_D1, HX_shape) ; % Hot heat exchanger A
+        HX(2) = hx_class('rej',  'hex',   0, HX_NX, Load.num, Load.num, HX_model, effX, plossX, HX_D1, HX_shape) ; % Heat rejection unit
+        
+        % LAES hot HEX and Heat Rejection Unit
+        HX(3) = hx_class('hot', 'hex',    0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape) ; % Hot heat exchanger B
+        HX(4) = hx_class('rej', 'hex',    0, HX_NX, Load.num, Load.num, HX_model, effX, plossX, HX_D1, HX_shape) ; % Heat rejection unit
+        
+        % Cold HEX
+        HX(5) = hx_class('cold','hex', 0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape) ; % Coupler A
+        
+        % Coupler B
+        HX(6) = hx_class('regen','regen', 0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape) ; % Coupler B
+        
+        % Regen for the PTES side and discharge Heat Rejection Unit
+        HX(7) = hx_class('regen','regen', 0, HX_NX, Load.num, Load.num, HX_model, eff,  ploss,  HX_D1, HX_shape) ; % Regen
+        HX(8) = hx_class('rej', 'hex',    0, HX_NX, Load.num, Load.num, HX_model, effX, plossX, HX_D1, HX_shape) ; % Heat rejection unit
+        
+        % Discharge coupler
+        HX(9) = hx_class('regen','regen', 0, HX_NX, Load.num, Load.num, HX_model, 1-(1-eff)/2,  2*ploss,  HX_D1, HX_shape) ; % Coupler B
 end
 
 % Motor-generator
@@ -306,16 +391,15 @@ end
     
 
 % Fans 
-CFAN(1:10) = compexp_class('comp', 'isen', FANmode(1), 0.75, Load.num) ;
-DFAN(1:10) = compexp_class('comp', 'isen', FANmode(1), 0.75, Load.num) ;
+CFAN(1:10) = compexp_class('comp', 'poly', FANmode(1), 0.75, Load.num) ;
+DFAN(1:10) = compexp_class('comp', 'poly', FANmode(1), 0.75, Load.num) ;
 
 % Fluid pumps 
 CPMP(1:10) = compexp_class('pump', 'isen', PMPmode(1), 0.8, Load.num) ;
 DPMP(1:10) = compexp_class('pump', 'isen', PMPmode(1), 0.8, Load.num) ;
 
-
 % Mixers may be required (e.g. in Rankine cycle)
-MIX(1:3)    = misc_class('mix',Load.num) ;
+MIX(1:6)   = misc_class('mix',Load.num) ;
 
 % Put design case load cycles in load for the first iteration.
 if Loffdesign

@@ -6,6 +6,12 @@ for ii = 1 : Nhot
     HT(ii).B(iL+1) = HT(ii).B(iL); % charge sink
 end
 
+% Middle tanks
+for ii = 1 : Nmid
+    MT(ii).A(iL+1) = MT(ii).A(iL); % charge source
+    MT(ii).B(iL+1) = MT(ii).B(iL); % charge sink
+end
+
 % Cold tanks
 for ii = 1 : Ncld
     CT(ii).A(iL+1) = CT(ii).A(iL); % charge source

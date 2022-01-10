@@ -25,7 +25,7 @@ if design_mode == 1
     gas.state(iL,1).p    = pbot; gas.state(iL,1).T = T1;
     gas.state(iL,1).mdot = Load.mdot(iL);
     [gas] = update(gas,[iL,1],1);
-    
+    % Regenerator inlet (cold, low pressure side)
     gas.state(iL,iReg2).T = T0;
     gas.state(iL,iReg2).p = pbot;
     gas.state(iL,iReg2).mdot = gas.state(iL,1).mdot;
@@ -133,6 +133,7 @@ for counter=1:max_iter
         PRe = (gas.state(iL,iG).p/pbot)^(1/(Ne_ch+1-iN)); % stage expansion pressure ratio
         p_aim = gas.state(iL,iG).p/PRe;
         [CEXP(iN),gas,iG] = compexp_func (CEXP(iN),iL,gas,iG,'Paim',p_aim, design_mode) ; 
+        THPmin = gas.state(iL,iG).T;
         
         switch Load.mode
             case {0,1,2}
@@ -197,7 +198,7 @@ for counter=1:max_iter
                     end
                     
                 else % Take heat in from the environment
-                    % REJECT HEAT (external HEX)
+                    % ABSORB HEAT (external HEX)
                     T_aim = environ.T0 - T0_inc;
                     if T_aim <= gas.state(iL,iG).T
                         gas.state(iL,iG+1) = gas.state(iL,iG) ;

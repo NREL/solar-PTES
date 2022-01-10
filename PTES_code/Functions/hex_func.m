@@ -122,7 +122,7 @@ if strcmp(fluidH.read,'CP')
 else
     THmin = TC1;
 end
-if strcmp(fluidC.read,'CP')
+if strcmp(fluidC.read,'CP') && ~strcmp(fluidC.name,'Neon')
     TCmax = min([CP1(0,0,0,'Tmax',fluidC.handle),TH2]);
 else
     TCmax = TH2;
@@ -438,18 +438,22 @@ switch model
                 
                 % Find value of hH1 for which computed area equals specified area
                 switch HX.shape
-                    case {'circular','PCHE'}
+                    case {'circular','PCHE','PCHE32'}
                         f1 = @(hH1) hex_compute_area(HX,iL,'hH1',hH1);
                     case 'cross-flow'
                         f1 = @(hH1) hex_compute_Xflow(HX,iL,'hH1',hH1);
                     otherwise
                         error('not implemented')
                 end
-                %plot_function(f1,hH1_min,hH1_max,100,31);
-                %keyboard
+                %plot_function(f1,hH1_min,hH1_max,10,31);
                 opt = optimset('TolX',(hH2-hH1_min)/1e12,'Display','notify');
-                hH1 = fzero(f1,[hH1_min,hH1_max],opt);
-                %hH1 = fzero(f1,hH1_min,opt);
+                f1a = f1(hH1_min);
+                f1b = f1(hH1_max);
+                if f1a*f1b < 0
+                    hH1 = fzero(f1,[hH1_min,hH1_max],opt);
+                else
+                    hH1 = fzero(f1,hH1_min,opt);
+                end
                 
             case 3
                 % Set outlet conditions of cold fluid. Assume small effect
@@ -550,14 +554,14 @@ switch model
         switch mode
             case {0,1,2,4,5}
                 switch HX.shape
-                    case {'circular','PCHE'}
+                    case {'circular','PCHE','PCHE32'}
                         [~,HX] = hex_compute_area(HX,iL,'hH1',hH1);
                     case 'cross-flow'
                         [~,HX] = hex_compute_Xflow(HX,iL,'hH1',hH1);
                 end
             case 3
                 switch HX.shape
-                    case {'circular','PCHE'}
+                    case {'circular','PCHE','PCHE32'}
                         [~,HX] = hex_compute_area(HX,iL,'hC2',hC2);
                     case 'cross-flow'
                         [~,HX] = hex_compute_Xflow(HX,iL,'hC2',hC2);

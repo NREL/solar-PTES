@@ -3,6 +3,8 @@ switch Vpnt
         PRch  = Apnt(ipnt);
     case 'pmax'
         pmax  = Apnt(ipnt);
+    case 'pmax_LA'
+        pmax_LA = Apnt(ipnt);
     case 'PRr'
         PRr   = Apnt(ipnt);
     case 'TC_dis0'
@@ -15,6 +17,8 @@ switch Vpnt
         Ran_Tbot0 = Apnt(ipnt);
     case 'Ran_ptop'
         Ran_ptop = Apnt(ipnt);
+    case 'pmax_LA'
+        pmax_LA = Apnt(ipnt);
     case 'eff'
         eff = Apnt(ipnt);
     case 'ploss'
@@ -49,6 +53,8 @@ switch Vcrv
         PRch = Acrv(icrv);
     case 'pmax'
         pmax = Acrv(icrv);
+    case 'pmax_LA'
+        pmax_LA = Acrv(icrv);
     case 'PRr'
         PRr   = Acrv(icrv);
     case 'TC_dis0'

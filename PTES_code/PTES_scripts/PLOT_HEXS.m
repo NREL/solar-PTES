@@ -43,3 +43,9 @@ if Load.mode == 3
     save_fig(39,'./Results/TQ_RK_boil' ,formats)
     %}
 end
+
+if Load.mode == 20
+    plot_hex(HX(4),1,41,'K',true) % High Coupler
+    plot_hex(HX(5),1,42,'K',true) % Cryo Coupler
+    plot_hex(HX(8),1,43,'K',true) % Regenerator
+end

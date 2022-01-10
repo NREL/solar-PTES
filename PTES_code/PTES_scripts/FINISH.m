@@ -10,7 +10,7 @@ if ~multi_run
         save_fig(8, './Outputs/Losses',formats)
         save_fig(77,'./Outputs/Costs',formats)
         if Load.mode==3
-            save_fig(2,'./Results/T-s_Rankine',formats)
+            save_fig(2,'./Outputs/T-s_Rankine',formats)
         end
         % Also save workspace
         save('./Outputs/vars.mat')
@@ -18,8 +18,8 @@ if ~multi_run
 end
 
 % Releasing CoolProp AbstractState
-ierr = 0; buffer_size = 10;
-herr= char((1:1:buffer_size));
-for i0=1:1000
-    calllib('coolprop','AbstractState_free',i0, ierr,herr,buffer_size)
-end
+%ierr = 0; buffer_size = 10;
+%herr= char((1:1:buffer_size));
+%for i0=1:1000
+%    calllib('coolprop','AbstractState_free',i0, ierr,herr,buffer_size)
+%end

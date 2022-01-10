@@ -315,7 +315,7 @@ end
 
 % Cold tank cost and cold fluid cost
 for ii = 1 : Ncld
-   if any(Load.mode == [2,7])
+   if any(Load.mode == [2,7])% || (Load.mode == 3 && CT(ii).fluid_mass == 0)
        CT(ii).tankA_cost.COST = 0.01 ;
        CT(ii).tankB_cost.COST = 0.01 ;
        CT(ii).fluid_cost.COST = 0.01 ;
@@ -445,7 +445,7 @@ end
 
 if Lsuper
     % Plot box and whisker plot of component costs
-    PLOT_BOX(compMAT) ;
+    %PLOT_BOX(compMAT) ; %this returns an error at the moment, needs fixing
     
     Cdata.cap_costM    = mean(costMAT) ;
     Cdata.cap_costSD   = std(costMAT) ;

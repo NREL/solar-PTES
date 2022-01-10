@@ -45,7 +45,9 @@ load_coolprop
 %10 = Water and air (Nellis example 8.1-1), Xflow
 %11 = Steam condenser -- Steam and air, Xflow
 %12 = Nitrogen regenerator
-scenario = 5;
+%13 = Supercritical air
+%14 = Kalina middle HEX
+scenario = 14;
 
 % Save figures?
 save_figures = 0;
@@ -211,13 +213,13 @@ switch scenario
         F1 = fluid_class('Helium','WF','CP','BICUBIC&HEOS',1,5);
         F1.state(1,i1).p = 30e5;
         F1.state(1,i1).T = 1173;
-        F1.state(1,i1).mdot = 80/3600;
+        F1.state(1,i1).mdot = 20/3600;
         
         % Helium
         F2 = fluid_class('Helium','WF','CP','BICUBIC&HEOS',1,5);
         F2.state(1,i2).p = 30e5;
         F2.state(1,i2).T = 813;
-        F2.state(1,i2).mdot = 80/3600;
+        F2.state(1,i2).mdot = 20/3600;
         
         % Set hex_mode
         hex_mode = 0;
@@ -281,6 +283,42 @@ switch scenario
         hex_mode = 0;
         par = 0;
         
+    case 13 % Supercritical air (discharge)
+        % Air (low pressure, hot side)
+        F1 = fluid_class('Nitrogen','WF','CP','TTSE',1,5);
+        %F1 = fluid_class('Air','WF','CP','HEOS',1,5);
+        F1.state(iL,i1).p = 1e5;
+        F1.state(iL,i1).T = 290;
+        F1.state(iL,i1).mdot = 10;
+        
+        % Nitrogen (high pressure, cold side)
+        F2 = fluid_class('Nitrogen','WF','CP','TTSE',1,5);
+        %F2 = fluid_class('Air','WF','CP','HEOS',1,5);
+        F2.state(iL,i2).p = 100e5;
+        F2.state(iL,i2).T = 80;
+        F2.state(iL,i2).mdot = 20;
+        
+        % Set hex_mode
+        hex_mode = 1;
+        par = 1.0;
+        
+    case 14
+        % Propane
+        F1 = fluid_class('Propane','WF','CP','HEOS',1,5);
+        F1.state(iL,i1).p = 50e5;
+        F1.state(iL,i1).T = 95+273.15;
+        F1.state(iL,i2).mdot = 10;
+        
+        % Water
+        F2 = fluid_class('Water','WF','CP','HEOS',1,5);
+        F2.state(iL,i2).p = 1e5;
+        F2.state(iL,i2).T = 10+273.15;
+        F2.state(iL,i2).mdot = 10;
+        
+        % Set hex_mode and stage_type
+        hex_mode = 1.0;
+        par = 1.00;
+        
     otherwise
         error('not implemented')
 end
@@ -302,10 +340,12 @@ switch model
     case 'eff'
         eff   = 0.97;
         ploss = 0.01;
+        %eff   = 0.99999;
+        %ploss = 0.00001;
         par1  = eff;
         par2  = ploss;
         par3  = [];
-        par4  = [];
+        par4  = 'circular';
         
     case 'UA'
         UA    = 1e6;
@@ -334,8 +374,8 @@ switch model
                 eff   = 0.9697;  %design value
                 ploss = 0.02625;   %design value
                 D1    = 0.611*2.00e-3; %design value
-                shape = 'circular';
-                %shape = 'PCHE';
+                %shape = 'circular';
+                shape = 'PCHE32';
                 
             case 6
                 eff   = 0.80;
@@ -348,6 +388,12 @@ switch model
                 eff   = 0.622;  %design value
                 ploss = 0.001;   %design value
                 D1    = 1.22e-3; %design value
+                shape = 'PCHE';
+                
+            case 9
+                eff   = 0.7608;
+                ploss = 1.753e-3;
+                D1    = 1.222e-3;
                 shape = 'PCHE';
                 
             case 10
@@ -363,6 +409,18 @@ switch model
                 ploss = 0.001;
                 D1    = [];
                 shape = 'cross-flow';
+            
+            case 12
+                eff   = 0.95;
+                ploss = 0.01;
+                D1    = 0.005;
+                shape = 'circular';
+                
+            case 14
+                eff   = 0.95;
+                ploss = 0.03;
+                D1    = 0.002;
+                shape = 'circular';
                 
             otherwise
                 eff   = 0.95;
@@ -391,22 +449,24 @@ switch scenario
         HX.D2  = 1.22e-3;
         HX.Af1 = 1.57e-6*54*42/2;
         HX.Af2 = 1.57e-6*54*42/2;
-        HX.L   = 1.012;
-        HX.A1  = 4*HX.Af1*HX.L/HX.D1;
-        HX.A2  = 4*HX.Af2*HX.L/HX.D2;
+        HX.L1  = 1.012;
+        HX.L2  = 1.012;
+        HX.A1  = 4*HX.Af1*HX.L1/HX.D1;
+        HX.A2  = 4*HX.Af2*HX.L2/HX.D2;
         HX.shape = 'PCHE';
         HX.Lgeom_set = 1;
     
     case 9 % Figley2013
         HX.D1  = 1.222e-3;
-        HX.D2  = 1.22e-3;
+        HX.D2  = 1.222e-3;
         HX.Af1 = 1.571e-6*10*12;
         HX.Af2 = 1.571e-6*10*12;
-        HX.L   = 0.2472;
-        HX.A1  = 4*HX.Af1*HX.L/HX.D1;
-        HX.A2  = 4*HX.Af2*HX.L/HX.D2;
+        HX.L1  = 0.2472;
+        HX.L2  = 0.2472;
+        HX.A1  = 4*HX.Af1*HX.L1/HX.D1;
+        HX.A2  = 4*HX.Af2*HX.L2/HX.D2;
         HX.shape = 'PCHE';
-        HX.Lgeom_set = 1;
+        HX.Lgeom_set = 0;
     
     case 10 % Nellis&Klein2009 - cross-flow
         W1 = 0.2;
@@ -441,7 +501,7 @@ end
 %%% DESIGN PERFORMANCE %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Run heat exchanger model under design conditions
-[HX,~,~,~,~] = hex_func(HX,iL,F1,i1,F2,i2,hex_mode,par);
+[HX,F1,i1,F2,i2] = hex_func(HX,iL,F1,i1,F2,i2,hex_mode,par);
 
 %% SUMMARY
 % Compare specifications from hex_set_geom with numerical results
@@ -454,7 +514,24 @@ if strcmp(HX.model,'geom')
     print_hexs(HX,1,'Summary:\n');
 end
 
+% Make plots
+plot_hex(HX,1,10,'K',true);
+
 switch scenario
+    case 9
+        L1  = 247.2e-3;
+        Af1 = 1.571e-6*10*12;
+        Af2 = 1.571e-6*10*12;
+        A1  = 0.0127*12;
+        A2  = 0.0127*12;
+        fprintf(1,'\n\n');
+        fprintf(1,'            %8s   %8s   %8s\n','Figley','Result','Error')
+        fprintf(1,'L [mm]    = %8.3f   %8.3f   %6.1f %%\n',L1,HX.L1,abs(L1-HX.L1)/L1*100)
+        fprintf(1,'Af1 [mm2] = %8.3f   %8.3f   %6.1f %%\n',Af1*1e6,HX.Af1*1e6,abs(Af1-HX.Af1)/Af1*100)
+        fprintf(1,'Af2 [mm2] = %8.3f   %8.3f   %6.1f %%\n',Af2*1e6,HX.Af2*1e6,abs(Af2-HX.Af2)/Af2*100)
+        fprintf(1,'A1  [m2]  = %8.3f   %8.3f   %6.1f %%\n',A1,HX.A1,abs(A1-HX.A1)/A1*100)
+        fprintf(1,'A2  [m2]  = %8.3f   %8.3f   %6.1f %%\n',A2,HX.A2,abs(A2-HX.A2)/A2*100)
+        
     case 10
         ht_w1 = 3496; %W/(m2.K)
         ht_w2 = interp1(HX.H.T-273.15,HX.H.ht,40,'machima');
@@ -474,13 +551,31 @@ switch scenario
         fprintf(1,'UA total [W/K]    = %8.2f   %8.2f   %6.1f %%\n',UA1,UA2,abs(UA1-UA2)/UA1*100)
         fprintf(1,'Dp air   [Pa]     = %8.2f   %8.2f   %6.1f %%\n',Dp_a1,Dp_a2,abs(Dp_a1-Dp_a2)/Dp_a1*100)
         fprintf(1,'Dp water [Pa]     = %8.2f   %8.2f   %6.1f %%\n',Dp_w1,Dp_w2,abs(Dp_w1-Dp_w2)/Dp_w1*100)
+        
+    case 13
+        % Compute exergy gain hot stream and exergy loss cold stream
+        T0 = F1.state(1,1).T;
+        F1_b1 = F1.state(1,1).h - T0*F1.state(1,1).s;
+        F1_b2 = F1.state(1,2).h - T0*F1.state(1,2).s;
+        F1_DB = F1.state(1,1).mdot*(F1_b2-F1_b1);
+        F2_b1 = F2.state(1,1).h - T0*F2.state(1,1).s;
+        F2_b2 = F2.state(1,2).h - T0*F2.state(1,2).s;
+        F2_DB = F2.state(1,1).mdot*(F2_b2-F2_b1);
+        DB_loss = (F1_DB + F2_DB)/F2_DB*100;
+        fprintf(1,'\nExergy loss = %.1f %%\n',DB_loss)
+        
+        %{
+        fig = gcf;
+        fig.CurrentAxes.Legend.String{1} = 'Air, 1.0 bar';
+        fig.CurrentAxes.Legend.String{2} = 'Air, 100.0 bar';
+        path = '~/Dropbox/Work/Publications/Working publications/PTES-LAES encyclopedia chapter/Chapter/Figs/';
+        save_fig(10,[path,'TQ'],{'fig','svg'})
+        %}
 end
 
-% Make plots
-plot_hex(HX,1,10,'C',true);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%{
+%{
 %%% OFF-DESIGN PERFORMANCE %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Use easier nomenclature for inlet conditions
@@ -519,10 +614,10 @@ switch scenario
         data    = load('Validation_Figley2013.csv');
         
         mdot_dat = data(:,1)/3600;        
-        %DpH_dat  = data(:,2)*1e3; %Correlation
-        %DpC_dat  = data(:,4)*1e3; %Correlation
-        DpH_dat  = data(:,3)*1e3; %CFD
-        DpC_dat  = data(:,5)*1e3; %CFD
+        DpH_dat  = data(:,2)*1e3; %Correlation
+        DpC_dat  = data(:,4)*1e3; %Correlation
+        %DpH_dat  = data(:,3)*1e3; %CFD
+        %DpC_dat  = data(:,5)*1e3; %CFD
         ReH_dat  = data(:,7);
         ReC_dat  = data(:,6);
         htH_dat  = data(:,9);
@@ -548,12 +643,16 @@ DpH_num = zeros(size(mdot1));
 DpC_num = zeros(size(mdot1));
 ReH_num = zeros(size(mdot1));
 ReC_num = zeros(size(mdot1));
+ReH_max = zeros(size(mdot1));
+ReC_max = zeros(size(mdot1));
 htH_num = zeros(size(mdot1));
 htC_num = zeros(size(mdot1));
 CfH_num = zeros(size(mdot1));
 CfC_num = zeros(size(mdot1));
 NTU_num = zeros(size(mdot1));
 U_num   = zeros(size(mdot1));
+QT_num  = zeros(size(mdot1));
+LMTD_num= zeros(size(mdot1));
 % Allocate arrays (analytical results)
 TH1_an = zeros(size(mdot1));
 TC2_an = zeros(size(mdot1));
@@ -582,8 +681,12 @@ for im = 1:n
     htC_num(im) = sum(0.5*(HX.C.ht(1:end-1)+HX.C.ht(2:end)).*HX.dL')./HX.L1;
     CfH_num(im) = sum(0.5*(HX.H.Cf(1:end-1)+HX.H.Cf(2:end)).*HX.dL')./HX.L1;
     CfC_num(im) = sum(0.5*(HX.C.Cf(1:end-1)+HX.C.Cf(2:end)).*HX.dL')./HX.L1;
+    ReH_max(im) = max(HX.H.Re);
+    ReC_max(im) = max(HX.C.Re);
     NTU_num(im) = HX.NTU;
     U_num(im)   = HX.UA/HX.A1;
+    QT_num(im)  = HX.H.mdot*(HX.H.h(NX+1)-HX.H.h(1));
+    LMTD_num(im)= HX.LMTD;
     
     switch scenario
         case 1
@@ -643,160 +746,193 @@ switch scenario
 
     case 5 % Compare numerical results with data from Hoopes2016
         % Compute errors
-        %%{
-        
+        %{
         errDT1 = abs(DT1_num - DT1_dat)./DT1_dat*100;
         errDT2 = abs(DT2_num - DT2_dat)./DT2_dat*100;
+        %}
+        %%{
+        DTmax  = TH2 - TC1;
+        errTH1 = abs(TH1_num - TH1_dat)/DTmax*100;
+        errTC2 = abs(TC2_num - TC2_dat)/DTmax*100;
         errDpH = ((DpH_num - DpH_dat)./DpH_dat)*100;
         errDpC = ((DpC_num - DpC_dat)./DpC_dat)*100;
         %%}
-        %{
-        DTmax  = TH2 - TC1;
-        errDT1 = abs(num_TH1-273.15 - data(:,3)')/DTmax*100;
-        errDT2 = abs(num_TC2-273.15 - data(:,4)')/DTmax*100;
-        errDpH = abs(num_pH1 - data(:,5)'*1e5)./pH2*100;
-        errDpC = abs(num_pC2 - data(:,6)'*1e5)./pC1*100;
-        %}
         
         % Plot figures
         figure(30)
-        yyaxis left
+        pos1 = [0.14,0.40,0.8,0.55];
+        pos2 = [0.14,0.10,0.8,0.25];
+        subplot('Position',pos1)
         plot(mdot1,TH1_num,mdot_dat,TH1_dat,'s');
-        %ylim([85 105])
+        ylabel('$T_{\mathrm{out,h}}$ [K]')
+        xticklabels(''); x = xlim(); 
+        legend('1D model','Hoopes et al. 2016','Location','Best')
+        subplot('Position',pos2)
+        plot(mdot1,errTH1,'d')
+        ylim([0 0.4])
+        xlim(x)
+        ylabel('Diff. [$\%$]')
         xlabel('Mass flow rate [kg/s]')
-        ylabel('Outlet temperature (hot) [K]')        
-        yyaxis right
-        plot(mdot1,errDT1,'d')
-        %ylim([0 0.50])
-        ylabel('Error [$\%$]')
-        legend('Numerical','Hoopes2016','Error','Location','NorthWest')        
         
         figure(31)
-        yyaxis left
+        subplot('Position',pos1)
         plot(mdot1,TC2_num,mdot_dat,TC2_dat,'s')
-        %ylim([615 635])
+        ylabel('$T_{\mathrm{out,c}}$ [K]')
+        xticklabels(''); x = xlim();
+        legend('1D model','Hoopes et al. 2016','Location','Best')
+        subplot('Position',pos2)
+        plot(mdot1,errTC2,'d')
         xlabel('Mass flow rate [kg/s]')
-        ylabel('Outlet temperature (cold) [K]')
-        yyaxis right
-        plot(mdot1,errDT2,'d')
-        %ylim([0 0.50])
-        ylabel('Error [$\%$]')
-        legend('Numerical','Hoopes2016','Error','Location','Best')
+        ylim([0 0.4])
+        xlim(x)
+        ylabel('Diff. [$\%$]')
+        xlabel('Mass flow rate [kg/s]')
         
         figure(32)
-        yyaxis left
-        plot(mdot1,pH1_num/1e5,mdot_dat,pH1_dat/1e5,'s')
-        %ylim([29 31])
-        xlabel('Mass flow rate [kg/s]')
-        ylabel('Outlet pressure (hot) [bar]')
-        yyaxis right
+        subplot('Position',pos1)
+        plot(mdot1,DpH_num/1e5,mdot_dat,DpH_dat/1e5,'s')
+        ylabel('$\Delta p_{\mathrm{h}}$ [bar]')
+        xticklabels('');
+        legend('1D model','Hoopes et al. 2016','Location','Best')
+        subplot('Position',pos2)
         plot(mdot1,errDpH,'d')
-        %ylim([0 0.10])
-        ylabel('Error [$\%$]')
-        legend('Numerical','Hoopes2016','Error','Location','Best')
+        xlabel('Mass flow rate [kg/s]')
+        %ylim([0 0.2])
+        %xlim(x)
+        ylabel('Diff. [$\%$]')
+        xlabel('Mass flow rate [kg/s]')
         
         figure(33)
-        yyaxis left
-        plot(mdot1,pC2_num/1e5,mdot_dat,pC2_dat/1e5,'s')
-        %ylim([290 300])
-        xlabel('Mass flow rate [kg/s]')
-        ylabel('Outlet pressure (cold) [bar]')
-        yyaxis right
+        subplot('Position',pos1)
+        plot(mdot1,DpC_num/1e5,mdot_dat,DpC_dat/1e5,'s')
+        ylabel('$\Delta p_{\mathrm{c}}$ [bar]')
+        xticklabels('');
+        legend('1D model','Hoopes et al. 2016','Location','Best')
+        subplot('Position',pos2)
         plot(mdot1,errDpC,'d')
-        %ylim([0 2.5])
-        ylabel('Error [$\%$]')
-        legend('Numerical','Hoopes2016','Error','Location','West')
+        xlabel('Mass flow rate [kg/s]')
+        %ylim([0 0.2])
+        %xlim(x)
+        ylabel('Diff. [$\%$]')
+        xlabel('Mass flow rate [kg/s]')
         
-        % Compare against Hoopes' scaling method
-        %figure(30)
-        %plot(mdot1,num_TH1-273.15,data(:,1),data(:,7),'s');
-        %figure(31)
-        %plot(mdot1,num_TC2-273.15,data(:,1),data(:,8),'s')
-        %figure(32)
-        %plot(mdot1,num_pH1/1e5,data(:,1),data(:,9),'s')
-        %figure(33)
-        %plot(mdot1,num_pC2/1e5,data(:,1),data(:,10),'s')
         
     case 9 % Compare numerical results with data from Figley2013
-        
+    %%    
         % Compute errors
-        errDpH = ((DpH_num - DpH_dat)./DpH_dat)*100;
-        errDpC = ((DpC_num - DpC_dat)./DpC_dat)*100;
-        errReH = ((ReH_num - ReH_dat)./ReH_dat)*100;
-        errReC = ((ReC_num - ReC_dat)./ReC_dat)*100;
+        errDpH = abs((DpH_num - DpH_dat)./DpH_dat)*100;
+        errDpC = abs((DpC_num - DpC_dat)./DpC_dat)*100;
+        errReH = abs((ReH_num - ReH_dat)./ReH_dat)*100;
+        errReC = abs((ReC_num - ReC_dat)./ReC_dat)*100;
         errhtH = ((htH_num - htH_dat)./htH_dat)*100;
         errhtC = ((htC_num - htC_dat)./htC_dat)*100;
-        errU   = ((U_num - U_dat)./U_dat)*100;
+        errU   = abs((U_num   - U_dat)  ./U_dat)  *100;
+        
+        U_num2 = QT_num./(HX.A1*LMTD_num);
+        
+        % Select only points with laminar flow
+        lam = max([ReC_max,ReH_max],[],2) < 2000;
+        sel = lam;
+        
+        % Set positions for subplots
+        pos1 = [0.14,0.40,0.8,0.55];
+        pos2 = [0.14,0.10,0.8,0.25];
         
         figure(40)
-        yyaxis left
-        plot(mdot1,DpH_num/1e3,mdot_dat,DpH_dat/1e3,'s')
+        subplot('Position',pos1)
+        plot(mdot1(sel),DpH_num(sel)/1e3,mdot_dat(sel),DpH_dat(sel)/1e3,'s')
+        xticklabels(''); x = xlim();
+        ylabel('$\Delta p_{\mathrm{hot}}$ [kPa]')
+        legend('1D model','Figley2013','Location','SouthEast')
+        ylim([0 15])
+        subplot('Position',pos2)
+        plot(mdot1(sel),errDpH(sel),'d')
         xlabel('Mass flow rate [kg/s]')
-        ylabel('Pressure drop (hot) [kPa]')
-        yyaxis right
-        plot(mdot1,errDpH,'d')
-        ylabel('Error [$\%$]')
-        legend('Numerical','Figley2013','Error','Location','Best')
+        ylabel('Diff. [$\%$]')
+        ylim([0 10])
+        xlim(x)
         
         figure(41)
-        yyaxis left
-        plot(mdot1,DpC_num/1e3,mdot_dat,DpC_dat/1e3,'s')
+        subplot('Position',pos1)
+        plot(mdot1(sel),DpC_num(sel)/1e3,mdot_dat(sel),DpC_dat(sel)/1e3,'s')
+        xticklabels(''); x = xlim();
+        ylabel('$\Delta p_{\mathrm{cold}}$ [kPa]')
+        legend('1D model','Figley2013','Location','SouthEast')
+        ylim([0 15])
+        subplot('Position',pos2)
+        plot(mdot1(sel),errDpC(sel),'d')
         xlabel('Mass flow rate [kg/s]')
-        ylabel('Pressure drop (cold) [kPa]')
-        yyaxis right
-        plot(mdot1,errDpC,'d')
-        ylabel('Error [$\%$]')
-        legend('Numerical','Figley2013','Error','Location','Best')
+        ylabel('Diff. [$\%$]')
+        ylim([0 10])
+        xlim(x)
         
         figure(42)
         yyaxis left
-        plot(mdot1,ReH_num,mdot_dat,ReH_dat,'s')
+        plot(mdot1(sel),ReH_num(sel),mdot_dat(sel),ReH_dat(sel),'s')
         xlabel('Mass flow rate [kg/s]')
         ylabel('Reynolds number (hot side)')
         yyaxis right
-        plot(mdot1,errReH,'d')
+        plot(mdot1(sel),errReH(sel),'d')
         ylabel('Error [$\%$]')
         legend('Numerical','Figley2013','Error','Location','Best')
         
         figure(43)
         yyaxis left
-        plot(mdot1,ReC_num,mdot_dat,ReC_dat,'s')
+        plot(mdot1(sel),ReC_num(sel),mdot_dat(sel),ReC_dat(sel),'s')
         xlabel('Mass flow rate [kg/s]')
         ylabel('Reynolds number (cold side)')
         yyaxis right
-        plot(mdot1,errReC,'d')
+        plot(mdot1(sel),errReC(sel),'d')
         ylabel('Error [$\%$]')
         legend('Numerical','Figley2013','Error','Location','Best')
         
         figure(44)
-        yyaxis left
-        plot(mdot1,htH_num,mdot_dat,htH_dat,'s')
+        subplot('Position',pos1)
+        plot(mdot1(sel),htH_num(sel),mdot_dat(sel),htH_dat(sel),'s')
+        xticklabels(''); x = xlim();
+        ylabel('$ h_{\mathrm{t,hot}} $ [W/m$^2$/K]')
+        ylim([1100 1500])
+        legend('1D model','Figley2013','Location','SouthEast')
+        subplot('Position',pos2)
+        plot(mdot1(sel),errhtH(sel),'d')
         xlabel('Mass flow rate [kg/s]')
-        ylabel('Heat transfer coeff. (hot) [W/m$^2$/K]')
-        yyaxis right
-        plot(mdot1,errhtH,'d')
-        ylabel('Error [$\%$]')
-        legend('Numerical','Figley2013','Error','Location','Best')
+        ylabel('Diff. [$\%$]')
+        ylim([-5 5])
+        xlim(x)
         
         figure(45)
-        yyaxis left
-        plot(mdot1,htC_num,mdot_dat,htC_dat,'s')
+        subplot('Position',pos1)
+        plot(mdot1(sel),htC_num(sel),mdot_dat(sel),htC_dat(sel),'s')
+        xticklabels(''); x = xlim();
+        ylabel('$ h_{\mathrm{t,cold}} $ [W/m$^2$/K]')
+        ylim([1000 1400])
+        legend('1D model','Figley2013','Location','SouthEast')
+        subplot('Position',pos2)
+        plot(mdot1(sel),errhtC(sel),'d')
         xlabel('Mass flow rate [kg/s]')
-        ylabel('Heat transfer coeff. (cold) [W/m$^2$/K]')
-        yyaxis right
-        plot(mdot1,errhtC,'d')
-        ylabel('Error [$\%$]')
-        legend('Numerical','Figley2013','Error','Location','Best')
+        ylabel('Diff. [$\%$]')
+        ylim([-5 5])
+        xlim(x)
         
         figure(46)
-        yyaxis left
-        plot(mdot1,U_num,mdot_dat,U_dat,'s')
+        subplot('Position',pos1)
+        plot(mdot1(sel),U_num(sel),mdot_dat(sel),U_dat(sel),'s')
+        xticklabels(''); x = xlim();
+        ylabel('$ U $ [W/m$^2$/K]')
+        ylim([550 670])
+        legend('1D model','Figley2013','Location','SouthEast')
+        subplot('Position',pos2)
+        plot(mdot1(sel),errU(sel),'d')
         xlabel('Mass flow rate [kg/s]')
-        ylabel('Heat transfer coefficient [W/m$^2$/K]')
-        yyaxis right
-        plot(mdot1,errU,'d')
-        ylabel('Error [$\%$]')
-        legend('Numerical','Figley2013','Error','Location','Best')
+        ylabel('Diff. [$\%$]')
+        ylim([0 10])
+        xlim(x)
+        
+        formats = {'fig','epsc'};
+        %save_fig(40,'./Results/Figley_DpH',formats)
+        %save_fig(41,'./Results/Figley_DpC',formats)
+        %save_fig(44,'./Results/Figley_htH',formats)
+        %save_fig(45,'./Results/Figley_htC',formats)
         
     case 12
         
@@ -853,6 +989,7 @@ switch scenario
         semilogy(mdot1,DpC_num/pC1,mdot1,DpH_num/pH2)
         xline(xlam,'k','laminar')
         xline(xtur,'k','turbulent')
+        %annotation('arrow',[0.2 0.15], [0.2 0.2])
         ylabel('$\Delta p/p$')
         legend('Cold stream','Hot stream','Location','Best')
         
@@ -865,13 +1002,14 @@ end
 switch save_figures
     case 1
         formats = {'fig','epsc'};
+        %formats = {'svg'};
         %formats = {'fig','epsc','emf'};
         
-        save_fig(10,'./Results/T_Q',formats)
-        save_fig(11,'./Results/T_A',formats)
-        save_fig(12,'./Results/p_A',formats)
-        save_fig(13,'./Results/Re_A',formats)
-        save_fig(14,'./Results/ht_Q',formats)
+        %save_fig(10,'./Results/T_Q',formats)
+        %save_fig(11,'./Results/T_A',formats)
+        %save_fig(12,'./Results/p_A',formats)
+        %save_fig(13,'./Results/Re_A',formats)
+        %save_fig(14,'./Results/ht_Q',formats)
         
         switch scenario
             case 1

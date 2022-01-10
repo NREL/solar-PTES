@@ -148,11 +148,13 @@ switch shape
         Re_lim1 = 2000;
         Re_lim2 = 3000;
         
-    case 'PCHE' % Semi-circular PCHE
-        Re_lim1 = 2800;
+    case 'PCHE' % Semi-circular PCHE (straight channels)
+        Re_lim1 = 2000;
         Re_lim2 = 3000;
-        %Re_lim1 = 2000;
-        %Re_lim2 = 3000;
+        
+    case 'PCHE32' % Semi-circular PCHE (32deg zigzag channels for Hoopes2016 comparisson)
+        Re_lim1 = 1000;
+        Re_lim2 = 2000;
         
     otherwise
         error('not implemented')
@@ -189,36 +191,76 @@ Nu_lim1 = Nusselt_number( Re_lim1,      [],      [], 'lam', shape);
 Nu(tur) = Nusselt_number( Re(tur), Pr(tur), Cf(tur), 'tur', shape);
 Nu_lim2 = Nusselt_number( Re_lim2, Pr(tra), Cf_lim2, 'tur', shape);
 
-
 % Use Graetz number to account for effects due to entry region
-% Hydraulically developing entry
-%z = Pr./Gz;
-%Cf(lam) = 1./(4*Re(lam)).*( 13.74*z(lam).^(-1/2) + (1.25*z(lam).^(-1) + 64 - 13.74*z(lam).^(-1/2))./(1 + 0.00021*z(lam).^(-2)) );
-% Thermally developing entry
-%Nu      = Nu + 0.0668*Gz./(1 + 0.04.*Gz.^(2/3));
-Nu(lam) = 3.66 + 0.0668*Gz(lam)./(1 + 0.04.*Gz(lam).^(2/3));
-Gz_lim1 = Gz(tra).*Re_lim1./Re(tra);
-Nu_lim1 = 3.66 + 0.0668*Gz_lim1./(1 + 0.04.*Gz_lim1.^(2/3));
-% Combined developing entry
-%Nu = (Nu./tanh(2.264.*Gz.^(-1/3) + 1.7.*Gz.^(-2/3)) +...
-%    0.0499*Gz.*tanh(1./Gz))./tanh(2.432.*Pr.^(1/6).*Gz.^(-1/6));
-% No entry effects
-%Nu = Nu + 0.0.*Gz;
+entry_effects = 0;
+switch entry_effects
+    case 0 % No entry effects
+        Nu = Nu + 0.0.*Gz;
+        
+    case 1 % Consider entry effects
+        %{
+        Nu(lam) = 3.66 + 0.0668*Gz(lam)./(1 + 0.04.*Gz(lam).^(2/3));
+        Gz_lim1 = Gz(tra).*Re_lim1./Re(tra);
+        Nu_lim1 = 3.66 + 0.0668*Gz_lim1./(1 + 0.04.*Gz_lim1.^(2/3));
+        %}
+        
+        %%{
+        % Thermally developing entry
+        % Data from Hong and Bergles as displayed by Rohsenow
+        TAB_xt = [
+            0.000458, 0.000954, 0.00149, 0.00208, 0.00271,...
+            0.00375,  0.00493,  0.00627, 0.00777, 0.00946,...
+            0.0128,   0.0168,   0.0217,  0.0279,  0.0351,...
+            0.0442,   0.0552,   0.0686,  0.0849,  0.105,...
+            0.130,    0.159,    0.500,   1.00,   10.0 ];
+        
+        TAB_Nu = [
+            17.71, 13.72, 11.80, 10.55, 9.605,...
+            8.475, 7.723, 7.137, 6.556, 6.300,...
+            5.821, 5.396, 5.077, 4.767, 4.562,...
+            4.429, 4.276, 4.217, 4.156, 4.124,...
+            4.118, 4.108, 4.089, 4.089, 4.089];
+        
+        % Create fit using interpolation
+        x = TAB_xt'; y = TAB_Nu';
+        Nu(lam) = 10.^interp1(log10(x),log10(y),log10(1./Gz(lam)),'makima');
+        Gz_lim1 = Gz(tra).*Re_lim1./Re(tra);
+        Nu_lim1 = 10.^interp1(log10(x),log10(y),log10(1./Gz_lim1),'makima');
+        Nu_lim1(isnan(Nu_lim1)) = 4.089;
+        Nu(isnan(Nu)) = 4.089;
+        if any(isnan(Nu))
+            keyboard
+        end
+        %}
+        
+        %{
+        % Hydrodynamically developing entry
+        xp = Pr./Gz;
+        Cf(lam) = ( 13.74.*xp(lam).^(1/2) + (1.25 + 64.*xp(lam) - 13.74.*xp(lam).^(1/2))./(1 + 0.00021.*xp(lam).^(-2)) )./(4.*xp(lam).*Re(lam));
+        Cf(isnan(Cf)) = 16./Re(isnan(Cf));
+        if any(isnan(Cf))
+            keyboard
+        end
+        %}
+end
 
 % Compute transition points
 Cf(tra) = (1-W).*Cf_lim1 + W.*Cf_lim2;
 Nu(tra) = (1-W).*Nu_lim1 + W.*Nu_lim2;
 
+%Nu = 3.5*Nu;
 %{
 if strcmp(shape,'PCHE')
     Cf = Cf*1.1;
     Nu = Nu*1.2;
+    %Cf = Cf*1;
+    %Nu = Nu*1;
 end
 %}
 
 % Compute Stanton number and heat transfer coefficient
 St = Nu./(Re.*Pr);
-ht = G*Cp.*St;
+ht = G*Cp.*St; %ht = Nu*k/D;
 
 end
 
@@ -244,17 +286,39 @@ switch shape
     case 'PCHE'
         
         switch regime
-            case 'lam' %Figley2013
+            case 'lam'
+                %Figley2013
                 aL = 15.78;
                 Cf = aL./Re;
                 
-            case 'tur' %Figley2013
+            case 'tur'
+                %Figley2013
                 Cf = (1/4)*(1./ (1.8*log10(Re) - 1.5)).^2;
+                
+                %Ngo
+                %Cf = 0.1942*Re.^(-0.091)
+                %keyboard
                 
             %case 'tur' %Marchionni2019
             %    A  = -2.0.*log10(12./Re);
             %    B  = -2.0.*log10(2.51.*A./Re);
             %    Cf = (1/4)*( 4.781 - (A - 4.781).^2./(B - 2*A + 4.781) ).^(-2);
+                
+            otherwise
+                error("incorrect regime input, please set 'lam' or 'tur'")
+        end
+        
+        case 'PCHE32'
+        
+        switch regime
+            case 'lam'
+                %Figley2013
+                aL = 15.78;
+                Cf = aL./Re;
+                
+            case 'tur'
+                %Kim2016
+                Cf = 0.2515*Re.^(-0.2031);
                 
             otherwise
                 error("incorrect regime input, please set 'lam' or 'tur'")
@@ -268,41 +332,49 @@ end
 
 function [ Nu ] = Nusselt_number ( Re , Pr, Cf, regime, shape )
 
-switch shape
-    case 'circular'
+switch regime
+    case 'lam'
         
-        switch regime
-            case 'lam'
-                bL = 4.36;
-                Nu = bL + 0.*Re;
+        switch shape
+            case 'circular'
+                Nu_lam = 4.36;
                 
-            case 'tur'
-                Nu = (Cf/2).*(Re - 1000).*Pr./(1 + 12.7*(Cf/2).^(1/2).*(Pr.^(2/3)-1));
+            case 'PCHE' %Figley2013
+                Nu_lam = 4.089;
+                
+            case 'PCHE32'
+                Nu_lam = 4.089;
                 
             otherwise
-                error("incorrect regime input, please set 'lam' or 'tur'")
+                error('not implemented')
         end
+        Nu = Nu_lam + 0.*Re;
         
-    case 'PCHE'
-        
-        switch regime
-            case 'lam' %Figley2013
-                bL = 4.089;
-                Nu = bL + 0.*Re;
+    case 'tur'
+        switch shape
+            case 'circular'
+                Nu = (Cf/2).*(Re - 1000).*Pr./...
+                    (1 + 12.7*(Cf/2).^(1/2).*(Pr.^(2/3)-1));
                 
-            case 'tur'
-                Nu = (Cf/2).*(Re - 1000).*Pr./(1 + 12.7*(Cf/2).^(1/2).*(Pr.^(2/3)-1));
+            case 'PCHE'
+                %j  = 0.125*Re.^(-0.36);
+                %Nu = j.*Pr.^(1/3).*Re;
+                Nu = (Cf/2).*(Re - 1000).*Pr./...
+                    (1 + 12.7*(Cf/2).^(1/2).*(Pr.^(2/3)-1));
+                %Nu = 3.5*Nu;
+                %Nu = 0.1696.*Re.^(0.629).*Pr.^(0.317)
+                %keyboard
+                %Nu = 0.023.*Re.^(0.8).*Pr.^(0.33);
+                
+            case 'PCHE32' %Kim2016
+                Nu = 0.0292*Re.^0.8138;
                 
             otherwise
-                error("incorrect regime input, please set 'lam' or 'tur'")
+                error('not implemented')
         end
         
     otherwise
-        
-        error('not implemented')
+        error("incorrect regime input, please set 'lam' or 'tur'")
 end
-
-% Other correlations
-% Nu(tur) = 0.023.*Re(tur).^(0.8).*Pr(tur).^(0.33);
 
 end

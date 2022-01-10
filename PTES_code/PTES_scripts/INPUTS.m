@@ -11,9 +11,11 @@
 % Mode 7: Steam-Rankine heat engine (discharge only)
 %
 % Mode 20: PTES-LAES. Combined cycle energy storage (CCES)
+% Mode 22: Integrated PTES-LAES (all within air cycle)
+% Mode 24: Integrated PTES-LAES with Pre-Cooling
 
 % Call the correct input file
-Load.mode  = 0 ;
+Load.mode  = 3 ;
 Loffdesign = 0 ; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
 Lreadload  = 0 ;
 PBmode     = 0 ; % Liquid stores = 0; Packed beds = 1; Heat exchangers between power cycle and a storage fluid, which then passes through packed beds = 2
@@ -23,7 +25,7 @@ switch Load.mode
         JB_RANK_INPUTS
     case {4, 5, 6}   % sCO2-PTES type cycles
         sCO2_INPUTS
-    case 20          % PTES-LAES combined cycle
+    case {20,22,24}          % PTES-LAES combined cycle
         CCES_INPUTS
     otherwise
         error('not implemented')
@@ -33,8 +35,8 @@ end
 Wdis_req = 100e6 ;
 
 % Set heat exchanger parameters
-HX_model  = 'geom' ;
-eff       = 0.97;  % heat exchanger effectiveness
+HX_model  = 'eff' ;
+eff       = 0.95;  % heat exchanger effectiveness
 ploss     = 0.01;  % pressure loss in HEXs
 HX_D1     = 0.005; %hydraulic diameter
 HX_shape  = 'circular';   %channel shape for counter-flow HEXs
@@ -43,13 +45,26 @@ HX_NX     = 100; % number of sections for HEX algorithm
 effX      = 0.90; 
 plossX    = 0.001;
 HX_shapeX = 'cross-flow';
+if any(Load.mode == [20,22])
+    ploss  = 0.01;
+    plossX = 0.001;
+    fluidC = [];
+    Nlat   = 1;
+elseif Load.mode == 24
+    ploss  = 0.01;
+    plossX = 0.001;
+    Nlat   = 1;
+else
+    Nmid = 0;
+    Nlat = 0;
+end
 
 % Code options
 multi_run   = 0; % run cycle several times with different parameters?
 Lmulti_mdot = 0; % Read data from previous multirun to recalculate what the actual mass flow rates should be for a desired power
 optimise    = 0; % optimise cycle?
 make_plots  = 1; % make plots?
-save_figs   = 1; % save figures at the end?
+save_figs   = 0; % save figures at the end?
 make_hex_plots = 0; % make plots of heat exchangers?
 
 %if (Nc_ch > 1 || Ne_ch > 1) && (Ncld > 1 || Nhot > 1)
@@ -84,10 +99,27 @@ switch PBmode
         end
         
         switch Load.mode
-            case 20
+            case {20,22}
                 % Medium tanks
                 fluidM = fluid_class(fHname,'SF','TAB',NaN,Load.num,30); % Storage fluid
                 MT     = double_tank_class(fluidM,TM_dis0,p0,MM_dis0,TM_chg0,p0,MM_chg0,T0,HTmode,Load.num+1); %medium double tank
+                
+                % No cold tanks
+                fluidC = [];
+                
+                % Liquid air tanks
+                LAT    = single_tank_class(gas,TLA_chg0,p0,MLA_chg0,T0,HTmode,Load.num+1); %liquid air tank
+                
+            case {24}
+                % Medium tanks
+                fluidM = fluid_class(fHname,'SF','TAB',NaN,Load.num,30); % Storage fluid
+                MT     = double_tank_class(fluidM,TM_dis0,p0,MM_dis0,TM_chg0,p0,MM_chg0,T0,HTmode,Load.num+1); %medium double tank
+                
+                % Liquid air tanks
+                LAT    = single_tank_class(gas,TLA_chg0,p0,MLA_chg0,T0,HTmode,Load.num+1); %liquid air tank
+                
+            otherwise
+                fluidM = [];
         end
         
     case 1
@@ -99,9 +131,17 @@ end
 
 
 % Set 'atmospheric' air tanks
-%air  = fluid_class('Air','ENV','CP','HEOS',Load.num,30);
-air  = fluid_class('Nitrogen','ENV','CP','BICUBIC&HEOS',Load.num,30);
-AT   = double_tank_class(air,T0,p0,0,T0,p0,0,T0,ATmode,Load.num+1);
+switch Load.mode
+    case {20}
+        error('not implemented')
+    case {22,24}
+        AT   = single_tank_class(gas,T0,p0,1e9,T0,ATmode,Load.num+1);
+        AT.job = 'ENV';
+    otherwise
+        %air  = fluid_class('Air','ENV','CP','HEOS',Load.num,30);
+        air  = fluid_class('Nitrogen','ENV','CP','BICUBIC&HEOS',Load.num,30);
+        AT   = double_tank_class(air,T0,p0,1e9,T0,p0,0,T0,ATmode,Load.num+1);
+end
 
 % Heat rejection streams
 environ = environment_class(T0,p0,Load.num,10);
@@ -110,11 +150,11 @@ environ = environment_class(T0,p0,Load.num,10);
 % have been defined in the SET_MULTI_RUN script
 if multi_run==1
     % Set variable along curves
-    %{
+    %%{
     Vpnt = 'TH_dis0';    % variable along curve
-    Npnt = 4;           % points on curve
-    pnt1 = 200 + 273.15;    % min value
-    pnt2 = 450 + 273.15;    % max value
+    Npnt = 10;           % points on curve
+    pnt1 = 225 + 273.15;    % min value
+    pnt2 = 400 + 273.15;    % max value
     Apnt = linspace(pnt1,pnt2,Npnt); % array
     %}
     %{
@@ -124,7 +164,7 @@ if multi_run==1
     pnt2 = 2.0;    % max value
     Apnt = linspace(pnt1,pnt2,Npnt); % array
     %}
-    %%{
+    %{
     Vpnt = 'Ran_Tbot0';  % variable along curve
     pnt1 = 100e5;       % min value
     pnt2 = 300e5;       % max value
@@ -139,12 +179,51 @@ if multi_run==1
     pnt2 = 300e5;       % max value
     Apnt = linspace(pnt1,pnt2,Npnt); % array
     %}
+    %{
+    Vpnt = 'Ne_ch'; % variable along curve
+    Apnt = [1,2,3,4]; % array
+    Npnt = length(Apnt);
+    %}
+    %{
+    Vpnt = 'pmax_LA';  % variable along curve
+    Npnt = 21;           % points on curve
+    pnt1 = 50e5;       % min value
+    pnt2 = 300e5;       % max value
+    Apnt = linspace(pnt1,pnt2,Npnt); % array
+    %Apnt = logspace(log10(pnt1),log10(pnt2),Npnt); % array
+    %}
+    %{
+    Vpnt = 'eff';  % variable along curve
+    Npnt = 6;           % points on curve
+    pnt1 = 0.92;       % min value
+    pnt2 = 0.98;       % max value
+    Apnt = linspace(pnt1,pnt2,Npnt); % array
+    %}
     
     % Set variable between curves
-    Vcrv = 'Ne_ch';
-    Acrv = 1;
-    %Acrv = [1,2,3];
+    %{
+    Vcrv = 'eta';
+    Acrv = [0.88, 0.90, 0.92];
     Ncrv = numel(Acrv);
+    %}
+    %{
+    Vcrv = 'eff';
+    Acrv = 0.95;
+    Ncrv = numel(Acrv);
+    %}
+    %%{
+    Vcrv = 'Ne_ch';
+    %Acrv = 1;
+    Acrv = [1,2,3,4];
+    Ncrv = numel(Acrv);
+    %}
+    %{
+    Vcrv = 'Ran_ptop';  % variable between curves
+    Ncrv = 1;           % number of curves
+    pnt1 = 100e5;       % min value
+    pnt2 = 100e5;       % max value
+    Acrv = linspace(pnt1,pnt2,Ncrv); % array
+    %}
     
     if Lmulti_mdot
         multi_mdot = mdot_extract(Npnt,Ncrv,Wdis_req) ;

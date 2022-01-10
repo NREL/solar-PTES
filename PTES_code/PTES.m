@@ -102,10 +102,22 @@ for ix = 1:1
                             SOLAR_TANKS
                             iL=iL+1;
                         case 'chgCC'
-                            CHARGE_CCES
+                            CHARGE_CCES3
                             iL=iL+1;
                         case 'disCC'
-                            DISCHARGE_CCES
+                            DISCHARGE_CCES3
+                            iL=iL+1;
+                        case 'chgICC'
+                            CHARGE_PTLAES
+                            iL=iL+1;
+                        case 'disICC'
+                            DISCHARGE_PTLAES
+                            iL=iL+1;
+                        case 'chgICC_PC'
+                            CHARGE_PTLAES_PC
+                            iL=iL+1;
+                        case 'disICC_PC'
+                            DISCHARGE_PTLAES_PC
                             iL=iL+1;
                     end
                 end
@@ -131,7 +143,7 @@ for ix = 1:1
             ENERGY_BALANCE_v2
             
             % Evaluate the system cost
-            PTES_ECONOMICS
+            %PTES_ECONOMICS
             
             % Save results from multi_run call
             if multi_run, PRINT_MULTI_RUN; end
@@ -147,7 +159,7 @@ toc %stop timer
 if make_plots
     PLOT_CYCLE
     PLOT_LOSSES
-    PLOT_COSTS
+    %PLOT_COSTS
     if multi_run
         PLOT_MULTI_RUN %#ok<*UNRCH>
     end

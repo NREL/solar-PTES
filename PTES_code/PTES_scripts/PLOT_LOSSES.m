@@ -1,7 +1,7 @@
 figure(8)
 switch Load.mode
-    case {0,3,4}
-        names = {'$$\mathrm{PTES_{ch}}$$','$$\mathrm{PTES_{dis}}$$'};
+    case {0,3,4,20,22,24}
+        names = {'Heat pump','Heat engine'};
         b = bar(-WL_matrix./E_net_chg*100,'stacked');
         set(gca, 'XTick', 1:2, 'XTickLabel', names, 'TickLabelInterpreter', 'latex')
     case 1
@@ -28,14 +28,15 @@ b(6).FaceColor = c_pale_green;
 b(7).FaceColor = c_dark_orange;
 b(8).FaceColor = c_grey;
 b(9).FaceColor = c_dark_grey;
-legend({'Compressors','Expanders','Heat exchangers','Heat in/out env.','Mixing (external)','Mixing (internal)','Tanks','Parasitics','Motor/Gen'},'Location','Best')
+if Load.mode == 3
+    xlim([0.4 2.6])
+end
+legend({'Compressors','Expanders','Heat exchangers','Heat in/out env.','Mixing (tanks)','Mixing (internal)','Tanks','Parasitics','Motor/Gen'},'Location','EastOutside')
 
-% Do not show liquid_mixing loss and tank_loss bars if they are not required
-% if WL_mix_liq==0
-%     delete(b(5))
-% end
+
+% Do not show tank_loss bars if they are not required
 % if WL_tanks==0
-%     delete(b(6))
+%     delete(b(7))
 % end
 
 

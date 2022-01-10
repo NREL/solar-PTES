@@ -2,24 +2,25 @@
 p0      = 1e5;          % ambient pressure, Pa
 pmax    = 25e5;         % top pressure, Pa
 PRch    = 1.5;          % charge pressure ratio
-PRr     = 1.;          % discharge pressure ratio: PRdis = PRch*PRr
+PRr     = 1.2;          % discharge pressure ratio: PRdis = PRch*PRr
 PRr_min = 0.1;          % minimum PRr for optimisation
 PRr_max = 3.0;          % maximum PRr for optimisation
-LPRr    = 1 ;           % Logical. Estimate optimal PRr after charging run.
+LPRr    = 0 ;           % Logical. Estimate optimal PRr after charging run.
 setTmax = 1;            % set Tmax? (this option substitutes PRch)
-Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
 
 % Set Rankine-specific parameters
 switch Load.mode
     case {0,1,2}
-        T0 = 25 + 273.15; % ambient temp, K
+        T0   = 25 + 273.15; % ambient temp, K
+        Tmax = 570 + 273.15; % maximum temp at compressor outlet, K
         
     case 3
         T0          = 40 + 273.15; % ambient temp
         Ran_ptop    = 100e5;
         Ran_pbotMIN = 0.02e5 ; % If condenser pressure decreases below this, the final stage chokes. Can't go to pressures below this, because who knows what happens.
-        Ran_Tbot0   = T0 + 5; %when discharging against the environment. This sets design condenser pressure.
+        Ran_Tbot0   = T0 +10; %when discharging against the environment. This sets design condenser pressure.
         Ran_TbotC   = T0 + 5; %when discharging against the cold stores
+        Tmax        = 578.5 + 273.15; % maximum temp at compressor outlet, K
 end
 
 % Set compressor/expander parameters
@@ -27,7 +28,7 @@ eta   = 0.90;  % polytropic efficiency
 
 % Number of intercooled/interheated compressions/expansions
 Nc_ch = 1; % number of compressions during charge
-Ne_ch = 1; % number of expansions during charge
+Ne_ch = 2; % number of expansions during charge
 nH    = max([2,Nc_ch]); % number of hot fluid streams
 nC    = Ne_ch;          % number of cold fluid streams
 
@@ -107,13 +108,13 @@ switch Load.mode
         
     case 3 % JB charge, Rankine discharge
         LPRr= 0 ;           % Logical. Estimate optimal PRr after charging run.
-        fac = 100.0 ; % This can be used to more easily set the mass flow to obtain a desired power output 
+        fac = 76.3 ; % This can be used to more easily set the mass flow to obtain a desired power output 
         
         % This is the load scenario the plant is designed for
         Design_Load      = Load ;
         Design_Load.time = [10;4;10;10].*3600;          % time spent in each load period, s
         Design_Load.type = ["chg";"str";"ran";"ran"];   % type of load period
-        Design_Load.mdot = [10*fac;0;1.0*fac;1.0*fac];  % working fluid mass flow rate, kg/s
+        Design_Load.mdot = [11.2*fac;0;1.0*fac;1.0*fac];  % working fluid mass flow rate, kg/s
         %Design_Load.options.useCold = [0;0;1;0];        % Use cold stores during Rankine discharge? This should be set to 0 for design cases of retrofits.
         Design_Load.options.useCold = [0;0;0;0];        % Use cold stores during Rankine discharge? This should be set to 0 for design cases of retrofits.
         Design_Load.options.superRank = 0;
@@ -165,9 +166,9 @@ Load.ind  = (1:Load.num)';
 switch PBmode
     case 0
         fHname  = 'SolarSalt';  % fluid name
-        TH_dis0 = 290 + 273.15; % initial temperature of discharged hot fluid, K
+        TH_dis0 = 300 + 273.15; % initial temperature of discharged hot fluid, K
         MH_dis0 = 1e9;          % initial mass of discharged hot fluid, kg
-        TH_chg0 = 570 + 273.15; % initial temperature of charged hot fluid, K
+        TH_chg0 = 565 + 273.15; % initial temperature of charged hot fluid, K
         MH_chg0 = 0.00*MH_dis0; % initial mass of charged hot fluid, kg
         
         switch Load.mode

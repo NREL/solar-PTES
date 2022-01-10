@@ -40,7 +40,7 @@ function varargout = hex_compute_area(HX,iL,mode,par,varargin)
 
 % Check that this is the correct algorithm to be called
 switch HX.shape
-    case {'circular','PCHE'}
+    case {'circular','PCHE','PCHE32'}
     case 'cross-flow'
         error(['The hex_compute_Xflow function must be used for',...
             ' cross-flow heat exchangers.'])
@@ -182,12 +182,25 @@ for iI = 1:NI
     % COMPUTE HEAT TRANSFER COEFFICIENTS
     % Cold stream
     [C] = developed_flow(C,'heating');
+    
     % Hot stream
     [H] = developed_flow(H,'cooling');
+    
+    % Wall thermal resistance
+    Rcond = 0;
+    %{
+    tw    = 0.0e-3; % wall thickness
+    % Data for Inconel Alloy 617
+    Tw_TAB = [ 20; 100; 200; 300; 400; 500; 600; 700; 800; 900; 1000] + 273.15; %K
+    kw_TAB = [ 13.4; 14.7; 16.3; 17.7; 19.3; 20.9; 22.5; 23.9; 25.5; 27.1; 28.7]; %W/(K.m)
+    kw = interp1(Tw_TAB,kw_TAB,0.5*(H.T+C.T),'makima'); % wall conductivity
+    Rcond = tw./(kw*H.A);
+    %}
+    
     % Local (total) heat transfer coefficient.
-    % Neglects wall thermal resistance and axial conduction, and assumes
-    % that the heat transfer area is the same for the hot and cold sides.
-    Ul    = 1./(1./H.ht + 1./C.ht);
+    % Neglects axial conduction, and assumes that the heat transfer area
+    % is the same for the hot and cold sides.
+    Ul    = 1./(1./H.ht + 1./C.ht + Rcond);
     Ul_AV = 0.5*(Ul(1:NX) + Ul(2:NX+1));
     
     % COMPUTE HEAT TRANSFER AREA and CUMMULATIVE HEAT TRANSFER
@@ -237,13 +250,28 @@ for iI = 1:NI
     % Compute arrays of pressure loss due to flow acceleration
     Dpa_H = -( H.G.^2.*H.v(1:NX) - H.G.^2.*H.v(2:NX+1) );
     Dpa_C = -( C.G.^2.*C.v(2:NX+1) - C.G.^2.*C.v(1:NX) );
-    %Dpa_H = 0;
-    %Dpa_C = 0;
+    % Or else ignore effect of flow acceleration
+    Dpa_H = 0;
+    Dpa_C = 0;
+    
+    form_loss = 0;
+    DpH_form  = 0;
+    DpC_form  = 0;
+    switch form_loss
+        case 1
+        % Compute form loss due to entering/leaving PCHE
+        if strcmp(HX.shape,'PCHE')
+            C_in  = 0.5;
+            C_out = 1.0;
+            DpH_form = -0.5*H.G^2*(C_in/H.rho(NX+1) + C_out/H.rho(1));
+            DpC_form = -0.5*C.G^2*(C_in/C.rho(1)    + C_out/C.rho(NX+1));
+        end
+    end
     
     % Update pressure profiles. Assume a linear profile (to avoid computing
     % a slow 'for loop') and limit max pressure loss to 80%.
-    DppH = abs(sum(Dpf_H + Dpa_H))/H.pin;
-    DppC = abs(sum(Dpf_C + Dpa_C))/C.pin;
+    DppH = abs(sum(Dpf_H + Dpa_H) + DpH_form)/H.pin;
+    DppC = abs(sum(Dpf_C + Dpa_C) + DpC_form)/C.pin;
     if DppH > 0.8
         DppH = 0.8;
         impossible_p = true;

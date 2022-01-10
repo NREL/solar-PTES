@@ -8,6 +8,8 @@ function [new_name] = valid_name(name,varargin)
 %
 %   USAGE:
 %   [new_name] = valid_name(name)
+%   [new_name] = valid_name(name,2) % Removes 'INCOMP::' prefix
+%   [new_name] = valid_name(name,3) % Changes underscores '_' for space ' '
 
 if nargin == 1
     % Set default mode
@@ -23,8 +25,6 @@ new_name = name;
 
 switch mode
     case 1
-
-        
         % Substitute any invalid characters
         new_name(new_name=='.') = '';
         new_name(new_name==':') = '_';
@@ -37,11 +37,16 @@ switch mode
         new_name(ind2) = '';
         
     case 2
+        % Remove 'INCOMP::' prefix
         if length(name)>8
             if strcmp('INCOMP::',name(1:8))
                 new_name = name(9:end);
             end
         end
+        
+    case 3
+        % Changes underscores for spaces
+        new_name(new_name=='_') = ' ';
         
     otherwise
         error('not implemented')

@@ -83,7 +83,7 @@ switch HX.model
         % loss) is known a priory. For cross-flow geometry pressure losses
         % are very small and process is done only once.
         switch HX.shape
-            case {'circular','PCHE'}
+            case {'circular','PCHE','PCHE32'}
                 i0max = 2;
             case 'cross-flow'
                 i0max = 1;
@@ -100,7 +100,7 @@ switch HX.model
             % Check whether f1 changes sign over interval. If it doesn't,
             % choose Af that is closest to zero.
             switch HX.shape
-                case {'circular','PCHE'}
+                case {'circular','PCHE','PCHE32'}
                     f1 = @(Af) hex_compute_area(HX,iL,'Af',Af,0);
                 case 'cross-flow'
                     f1 = @(Af) hex_compute_Xflow(HX,iL,'Af',Af,0);

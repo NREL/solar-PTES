@@ -4,6 +4,7 @@ classdef double_tank_class
         job    % 'WF' (working fluid) or 'SM' (storage media)
         read   % 'CP' (CoolProp) or 'TAB' (table)
         handle % integer to identify CoolProp AbstractState
+        HEOS   % integer to identify CoolProp's HEOS AbstractState (if necessary)
         TAB    % matrix of thermophysical properties
         A = tank_state_class; % source tank (full at start of charge cycle)
         B = tank_state_class; % sink tank (full at start of discharge cycle)
@@ -35,6 +36,7 @@ classdef double_tank_class
              obj.job    = fluid.job;
              obj.read   = fluid.read;
              obj.handle = fluid.handle;
+             obj.HEOS   = fluid.HEOS;
              obj.TAB    = fluid.TAB;
              obj.A(1:num) = tank_state_class;
              obj.B(1:num) = tank_state_class;
@@ -131,60 +133,134 @@ classdef double_tank_class
              end
              if abs(Mdot_out/Mdot_in - 1) > 1e-6
                  error('mass flow rates do not match!')
-             else
-                 Mdot = Mdot_out;
              end
              
              % Set conditions of combined stream entering sink tank
              mix_state   = fluid.state(iL,i_in(1));
-             mix_state.h = Hdot_in/Mdot;
+             mix_state.h = Hdot_in/Mdot_in;
              mix_state.p = fluid.state(iL,i_in(1)).p;
-             mix_state.mdot = Mdot;
+             mix_state.mdot = Mdot_in;
              mix_state   = update_state(mix_state,fluid,2);
              s_mix = mix_state.s; % entropy flow into sink tank (after mixing)
              
              t = Load.time(iL);
              
              switch obj.job
-                 case 'SF'
+                 case {'SF','WF'}
                      % Select sink tank and source tank depending on operation mode
-                     if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
+                     if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2','chgCC','chgICC','chgICC_PC'}))
                          SO1   = obj.A(iL);   %source tank
                          SO2   = obj.A(iL+1); %source tank
                          SI1   = obj.B(iL);   %sink tank
                          SI2   = obj.B(iL+1); %sink tank
-                     elseif any(strcmp(Load.type(iL),{'dis','ran','disCO2','rcmpCO2','disTSCO2'}))
+                     elseif any(strcmp(Load.type(iL),{'dis','ran','disCO2','rcmpCO2','disTSCO2','disCC','disICC','disICC_PC'}))
                          SI1   = obj.A(iL);   %sink tank
                          SI2   = obj.A(iL+1); %sink tank
                          SO1   = obj.B(iL);   %source tank
                          SO2   = obj.B(iL+1); %source tank
+                     else
+                         error('Unrecognised Load.type operation mode')
                      end
                      
-                     % Update end conditions of source tank A
-                     SO2.M = SO1.M - Mdot*t;
+                     % Update end conditions of source tank
+                     SO2.M = SO1.M - Mdot_out*t;
                      SO2.H = SO1.H - Hdot_out*t;
                      SO2.h = SO2.H/SO2.M;
                      SO2.p = SO1.p;
                      SO2   = update_tank_state(obj,SO2,T0,2);
                      
-                     % Update end conditions of sink tank B
-                     SI2.M = SI1.M + Mdot*t;
+                     % Update end conditions of sink tank
+                     SI2.M = SI1.M + Mdot_in*t;
                      SI2.H = SI1.H + Hdot_in*t;
                      SI2.h = SI2.H/SI2.M;
                      SI2.p = SI1.p;
                      SI2   = update_tank_state(obj,SI2,T0,2);
                      
                      % Compute entropy generation of mixing
-                     S_irr1 = (s_mix*Mdot - Sdot_in)*t; %mixing of streams before sink tank inlet
-                     S_irr2 = SI2.S - (SI1.S + s_mix*Mdot*t); %mixing of streams with fluid inside sink tank
+                     S_irr1 = (s_mix*Mdot_in - Sdot_in)*t; %mixing of streams before sink tank inlet
+                     S_irr2 = SI2.S - (SI1.S + s_mix*Mdot_in*t); %mixing of streams with fluid inside sink tank
                      S_irr  = S_irr1 + S_irr2;
-                     if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
+                     if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2','chgCC','chgICC','chgICC_PC'}))
                          obj.A(iL+1) = SO2;
                          obj.B(iL+1) = SI2;
-                     elseif any(strcmp(Load.type(iL),{'dis','ran','disCO2','rcmpCO2','disTSCO2'}))
+                     elseif any(strcmp(Load.type(iL),{'dis','ran','disCO2','rcmpCO2','disTSCO2','disCC','disICC','disICC_PC'}))
                          obj.A(iL+1) = SI2;
                          obj.B(iL+1) = SO2;
+                     else
+                         error('Unrecognised Load.type operation mode')
                      end
+                     
+                 case 'LAES' % LAES cycle, containing one atmospheric and one liquid air tank
+                     
+                     error('Not implemented yet')
+                     
+                     %{
+                     if any(strcmp(Load.type(iL),{'chgCC'}))
+                         % Select sink tank and source tank states
+                         SO1   = obj.A(iL);   %source tank (atmosphere)
+                         SO2   = obj.A(iL+1); %source tank (atmosphere)
+                         SI1   = obj.B(iL);   %sink tank (liquid air tank)
+                         SI2   = obj.B(iL+1); %sink tank (liquid air tank)
+                         
+                         % Update end conditions of source tank
+                         SO2.M = SO1.M - Mdot*t;
+                         SO2.H = SO1.H - Hdot_out*t;
+                         SO2.h = SO1.h; % constant enthalpy for atmospheric tank
+                         SO2.p = SO1.p;
+                         SO2   = update_tank_state(obj,SO2,T0,2);
+                         
+                         % Update end conditions of sink tank
+                         SI2.M = SI1.M + Mdot*t;
+                         SI2.H = SI1.H + Hdot_in*t;
+                         SI2.h = SI2.H/SI2.M;
+                         SI2.p = SI1.p;
+                         SI2   = update_tank_state(obj,SI2,T0,2);
+                         
+                         % Compute entropy generation of mixing
+                         S_irr1 = (s_mix*Mdot - Sdot_in)*t; %mixing of streams before sink tank inlet
+                         S_irr2 = SI2.S - (SI1.S + s_mix*Mdot*t); %mixing of streams with fluid inside sink tank
+                         S_irr  = S_irr1 + S_irr2;
+                         
+                         % Assing new sink and source tank states
+                         obj.A(iL+1) = SO2;
+                         obj.B(iL+1) = SI2;
+                         
+                     elseif any(strcmp(Load.type(iL),{'disCC'}))
+                         % Select sink tank and source tank states
+                         SI1   = obj.A(iL);   %sink tank (atmosphere)
+                         SI2   = obj.A(iL+1); %sink tank (atmosphere)
+                         SO1   = obj.B(iL);   %source tank (liquid air tank)
+                         SO2   = obj.B(iL+1); %source tank (liquid air tank)
+                         
+                         % Update end conditions of source tank
+                         SO2.M = SO1.M - Mdot*t;
+                         SO2.H = SO1.H - Hdot_out*t;
+                         SO2.h = SO1.h;
+                         SO2.p = SO1.p;
+                         SO2   = update_tank_state(obj,SO2,T0,2);
+                         
+                         % Update end conditions of sink tank
+                         SI2.M = SI1.M + Mdot*t;
+                         SI2.H = SI1.H + Hdot_in*t;
+                         SI2.h = SI1.h; % constant enthalpy for atmospheric tank
+                         SI2.p = SI1.p;
+                         SI2   = update_tank_state(obj,SI2,T0,2);
+                         
+                         % Compute entropy generation due to bringing the warm
+                         % air streams (which absorbed rejected heat) back to
+                         % ambient conditions: sirr = Ds - Dh/T0
+                         Mdot0 = Mdot_out;
+                         Hdot0 = SI1.h*Mdot0;
+                         Sdot0 = SI1.s*Mdot0;
+                         S_irr = (Sdot0 -  Sdot_in - (Hdot0 - Hdot_in)/T0)*t;
+                         
+                         % Assing new sink and source tank states
+                         obj.A(iL+1) = SI2;
+                         obj.B(iL+1) = SO2;
+                     else
+                         error('Unrecognised Load.type operation mode')
+                     end
+                     %}
                      
                  case 'ENV'
                      
@@ -202,10 +278,12 @@ classdef double_tank_class
                      error('not implemented')
              end
              
-             if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
+             if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2','chgCC','chgICC','chgICC_PC'}))
                  obj.WL_chg = obj.WL_chg + T0*S_irr;
-             elseif any(strcmp(Load.type(iL),{'dis','ran','disCO2','rcmpCO2','disTSCO2'}))
+             elseif any(strcmp(Load.type(iL),{'dis','ran','disCO2','rcmpCO2','disTSCO2','disCC','disICC','disICC_PC'}))
                  obj.WL_dis = obj.WL_dis + T0*S_irr;
+             else
+                 error('Unrecognised Load.type operation mode')
              end
              
              if any([obj.WL_chg<0,obj.WL_dis<0])
@@ -265,7 +343,8 @@ classdef double_tank_class
              AA = pi * AD * (AL + AD/4.) ;
              AA = 8 * AA / 5;
              
-             CF = RPN('PT_INPUTS',obj.A(1).p,obj.A(1).T,'CPMASS',obj) ;
+             %CF = RPN('PT_INPUTS',obj.A(1).p,obj.A(1).T,'CPMASS',obj) ;
+             CF = RPN('HmassP_INPUTS',obj.A(1).h,obj.A(1).p,'CPMASS',obj) ;
              tau = obj.costdat.tau * 24 * 3600 ; % convert from days to seconds
              UA = obj.tank_volA * obj.A(1).rho * CF / (tau * AA) ; % Overall heat transfer coef
              
@@ -285,7 +364,8 @@ classdef double_tank_class
              BL = BD * obj.costdat.AR ;
              BA = pi * BD * (BL + BD/4.) ;
              
-             CF = RPN('PT_INPUTS',obj.B(1).p,obj.B(1).T,'CPMASS',obj) ;
+             %CF = RPN('PT_INPUTS',obj.B(1).p,obj.B(1).T,'CPMASS',obj) ;
+             CF = RPN('HmassP_INPUTS',obj.B(1).h,obj.B(1).p,'CPMASS',obj) ;
              tau = obj.costdat.tau * 24 * 3600 ; % convert from days to seconds
              UB = obj.tank_volB * obj.B(1).rho * CF / (tau * BA) ; % Overall heat transfer coef
              

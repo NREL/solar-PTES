@@ -40,7 +40,7 @@ switch Load.mode
             %plot_T_storage(CT(1),Load,{'chg','chgCO2','disTSCO2'},2,{'b','b'},true,NameArray,ValueArray);
             % Set legends
             figure(2); hold off;
-            legend([pl2],{'discharge'},'Location','best');
+            legend(pl2,{'discharge'},'Location','best');
             %}
         end
         
@@ -100,5 +100,98 @@ switch Load.mode
         % Set legends
         figure(2); hold off;
         legend(pl2,'discharge','Location','best');
+        
+    case 20 %PTES-LAES Combined Cycle
+        if iL==1 || iL>1
+            % CHARGE
+            % Plot states in Ts diagram
+            pl1 = plot_Ts_diag(gas1,Load,'chgCC',1,100,'k-','k-o',true,true);
+            pl2 = plot_Ts_diag(gas2,Load,'chgCC',2,100,'k-','k-s',true,true);
+            
+            % Plot storage tank temperatures
+            plot_T_storage(MT,Load,'chgCC',1,{'r','r'},true,NameArray,ValueArray);
+            plot_T_storage(HT,Load,'chgCC',2,{'r','r'},true,NameArray,ValueArray);
+            
+            % Set legends
+            figure(1); hold off;
+            legend(pl1,'LAES charge','Location','best');
+            figure(2); hold off;
+            legend(pl2,'PTES charge','Location','best');
+        end
+        if iL>1
+            % DISCHARGE
+            % Plot states in Ts diagram
+            pl3 = plot_Ts_diag(gas1,Load,'disCC',3,100,'k-','k-o',true,true);
+            pl4 = plot_Ts_diag(gas2,Load,'disCC',4,100,'k-','k-s',true,true);
+            
+            % Plot storage tank temperatures
+            plot_T_storage(MT,Load,'disCC',3,{'r','r'},true,NameArray,ValueArray);
+            plot_T_storage(HT,Load,'disCC',4,{'r','r'},true,NameArray,ValueArray);
+            
+            % Set legends
+            figure(3); hold off;
+            legend(pl3,'LAES discharge','Location','best');
+            figure(4); hold off;
+            legend(pl4,'PTES discharge','Location','best');
+        end
+        
+    case 22 %Integrated PTES-LAES Combined Cycle
+        if iL==1 || iL>1
+            % CHARGE
+            % Plot states in Ts diagram
+            pl1 = plot_Ts_diag(gas,Load,'chgICC',1,100,'k-','k-o',true,true);
+            
+            % Plot storage tank temperatures
+            plot_T_storage(MT,Load,'chgICC',1,{'r','r'},true,NameArray,ValueArray);
+            %plot_T_storage(HT,Load,'chgICC',1,{'r','r'},true,NameArray,ValueArray);
+            
+            % Set legends
+            figure(1); hold off;
+            %legend(pl1,'charge','Location','best');
+        end
+        if iL>1
+            % DISCHARGE
+            % Plot states in Ts diagram
+            pl2 = plot_Ts_diag(gas,Load,'disICC',2,100,'k-','k-o',true,true);
+            
+            % Plot storage tank temperatures
+            plot_T_storage(MT,Load,'disICC',2,{'r','r'},true,NameArray,ValueArray);
+            %plot_T_storage(HT,Load,'disICC',2,{'r','r'},true,NameArray,ValueArray);
+            
+            % Set legends
+            figure(2); hold off;
+            %legend(pl2,'discharge','Location','best');
+            %title('Integrated discharging cycle')
+        end
+        
+    case 24 %Integrated PTES-LAES Combined Cycle with Pre-cooling system
+        if iL==1 || iL>1
+            % CHARGE
+            % Plot states in Ts diagram
+            pl1 = plot_Ts_diag(gas,Load,'chgICC_PC',1,100,'k-','k-o',true,true);
+            
+            % Plot storage tank temperatures
+            plot_T_storage(HT,Load,'chgICC_PC',1,{'r','r'},true,NameArray,ValueArray);
+            plot_T_storage(MT,Load,'chgICC_PC',1,{'r','r'},true,NameArray,ValueArray);
+            plot_T_storage(CT,Load,'chgICC_PC',1,{'b','b'},true,NameArray,ValueArray);
+            
+            % Set legends
+            figure(1); hold off;
+            %legend(pl1,'charge','Location','best');
+        end
+        if iL>1
+            % DISCHARGE
+            % Plot states in Ts diagram
+            pl2 = plot_Ts_diag(gas,Load,'disICC_PC',2,100,'k-','k-o',true,true);
+            
+            % Plot storage tank temperatures
+            plot_T_storage(HT,Load,'disICC_PC',2,{'r','r'},true,NameArray,ValueArray);
+            plot_T_storage(MT,Load,'disICC_PC',2,{'r','r'},true,NameArray,ValueArray);            
+            plot_T_storage(CT,Load,'disICC_PC',2,{'b','b'},true,NameArray,ValueArray);
+            
+            % Set legends
+            figure(2); hold off;
+            %legend(pl2,'discharge','Location','best');
+        end
                 
 end

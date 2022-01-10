@@ -80,27 +80,36 @@ end
 
 % Adds up the contributions of the several stages to compute an energy balance
 % SIGN CONVENTION. Work out is positive. Heat in is positive.
-E_in_chg   = 0; % Electricity input (before motor losses)
-W_in_chg   = 0; % Mechanical work input
+E_net_chg  = 0; % Electricity input to plant
+E_in_chg   = 0; % Electricity input to motor (after fan and pump parasitics)
+W_in_chg   = 0; % Mechanical work input to machines (after parasitics and motor losses)
+W_CCMP     = 0; % Mechanical work input to compressors (after parasitics and motor losses)
+W_CEXP     = 0; % Mechanical work output from turinbes (after parasitics and motor losses)
 WL_mot_chg = 0; % Lost work by electrical motor
 W_pmp_chg  = 0; % Parasitic work input - nice to separate this out
 W_fan_chg  = 0; % Parasitic work input - nice to separate this out
 DH_chg     = 0;
 W_lost_chg = 0;
 QH_chg     = 0;  % heat to hot tanks
-QH_dis     = 0;  % heat from hot tanks
+QC_chg     = 0;  % heat from cold tanks
 QE_chg     = 0;  % heat rejected to environment
+QT_chg     = 0;  % heat to/from any heat exchanger
 
-E_out_dis  = 0;  % Electricity output (after generator losses)
-W_out_dis  = 0;  % Mechanical work output
+E_net_dis  = 0;  % Electricity output from plant (after generator and parasitic losses)
+E_out_dis  = 0;  % Electricity output from generator (after generator losses)
+W_out_dis  = 0;  % Mechanical work output from machines
+W_DCMP     = 0; % Mechanical work input to compressors (after parasitics and motor losses)
+W_DEXP     = 0; % Mechanical work output from turinbes (after parasitics and motor losses)
+W_EXP_dis  = 0;  % Mechanical work output from turbines
 WL_gen_dis = 0;  % Work lost by electrical generator
 W_pmp_dis  = 0;  % Parasitic work input - nice to separate this out
 W_fan_dis  = 0;  % Parasitic work input - nice to separate this out
 DH_dis     = 0;
 W_lost_dis = 0;
-QC_chg     = 0;  % heat from cold tanks
+QH_dis     = 0;  % heat from hot tanks
 QC_dis     = 0;  % heat to cold tanks
 QE_dis     = 0;  % heat rejected to environment
+QT_dis     = 0;  % heat to/from any heat exchanger
 
 E_out_disRC = 0; % Electricity output (after generator losses) for cycle using cold stores
 W_out_disRC = 0;
@@ -111,6 +120,7 @@ QH_disRC    = 0;
 t_disRC     = 0;
 
 nH = numel(fluidH);
+nM = numel(fluidM);
 nC = numel(fluidC);
 
 % Compute lost work on specific component types
@@ -129,17 +139,19 @@ WL_PTES_dis = zeros(1,9);
 for iL=1:Load.num
     
     % For charging load cycles, account for work, heat and irreversibilities
-    if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2'}))
+    if any(strcmp(Load.type(iL),{'chg','chgCO2','chgTSCO2','chgCC','chgICC','chgICC_PC'}))
         
         % Work into cycle
         for ii = 1:length(CCMP)
             W_in_chg       = W_in_chg   + CCMP(ii).W(iL) ; 
+            W_CCMP         = W_CCMP     + CCMP(ii).W(iL) ; 
             WL_PTES_chg(1) = WL_PTES_chg(1) + T0 * CCMP(ii).Sirr(iL) ; 
         end
         
         % Work out of cycle
         for ii = 1:length(CEXP)
             W_in_chg   = W_in_chg   + CEXP(ii).W(iL) ; 
+            W_CEXP     = W_CEXP     + CEXP(ii).W(iL) ; 
             WL_PTES_chg(2) = WL_PTES_chg(2) + T0 * CEXP(ii).Sirr(iL) ;
         end
         
@@ -167,7 +179,7 @@ for iL=1:Load.num
             
             % Heat out of cycle to the environment
             if strcmp(HX(ii).name,'rej')
-                QE_chg = QE_chg + HX(ii).Q(iL,1) ;
+                QE_chg = QE_chg + HX(ii).Q(iL,1);
                 WL_PTES_chg(4) = WL_PTES_chg(4) + T0 * HX(ii).Sirr(iL,2) ; % Loss due to heat exchange with environment
             elseif strcmp(HX(ii).name,'hin')
                 QE_chg = QE_chg + HX(ii).Q(iL,2) ;
@@ -176,6 +188,8 @@ for iL=1:Load.num
                 WL_PTES_chg(3) = WL_PTES_chg(3) + T0 * HX(ii).Sirr(iL,2) ; % Loss due to heat exchange
             end
             
+            % Heat exchanged on any heat exchanger
+            QT_chg = QT_chg + abs(HX(ii).Q(iL,1));
         end
         
         % Electricity from Motor
@@ -184,20 +198,25 @@ for iL=1:Load.num
             WL_mot_chg = WL_mot_chg - GEN(ii).WL(iL);
         end
         
-        % Work lost in other components (mixers, seperators, work left in tanks, mixing losses)
-        % ...
+        % Work lost in other components (mixers, seperators, etc.)
+        for ii = 1:length(MIX)
+            WL_PTES_chg(6) = WL_PTES_chg(6) + T0 * MIX(ii).Sirr(iL,2) ;
+        end
+        
         
     % For discharging load cycles, account for work, heat and irreversibilities
-    elseif any(strcmp(Load.type(iL),{'dis','ran','disCO2','rcmpCO2','disTSCO2'}))
+    elseif any(strcmp(Load.type(iL),{'dis','ran','disCO2','rcmpCO2','disTSCO2','disCC','disICC','disICC_PC'}))
         % Work into cycle
         for ii = 1:length(DCMP)
             W_out_dis      = W_out_dis  + DCMP(ii).W(iL) ; 
+            W_DCMP         = W_DCMP     + DCMP(ii).W(iL) ; 
             WL_PTES_dis(1) = WL_PTES_dis(1) + T0 * DCMP(ii).Sirr(iL) ; 
         end
         
         % Work out of cycle
         for ii = 1:length(DEXP)
             W_out_dis      = W_out_dis  + DEXP(ii).W(iL) ; 
+            W_DEXP         = W_DEXP     + DEXP(ii).W(iL) ; 
             WL_PTES_dis(2) = WL_PTES_dis(2) + T0 * DEXP(ii).Sirr(iL) ; 
         end
         if any(Load.mode == [4,5,6])
@@ -307,15 +326,33 @@ if Load.mode == 3
     QC_disNC    = QC_dis    - QC_disRC;
 end
 
+switch Load.mode
+    case {20,22,24}
+        % Calculate enthalpy flow from working fluid (air liquefaction)
+        QWF_chg = -(LAT.DH_chg + AT.DH_chg)-W_fan_chg;
+        QWF_dis = -(LAT.DH_dis + AT.DH_dis)-W_fan_dis;
+        QE_chg  = 0;
+        QE_dis  = 0;
+    otherwise
+        QWF_chg = 0;
+        QWF_dis = 0;
+end
+
 % Add in losses from tanks (mixing and exergy left inside)
 switch Load.mode
 
-    case {0,3,4,6} % PTES, Rankine, or sCO2-PTES
+    case {0,3,4,6,20,22,24} % PTES, Rankine, or sCO2-PTES
         
         for ii = 1 : Nhot
             WL_PTES_chg(5) = WL_PTES_chg(5) + HT(ii).WL_chg ;
             WL_PTES_dis(5) = WL_PTES_dis(5) + HT(ii).WL_dis ;
             WL_PTES_dis(7) = WL_PTES_dis(7) + HT(ii).A(end).B - HT(ii).A(1).B + HT(ii).B(end).B - HT(ii).B(1).B;
+        end
+        
+        for ii = 1 : Nmid
+            WL_PTES_chg(5) = WL_PTES_chg(5) + MT(ii).WL_chg ;
+            WL_PTES_dis(5) = WL_PTES_dis(5) + MT(ii).WL_dis ;
+            WL_PTES_dis(7) = WL_PTES_dis(7) + MT(ii).A(end).B - MT(ii).A(1).B + MT(ii).B(end).B - MT(ii).B(1).B;
         end
         
         for ii = 1 : Ncld
@@ -324,8 +361,14 @@ switch Load.mode
             WL_PTES_dis(7) = WL_PTES_dis(7) + CT(ii).A(end).B - CT(ii).A(1).B + CT(ii).B(end).B - CT(ii).B(1).B;
         end
         
-        WL_PTES_chg(5) = WL_PTES_chg(5) + AT.WL_chg ;
-        WL_PTES_dis(5) = WL_PTES_dis(5) + AT.WL_dis ;
+        for ii = 1 : Nlat
+            WL_PTES_chg(5) = WL_PTES_chg(5) + LAT(ii).WL_chg ;
+            WL_PTES_dis(5) = WL_PTES_dis(5) + LAT(ii).WL_dis ;
+            WL_PTES_dis(7) = WL_PTES_dis(7) + LAT(ii).A(end).B - LAT(ii).A(1).B;
+        end
+        
+        WL_PTES_chg(4) = WL_PTES_chg(4) + AT.WL_chg ;
+        WL_PTES_dis(4) = WL_PTES_dis(4) + AT.WL_dis ;
 
     case 1 % Heat pump only
         
@@ -350,11 +393,11 @@ WL_PTES_dis(9) = abs(WL_gen_dis);
 
 fact    = 1e6*3600; % J to MWh
 
-i_chg = Load.ind(any(Load.type == {'chg','chgCO2','chgTSCO2'},2));
-i_dis = Load.ind(any(Load.type == {'dis','disCO2','ran','rcmpCO2','disTSCO2'},2));
+i_chg = Load.ind(any(Load.type == {'chg','chgCO2','chgTSCO2','chgCC','chgICC','chgICC_PC'},2));
+i_dis = Load.ind(any(Load.type == {'dis','disCO2','ran','rcmpCO2','disTSCO2','disCC','disICC','disICC_PC'},2));
 i_ran = Load.ind(Load.type == 'ran');
-i_gas = Load.ind(any(Load.type == {'chg','dis','chgCO2','disCO2','rcmpCO2','chgTSCO2','disTSCO2'},2));
-i_act = Load.ind(any(Load.type == {'chg','dis','chgCO2','disCO2','ran','rcmpCO2','chgTSCO2','disTSCO2'},2));
+i_gas = Load.ind(any(Load.type == {'chg','dis','chgCO2','disCO2','rcmpCO2','chgTSCO2','disTSCO2','chgCC','disCC','chgICC','disICC','chgICC_PC','disICC_PC'},2));
+i_act = Load.ind(any(Load.type == {'chg','dis','chgCO2','disCO2','ran','rcmpCO2','chgTSCO2','disTSCO2','chgCC','disCC','chgICC','disICC','chgICC_PC','disICC_PC'},2));
 
 t_chg = sum(Load.time(i_chg));
 t_dis = sum(Load.time(i_dis));
@@ -363,8 +406,12 @@ ip2 = find(i_dis == 1,1,'first'); %index for printing (first discharge period)
 t_disNC = t_dis - t_disRC;
 
 % FIRST LAW ENERGY BALANCES AND ACCOUNTING
-Net_chg = (- W_in_chg  + QC_chg  + QH_chg  + QE_chg);
-Net_dis = (- W_out_dis + QC_dis  + QH_dis  + QE_dis);
+if Load.mode==24
+    QC_chg = - QC_chg;
+    QC_dis = - QC_dis;
+end
+Net_chg = (- W_in_chg  + QC_chg  + QH_chg  + QE_chg + QWF_chg);
+Net_dis = (- W_out_dis + QC_dis  + QH_dis  + QE_dis + QWF_dis);
 
 % SECOND LAW ENERGY BALANCES AND ACCOUNTING
 WL_matrix  = [ WL_PTES_chg ; WL_PTES_dis ; ];
@@ -374,22 +421,35 @@ Total_loss = sum(WL_matrix(:));
 for ii = 1 : Nhot
     HT(ii) = tank_stats(HT(ii)) ;
 end
+for ii = 1 : Nmid
+    MT(ii) = tank_stats(MT(ii)) ;
+end
 for ii = 1 : Ncld
     CT(ii) = tank_stats(CT(ii)) ;
+end
+for ii = 1 : Nlat
+    LAT(ii) = single_tank_stats(LAT(ii));
+    LAT(ii).tank_volA = LAT(ii).fluid_volA;
 end
 
 % Compute efficiencies, energy and power densities and errors
 switch Load.mode
-    case {0,3,4,6} % PTES, Rankine, or sCO2-PTES
+    case {0,3,4,6,20,22,24} % PTES, Rankine, sCO2-PTES, or PTES-LAES CC
         Heat_in_tanks = 0;
         for ii = 1 : Nhot
             Heat_in_tanks = Heat_in_tanks + (HT(ii).A(end).H - HT(ii).A(1).H) + (HT(ii).B(end).H - HT(ii).B(1).H) ;
-        end        
+        end
+        for ii = 1 : Nmid
+            Heat_in_tanks = Heat_in_tanks + (MT(ii).A(end).H - MT(ii).A(1).H) + (MT(ii).B(end).H - MT(ii).B(1).H) ;
+        end
         for ii = 1 : Ncld
             Heat_in_tanks = Heat_in_tanks + (CT(ii).A(end).H - CT(ii).A(1).H) + (CT(ii).B(end).H - CT(ii).B(1).H);
         end
+        for ii = 1 : Nlat
+            Heat_in_tanks = Heat_in_tanks + (LAT(ii).A(end).H -LAT(ii).A(1).H);
+        end
         
-        Heat_rejected    = QE_chg + QE_dis + W_fan_chg + W_fan_dis + WL_mot_chg + WL_gen_dis;
+        Heat_rejected    = QWF_chg + QWF_dis + QE_chg + QE_dis + W_fan_chg + W_fan_dis + WL_mot_chg + WL_gen_dis;
         Total_Work_lost  = E_in_chg + E_out_dis + W_fan_chg + W_pmp_chg + W_fan_dis + W_pmp_dis;
         First_law_error  = (-Heat_rejected + Heat_in_tanks + Total_Work_lost)/Total_Work_lost;
         Second_law_error = (Total_loss + Total_Work_lost)/Total_Work_lost;
@@ -402,10 +462,14 @@ switch Load.mode
         
         % Calculate storage volume
         volH = 0.0; % Calculate storage volume
+        volM = 0.0; % Calculate storage volume
         volC = 0.0; % Calculate storage volume
+        volL = 0.0; % Calculate storage volume
         for ii = 1:Nhot; volH = volH + HT(ii).tank_volA + HT(ii).tank_volB ; end
+        for ii = 1:Nmid; volM = volM + MT(ii).tank_volA + MT(ii).tank_volB ; end
         for ii = 1:Ncld; volC = volC + CT(ii).tank_volA + CT(ii).tank_volB ; end
-        vol  = volH + volC;
+        for ii = 1:Nlat; volL = volL + LAT(ii).tank_volA ; end
+        vol  = volH + volM + volC + volL;
         
         % Energy density
         rhoE = E_net_dis /fact/vol*1e3; %kWh/m3
@@ -468,6 +532,11 @@ switch Load.mode
             HEeff   = E_net_dis / QH_dis ; % Heat engine efficiency
             NETeff  = (E_net_dis + E_net_chg) / QH_sol ; % Net efficiency
             EXeff   = E_net_dis / (-E_net_chg + EX_sol) ; % Exergetic efficiency
+            
+        elseif any(Load.mode == [22,24])
+            W_ratio    = W_DEXP/(-W_DCMP);
+            Qstr_W_ratio = (abs(QH_chg)+abs(QC_chg))/E_net_dis;
+            QT_W_ratio = QT_chg/E_net_dis;
         end
         
     case 1 % Heat pump only
@@ -524,7 +593,7 @@ elseif Load.mode == 5 || Load.mode == 6
 end
 
 switch Load.mode
-    case {0,1,3,4,6}
+    case {0,1,3,4,6,20,22,24}
         Exergy_in = W_in_chg;
     case {2,5,7}
         Exergy_in = Exergy_from_tanks;
@@ -539,7 +608,12 @@ if WM==1
     fprintf(1,'Gas states:\n');
     for ip = 1:numel(i_gas)
         iL = i_gas(ip);
-        print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
+        if Load.mode == 20
+            print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
+            print_states(gas2,iL,1:gas2.Nstg(iL)+1,Load);
+        else
+            print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
+        end
     end
     for ip = 1:numel(i_ran)
         iL = i_ran(ip);
@@ -556,15 +630,31 @@ if WM==1
         end
     end
     
-    % Print cold streams
-    fprintf(1,'\nCold fluid streams:\n');
-    fprintf(1,'-->%s\n',fluidC(1).name);
-    for ip = 1:numel(i_act)
-        iL = i_act(ip);
-        for iC=1:numel(fluidC)
-            print_states(fluidC(iC),iL,1:fluidC(iC).Nstg(iL)+1,Load)
+    if any(Load.mode == [20,22,24])
+        % Print medium streams
+        fprintf(1,'\nMedium fluid streams:\n');
+        fprintf(1,'-->%s\n',fluidM(1).name);
+        for ip = 1:numel(i_act)
+            iL = i_act(ip);
+            for iM=1:numel(fluidM)
+                print_states(fluidM(iM),iL,1:fluidM(iM).Nstg(iL)+1,Load)
+            end
         end
     end
+        
+    if ~any(Load.mode == [20,22])
+        % Print cold streams
+        fprintf(1,'\nCold fluid streams:\n');
+        fprintf(1,'-->%s\n',fluidC(1).name);
+        for ip = 1:numel(i_act)
+            iL = i_act(ip);
+            for iC=1:numel(fluidC)
+                print_states(fluidC(iC),iL,1:fluidC(iC).Nstg(iL)+1,Load)
+            end
+        end
+    end
+    
+    
     % Print hot tanks
     for ii = 1 : Nhot
         fprintf(1,'\nHot tank #%2i\n',ii);
@@ -573,13 +663,45 @@ if WM==1
             fprintf(1,'%10.4g %13.3f %13.3f %10.4g %13.3f %13.3f %8d\n', HT(ii).A(i0).T,HT(ii).A(i0).M/1e6,HT(ii).A(i0).H/fact,HT(ii).B(i0).T,HT(ii).B(i0).M/1e6,HT(ii).B(i0).H/fact,i0)
         end
     end
-    % Print cold tanks
-    for ii = 1 : Ncld
-        fprintf(1,'\nCold tank #%2i\n',ii);
-        fprintf(1,'%10s %10s %13s %13s %13s %13s %8s ','A.T [K]','A.M [kg*1e6]','A.H [MWh]','B.T [K]','B.M [kg*1e6]','B.H [MWh]','state'); fprintf(1,'\n');
-        for i0=1:(Load.num+1)
-            fprintf(1,'%10.4g %13.3f %13.3f %10.4g %13.3f %13.3f %8d\n', CT(ii).A(i0).T,CT(ii).A(i0).M/1e6,CT(ii).A(i0).B/fact,CT(ii).B(i0).T,CT(ii).B(i0).M/1e6,CT(ii).B(i0).B/fact,i0)
+    
+    if any(Load.mode == [20,22,24])
+        
+        % Print medium tanks
+        for ii = 1 : Nmid
+            fprintf(1,'\nMedium tank #%2i\n',ii);
+            fprintf(1,'%10s %10s %13s %13s %13s %13s %8s ','A.T [K]','A.M [kg*1e6]','A.H [MWh]','B.T [K]','B.M [kg*1e6]','B.H [MWh]','state'); fprintf(1,'\n');
+            for i0=1:(Load.num+1)
+                fprintf(1,'%10.4g %13.3f %13.3f %10.4g %13.3f %13.3f %8d\n', MT(ii).A(i0).T,MT(ii).A(i0).M/1e6,MT(ii).A(i0).H/fact,MT(ii).B(i0).T,MT(ii).B(i0).M/1e6,MT(ii).B(i0).H/fact,i0)
+            end
         end
+        
+        % Print liquid air tank
+        fprintf(1,'\nLiquid air tank #%2i\n',ii);
+        fprintf(1,'%10s %13s %13s %8s','A.T [K]','A.M [kg*1e6]','A.H [MWh]','state'); fprintf(1,'\n');
+        for i0=1:(Load.num+1)
+            fprintf(1,'%10.4g %13.3f %13.3f %8d\n', LAT.A(i0).T,LAT.A(i0).M/1e6,LAT.A(i0).H/fact,i0)
+        end
+        
+        % Print atmospheric tank
+        fprintf(1,'\nAtmospheric tank #%2i\n',ii);
+        fprintf(1,'%10s %13s %13s %8s ','A.T [K]','A.M [kg*1e6]','A.H [MWh]','state'); fprintf(1,'\n');
+        for i0=1:(Load.num+1)
+            fprintf(1,'%10.4g %13.3f %13.3f %8d\n', AT.A(i0).T,AT.A(i0).M/1e6,AT.A(i0).H/fact,i0)
+        end
+        
+    end
+    
+    if ~any(Load.mode == [20,22])
+        
+        % Print cold tanks
+        for ii = 1 : Ncld
+            fprintf(1,'\nCold tank #%2i\n',ii);
+            fprintf(1,'%10s %10s %13s %13s %13s %13s %8s ','A.T [K]','A.M [kg*1e6]','A.H [MWh]','B.T [K]','B.M [kg*1e6]','B.H [MWh]','state'); fprintf(1,'\n');
+            for i0=1:(Load.num+1)
+                fprintf(1,'%10.4g %13.3f %13.3f %10.4g %13.3f %13.3f %8d\n', CT(ii).A(i0).T,CT(ii).A(i0).M/1e6,CT(ii).A(i0).H/fact,CT(ii).B(i0).T,CT(ii).B(i0).M/1e6,CT(ii).B(i0).H/fact,i0)
+            end
+        end
+        
     end
     fprintf(1,'\n');
 end
@@ -590,33 +712,43 @@ if WM == 1
     fprintf(1,'-----------------\n');
     
     switch Load.mode
-        case {0,1,3,4,6}
+        case {0,1,3,4,6,20,22,24}
             fprintf(1,'CHARGE\n');
             fprintf(1,'Average power input:     %8.2f MW\n',-E_net_chg/t_chg/1e6);
             fprintf(1,'Total charge time:       %8.2f h\n',t_chg/3600);
             fprintf(1,'Electricity input:       %8.2f MWh\n',-E_net_chg/fact);
             fprintf(1,'Work input:              %8.2f MWh\n',-W_in_chg/fact);
             fprintf(1,'Heat to hot tanks:       %8.2f MWh\n',-QH_chg/fact);
-            fprintf(1,'Heat from cold tanks:    %8.2f MWh\n',QC_chg/fact);
+            if any(Load.mode == [20,22,24])
+                fprintf(1,'Heat from working fluid: %8.2f MWh\n',QWF_chg/fact);
+            end
+            if ~any(Load.mode == [20,22])
+                fprintf(1,'Heat from cold tanks:    %8.2f MWh\n',QC_chg/fact);
+            end
             fprintf(1,'Heat rejected:           %8.2f MWh\n',-(QE_chg+W_fan_chg+WL_mot_chg)/fact);
             fprintf(1,'NET:                     %8.2f MWh\n\n',Net_chg/fact);
     end
     
     switch Load.mode
-        case {0,2,3,4,5,6,7}
+        case {0,2,3,4,5,6,7,20,22,24}
             fprintf(1,'DISCHARGE\n');
             fprintf(1,'Average power output:    %8.2f MW\n',E_net_dis/t_dis/1e6);
             fprintf(1,'Total discharge time:    %8.2f h\n',t_dis/3600);
             fprintf(1,'Electricity output:      %8.2f MWh\n',E_net_dis/fact);
             fprintf(1,'Work output:             %8.2f MWh\n',W_out_dis/fact);
             fprintf(1,'Heat from hot tanks:     %8.2f MWh\n',QH_dis/fact);
-            fprintf(1,'Heat to cold tanks:      %8.2f MWh\n',-QC_dis/fact);
+            if any(Load.mode == [20,22,24])
+                fprintf(1,'Heat to working fluid:   %8.2f MWh\n',-QWF_dis/fact);
+            end
+            if ~any(Load.mode == [20,22])
+                fprintf(1,'Heat to cold tanks:      %8.2f MWh\n',-QC_dis/fact);
+            end
             fprintf(1,'Heat rejected:           %8.2f MWh\n',-(QE_dis+W_fan_dis+WL_gen_dis)/fact);
             fprintf(1,'NET:                     %8.2f MWh\n\n',Net_dis/fact);
     end
     
     switch Load.mode
-        case {3}
+        case 3
             fprintf(1,'DISCHARGE DETAILS:\n');
             fprintf(1,'Rankine cycle average power output:          %8.2f MW\n',W_out_dis/t_dis/1e6);
             fprintf(1,'Rankine cycle power output NO cold stores:   %8.2f MW\n',W_out_disNC/(t_dis-t_disRC)/1e6);
@@ -634,7 +766,7 @@ if WM == 1
     end
     
     switch Load.mode
-        case {0,3,4,6}
+        case {0,3,4,6,20,22,24}
             fprintf(1,'COP:                                 %8.2f \n',QH_chg/W_in_chg);
             fprintf(1,'COP (including parasitics):          %8.2f \n',QH_chg/E_net_chg);
             fprintf(1,'Heat engine efficiency:              %8.2f %%\n',W_out_dis/QH_dis*100);
@@ -649,10 +781,20 @@ if WM == 1
                 fprintf(1,'%18s volume:%8.2f m3\n',fluidH(ii).name,HT(ii).fluid_volB);
                 fprintf(1,'%18s mass:  %8.2f tons/MWh\n\n',fluidH(ii).name,HT(ii).fluid_mass/(W_out_dis/fact)/1e3);
             end
+            for ii = 1 : Nmid
+                fprintf(1,'%18s volume:%8.2f m3/MWh\n',fluidM(ii).name,MT(ii).fluid_volB/(W_out_dis/fact));
+                fprintf(1,'%18s volume:%8.2f m3\n',fluidM(ii).name,MT(ii).fluid_volB);
+                fprintf(1,'%18s mass:  %8.2f tons/MWh\n\n',fluidM(ii).name,MT(ii).fluid_mass/(W_out_dis/fact)/1e3);
+            end
             for ii = 1 : Ncld
                 fprintf(1,'%18s volume:%8.2f m3/MWh\n',fluidC(ii).name,CT(ii).fluid_volB/(W_out_dis/fact));
                 fprintf(1,'%18s volume:%8.2f m3\n',fluidC(ii).name,CT(ii).fluid_volB);
                 fprintf(1,'%18s mass:  %8.2f tons/MWh\n\n',fluidC(ii).name,CT(ii).fluid_mass/(W_out_dis/fact)/1e3);
+            end
+            for ii = 1 : Nlat
+                fprintf(1,'%18s volume:%8.2f m3/MWh\n','Liquid air',LAT(ii).fluid_volA/(W_out_dis/fact));
+                fprintf(1,'%18s volume:%8.2f m3\n','Liquid air',LAT(ii).fluid_volA);
+                fprintf(1,'%18s mass:  %8.2f tons/MWh\n\n','Liquid air',LAT(ii).fluid_mass/(W_out_dis/fact)/1e3);
             end
             
         case 1
@@ -680,10 +822,9 @@ end
 % discharged, then they must be returned to original temp or lower.
 heater_in = 0;
 chi_PTES_true = chi_PTES_para ;
-if any(Load.mode ==[0,4,6])
-    problem = 0 ;
-    
+if any(Load.mode ==[0,4,6,20,22,24])
     % Hot tanks
+    problem = 0 ;
     for ii = 1 : Nhot
        if HT(ii).A(1).T >= T0
            if HT(ii).A(end).T < HT(ii).A(1).T - 1.0; problem = 1 ; end
@@ -694,8 +835,20 @@ if any(Load.mode ==[0,4,6])
     if problem
         warning('Unsustainable discharge of a hot reservoir!')
     end
-    problem = 0;
+    % Medium tanks
+    problem = 0 ;
+    for ii = 1 : Nmid
+       if MT(ii).A(1).T >= T0
+           if MT(ii).A(end).T < MT(ii).A(1).T - 1.0; problem = 1 ; end
+       else
+           if MT(ii).A(end).T > MT(ii).A(1).T + 1.0; problem = 1 ; end
+       end
+    end
+    if problem
+        warning('Unsustainable discharge of a medium reservoir!')
+    end
     % Cold tanks
+    problem = 0;
     for ii = 1 : Ncld
        if CT(ii).A(1).T >= T0
            if CT(ii).A(end).T < CT(ii).A(1).T - 1.0; problem = 1 ; end
@@ -720,29 +873,35 @@ if any(Load.mode ==[0,4,6])
     end
 end
 
-% PRINT HEXs
-% If the heat exchanger was employed with the 'eff' or 'DT' modes, the
-% required geometry is computed now
-for ii = 1 : numel(HX)
-    if any(strcmp(HX(ii).model,{'eff','DT'})) && (~HX(ii).Lgeom_set)
-        HX(ii)   = hex_set_geom(HX(ii));
-    end
-end
-%%{
-fprintf('Heat exchanger summary\n');
-if Load.mode==3
-    print_hexs(HX,i_chg,'Charge:');
-    print_hexs(HX,Load.ind(Load.type == 'ran' & logical(Load.options.useCold)),...
-        'Discharge using cold stores:');
-    print_hexs(HX,Load.ind(Load.type == 'ran' & ~logical(Load.options.useCold)),...
-        'Discharge without cold stores:');
-else
-    print_hexs(HX,i_chg,'Charge:');
-    print_hexs(HX,i_dis,'Discharge:');
-end
-%%}
-
-
-if Lreadload
-   ENERGY_LOAD 
+switch Load.mode
+    case {20,22,24}
+        
+    otherwise
+        
+        % PRINT HEXs
+        % If the heat exchanger was employed with the 'eff' or 'DT' modes, the
+        % required geometry is computed now
+        for ii = 1 : numel(HX)
+            if any(strcmp(HX(ii).model,{'eff','DT'})) && (~HX(ii).Lgeom_set)
+                HX(ii)   = hex_set_geom(HX(ii));
+            end
+        end
+        %%{
+        fprintf('Heat exchanger summary\n');
+        if Load.mode==3
+            print_hexs(HX,i_chg,'Charge:');
+            print_hexs(HX,Load.ind(Load.type == 'ran' & logical(Load.options.useCold)),...
+                'Discharge using cold stores:');
+            print_hexs(HX,Load.ind(Load.type == 'ran' & ~logical(Load.options.useCold)),...
+                'Discharge without cold stores:');
+        else
+            print_hexs(HX,i_chg,'Charge:');
+            print_hexs(HX,i_dis,'Discharge:');
+        end
+        %%}
+        
+        if Lreadload
+            ENERGY_LOAD
+        end
+        
 end
