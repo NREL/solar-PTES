@@ -51,6 +51,7 @@ optimise    = 0; % optimise cycle?
 make_plots  = 1; % make plots?
 save_figs   = 0; % save figures at the end?
 make_hex_plots = 0; % make plots of heat exchangers?
+simple_interface = 0; % Just use a very simple input file. For beginners or interfacing with other code. When implement have to ensure other input files are set up correctly.
 
 %if (Nc_ch > 1 || Ne_ch > 1) && (Ncld > 1 || Nhot > 1)
 %    error('Have not implemented multiple compressions/expansions AND multiple storage tanks in series')

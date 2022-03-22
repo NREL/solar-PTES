@@ -9,6 +9,7 @@ PRr_max = 3.0;          % maximum PRr for optimisation
 LPRr    = 1 ;           % Logical. Estimate optimal PRr after charging run.
 setTmax = 1;            % set Tmax? (this option substitutes PRch)
 Tmax    = 570 + 273.15; % maximum temp at compressor outlet, K
+fluid_name = 'Nitrogen';
 
 % Set Rankine-specific parameters
 Ran_ptop    = 100e5;
@@ -32,7 +33,7 @@ Nhot = 1; % number of hot stores. Not implemented for >2
 % Set parameters of Load structure
 switch Load.mode
     case 0 % PTES
-        fac = 10*100/1.1628; % This can be used to more easily set the mass flow to obtain a desired power output
+        fac = 1; % This can be used to more easily set the mass flow to obtain a desired power output
         stH = 10 ;
         % This is the load scenario the plant is designed for
         Design_Load      = Load ;
@@ -257,7 +258,7 @@ STcost = econ_class(steamC(1), 0.2, 5, 0.2) ; % Economics class for steam turbin
 % accurate method but is very slow. 'BICUBIC&HEOS' is recommended over
 % 'TTSE' for speed and accuracy. 'num' indicates number of preallocated
 % elements in state arrays.
-gas = fluid_class('Nitrogen','WF','CP','BICUBIC&HEOS',Load.num,30);
+gas = fluid_class(fluid_name,'WF','CP','BICUBIC&HEOS',Load.num,30);
 %{
 % Set up an ideal gas - should run faster
 

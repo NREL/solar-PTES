@@ -38,6 +38,9 @@ try
             % Set multi_run variables
             if multi_run==1, SET_MULTI_RUN; end
             
+            % If using the simple interface, set these variables
+            if simple_interface==1, SET_SIMPLE_INTERFACE; end
+            
             % Reinitialise arrays (gas, fluids and tanks) to zero and do
             % other preliminary tasks
             INITIALISE
