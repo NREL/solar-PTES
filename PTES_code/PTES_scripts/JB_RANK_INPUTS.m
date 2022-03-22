@@ -280,5 +280,10 @@ if any(Load.mode==[3,7])
     steam = fluid_class('Water','WF','CP','BICUBIC&HEOS',Load.num,30);
 end
 
+% Create Outputs folder if there isn't one
+if ~exist('./Outputs/', 'dir')
+    fprintf(1,'Creating Outputs folder.\n');
+    mkdir('./Outputs/')
+end
 % Save copy of input file in "Outputs" folder
 copyfile(['./PTES_scripts/',mfilename,'.m'],'./Outputs/')

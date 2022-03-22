@@ -1,21 +1,7 @@
 /PTES_code/My_To_do_list.txt
 *~
-/PTES_code/Outputs/PTES_INPUTS.m
-/PTES_code/Outputs/Plot_file.txt
-/PTES_code/Outputs/log.txt
 /PTES_KE/Ts.eps
-/PTES_code/Other/Ts_Ran.eps
-/PTES_code/Other/Ts_Ran.fig
-/PTES_code/Outputs/Losses.fig
-/PTES_code/Outputs/Losses.svg
-/PTES_code/Outputs/T-s.fig
-/PTES_code/Outputs/T-s.svg
-/PTES_code/Outputs/T-s_Rankine.fig
-/PTES_code/Outputs/T-s_Rankine.svg
-/PTES_code/Outputs/TQ_hex.fig
-/PTES_code/Outputs/TQ_hex.svg
+/PTES_code/Outputs/*
 *.asv
 /My_To_do_list.txt
-/PTES_code/Other/*
-/PTES_code/Results/*
 
