@@ -55,7 +55,7 @@ steamPCM_INITIALISE
 
 % Set up the geometry of each tube
 steamPCM_SETUP
-mdot(2) = (1/3) * mdot(2) ;
+
 % Run through each load cycle
 while Iload <= Nload
     steamPCM_LOADCYCLE
@@ -65,7 +65,11 @@ end
 
 if Lreadload
     steamPCM_POWER
+else
+    steamPCM_profiles
 end
+
+steamPCM_econ
 
 toc
 

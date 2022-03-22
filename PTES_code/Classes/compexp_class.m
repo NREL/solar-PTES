@@ -613,7 +613,7 @@ classdef compexp_class
                     % Expander cost from Valero et al 1994
                     % Eq. E3.1                    
                     COST = 266.3 * obj.mdot0 * log(obj.pr0) / (0.92 - obj.eta0) ;
-                    COST = COST * (1. + exp(0.018 * obj.Tin - 26.4)) ;
+                    COST = COST * (1. + exp(0.036 * obj.Tin - 54.4)) ;
                     COST = COST * CEind(curr) / CEind(1994) ;
                     
                 case 41
@@ -622,7 +622,7 @@ classdef compexp_class
                     % from Gas Turbine World 1995 Handbook. 
                     
                     COST = 1.051 * 266.3 * obj.mdot0 * log(obj.pr0) / (0.92 - obj.eta0) ;
-                    COST = COST * (1. + exp(0.018 * obj.Tin - 1.207 * 26.4)) ;
+                    COST = COST * (1. + exp(0.036 * obj.Tin - 1.207 * 54.4)) ;
                     COST = COST * CEind(curr) / CEind(1995) ;
                     
                 case 42

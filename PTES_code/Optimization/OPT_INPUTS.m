@@ -1,6 +1,6 @@
 % Generation information
-Np = 50;        % Population size
-Nr = 25;        % Repository size
+Np = 100;        % Population size
+Nr = 50;        % Repository size
 maxgen = 25;    % Maximum number of generations
 
 %Want to use previous data? change previousdata to 1
@@ -10,11 +10,11 @@ Allfigures=0;
 % Objective names
 Obj(1).type = 'RTeff'; 
 Obj(2).type = 'LCOS';
-%Obj(3).type = 'CAPC';
+Obj(3).type = 'CAPC';
 
 % Decision variable names
 Par(1).type = 'TH_dis0';
-Par(2).type = 'PRr';
+Par(2).type = 'PRr';%'NEXP';
 Par(3).type = 'eff';
 Par(4).type = 'ploss';
 
@@ -40,8 +40,8 @@ for i = 1 : nVar
        
        case 'TH_dis0'
            Par(i).title = 'Compressor Inlet Temperature';
-           Par(i).var_min = 723 ;
-           Par(i).var_max = 923 ;
+           Par(i).var_min = 523 ;
+           Par(i).var_max = 723 ;
            
        case 'PRr'
            Par(i).title = 'Discharge Pressure Ratio';
@@ -50,13 +50,13 @@ for i = 1 : nVar
            
        case 'eff'
            Par(i).title = 'Effectiveness';
-           Par(i).var_min = 0.8 ;
-           Par(i).var_max = 0.99 ;
+           Par(i).var_min = 0.7 ;
+           Par(i).var_max = 0.85 ;
            
        case 'ploss'
            Par(i).title = 'Pressure loss';
-           Par(i).var_min = 0.005 ;
-           Par(i).var_max = 0.025 ;
+           Par(i).var_min = 0.01 ;
+           Par(i).var_max = 0.05 ;
            
        case 'NEXP'
            Par(i).title = 'Number of expansions';

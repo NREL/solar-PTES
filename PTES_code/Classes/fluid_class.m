@@ -28,6 +28,14 @@ classdef fluid_class
                     obj.handle = calllib('coolprop','AbstractState_factory',backend,name,ierr,herr,buffer_size);
                     obj.HEOS   = calllib('coolprop','AbstractState_factory','HEOS',name,ierr,herr,buffer_size);
                 case 'TAB'
+                    
+                    if computer() == "PCWIN64"
+                       pe = pyenv;
+                       if ~any(pe.Version==["2.7" "3.7" "3.8"])
+                          error("CPython is required to run some of the code in create_table. Matlab only supports python 2.7, 3.7, 3.8"); 
+                       end
+                    end
+                    
                     % Read thermophysical properties from table
                     obj.TAB = create_table(name); 
                 case 'IDL'

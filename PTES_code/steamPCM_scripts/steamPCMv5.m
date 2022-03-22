@@ -107,13 +107,13 @@ for i = 1 : Nn
         % Step through remaining nodes to calculate steam properties
         for i = 2 : Nx
             
-            Gs(i,1) = Gs(i,2) ; % Steady-state
-            Ps(i,1) = Ps(i-1,1) ; % Pressure
+            Gs(i,1) = Gs(i,2) ; % Steady-state. Move outside for loop
+            Ps(i,1) = Ps(i-1,1) ; % Pressure. Move outside for loop
             % Guess current value of Ts
-            Ts(i,1) = 0.5 * (Ts(i,2) + Ts(i-1,2)) ;
-            xs(i,1) = xs(i,2) ; % Guess
-            Tguess  = Ts(i,1) ;
-            Xguess  = xs(i,1) ;
+            Ts(i,1) = 0.5 * (Ts(i,2) + Ts(i-1,2)) ;%. Move outside for loop
+            xs(i,1) = xs(i,2) ; % Guess. Move outside for loop
+            Tguess  = Ts(i,1) ; %. Move outside for loop
+            Xguess  = xs(i,1) ; %. Move outside for loop
             
             % Now iterate on the equation until the new Ts value remains constant
             err = 1e6 ;
@@ -124,7 +124,7 @@ for i = 1 : Nn
             while err > tol && cnt < cntM
                 
                 
-                if xs(i,1) >=0.99
+                if xs(i,1) >=0.99 % Possibly move this outside for loop and do matrix calculations to improve speed. e.g. create matrix of logicals MoL = xs>0.99, then only do operation on those logicals Re(MoL,1) = Gs(MoL,1) * dp / musv ;
                     Re(i,1) = Gs(i,1) * dp / musv ;
                     hc(i,1) = hx_coef(Re(i,1), ktv, dp, PrV) ;
                     

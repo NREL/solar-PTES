@@ -27,13 +27,16 @@ end
 
 
 figure(1)
-plot(dsg_pow,'-'); hold on
-plot(tes_pow,'-'); 
-plot(HINave-HOUTave,'o')
-plot(dsg_pow - (HINave-HOUTave),'.')
+plot(dsg_pow/1e6,'-'); hold on
+plot(tes_pow/1e6,'-'); 
+plot((HINave-HOUTave)/1e6,'o')
+plot((dsg_pow - (HINave-HOUTave))/1e6,'.')
+xlabel('Hour')
+ylabel('Power, MW$$_\textrm{th}$$')
 legend('Power from solar','Required power in/out of TES','Provided power in/out of TES','Power to load')
 hold off
 
+%{
 hours = linspace(0,72,72);
 figure(2)
 plot(hours,dsg_pow(1:72)/1e6,'-','Color',c_pale_orange,'LineWidth',1.5); hold on
@@ -58,3 +61,4 @@ ytickformat('%,.1f')
 xlim([0 72])
 ylim([-2 4.5])
 hold off
+%}

@@ -6,7 +6,8 @@
 % calculate the sensitivity assuming each cost is normally distributed
 % TRUE: Calculate the cost numerous times using different combinations of
 % different cost correlations
-Lsuper = 1 ;
+Lsuper = 0 ;
+Lopt = 0 ;
 
 % Retrofit? Then don't pay for steam turbine or hot storage system        
 Lretro = false ; 
@@ -35,18 +36,20 @@ Cdata.indirect    = 0;%0.25 ;        % Indirect costs
 
 if Lsuper
     Nsens    = 1 ;      % How many points to take from distribution for sensitivity analysis
-    Ncomb    = 5000 ;   % How many combinations of cost correlations?
+    Ncomb    = 10000 ;   % How many combinations of cost correlations?
     
     costMAT      = zeros(Ncomb,1) ;
     cost_enMAT   = zeros(Ncomb,1) ;
     cost_powMAT  = zeros(Ncomb,1) ;
     lcosMAT      = zeros(Ncomb,1) ;
     
-    compMAT      = zeros(Ncomb,13) ; % Each column is for a different component
+    compMAT      = zeros(Ncomb,15) ; % Each column is for a different component
+    
+    lcosDIS      = zeros(Ncomb,3) ; % Each column is a different contributor to the LCOS
     
     rng('shuffle') % Shuffle the random number generator
 else
-    Nsens    = 10000 ;  % How many points to take from distribution for sensitivity analysis
+    Nsens    = 1000 ;  % How many points to take from distribution for sensitivity analysis
     Ncomb    = 1 ;      % How many combinations of cost correlations?
 end
 
@@ -135,7 +138,7 @@ if Lsuper
     Cdata.conting  = cont(randi(length(cont))) ;
     
     if (Load.mode==3 && ~Lretro)
-        STcost_mode  = steamC(randi(length(steamC))) ;
+        STcost.cost_mode  = steamC(randi(length(steamC))) ;
     end
     
 end
@@ -255,8 +258,7 @@ end
 % Steam turbine
 if Load.mode == 3 && ~Lretro
    NetW = W_out_disNC/(t_dis-t_disRC) ; % Net discharging work
-   STcost = econ_class(0, 0.2, 5, 0.2) ; % Economics class for steam turbine
-   STcost.COST = STcost_mode * NetW / 1e3 ;
+   STcost.COST = STcost.cost_mode * NetW / 1e3 ;
    cap_cost = cap_cost + STcost.COST ;
    cap_sens = cap_sens + cost_sens(STcost, Nsens) ;
 end
@@ -333,6 +335,16 @@ end
 
 cap_cost           = cap_cost * (1 + Cdata.conting) * (1 + Cdata.indirect) ; 
 Cdata.cap_sens     = cap_sens .* (1 + Cdata.conting) .* (1 + Cdata.indirect) ; 
+
+% May wish to artificially adjust capital cost when doing optimizations.
+% Want to compare systems with the same power output and storage duration
+if Lopt
+    Cfac = (Wdis_req/(E_net_dis/t_dis))^0.8 * (stH / (t_dis/3600))^0.8 ;
+    cap_cost = cap_cost * Cfac ;
+    Cdata.cap_sens = Cdata.cap_sens .* Cfac ;
+end
+
+
 Cdata.cap_cost     = cap_cost ;
 Cdata.cap_costM    = mean(Cdata.cap_sens) ;
 Cdata.cap_costSD   = std(Cdata.cap_sens) ;
@@ -377,37 +389,41 @@ if Lsuper
    cost_powMAT(jj) = Cdata.cap_cost_pow ;
    lcosMAT(jj) = Cdata.lcosM ;
    
+   lcosDIS(jj,1) = Cdata.lcosCC ;
+   lcosDIS(jj,2) = Cdata.lcosOM ;
+   lcosDIS(jj,3) = Cdata.lcosEP ;
+   
    % Assign component costs to the cost matrix
    % Compressors
    for ii = 1 : length(CCMP)
        compMAT(jj,1) = compMAT(jj,1) + CCMP(ii).cmpexp_cost.COST ;
    end
    for ii = 1 : length(DCMP)
-       compMAT(jj,1) = compMAT(jj,1) + DCMP(ii).cmpexp_cost.COST ;
+       compMAT(jj,2) = compMAT(jj,2) + DCMP(ii).cmpexp_cost.COST ;
    end
    
    % Expanders
    for ii = 1 : length(CEXP)
-       compMAT(jj,2) = compMAT(jj,2) + CEXP(ii).cmpexp_cost.COST ;
+       compMAT(jj,3) = compMAT(jj,3) + CEXP(ii).cmpexp_cost.COST ;
    end
    for ii = 1 : length(DEXP)
-       compMAT(jj,2) = compMAT(jj,2) + DEXP(ii).cmpexp_cost.COST ;
+       compMAT(jj,4) = compMAT(jj,4) + DEXP(ii).cmpexp_cost.COST ;
    end
    
    % Pumps
    for ii = 1 : length(CPMP)
-       compMAT(jj,3) = compMAT(jj,3) + CPMP(ii).cmpexp_cost.COST ;
+       compMAT(jj,5) = compMAT(jj,5) + CPMP(ii).cmpexp_cost.COST ;
    end
    for ii = 1 : length(DPMP)
-       compMAT(jj,3) = compMAT(jj,3) + DPMP(ii).cmpexp_cost.COST ;
+       compMAT(jj,5) = compMAT(jj,5) + DPMP(ii).cmpexp_cost.COST ;
    end
    
    % Fans
    for ii = 1 : length(CFAN)
-       compMAT(jj,4) = compMAT(jj,4) + CFAN(ii).cmpexp_cost.COST ;
+       compMAT(jj,6) = compMAT(jj,6) + CFAN(ii).cmpexp_cost.COST ;
    end
    for ii = 1 : length(DFAN)
-       compMAT(jj,4) = compMAT(jj,4) + DFAN(ii).cmpexp_cost.COST ;
+       compMAT(jj,6) = compMAT(jj,6) + DFAN(ii).cmpexp_cost.COST ;
    end
    
    
@@ -415,32 +431,31 @@ if Lsuper
    for ii = 1 : length(HX)
        switch HX(ii).name
            case 'hot'
-               compMAT(jj,5) = compMAT(jj,5) + HX(ii).hx_cost.COST ;
-           case 'cold'
-               compMAT(jj,6) = compMAT(jj,6) + HX(ii).hx_cost.COST ;
-           case 'regen'
                compMAT(jj,7) = compMAT(jj,7) + HX(ii).hx_cost.COST ;
-           case 'rej'
+           case 'cold'
                compMAT(jj,8) = compMAT(jj,8) + HX(ii).hx_cost.COST ;
+           case 'regen'
+               compMAT(jj,9) = compMAT(jj,9) + HX(ii).hx_cost.COST ;
+           case 'rej'
+               compMAT(jj,10) = compMAT(jj,10) + HX(ii).hx_cost.COST ;
        end
    end
    
-   % Tanks, fluid, insulation
+   % Hot Tanks, fluid, insulation
    for ii = 1 : length(HT)
-       compMAT(jj,9)  = compMAT(jj,9)  + HT(ii).tankA_cost.COST + HT(ii).tankB_cost.COST ;
-       compMAT(jj,10) = compMAT(jj,10) + HT(ii).insA_cost.COST  + HT(ii).insB_cost.COST ;
-       compMAT(jj,11) = compMAT(jj,11) + HT(ii).fluid_cost.COST;
+       compMAT(jj,11) = compMAT(jj,11)  + HT(ii).tankA_cost.COST + HT(ii).tankB_cost.COST  + HT(ii).insA_cost.COST  + HT(ii).insB_cost.COST ;
+       compMAT(jj,13) = compMAT(jj,13) + HT(ii).fluid_cost.COST;
    end
    
+   % Cold Tanks, fluid, insulation
    for ii = 1 : length(CT)
-       compMAT(jj,9)  = compMAT(jj,9)  + CT(ii).tankA_cost.COST + CT(ii).tankB_cost.COST ;
-       compMAT(jj,10) = compMAT(jj,10) + CT(ii).insA_cost.COST  + CT(ii).insB_cost.COST ;
-       compMAT(jj,12) = compMAT(jj,12) + CT(ii).fluid_cost.COST;
+       compMAT(jj,12) = compMAT(jj,12)  + CT(ii).tankA_cost.COST + CT(ii).tankB_cost.COST + CT(ii).insA_cost.COST  + CT(ii).insB_cost.COST ;
+       compMAT(jj,14) = compMAT(jj,14) + CT(ii).fluid_cost.COST;
    end
    
    % Generator/motor
    for ii = 1 : numel(GEN)
-       compMAT(jj,13) = compMAT(jj,13) + GEN(ii).gen_cost.COST;
+       compMAT(jj,15) = compMAT(jj,15) + GEN(ii).gen_cost.COST;
    end
 end
 
@@ -458,6 +473,75 @@ if Lsuper
     Cdata.lcosSD       = std(lcosMAT) ;
 
 end
+
+
+% Find the total capacity of each component
+powMAT = zeros(15,1);
+% Compressors
+for ii = 1 : length(CCMP)
+    powMAT(1) = powMAT(1) + CCMP(ii).W0 ;
+end
+for ii = 1 : length(DCMP)
+    powMAT(2) = powMAT(2) + DCMP(ii).W0 ;
+end
+
+% Expanders
+for ii = 1 : length(CEXP)
+    powMAT(3) = powMAT(3) + CEXP(ii).W0 ;
+end
+for ii = 1 : length(DEXP)
+    powMAT(4) = powMAT(4) + DEXP(ii).W0 ;
+end
+
+% Pumps
+for ii = 1 : length(CPMP)
+    powMAT(5) = powMAT(5) + CPMP(ii).W0 ;
+end
+for ii = 1 : length(DPMP)
+    powMAT(5) = powMAT(5) + DPMP(ii).W0 ;
+end
+
+% Fans
+for ii = 1 : length(CFAN)
+    powMAT(6) = powMAT(6) + CFAN(ii).W0 ;
+end
+for ii = 1 : length(DFAN)
+    powMAT(6) = powMAT(6) + DFAN(ii).W0 ;
+end
+
+
+% Heat exchangers and rejection
+for ii = 1 : length(HX)
+    switch HX(ii).name
+        case 'hot'
+            powMAT(7) = powMAT(7) + abs(HX(ii).Q(1,1)) / t_chg ;
+        case 'cold'
+            powMAT(8) = powMAT(8) + abs(HX(ii).Q(1,1)) / t_chg ;
+        case 'regen'
+            powMAT(9) = powMAT(9) + abs(HX(ii).Q(1,1)) / t_chg ;
+        case 'rej'
+            powMAT(10) = powMAT(10) + abs(HX(ii).Q(1,1)) / t_chg ;
+    end
+end
+
+% Hot Tanks, fluid, insulation
+for ii = 1 : length(HT)
+    powMAT(11) = abs(QH_chg) / 3600e3 ;
+    powMAT(13) = abs(QH_chg) / 3600e3;
+end
+
+% Cold Tanks, fluid, insulation
+for ii = 1 : length(CT)
+    powMAT(12) = abs(QC_chg) / 3600e3 ;
+    powMAT(14) = abs(QC_chg) / 3600e3 ;
+end
+
+% Generator/motor
+for ii = 1 : numel(GEN)
+    powMAT(15) = powMAT(15) + GEN(ii).pow0;
+end
+
+
 % Write out some results
 switch Load.mode
     case {0,3,4,6}
@@ -471,6 +555,36 @@ switch Load.mode
         fprintf(1,'Cost per unit energy:          %8.1f $/kWh-e\n\n',Cdata.cap_cost_en);
         fprintf(1,'Levelised cost of storage:     %8.3f $/kWh-e\n',Cdata.lcosM);
         fprintf(1,'     Standard deviation:       %8.3f $/kWh-e\n\n',Cdata.lcosSD);
+        
+        if Lsuper
+            fprintf(1,'\nFurther details on component costs.\n')
+            fprintf(1,'N.B. These values are averages from the Monte Carlo simulation.\n\n')
+            
+            fprintf(1,'Component                  Cost (M$)        Cost per unit        Unit\n')
+            fprintf(1,'Charge compressor        %8.1f M$       %8.1f $/kW-e       %8.1f kW-e\n',mean(compMAT(:,1))/1e6,mean(compMAT(:,1))/(powMAT(1)/1e3),powMAT(1)/1e3); 
+            fprintf(1,'Discharge compressor     %8.1f M$       %8.1f $/kW-e       %8.1f kW-e\n',mean(compMAT(:,2))/1e6,mean(compMAT(:,2))/(powMAT(2)/1e3),powMAT(2)/1e3); 
+            fprintf(1,'Charge expander          %8.1f M$       %8.1f $/kW-e       %8.1f kW-e\n',mean(compMAT(:,3))/1e6,mean(compMAT(:,3))/(powMAT(3)/1e3),powMAT(3)/1e3); 
+            fprintf(1,'Discharge expander       %8.1f M$       %8.1f $/kW-e       %8.1f kW-e\n',mean(compMAT(:,4))/1e6,mean(compMAT(:,4))/(powMAT(4)/1e3),powMAT(4)/1e3); 
+            fprintf(1,'Pumps                    %8.1f M$       %8.1f $/kW-e       %8.1f kW-e\n',mean(compMAT(:,5))/1e6,mean(compMAT(:,5))/(powMAT(5)/1e3),powMAT(5)/1e3); 
+            fprintf(1,'Fans                     %8.1f M$       %8.1f $/kW-e       %8.1f kW-e\n',mean(compMAT(:,6))/1e6,mean(compMAT(:,6))/(powMAT(6)/1e3),powMAT(6)/1e3);
+            fprintf(1,'Hot heat exchangers      %8.1f M$       %8.1f $/kW-th      %8.1f kW-th\n',mean(compMAT(:,7))/1e6,mean(compMAT(:,7))/(powMAT(7)/1e3),powMAT(7)/1e3); 
+            fprintf(1,'Cold heat exchangers     %8.1f M$       %8.1f $/kW-th      %8.1f kW-th\n',mean(compMAT(:,8))/1e6,mean(compMAT(:,8))/(powMAT(8)/1e3),powMAT(8)/1e3); 
+            fprintf(1,'Recuperator              %8.1f M$       %8.1f $/kW-th      %8.1f kW-th\n',mean(compMAT(:,9))/1e6,mean(compMAT(:,9))/(powMAT(9)/1e3),powMAT(9)/1e3); 
+            fprintf(1,'Heat rejection exchanger %8.1f M$       %8.1f $/kW-th      %8.1f kW-th\n',mean(compMAT(:,10))/1e6,mean(compMAT(:,10))/(powMAT(10)/1e3),powMAT(10)/1e3); 
+            fprintf(1,'Hot tanks                %8.1f M$       %8.1f $/kWh-th     %8.1f kWh-th\n',mean(compMAT(:,11))/1e6,mean(compMAT(:,11))/(powMAT(11)),powMAT(11)); 
+            fprintf(1,'Cold tanks               %8.1f M$       %8.1f $/kWh-th     %8.1f kWh-th\n',mean(compMAT(:,12))/1e6,mean(compMAT(:,12))/(powMAT(12)),powMAT(12)); 
+            fprintf(1,'Hot fluid                %8.1f M$       %8.1f $/kWh-th     %8.1f kWh-th\n',mean(compMAT(:,13))/1e6,mean(compMAT(:,13))/(powMAT(13)),powMAT(13)); 
+            fprintf(1,'Cold fluid               %8.1f M$       %8.1f $/kWh-th     %8.1f kWh-th\n',mean(compMAT(:,14))/1e6,mean(compMAT(:,14))/(powMAT(14)),powMAT(14)); 
+            fprintf(1,'Motor-generator          %8.1f M$       %8.1f $/kW-e       %8.1f kW-e\n\n',mean(compMAT(:,15))/1e6,mean(compMAT(:,15))/(powMAT(15)/1e3),powMAT(15)/1e3); 
+            
+            totC = 0.0 ;
+            for ii = 1 : size(compMAT(:,:),2)
+               totC = totC + mean(compMAT(:,ii)) ; 
+            end
+            fprintf(1,'TOTAL COST               %8.1f M$\n',totC/1e6);
+            fprintf(1,'N.B. This does not equal the total cost shown above because it does not include installation/contingency costs');
+        end
+        
     case {1,2,5,7}
         fprintf(1,'ECONOMIC RESULTS:\n');
         if Lsuper
@@ -559,6 +673,10 @@ function obj = calc_lcos(obj, Win, Wout, times, Nsens, mode)
         % Total cost of electricity for charging
         elec = obj.price .* totWin ;
         obj.lcosM = (obj.cap_cost * obj.FCR + OnM + elec) / totWout ;
+        
+        obj.lcosCC = obj.cap_cost * obj.FCR / totWout ;
+        obj.lcosOM = OnM / totWout ;
+        obj.lcosEP = elec / totWout ;
     end
 
 end
@@ -567,7 +685,7 @@ function PLOT_BOX(cost)
 
 figure(77)
 
-xlab = {'Compressors','Expanders','Pumps','Fans','Hot HXs','Cold HXs','Recuperators','Heat rejection','Storage tanks','Insulation','Hot fluid','Cold fluid','Motor-generator'} ;
+xlab = {'Charge compressors','Discharge compressors','Charge expanders','Discharge expanders','Pumps','Fans','Hot HXs','Cold HXs','Recuperators','Heat rejection','Hot tanks','Cold tanks','Hot fluid','Cold fluid','Motor-generator'} ;
 bplot(cost,'nomean','whisker',1) ;
 set(gca, 'XTick', 1:numel(cost(1,:)), 'XTickLabel', xlab, 'TickLabelInterpreter', 'latex')
 xlim([0 numel(cost(1,:))+1]) ;

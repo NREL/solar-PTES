@@ -351,7 +351,7 @@ heatON       = [0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,1,0];
 j            = 1;
 
 for i = 1 : Ndat
-    
+    % Turn heating off in the summer
     if i > 2161 && i < 6553
     %if i > 1 && i < 0
         Pin_th(i) = 0 ;

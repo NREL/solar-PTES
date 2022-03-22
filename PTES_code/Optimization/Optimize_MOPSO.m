@@ -86,7 +86,7 @@ end
 VEL = zeros(Np,nVar);
 for i =1:Np
     
-    [POS_fit(i,:)] =feval(fname, POS(i,:), Par, Nobjs);          % Objective function evaulation
+    [POS_fit(i,:),~,POS_extra(i,:)] =feval(fname, POS(i,:), Par, Nobjs);          % Objective function evaulation
     
 end
 if size(POS,1) ~= size(POS_fit,1)
@@ -98,6 +98,7 @@ PBEST_fit= POS_fit;
 DOMINATED= checkDomination(POS_fit);
 REP.pos  = POS(~DOMINATED,:);
 REP.pos_fit = POS_fit(~DOMINATED,:);
+REP.pos_ext = POS_extra(~DOMINATED,:);
 
 REP      = updateGrid(REP,ngrid);
 maxvel   = (xu-xl).*maxvel./100;
@@ -128,12 +129,12 @@ while ~stopCondition
     % Evaluate the population
     for ii =1:Np
         
-        [POS_fit(ii,:)] =feval(fname, POS(ii,:), Par, Nobjs);          % Objective function evaulation
+        [POS_fit(ii,:),~,POS_extra(ii,:)] =feval(fname, POS(ii,:), Par, Nobjs);          % Objective function evaulation
         
     end
     
     % Update the repository
-    REP = updateRepository(REP,POS,POS_fit,ngrid);
+    REP = updateRepository(REP,POS,POS_fit,POS_extra,ngrid);
     if(size(REP.pos,1)>Nr)
         REP = deleteFromRepository(REP,size(REP.pos,1)-Nr,ngrid);
     end
@@ -248,21 +249,23 @@ if(size(POS_fit,2)==3)
     
 end
 
-Results=[REP.pos REP.pos_fit];
+Results=[REP.pos REP.pos_fit REP.pos_ext];
 csvwrite('./Outputs/Optimization_results.csv',Results);
 
 
 % Function that updates the repository given a new population and its
 % fitness
-function REP = updateRepository(REP,POS,POS_fit,ngrid)
+function REP = updateRepository(REP,POS,POS_fit,POS_extra,ngrid)
 % Domination between particles
 DOMINATED  = checkDomination(POS_fit);
 REP.pos    = [REP.pos; POS(~DOMINATED,:)];
 REP.pos_fit= [REP.pos_fit; POS_fit(~DOMINATED,:)];
+REP.pos_ext= [REP.pos_ext; POS_extra(~DOMINATED,:)];
 % Domination between nondominated particles and the last repository
 DOMINATED  = checkDomination(REP.pos_fit);
 REP.pos_fit= REP.pos_fit(~DOMINATED,:);
 REP.pos    = REP.pos(~DOMINATED,:);
+REP.pos_ext= REP.pos_ext(~DOMINATED,:);
 % Updating the grid
 REP        = updateGrid(REP,ngrid);
 end
@@ -370,6 +373,7 @@ crowding(isnan(crowding)) = Inf;
 del_idx = del_idx(1:n_extra);
 REP.pos(del_idx,:) = [];
 REP.pos_fit(del_idx,:) = [];
+REP.pos_ext(del_idx,:) = [];
 REP = updateGrid(REP,ngrid);
 end
 

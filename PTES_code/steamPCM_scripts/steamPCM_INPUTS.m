@@ -43,3 +43,7 @@ dsg_Pin     =       55e5;%20e5 ;          % Pressure of DSG solar field
 
 mdotC_fac   =       1.0 ;
 mdotD_fac   =       1.0 ;
+
+% ECONOMICS
+Cpcm        =       750.0 ;       % PCM cost, $/m3
+Csteel      =       4800;        % Steel cost, $/m3
