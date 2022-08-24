@@ -214,6 +214,20 @@ classdef double_tank_class
                  %keyboard
              end
          end
+
+         % Function that calculates the tank properties and energy/exergy
+         % losses if the temperature of a tank changes by a certain amount
+         % dT
+         function [obj,tank_state] = store_tanks(obj,tank_state,iL,dT,T0)
+             tank_state(iL+1) = tank_state(iL); 
+
+             tank_state(iL+1).T = tank_state(iL).T + dT;
+             tank_state(iL+1)   = update_tank_state(obj,tank_state(iL+1),T0,1);
+
+             obj.WL_str = obj.WL_str + abs(tank_state(iL).B - tank_state(iL+1).B) ;
+             obj.QL_str = obj.QL_str + abs(tank_state(iL).H - tank_state(iL+1).H) ;
+
+         end
          
          % Calculate some stats for the tank including max volume of fluid,
          % max. mass of fluid
