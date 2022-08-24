@@ -366,6 +366,35 @@ CT = run_tanks(CT,iL,fluidC,iC_out,iC_in,Load,T0);
 AT = run_tanks(AT,iL,air,iA_out,iA_in,Load,T0);
 
 
+% Resize the initial mass of fluid in the discharged tanks based on the
+% mass that is actually transferred. (The mass is just guesssed in the
+% input files).
+
+if design_mode == 1
+
+    for ir = 1 : Nhot
+        sf = 1.02 ;
+        dM = HT(ir).B(1,iL+1).M - HT(ir).B(1,iL).M ;
+        HT(ir).A(1,iL).M = dM * sf;
+        HT(ir).A(1,iL)   = update_tank_state(HT(ir),HT(ir).A(1,iL),T0,1);
+        HT(ir).A(1,iL+1).M = HT(ir).A(1,iL).M - dM ;
+        HT(ir).A(1,iL+1)   = update_tank_state(HT(ir),HT(ir).A(1,iL+1),T0,1);
+    end
+    HT = run_tanks(HT,iL,fluidH,iH_out,iH_in,Load,T0);
+
+    for ir = 1 : Ncld
+        sf = 1.02 ;
+        dM = CT(ir).B(1,iL+1).M - CT(ir).B(1,iL).M ;
+        CT(ir).A(1,iL).M = dM * sf;
+        CT(ir).A(1,iL)   = update_tank_state(CT(ir),CT(ir).A(1,iL),T0,1);
+        CT(ir).A(1,iL+1).M = CT(ir).A(1,iL).M - dM ;
+        CT(ir).A(1,iL+1)   = update_tank_state(CT(ir),HT(ir).A(1,iL+1),T0,1);
+    end
+    CT = run_tanks(CT,iL,fluidC,iC_out,iC_in,Load,T0);
+
+end
+
+
 % Can try to estimate discharging pressure ratio to minimize tank losses
 % and also avoid over-cooling hot fluid
 if LPRr
