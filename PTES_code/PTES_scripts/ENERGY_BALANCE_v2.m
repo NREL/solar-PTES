@@ -623,46 +623,61 @@ end
 % temperature. If stores are above T0 when discharged, then they must be
 % returned to their original temp or greater. If stores are below T0 when
 % discharged, then they must be returned to original temp or lower.
-heater_in = 0;
+heater_in = 0 ;
+fridge_in = 0 ;
+fridge_COP = 1.5;
 if any(Load.mode ==[0,4,6])
-    problem = 0 ;
     
+    chi_PTES_true = chi_PTES_para ;
     % Hot tanks
     for ii = 1 : Nhot
        if HT(ii).A(1).T >= T0
-           if HT(ii).A(end).T < HT(ii).A(1).T - 1.0; problem = 1 ; end
+           if HT(ii).A(end).T < HT(ii).A(1).T - 1.0
+               warning('Unsustainable discharge of a hot reservoir!')
+               warning('Hot fluid cooled down too much in discharge. Calculating new roundtrip efficiency')
+               heater_in = heater_in + HT(ii).A(1).H - HT(ii).A(end).H ;
+
+               chi_PTES_true = -(E_net_dis - heater_in) / E_net_chg ;
+               fprintf(1,'TRUE round trip eff. (inc. heating):   %8.2f %%\n\n',chi_PTES_true*100);
+           end
        else
-           if HT(ii).A(end).T > HT(ii).A(1).T + 1.0; problem = 1 ; end
+           if HT(ii).A(end).T > HT(ii).A(1).T + 1.0
+               warning('Unsustainable discharge of a hot reservoir!')
+               warning('Hot fluid not cooled down enough in discharge. Calculating new roundtrip efficiency')
+               fridge_in = fridge_in - (HT(ii).A(1).H - HT(ii).A(end).H) / fridge_COP ;
+
+               chi_PTES_true = -(E_net_dis - fridge_in) / E_net_chg ;
+               fprintf(1,'TRUE round trip eff. (inc. cooling):   %8.2f %%\n\n',chi_PTES_true*100);
+           end
        end
     end
-    if problem
-        warning('Unsustainable discharge of a hot reservoir!')
-    end
-    problem = 0;
+
+
+    
     % Cold tanks
     for ii = 1 : Ncld
        if CT(ii).A(1).T >= T0
-           if CT(ii).A(end).T < CT(ii).A(1).T - 1.0; problem = 1 ; end
+           if CT(ii).A(end).T < CT(ii).A(1).T - 1.0
+               warning('Unsustainable discharge of a cold reservoir!')
+               warning('Cold fluid cooled down too much in discharge. Calculating new roundtrip efficiency')
+               heater_in = heater_in + CT(ii).A(1).H - CT(ii).A(end).H ;
+
+               chi_PTES_true = -(E_net_dis - heater_in) / E_net_chg ;
+               fprintf(1,'TRUE round trip eff. (inc. heating):   %8.2f %%\n\n',chi_PTES_true*100);
+           end
        else
-           if CT(ii).A(end).T > CT(ii).A(1).T + 1.0; problem = 1 ; end
+           if CT(ii).A(end).T > CT(ii).A(1).T + 1.0
+               warning('Unsustainable discharge of a cold reservoir!')
+               warning('Cold fluid not cooled down enough in discharge. Calculating new roundtrip efficiency')
+               fridge_in = fridge_in - (CT(ii).A(1).H - CT(ii).A(end).H) / fridge_COP ;
+
+               chi_PTES_true = -(E_net_dis - fridge_in) / E_net_chg ;
+               fprintf(1,'TRUE round trip eff. (inc. cooling):   %8.2f %%\n\n',chi_PTES_true*100);
+           end
        end
     end
-    if problem
-        warning('Unsustainable discharge of a cold reservoir!')
-    end
     
-    chi_PTES_true = chi_PTES_para ;
-    % If the hot fluid gets cooled down to a temperature below its original
-    % value, calculate the heat required to boost it back. Then find the
-    % 'true' round-trip efficiency assuming this heat is provided by an
-    % electrical heater
-    if fluidH(1).state(end,3).T < fluidH(1).state(1,1).T
-        warning('Unsustainable discharge of a hot reservoir!')
-        warning('Hot fluid cooled down too much in discharge. Calculating new roundtrip efficiency')
-        heater_in =  (fluidH.state(1,1).h - fluidH.state(end,3).h) * fluidH.state(end,3).mdot * t_dis;
-        chi_PTES_true = -(E_net_dis - heater_in) / E_net_chg ;
-        fprintf(1,'TRUE round trip eff. (inc. heating):   %8.2f %%\n\n',chi_PTES_true*100);
-    end
+   
     
 end
 
