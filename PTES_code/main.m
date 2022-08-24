@@ -19,7 +19,7 @@ load_coolprop
 %run_mode = 1: Multi run. Set parameters in INPUTS file
 %run_mode = 2: Optimizing PTES using NSGA2 (Two Objectives). Set Parameters in SET_OPTIMIZE_RUN
 %run_mode = 3: Optimizing PTES using MOPSO (Three Objectives). Set Parameters in SET_OPTIMIZE_RUN
-run_mode = 3;
+run_mode = 0;
 fname='PTES_optimize';
 
 switch run_mode

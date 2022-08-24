@@ -541,7 +541,8 @@ if WM == 1
             fprintf(1,'Work input:              %8.2f MWh\n',-W_in_chg/fact);
             fprintf(1,'Heat to hot tanks:       %8.2f MWh\n',-QH_chg/fact);
             fprintf(1,'Heat from cold tanks:    %8.2f MWh\n',QC_chg/fact);
-            fprintf(1,'Heat rejected:           %8.2f MWh\n',-(QE_chg+W_fan_chg+WL_mot_chg)/fact);
+            fprintf(1,'Heat rejected:           %8.2f MWh\n',-(QE_chg)/fact);
+            fprintf(1,'Parastic losses:         %8.2f MWh\n',-(W_fan_chg+WL_mot_chg)/fact);
             fprintf(1,'NET:                     %8.2f MWh\n\n',Net_chg/fact);
     end
     
@@ -554,7 +555,8 @@ if WM == 1
             fprintf(1,'Work output:             %8.2f MWh\n',W_out_dis/fact);
             fprintf(1,'Heat from hot tanks:     %8.2f MWh\n',QH_dis/fact);
             fprintf(1,'Heat to cold tanks:      %8.2f MWh\n',-QC_dis/fact);
-            fprintf(1,'Heat rejected:           %8.2f MWh\n',-(QE_dis+W_fan_dis+WL_gen_dis)/fact);
+            fprintf(1,'Heat rejected:           %8.2f MWh\n',-(QE_dis)/fact);
+            fprintf(1,'Parasitic losses:        %8.2f MWh\n',-(W_fan_dis+WL_gen_dis)/fact);
             fprintf(1,'NET:                     %8.2f MWh\n\n',Net_dis/fact);
     end
     

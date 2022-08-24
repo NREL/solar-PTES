@@ -1,6 +1,22 @@
-%%% SET INPUT VARIABLES %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% SIMPLE INTERFACE %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% The 'simple interface' is to introduce new users to the code or to
+% faciliate integration with other tools.
+% The simple interface is specifically to model a molten-salt Joule-Brayton
+% PTES cycle for a single design-point calculation.
 
+% Set 'simple_interface' to 1 to use this mode.
+% Then edit the variables in SET_SIMPLE_INTERFACE.m
+% Ignore the rest of this file
+simple_interface = 0;
+
+% To use the detailed interface set 'simple_interface' to 0
+% Then make edits to the file below.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% DETAILED INTERFACE %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Mode 0: Joule-Brayton PTES cycle
 % Mode 1: Joule-Brayton heat pump (charge only)
 % Mode 2: Joule-Brayton heat engine (discharge only)
@@ -51,7 +67,6 @@ optimise    = 0; % optimise cycle?
 make_plots  = 1; % make plots?
 save_figs   = 0; % save figures at the end?
 make_hex_plots = 0; % make plots of heat exchangers?
-simple_interface = 0; % Just use a very simple input file. For beginners or interfacing with other code. When implement have to ensure other input files are set up correctly.
 
 %if (Nc_ch > 1 || Ne_ch > 1) && (Ncld > 1 || Nhot > 1)
 %    error('Have not implemented multiple compressions/expansions AND multiple storage tanks in series')

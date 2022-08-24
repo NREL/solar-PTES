@@ -33,13 +33,24 @@ else
         
         % For inventory control, assume that the pressure scales with the off-design mass flow rate
         %gas.state(iL,ii).p = CCMP.Pin * Load.mdot(iL) / CCMP.mdot0 ;
-        gas.state(iL,ii).p = gas0.state(1,ii).p * Load.mdot(iL) / CCMP.mdot0 ; % First ever run is charging
+        gas.state(iL,ii).p = gas0.state(1,ii).p * (Load.mdot(iL) / CCMP.mdot0) * sqrt(T0_off(iL) / T0) ; % First ever run is charging
         [gas] = update(gas,[iL,ii],1);
         
     end 
     environ.T0 = T0_off(iL) ;
-    
-    TOLconv = 1e-1 ;
+    p1guess = gas.state(iL,1).p ;
+    switcher = 0 ;
+    p1prev   = 0 ;
+    erprevP   = 0 ;
+    gradPP     = 0 ;
+    gradPT = 0;
+
+    T1prev   = 0 ;
+    erprevT   = 0 ;
+    gradTP     = 0 ;
+    gradTT = 0;
+
+    TOLconv = 1e-4 ;
 end
 
 if Load.mode==3
@@ -67,7 +78,7 @@ end
 C_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
 max_iter=150;
 for counter=1:max_iter
-    
+
     fprintf(1,['Charging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
         
     for iN = 1:Nc_ch
@@ -101,17 +112,29 @@ for counter=1:max_iter
     % REGENERATE (gas-gas)
     [HX(ihx_reg),gas,iG,~,~] = hex_func(HX(ihx_reg),iL,gas,iReg1,gas,iReg2,0,0);
     
+    %HX(ihx_rejc).q(iL,1) = 0;
+    %gas.state(iL,iG+1) = gas.state(iL,iG) ;
+    %iG = iG + 1 ;
+    
     % REJECT HEAT (external HEX)
     T_aim = environ.T0 + T0_inc;    
     air.state(iL,iA).T = environ.T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
     if T_aim >= gas.state(iL,iG).T
+        HX(ihx_rejc).q(iL,1) = 0;
         gas.state(iL,iG+1) = gas.state(iL,iG) ;
         iG = iG + 1 ;
     else
-        [HX(ihx_rejc), gas, iG, air, iA] = hex_func(HX(ihx_rejc),iL,gas,iG,air,iA,1,0.5);
+        if design_mode == 0 && T0_off(iL) < T0
+            % If off-design and T0 is colder than the design value
+            % Reduce air mass flow rate so that expander inlet temperature
+            % remains at the design point.
+            [HX(ihx_rejc), gas, iG, air, iA] = hex_func(HX(ihx_rejc),iL,gas,iG,air,iA,5,gas0.state(iL,iG+1).T);
+        else
+            [HX(ihx_rejc), gas, iG, air, iA] = hex_func(HX(ihx_rejc),iL,gas,iG,air,iA,1,0.5);
+        end
         [CFAN(1),air,iA] = compexp_func (CFAN(1),iL,air,iA,'Paim',p0,1);
     end
-        
+    %}   
     for iN = 1:Ne_ch
         % EXPAND
         PRe = (gas.state(iL,iG).p/pbot)^(1/(Ne_ch+1-iN)); % stage expansion pressure ratio
@@ -212,10 +235,18 @@ for counter=1:max_iter
         
         % Uncomment these lines to print states
         
-        %print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
-        %print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
-        %print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);
-        %print_states(air,iL,1:air.Nstg(iL)+1,Load);
+        
+        PRc = gas.state(iL,2).p / gas.state(iL,1).p ;
+        fpH = (gas.state(iL,2).p - gas.state(iL,5).p) / gas.state(iL,2).p ;
+        PRe = gas.state(iL,5).p / gas.state(iL,6).p ;
+        fpC = (gas.state(iL,6).p - gas.state(iL,8).p) / gas.state(iL,6).p ;
+        %fprintf(1,'%s\n',['P1, bar     P8, bar    PRc      fpH      PRe     fpC     mult']);
+        %fprintf(1,'%6.4f     %6.4f     %6.4f     %6.4f     %6.4f    %6.4f    %6.4f\n',[gas.state(iL,1).p/1e5;gas.state(iL,8).p/1e5;PRc;fpH;PRe;fpC;PRc*(1-fpH)*(1-fpC)/PRe])
+        
+        print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
+        print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
+        print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);
+        print_states(air,iL,1:air.Nstg(iL)+1,Load);
         %print_states(HTF,iL,1:HTF.Nstg(iL)+1,Load);
         %keyboard
         %}
@@ -247,15 +278,71 @@ for counter=1:max_iter
 %             fprintf('pEND: %13.8f \n\n',gas.state(iL,iG).p/1e5)
 %             fprintf('T1:   %13.8f \n',gas.state(iL,1).T)
 %             fprintf('TEND: %13.8f \n\n',gas.state(iL,iG).T)
-            % Reduce smoothing factor with number of iterations
-            smooth = 0.025;% / double(counter)^0.2 ; 
-            %print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
-            gas.state(iL,1).T = gas.state(iL,1).T + smooth * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
-            %gas.state(iL,1).T = gas.state(iL,1).T ;
-            gas.state(iL,1).p = gas.state(iL,1).p - smooth * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
-                      
-            gas.state(iL,1).mdot = Load.mdot(iL);
+            
+            PRc = gas.state(iL,2).p / gas.state(iL,1).p ;
+            fpH = (gas.state(iL,2).p - gas.state(iL,5).p) / gas.state(iL,2).p ;
+            PRe = gas.state(iL,5).p / gas.state(iL,6).p ;
+            fpC = (gas.state(iL,6).p - gas.state(iL,8).p) / gas.state(iL,6).p ;
+            fprintf(1,'%s\n',['P1, bar     P8, bar    PRc      fpH      PRe     fpC     mult     err']);
+            fprintf(1,'%8.6f     %8.6f     %8.6f     %8.6f     %8.6f    %8.6f    %8.6f         %8.6f\n',[gas.state(iL,1).p/1e5;gas.state(iL,8).p/1e5;PRc;100*fpH;PRe;100*fpC;PRc*(1-fpH)*(1-fpC)/PRe;100*(gas.state(iL,1).p-gas.state(iL,8).p)/gas.state(iL,1).p])
+      
+%{
+            smooth = 0.025;% / double(counter)^0.2 ; % Reduce smoothing factor with number of iterations
+            if switcher == 0
+                gas.state(iL,1).p = gas.state(iL,1).p - smooth * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
+                switcher = 1;
+            elseif switcher == 1
+                gas.state(iL,1).T = gas.state(iL,1).T + smooth * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
+                switcher = 0;
+            elseif switcher == 2
+                %gas.state(iL,1).mdot = Load.mdot(iL);
+                gas.state(iL,1).mdot = gas.state(iL,1).mdot + smooth * (Load.mdot(iL) /( gas.state(iL,1).p / p1guess * sqrt(gas0.state(iL,1).T / gas.state(iL,1).T)) - gas.state(iL,1).mdot);
+                switcher = 0;
+            end
+%}
+
+            
+            if counter == 1
+                
+                p1prev = gas.state(iL,1).p ;
+                T1prev = gas.state(iL,1).T ;
+                erprevP = gas.state(iL,1).p  - gas.state(iL,iG).p ;
+                erprevT = gas.state(iL,1).T  - gas.state(iL,iG).T ;
+                smooth = 0.025 ;
+                
+                gas.state(iL,1).p = gas.state(iL,1).p - smooth * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
+                gas.state(iL,1).T = gas.state(iL,1).T + smooth * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
+            else
+
+                ernewP = gas.state(iL,1).p  - gas.state(iL,iG).p ;
+                gradPP  = (ernewP - erprevP) / (gas.state(iL,1).p - p1prev) ;
+                gradPT  = (ernewP - erprevP) / (gas.state(iL,1).T - T1prev) ;
+                
+                ernewT = gas.state(iL,1).T  - gas.state(iL,iG).T ;
+                gradTP  = (ernewT - erprevT) / (gas.state(iL,1).p - p1prev) ;
+                gradTT  = (ernewT - erprevT) / (gas.state(iL,1).T - T1prev) ;
+                
+                p1prev = gas.state(iL,1).p ;
+                erprevP = ernewP ;
+               
+                T1prev = gas.state(iL,1).T ;
+                erprevT = ernewT ;
+
+                gas.state(iL,1).p = gas.state(iL,1).p - ernewP / gradPP;% - 0.2 * ernewP / gradPT;
+                gas.state(iL,1).T = gas.state(iL,1).T - ernewT / gradTT;% - 0.2 * ernewT / gradTP;
+%{
+                a = gradPT / gradTT ;
+                b = a * gradTP ;
+                c = gradPP - b;
+
+                gas.state(iL,1).p = gas.state(iL,1).p + (ernewT*a - ernewP) / c ;
+                gas.state(iL,1).T = gas.state(iL,1).T - ernewT/gradTT - gradTP * (gas.state(iL,1).p - p1prev) / gradTT;
+%}
+  
+            end
+            %}
             [gas] = update(gas,[iL,1],1);
+            
             
         else
             gas.state(iL,1) = gas.state(iL,iG); 

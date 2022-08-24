@@ -43,11 +43,24 @@ else
         
         % For inventory control, assume that the pressure scales with the off-design mass flow rate
         %gas.state(iL,ii).p = (DEXP.Pin/DEXP.pr0) * Load.mdot(iL) / DEXP.mdot0 ;
-        gas.state(iL,ii).p = gas0.state(2,ii).p * Load.mdot(iL) / DEXP.mdot0 ; % Second ever run is discharging
+        gas.state(iL,ii).p = gas0.state(2,ii).p * (Load.mdot(iL) / DEXP.mdot0) *  sqrt(T0_off(iL) / T0) ; % Second ever run is discharging
         [gas] = update(gas,[iL,ii],1);
-        environ.T0 = T0_off(iL) ;
-        TOLconv = 1e-1 ;
-    end    
+        
+    end   
+    p1guess = gas.state(iL,1).p ;
+    switcher = 0;
+
+    p1prev   = 0 ;
+    erprevP   = 0 ;
+    gradPP     = 0 ;
+    gradPT = 0;
+
+    T1prev   = 0 ;
+    erprevT   = 0 ;
+    gradTP     = 0 ;
+    gradTT = 0;
+    environ.T0 = T0_off(iL) ;
+    TOLconv = 1e-4 ;
 end
 
 switch HX_model
@@ -66,7 +79,7 @@ end
 
 % Set matrix of temperature and pressure points to test convergence
 D_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-max_iter = 250;
+max_iter = 150;
 for counter = 1:max_iter
     fprintf(1,['Discharging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
     
@@ -77,7 +90,15 @@ for counter = 1:max_iter
         % REJECT HEAT (external HEX)
         %T_aim = environ.T0 + T0_inc;
         air.state(iL,iA).T = environ.T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
-        [HX(ihx_rejd(iN)), gas, iG, air, iA] = hex_func(HX(ihx_rejd(iN)),iL,gas,iG,air,iA,1,0.5);
+        
+        if design_mode == 0 && T0_off(iL) < T0
+            % If off-design and T0 is colder than the design value
+            % Reduce air mass flow rate so that expander inlet temperature
+            % remains at the design point.
+            [HX(ihx_rejd(iN)), gas, iG, air, iA] = hex_func(HX(ihx_rejd(iN)),iL,gas,iG,air,iA,5,gas0.state(iL,iG+1).T);
+        else
+            [HX(ihx_rejd(iN)), gas, iG, air, iA] = hex_func(HX(ihx_rejd(iN)),iL,gas,iG,air,iA,1,0.5);
+        end
         [DFAN(1),air,iA] = compexp_func (DFAN(1),iL,air,iA,'Paim',p0,1);
         
         switch Load.mode
@@ -86,7 +107,8 @@ for counter = 1:max_iter
                 fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p; %#ok<*SAGROW>
                 [fluidC] = update(fluidC,[iL,iC],1);
 
-                [HX(ihx_cld(iN)),gas,iG,fluidC,iC] = hex_func(HX(ihx_cld(iN)),iL,gas,iG,fluidC,iC,1,1.0);
+                %[HX(ihx_cld(iN)),gas,iG,fluidC,iC] = hex_func(HX(ihx_cld(iN)),iL,gas,iG,fluidC,iC,1,1.0);
+                [HX(ihx_cld(iN)),gas,iG,fluidC,iC] = hex_func(HX(ihx_cld(iN)),iL,gas,iG,fluidC,iC,3,fluidC.state(1,1).T);
                 [DPMP(iPMP),fluidC,iC] = compexp_func (DPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
                 iC=iC+1; iPMP=iPMP+1;
             case 1 % Heat engine only
@@ -140,7 +162,7 @@ for counter = 1:max_iter
         fluidC = count_Nstg(fluidC);
         
         % Uncomment these lines to print states
-        %{
+        
         print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
         print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
         print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);
@@ -171,15 +193,55 @@ for counter = 1:max_iter
 %              fprintf('pEND: %13.8f \n\n',gas.state(iL,iG).p/1e5)
 %              fprintf('T1:   %13.8f \n',gas.state(iL,1).T)
 %              fprintf('TEND: %13.8f \n\n',gas.state(iL,iG).T)
+
+%{
             % Adjust inlet pressure to try to reach convergence. The
             % 'smoothing' factor has to be quite small (<0.1, say) for this to be stable
             smooth = 0.025;
-            gas.state(iL,1).p = gas.state(iL,1).p - smooth * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
-           
+            if switcher == 0 
+                gas.state(iL,1).p = gas.state(iL,1).p - smooth * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
+                switcher = 1;
+            elseif switcher == 1
             %gas.state(iL,1).p = gas.state(iL,1).p / (gas.state(iL,iReg2+2).p * DEXP.mdot0 / (DEXP.Pin * gas.state(iL,iReg2+2).mdot)) ;
+                gas.state(iL,1).T = gas.state(iL,1).T + smooth * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
+                switcher = 0;
+            elseif switcher == 2
+                gas.state(iL,1).mdot = gas.state(iL,1).mdot + smooth * (Load.mdot(iL) /( gas.state(iL,1).p / p1guess * sqrt(gas0.state(iL,1).T / gas.state(iL,1).T)) - gas.state(iL,1).mdot);
+                switcher = 0;
+            end
             
-            gas.state(iL,1).T = gas.state(iL,1).T + smooth * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
-            gas.state(iL,1).mdot = Load.mdot(iL);
+            %gas.state(iL,1).mdot = Load.mdot(iL);
+            %gas.state(iL,1).mdot = Load.mdot(iL) * gas.state(iL,1).p / p1guess * sqrt(gas0.state(iL,1).T / gas.state(iL,1).T);
+%}
+
+            if counter == 1
+                
+                p1prev = gas.state(iL,1).p ;
+                T1prev = gas.state(iL,1).T ;
+                erprevP = gas.state(iL,1).p  - gas.state(iL,iG).p ;
+                erprevT = gas.state(iL,1).T  - gas.state(iL,iG).T ;
+                smooth = 0.025 ;
+                
+                gas.state(iL,1).p = gas.state(iL,1).p - smooth * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
+                gas.state(iL,1).T = gas.state(iL,1).T + smooth * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
+            else
+                ernewP = gas.state(iL,1).p  - gas.state(iL,iG).p ;
+                gradPP  = (ernewP - erprevP) / (gas.state(iL,1).p - p1prev) ;
+                gradPT  = (ernewP - erprevP) / (gas.state(iL,1).T - T1prev) ;
+                p1prev = gas.state(iL,1).p ;
+                
+                ernewT = gas.state(iL,1).T  - gas.state(iL,iG).T ;
+                gradTP  = (ernewT - erprevT) / (gas.state(iL,1).p - p1prev) ;
+                gradTT  = (ernewT - erprevT) / (gas.state(iL,1).T - T1prev) ;
+                T1prev = gas.state(iL,1).T ;
+
+                erprevP = ernewP ;
+                erprevT = ernewT ;
+
+                gas.state(iL,1).p = gas.state(iL,1).p - 0.2 * ernewP / gradPP;% - 0.2 * ernewP / gradPT;
+                gas.state(iL,1).T = gas.state(iL,1).T - 0.2 * ernewT / gradTT;% - 0.2 * ernewT / gradTP;
+            end
+
             [gas] = update(gas,[iL,1],1);
             
         else

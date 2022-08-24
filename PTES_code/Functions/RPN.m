@@ -12,7 +12,7 @@ global LIB
 if isempty(LIB)
     fileName = './LIB/LIB/LIB.mat';
     % Create Library if file does not exist or if the file is old
-    renewalAge = 14; %days
+    renewalAge = 365; %days
     if isfile(fileName)
         % File exists. Check how old it is.
         fileInfo = dir(fileName);

@@ -38,8 +38,17 @@ try
             % Set multi_run variables
             if multi_run==1, SET_MULTI_RUN; end
             
+            SIiter = 0;
+            SIconv = 100;
+            while ((SIiter < 10 && simple_interface==1 && SIconv > 1 ) || (simple_interface==0 && SIiter < 1))
+            
             % If using the simple interface, set these variables
-            if simple_interface==1, SET_SIMPLE_INTERFACE; end
+            if simple_interface==1
+                SET_SIMPLE_INTERFACE
+            else
+                SIiter = 1;
+            end
+            
             
             % Reinitialise arrays (gas, fluids and tanks) to zero and do
             % other preliminary tasks
@@ -57,7 +66,7 @@ try
                             JB_CHARGE_PB
                             iL=iL+1;
                         case 'dis'
-                            JB_DISCHARGE
+                            JB_DISCHARGE%_alt_Qrej
                             iL=iL+1;
                         case 'disPB'
                             JB_DISCHARGE_PB
@@ -105,11 +114,17 @@ try
             %ENERGY_BALANCE
             ENERGY_BALANCE_v2
             
+            end %end while loop for simple_interface
+            
             % Evaluate the system cost
             PTES_ECONOMICS
             
             % Save results from multi_run call
             if multi_run, PRINT_MULTI_RUN; end
+            
+            % If using the simple interface, set these variables
+            if simple_interface==1, PRINT_SIMPLE_INTERFACE; end
+            
         end
     end
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -135,11 +150,14 @@ if Nobjs > 1
     CONSTRAINT_AND_OUTPUT
 end
 
-catch
+catch ME
     if Nobjs > 1
         OPT_ERROR
     else
-        warning('An error occured somewhere in the code')
+        if simple_interface==1
+            dbclear all
+        end
+        rethrow(ME);
     end
 end
 end

@@ -39,7 +39,7 @@ switch Load.mode
         Design_Load      = Load ;
         Design_Load.time = [stH/1;stH].*3600;  % time spent in each load period, s
         Design_Load.type = ["chg";"dis"];    % type of load period
-        Design_Load.mdot = [fac*1;fac];  % working fluid mass flow rate, kg/s
+        Design_Load.mdot = 100*[fac*1.;fac];  % working fluid mass flow rate, kg/s
         T0_inc    = 3.0 ; % Increment above ambient temperature that gas is cooled to
         
         if Loffdesign
@@ -49,8 +49,8 @@ switch Load.mode
                 Load.type = ["chg";"dis"];    % type of load period
                 %Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
                 %T0_off    = T0IN;
-                Load.mdot = [0.8*fac;0.8*fac];      % working fluid mass flow rate, kg/s
-                T0_off    = [T0;T0] ;
+                Load.mdot = 100*[1.0*fac;1.0*fac];      % working fluid mass flow rate, kg/s
+                T0_off    = [T0+10;T0+0] ;
             else
                 fload     = './Data/load2.csv';
                 fdat      = readmatrix(fload,'Range','A:B') ;
@@ -166,7 +166,7 @@ switch PBmode
             case {0,1,2}
                 % Cold storage tanks
                 fCname  = 'Methanol'; % fluid name
-                TC_dis0 = T0;           % initial temperature of discharged cold fluid, K
+                TC_dis0 = 308.8;%T0+5;           % initial temperature of discharged cold fluid, K
                 MC_dis0 = 14.1e6;          % initial mass of discharged cold fluid, kg
                 TC_chg0 = T0-50;        % initial temperature of charged cold fluid, K
                 MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg

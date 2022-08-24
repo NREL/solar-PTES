@@ -180,8 +180,10 @@ switch mode
         if isempty(HX.eff)
             error('eff must be defined for hex_func to operate in mode==4')
         end
-        cond4a = par < TH2;
-        cond4b = par > TH2 - HX.eff*(TH2-TC1);
+        cond4a = par < TH2; % Target temperature must be less than hot inlet temperature
+        cond4b = par > TH2 - HX.eff*(TH2-TC1); % Target temperature must be larger than achievable hot outlet temperature
+%{
+        % Original control. Improve this July 2022
         if any([~cond4a,~cond4b])
             fprintf(1,['\nNote: Condition THmin<par<TH2 must be true ',...
                 'in mode==4. Changing to mode==2 with Crat=1\n\n']);
@@ -191,7 +193,22 @@ switch mode
             mH = Crat*mC*CpCmean/CpHmean;
             stateH.mdot = mH;
         end
-        
+%}
+
+        if ~cond4a
+            fprintf(1,['\nIn mode=4, target temp (',num2str(par),...
+                ') must be lower than hot inlet temp (',num2str(TH2),...
+                '.\nSet target temp to equal hot inlet temp.\n\n']);
+            par = TH2 - 0.1;
+        end
+
+        if ~cond4b
+            fprintf(1,['\nIn mode=4, target temp (',num2str(par),...
+                ') must be larger than achievable hot outlet temp TH2 - eff*(TH2-TC1), (',num2str(TH2 - HX.eff*(TH2-TC1)),...
+                '.\nSet target temp to equal lowest possible outlet temp.\n\n']);
+            par = TH2 - HX.eff*(TH2-TC1) + 0.1;
+        end
+%}      
     case 5
         % Set TH1 = par, and compute mC. Mass flow rate of hot fluid must
         % be previously specified

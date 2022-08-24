@@ -62,6 +62,13 @@ if cond1
     Ttop  = CP1('PQ_INPUTS',1e5,0,'T',handle) - 0.1; % Max pressure set to 1 bar
     
 elseif cond2
+
+    if computer() == "PCWIN64"
+        pe = pyenv;
+        if ~any(pe.Version==["2.7" "3.7" "3.8"])
+            error("CPython is required to run some of the code in create_table. Matlab only supports python 2.7, 3.7, 3.8");
+        end
+    end
     Tbot = py.CoolProp.CoolProp.PropsSI('Tmin',' ',0,' ',0,Mname) + 0.1;
     Ttop = py.CoolProp.CoolProp.PropsSI('Tmax',' ',0,' ',0,Mname) + 0.1;
     
