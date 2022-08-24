@@ -379,6 +379,8 @@ if design_mode == 1
         HT(ir).A(1,iL)   = update_tank_state(HT(ir),HT(ir).A(1,iL),T0,1);
         HT(ir).A(1,iL+1).M = HT(ir).A(1,iL).M - dM ;
         HT(ir).A(1,iL+1)   = update_tank_state(HT(ir),HT(ir).A(1,iL+1),T0,1);
+
+        MH_dis0(ir) = dM * sf;
     end
     HT = run_tanks(HT,iL,fluidH,iH_out,iH_in,Load,T0);
 
@@ -389,6 +391,8 @@ if design_mode == 1
         CT(ir).A(1,iL)   = update_tank_state(CT(ir),CT(ir).A(1,iL),T0,1);
         CT(ir).A(1,iL+1).M = CT(ir).A(1,iL).M - dM ;
         CT(ir).A(1,iL+1)   = update_tank_state(CT(ir),HT(ir).A(1,iL+1),T0,1);
+
+        MC_dis0(ir) = dM * sf;
     end
     CT = run_tanks(CT,iL,fluidC,iC_out,iC_in,Load,T0);
 

@@ -37,9 +37,14 @@ switch Load.mode
         stH = 10 ;
         % This is the load scenario the plant is designed for
         Design_Load      = Load ;
-        Design_Load.time = [stH/1;stH].*3600;  % time spent in each load period, s
-        Design_Load.type = ["chg";"dis"];    % type of load period
-        Design_Load.mdot = 100*[fac*1.;fac];  % working fluid mass flow rate, kg/s
+        Design_Load.time = [stH/1;stH;stH;stH].*3600;  % time spent in each load period, s
+        Design_Load.type = ["chg";"str";"dis";"str"];    % type of load period
+        Design_Load.mdot = 100*[fac*1.;fac;fac;fac];  % working fluid mass flow rate, kg/s
+        Design_Load.HT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank source (A). Zero by default for design case.
+        Design_Load.HT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank sink (B). Zero by default for design case.
+        Design_Load.HT_B = [0;-5;0;0];
+        Design_Load.CT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of cold tank source (A). Zero by default for design case.
+        Design_Load.CT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of cold tank sink (B). Zero by default for design case.
         T0_inc    = 3.0 ; % Increment above ambient temperature that gas is cooled to
         
         if Loffdesign
@@ -51,6 +56,10 @@ switch Load.mode
                 %T0_off    = T0IN;
                 Load.mdot = 100*[1.0*fac;1.0*fac];      % working fluid mass flow rate, kg/s
                 T0_off    = [T0+10;T0+0] ;
+                Load.HT_A = [0;0] ; % change in temperature of hot tank source (A)
+                Load.HT_B = [0;0] ; % change in temperature of hot tank sink (B)
+                Load.CT_A = [0;0] ; % change in temperature of cold tank source (A)
+                Load.CT_B = [0;0] ; % change in temperature of cold tank sink (B)
             else
                 fload     = './Data/load2.csv';
                 fdat      = readmatrix(fload,'Range','A:B') ;
