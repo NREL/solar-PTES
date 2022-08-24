@@ -10,6 +10,7 @@ classdef double_tank_class
         WL_chg % exergetic loss during charge
         WL_str % exergetic loss during storage
         WL_dis % exergetic loss during discharge
+        QL_str % heat loss during storage
         
         % Tank volumes
         fluid_mass = 0;
@@ -49,6 +50,7 @@ classdef double_tank_class
              obj.WL_chg = 0;
              obj.WL_str = 0;
              obj.WL_dis = 0;
+             obj.QL_str = 0;
              
              obj.costdat = costdat ;
              

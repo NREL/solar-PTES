@@ -20,6 +20,7 @@ c_pale_orange = [0.9294    0.6902    0.1294];
 c_yellow      = [1.0000    1.0000    0.0667];
 c_grey        = [0.6510    0.6510    0.6510];
 c_dark_grey   = [0.4000    0.4000    0.4000];
+c_black       = [0.0000    0.0000    0.0000];
 
 % Set arrays containing several ticks and markers for plots
 sty{1} = '-'; 

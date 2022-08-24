@@ -113,7 +113,7 @@ nH = numel(fluidH);
 nC = numel(fluidC);
 
 % Compute lost work on specific component types
-% The WL_PTES_chg and WL_PTES_dis arrays are divided in 7 elements:
+% The WL_PTES_chg and WL_PTES_dis arrays are divided in 9 elements:
 % 1: Losses in compressors
 % 2: Losses in expanders
 % 3: Losses in heat exchangers
@@ -121,9 +121,11 @@ nC = numel(fluidC);
 % 5: Mixing losses in storage tanks (liquids)
 % 6: Mixing losses of the working fluid
 % 7: Losses due to exergy leftover in tanks
-% 8: Parasitic losses due to pumping fluid and heat rejection air.
-WL_PTES_chg = zeros(1,9);
-WL_PTES_dis = zeros(1,9);
+% 8: Heat losses from tanks
+% 9: Parasitic losses due to pumping fluid and heat rejection air.
+%10: Motor-generator losses
+WL_PTES_chg = zeros(1,10);
+WL_PTES_dis = zeros(1,10);
 
 for iL=1:Load.num
     
@@ -145,11 +147,11 @@ for iL=1:Load.num
         % Parasitic work into cycle
         for ii = 1:length(CFAN)
             W_fan_chg      = W_fan_chg + CFAN(ii).W(iL) ; 
-            WL_PTES_chg(8) = WL_PTES_chg(8) + T0 * CFAN(ii).Sirr(iL) ;
+            WL_PTES_chg(9) = WL_PTES_chg(9) + T0 * CFAN(ii).Sirr(iL) ;
         end
         for ii = 1:length(CPMP)
             W_pmp_chg      = W_pmp_chg + CPMP(ii).W(iL) ; 
-            WL_PTES_chg(8) = WL_PTES_chg(8) + T0 * CPMP(ii).Sirr(iL) ;
+            WL_PTES_chg(9) = WL_PTES_chg(9) + T0 * CPMP(ii).Sirr(iL) ;
         end
         
         % Heat flows in and out of cycle
@@ -206,11 +208,11 @@ for iL=1:Load.num
         % Parasitic work into cycle
         for ii = 1:length(DFAN)
             W_fan_dis      = W_fan_dis + DFAN(ii).W(iL) ; 
-            WL_PTES_dis(8) = WL_PTES_dis(8) + T0 * DFAN(ii).Sirr(iL) ; 
+            WL_PTES_dis(9) = WL_PTES_dis(9) + T0 * DFAN(ii).Sirr(iL) ; 
         end
         for ii = 1:length(DPMP)
             W_pmp_dis      = W_pmp_dis + DPMP(ii).W(iL) ; 
-            WL_PTES_dis(8) = WL_PTES_dis(8) + T0 * DPMP(ii).Sirr(iL) ; 
+            WL_PTES_dis(9) = WL_PTES_dis(9) + T0 * DPMP(ii).Sirr(iL) ; 
         end
         
         % Heat flows in and out of cycle
@@ -297,12 +299,14 @@ switch Load.mode
             WL_PTES_chg(5) = WL_PTES_chg(5) + HT(ii).WL_chg ;
             WL_PTES_dis(5) = WL_PTES_dis(5) + HT(ii).WL_dis ;
             WL_PTES_dis(7) = WL_PTES_dis(7) + HT(ii).A(end).B - HT(ii).A(1).B + HT(ii).B(end).B - HT(ii).B(1).B;
+            WL_PTES_chg(8) = WL_PTES_chg(8) + HT(ii).WL_str ; % Assign all hot storage losses to charging cycle for now
         end
         
         for ii = 1 : Ncld
             WL_PTES_chg(5) = WL_PTES_chg(5) + CT(ii).WL_chg ;
             WL_PTES_dis(5) = WL_PTES_dis(5) + CT(ii).WL_dis ;
             WL_PTES_dis(7) = WL_PTES_dis(7) + CT(ii).A(end).B - CT(ii).A(1).B + CT(ii).B(end).B - CT(ii).B(1).B;
+            WL_PTES_dis(8) = WL_PTES_dis(8) + CT(ii).WL_str ; % Assign all cold storage losses to discharging cycle for now
         end
         
         WL_PTES_chg(5) = WL_PTES_chg(5) + AT.WL_chg ;
@@ -326,8 +330,8 @@ switch Load.mode
 end
 
 % Allocate losses from motor/generator
-WL_PTES_chg(9) = abs(WL_mot_chg);
-WL_PTES_dis(9) = abs(WL_gen_dis);
+WL_PTES_chg(10) = abs(WL_mot_chg);
+WL_PTES_dis(10) = abs(WL_gen_dis);
 
 fact    = 1e6*3600; % J to MWh
 
@@ -363,16 +367,19 @@ end
 switch Load.mode
     case {0,3,4,6} % PTES, Rankine, or sCO2-PTES
         Heat_in_tanks = 0;
+        Heat_lost     = 0;
         for ii = 1 : Nhot
             Heat_in_tanks = Heat_in_tanks + (HT(ii).A(end).H - HT(ii).A(1).H) + (HT(ii).B(end).H - HT(ii).B(1).H) ;
+            Heat_lost     = Heat_lost + HT(ii).QL_str ;
         end        
         for ii = 1 : Ncld
             Heat_in_tanks = Heat_in_tanks + (CT(ii).A(end).H - CT(ii).A(1).H) + (CT(ii).B(end).H - CT(ii).B(1).H);
+            Heat_lost     = Heat_lost + CT(ii).QL_str ;
         end
         
         Heat_rejected    = QE_chg + QE_dis + W_fan_chg + W_fan_dis + WL_mot_chg + WL_gen_dis;
         Total_Work_lost  = E_in_chg + E_out_dis + W_fan_chg + W_pmp_chg + W_fan_dis + W_pmp_dis;
-        First_law_error  = (-Heat_rejected + Heat_in_tanks + Total_Work_lost)/Total_Work_lost;
+        First_law_error  = (-Heat_rejected + Heat_in_tanks + Heat_lost + Total_Work_lost)/Total_Work_lost;
         Second_law_error = (Total_loss + Total_Work_lost)/Total_Work_lost;
         
         E_net_chg = E_in_chg  + W_fan_chg + W_pmp_chg;

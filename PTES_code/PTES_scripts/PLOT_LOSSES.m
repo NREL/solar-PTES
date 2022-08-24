@@ -28,7 +28,8 @@ b(6).FaceColor = c_pale_green;
 b(7).FaceColor = c_dark_orange;
 b(8).FaceColor = c_grey;
 b(9).FaceColor = c_dark_grey;
-legend({'Compressors','Expanders','Heat exchangers','Heat in/out env.','Mixing (liquid)','Mixing (gas)','Tanks','Parasitics','Motor/Gen'},'Location','Best')
+b(10).FaceColor = c_black;
+legend({'Compressors','Expanders','Heat exchangers','Heat in/out env.','Mixing (liquid)','Mixing (gas)','Tanks','Heat losses','Parasitics','Motor/Gen'},'Location','Best')
 
 % Do not show liquid_mixing loss and tank_loss bars if they are not required
 % if WL_mix_liq==0
