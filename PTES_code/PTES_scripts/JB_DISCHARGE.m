@@ -66,12 +66,12 @@ end
 
 % Set matrix of temperature and pressure points to test convergence
 D_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-max_iter = 50;
+max_iter = 150;
 for counter = 1:max_iter
     fprintf(1,['Discharging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
     
     [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = ...
-        run_JB_discharge(ind,gas,fluidH,fluidC,HT,CT,air,environ,DCMP,DEXP,DPMP,DFAN,HX,TP,Load,design_mode,iL);
+        run_JB_discharge_alt_Qrej(ind,gas,fluidH,fluidC,HT,CT,air,environ,DCMP,DEXP,DPMP,DFAN,HX,TP,Load,design_mode,iL);
     
     % Determine convergence and proceed
     D = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
@@ -260,4 +260,81 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
     
 
 end
+
+
+
+function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_JB_discharge_alt_Qrej(ind,gas,fluidH,fluidC,HT,CT,air,environ,DCMP,DEXP,DPMP,DFAN,HX,TP,Load,design_mode,iL)
+
+    % Set stage indices
+    iG = 1;  % keeps track of the gas stage number
+    iH = 1;  % keeps track of the Hot fluid stream number
+    iC = 1;  % keeps track of the Cold fluid stream number
+    iE = 1;  % keeps track of the Environment (heat rejection) stream number
+    iA = 1;  % keeps track of the Air (heat rejection) stream number
+    iPMP = 1 ; % Keeps track of which pump is being used
+
+    % REGENERATE (gas-gas)
+    [HX(ind.ihx_reg),gas,iG,~,~] = hex_func(HX(ind.ihx_reg),iL,gas,ind.iReg1,gas,ind.iReg2,0,0);
     
+    for iN = 1:ind.Nc_dis
+
+        if ind.Nc_dis>1
+            warning('Have not tested Nc_dis > 1.');
+        end
+        switch Load.mode
+            case 0 % PTES
+                % COOL (gas-liquid)
+                fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p; %#ok<*SAGROW>
+                [fluidC] = update(fluidC,[iL,iC],1);
+
+                %CT.B(iL).T = 205;%fluidC.state(iL,iC).T ;
+                %CT.B(iL).h = fluidC.state(iL,iC).h ;
+                %CT.B(iL).H = CT.B(iL).h * CT.B(iL).M ;
+                %CT         = update_tank_state(CT,CT.B(iL),T0,2);
+
+                [HX(ind.ihx_cld(iN)),gas,iG,fluidC,iC] = hex_func(HX(ind.ihx_cld(iN)),iL,gas,iG,fluidC,iC,1,1.0);
+                %[HX(ihx_cld(iN)),gas,iG,fluidC,iC] = hex_func(HX(ihx_cld(iN)),iL,gas,iG,fluidC,iC,3,fluidC.state(1,1).T);
+                [DPMP(iPMP),fluidC,iC] = compexp_func (DPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
+                iC=iC+1; iPMP=iPMP+1;
+            case 1 % Heat engine only
+        end
+        
+        % COMPRESS
+        PRc_dis = (TP.PRdis)^(1/ind.Nc_dis)/(1-TP.ploss)^2; % stage compression pressure ratio
+        p_aim = gas.state(iL,iG).p*PRc_dis;
+        [DCMP(iN),gas,iG] = compexp_func (DCMP(iN),iL,gas,iG,'Paim',p_aim, design_mode) ; 
+
+        % REJECT HEAT (external HEX)
+        air.state(iL,iA).T = environ.T0; air.state(iL,iA).p = TP.p0; air = update(air,[iL,iA],1);
+        
+        if design_mode == 0 && Load.T0_off(iL) < TP.T0
+            % If off-design and T0 is colder than the design value
+            % Reduce air mass flow rate so that expander inlet temperature
+            % remains at the design point.
+            [HX(ind.ihx_rejd(iN)), gas, iG, air, iA] = hex_func(HX(ind.ihx_rejd(iN)),iL,gas,iG,air,iA,5,gas0.state(iL,iG+1).T);
+        else
+            [HX(ind.ihx_rejd(iN)), gas, iG, air, iA] = hex_func(HX(ind.ihx_rejd(iN)),iL,gas,iG,air,iA,1,0.5);
+        end
+        [DFAN(1),air,iA] = compexp_func (DFAN(1),iL,air,iA,'Paim',TP.p0,1);
+    end
+    
+    % REGENERATE (gas-gas)
+    [HX(ind.ihx_reg),~,~,gas,iG] = hex_func(HX(ind.ihx_reg),iL,gas,ind.iReg1,gas,ind.iReg2,0,0);
+    
+    for iN = 1:ind.Ne_dis
+        % HEAT (gas-fluid)
+        fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p; THmin = HT.A(1).T;
+        [fluidH] = update(fluidH,[iL,iH],1);
+        Taim = THmin;
+
+        [HX(ind.ihx_hot(iN)),fluidH,iH,gas,iG] = hex_func(HX(ind.ihx_hot(iN)),iL,fluidH,iH,gas,iG,4,THmin);
+        [DPMP(iPMP),fluidH,iH] = compexp_func (DPMP(iPMP),iL,fluidH,iH,'Paim',fluidH.state(iL,1).p,1);
+        iH=iH+1; iPMP=iPMP+1;
+        
+        % EXPAND
+        PRe_dis = (gas.state(iL,iG).p/TP.pbot)^(1/(ind.Ne_dis+1-iN));  % stage expansion pressure ratio
+        p_aim = gas.state(iL,iG).p/PRe_dis;
+        [DEXP(iN),gas,iG] = compexp_func (DEXP(iN),iL,gas,iG,'Paim',p_aim, design_mode) ; 
+    end
+    
+end

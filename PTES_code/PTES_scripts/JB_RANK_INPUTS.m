@@ -54,7 +54,7 @@ switch Load.mode
                 Load.type = ["chg";"dis"];    % type of load period
                 %Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
                 %T0_off    = T0IN;
-                Load.mdot = 100*[0.*fac;1.0*fac];      % working fluid mass flow rate, kg/s
+                Load.mdot = 100*[1*fac;1.*fac];      % working fluid mass flow rate, kg/s
                 Load.T0_off = [T0+0;T0+0] ;
                 Load.HT_A = [0;0] ; % change in temperature of hot tank source (A)
                 Load.HT_B = [0;0] ; % change in temperature of hot tank sink (B)
