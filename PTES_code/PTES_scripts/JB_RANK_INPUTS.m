@@ -42,7 +42,6 @@ switch Load.mode
         Design_Load.mdot = 100*[fac*1.;fac];  % working fluid mass flow rate, kg/s
         Design_Load.HT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank source (A). Zero by default for design case.
         Design_Load.HT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank sink (B). Zero by default for design case.
-        %Design_Load.HT_B = [0;-5;0;0];
         Design_Load.CT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of cold tank source (A). Zero by default for design case.
         Design_Load.CT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of cold tank sink (B). Zero by default for design case.
         Design_Load.T0_off = zeros(numel(Design_Load.time),1) ;
@@ -55,8 +54,8 @@ switch Load.mode
                 Load.type = ["chg";"dis"];    % type of load period
                 %Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
                 %T0_off    = T0IN;
-                Load.mdot = 100*[1.0*fac;1.0*fac];      % working fluid mass flow rate, kg/s
-                Load.T0_off = [T0+10;T0+0] ;
+                Load.mdot = 100*[0.*fac;1.0*fac];      % working fluid mass flow rate, kg/s
+                Load.T0_off = [T0+0;T0+0] ;
                 Load.HT_A = [0;0] ; % change in temperature of hot tank source (A)
                 Load.HT_B = [0;0] ; % change in temperature of hot tank sink (B)
                 Load.CT_A = [0;0] ; % change in temperature of cold tank source (A)

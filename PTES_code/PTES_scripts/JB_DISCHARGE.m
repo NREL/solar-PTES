@@ -43,7 +43,7 @@ else
         
         % For inventory control, assume that the pressure scales with the off-design mass flow rate
         %gas.state(iL,ii).p = (DEXP.Pin/DEXP.pr0) * Load.mdot(iL) / DEXP.mdot0 ;
-        gas.state(iL,ii).p = gas0.state(2,ii).p * (Load.mdot(iL) / DEXP.mdot0) *  sqrt(T0_off(iL) / T0) ; % Second ever run is discharging
+        gas.state(iL,ii).p = gas0.state(2,ii).p * (Load.mdot(iL) / DEXP.mdot0) *  sqrt(Load.T0_off(iL) / T0) ; % Second ever run is discharging
         [gas] = update(gas,[iL,ii],1);
         
     end   
@@ -59,7 +59,7 @@ else
     erprevT   = 0 ;
     gradTP     = 0 ;
     gradTT = 0;
-    environ.T0 = T0_off(iL) ;
+    environ.T0 = Load.T0_off(iL) ;
     TOLconv = 1e-4 ;
 end
 
@@ -79,7 +79,7 @@ end
 
 % Set matrix of temperature and pressure points to test convergence
 D_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-max_iter = 150;
+max_iter = 50;
 for counter = 1:max_iter
     fprintf(1,['Discharging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
     
@@ -91,7 +91,7 @@ for counter = 1:max_iter
         %T_aim = environ.T0 + T0_inc;
         air.state(iL,iA).T = environ.T0; air.state(iL,iA).p = p0; air = update(air,[iL,iA],1);
         
-        if design_mode == 0 && T0_off(iL) < T0
+        if design_mode == 0 && Load.T0_off(iL) < T0
             % If off-design and T0 is colder than the design value
             % Reduce air mass flow rate so that expander inlet temperature
             % remains at the design point.

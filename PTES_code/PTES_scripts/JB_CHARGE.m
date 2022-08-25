@@ -88,7 +88,9 @@ for counter=1:max_iter
         
     % Determine convergence and proceed
     C = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
+    %D = 100*[abs(gas.state(iL,1).T-gas.state(iL,iG).T)/gas.state(iL,1).T ; abs(gas.state(iL,1).p-gas.state(iL,iG).p)/gas.state(iL,1).p];
     convergence = all(abs((C(C~=0) - C_0(C~=0))./C(C~=0))*100 < TOLconv);
+    %convergence = all(D < TOLconv);
     
     if (convergence && strcmp(HX_model_temp,HX_model)) || counter==max_iter 
 
@@ -134,7 +136,10 @@ for counter=1:max_iter
             ernewT = gas.state(iL,1).T  - gas.state(iL,iG).T ;
 
             if counter == 1
-               
+
+                p1prev = gas.state(iL,1).p ;
+                T1prev = gas.state(iL,1).T ;
+
                 smooth = 0.025 ;
                 gas.state(iL,1).p = gas.state(iL,1).p - smooth * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
                 gas.state(iL,1).T = gas.state(iL,1).T + smooth * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
@@ -147,21 +152,13 @@ for counter=1:max_iter
                 gradTP  = (ernewT - erprevT) / (gas.state(iL,1).p - p1prev) ;
                 gradTT  = (ernewT - erprevT) / (gas.state(iL,1).T - T1prev) ;
               
-                gas.state(iL,1).p = gas.state(iL,1).p - ernewP / gradPP;% - 0.2 * ernewP / gradPT;
-                gas.state(iL,1).T = gas.state(iL,1).T - ernewT / gradTT;% - 0.2 * ernewT / gradTP;
-%{
-                a = gradPT / gradTT ;
-                b = a * gradTP ;
-                c = gradPP - b;
+                p1prev = gas.state(iL,1).p ;
+                T1prev = gas.state(iL,1).T ;
 
-                gas.state(iL,1).p = gas.state(iL,1).p + (ernewT*a - ernewP) / c ;
-                gas.state(iL,1).T = gas.state(iL,1).T - ernewT/gradTT - gradTP * (gas.state(iL,1).p - p1prev) / gradTT;
-%}
+                gas.state(iL,1).p = gas.state(iL,1).p - ernewP / gradPP;
+                gas.state(iL,1).T = gas.state(iL,1).T - ernewT / gradTT;
   
             end
-
-            p1prev = gas.state(iL,1).p ;
-            T1prev = gas.state(iL,1).T ;
 
             erprevP = ernewP ;
             erprevT = ernewT ;
@@ -219,13 +216,9 @@ if counter==max_iter
 end
 
 % Compute effect of fluid streams entering/leaving the sink/source tanks
-% Hot tanks
-HT = run_tanks(HT,iL,fluidH,iH_out,iH_in,Load,T0);
-% Cold tanks
-CT = run_tanks(CT,iL,fluidC,iC_out,iC_in,Load,T0);
-% Atmospheric tanks
-AT = run_tanks(AT,iL,air,iA_out,iA_in,Load,T0);
-
+HT = run_tanks(HT,iL,fluidH,iH_out,iH_in,Load,T0); % Hot tanks
+CT = run_tanks(CT,iL,fluidC,iC_out,iC_in,Load,T0); % Cold tanks
+AT = run_tanks(AT,iL,air,iA_out,iA_in,Load,T0); % Atmospheric tanks
 
 % Resize the initial mass of fluid in the discharged tanks based on the
 % mass that is actually transferred. (The mass is just guesssed in the
@@ -284,20 +277,7 @@ if LPRr
     end
     phi = (Gama/(CCMP.eta(iL)*(Gama-1))) ;
     PRr = ((Tin/Tout)^phi) / PRch ;
-    %if PRr > 1.25
-    %    PRr = 1.25;
-    %end
-    %{ 
-    % Tried to calculate the expansion properly, but it gives worse results
-    than the method above
-    EDUM = DEXP(1) ;
-    GDUM = gas ;
-    GDUM.state(1,1).T = Tin ;
-    GDUM.state(1,1).p = gas.state(iL,2).p * PRr ;
-    [GDUM] = update(GDUM,[1,1],1);
-    [EDUM,GDUM,~] = compexp_func (EDUM,1,GDUM,1,'Taim',Tout, design_mode) ;
-    PRr = (GDUM.state(1,1).p / GDUM.state(1,2).p) / PRch ;
-    %}
+
 end
 
 
