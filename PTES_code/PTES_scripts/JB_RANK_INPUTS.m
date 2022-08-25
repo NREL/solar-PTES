@@ -37,9 +37,9 @@ switch Load.mode
         stH = 10 ;
         % This is the load scenario the plant is designed for
         Design_Load      = Load ;
-        Design_Load.time = [stH/1;stH;stH;stH].*3600;  % time spent in each load period, s
-        Design_Load.type = ["chg";"str";"dis";"str"];    % type of load period
-        Design_Load.mdot = 100*[fac*1.;fac;fac;fac];  % working fluid mass flow rate, kg/s
+        Design_Load.time = [stH/1;stH].*3600;  % time spent in each load period, s
+        Design_Load.type = ["chg";"dis"];    % type of load period
+        Design_Load.mdot = 100*[fac*1.;fac];  % working fluid mass flow rate, kg/s
         Design_Load.HT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank source (A). Zero by default for design case.
         Design_Load.HT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank sink (B). Zero by default for design case.
         %Design_Load.HT_B = [0;-5;0;0];

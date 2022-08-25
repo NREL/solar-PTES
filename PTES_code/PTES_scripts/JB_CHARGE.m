@@ -32,6 +32,20 @@ if design_mode == 1
     [gas] = update(gas,[iL,ind.iReg2],1);
     TOLconv = 1e-3 ;
     environ.T0 = T0 ;
+
+    switch HX_model
+        case 'eff'
+            HX_model_temp = 'eff';
+        case 'geom'
+            % Set the heat exchanger models to 'eff' temporarily, to obtain
+            % approximated cycle points before using the 'geom' model
+            HX_model_temp = 'eff';
+            for ihx=1:length(HX)
+                HX(ihx).model = HX_model_temp;
+            end
+        otherwise
+            error('not implemented')
+    end
     
 else
     % Set up matrix that guesses the converged solution
@@ -41,23 +55,15 @@ else
         gas.state(iL,ii).mdot = Load.mdot(iL) ;
         
         % For inventory control, assume that the pressure scales with the off-design mass flow rate
-        %gas.state(iL,ii).p = CCMP.Pin * Load.mdot(iL) / CCMP.mdot0 ;
         gas.state(iL,ii).p = gas0.state(1,ii).p * (Load.mdot(iL) / CCMP.mdot0) * sqrt(Load.T0_off(iL) / T0) ; % First ever run is charging
         [gas] = update(gas,[iL,ii],1);
         
     end 
     environ.T0 = Load.T0_off(iL) ;
-    p1guess = gas.state(iL,1).p ;
-    switcher = 0 ;
-    p1prev   = 0 ;
-    erprevP   = 0 ;
-    gradPP     = 0 ;
-    gradPT = 0;
-
-    T1prev   = 0 ;
-    erprevT   = 0 ;
-    gradTP     = 0 ;
-    gradTT = 0;
+    
+    % Check if these can be deleted
+    p1prev = 0 ; erprevP = 0 ; gradPP = 0 ; gradPT = 0;
+    T1prev = 0 ; erprevT = 0 ; gradTP = 0 ; gradTT = 0;
 
     TOLconv = 1e-4 ;
 end
@@ -69,24 +75,10 @@ if Load.mode==3
     [HTF] = update(HTF,[iL,iHTF],1);
 end
 
-switch HX_model
-    case 'eff'
-        HX_model_temp = 'eff';
-    case 'geom'
-        % Set the heat exchanger models to 'eff' temporarily, to obtain
-        % approximated cycle points before using the 'geom' model 
-        HX_model_temp = 'eff';
-        for ihx=1:length(HX)
-            HX(ihx).model = HX_model_temp;
-        end
-    otherwise
-        error('not implemented')
-end
-
-
 % Set matrix of temperature and pressure points to test convergence
 C_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
 max_iter=150;
+
 for counter=1:max_iter
 
     fprintf(1,['Charging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
@@ -97,51 +89,10 @@ for counter=1:max_iter
     % Determine convergence and proceed
     C = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
     convergence = all(abs((C(C~=0) - C_0(C~=0))./C(C~=0))*100 < TOLconv);
-    if (convergence && strcmp(HX_model_temp,HX_model)) || counter==max_iter % is charge cycle converged?
+    
+    if (convergence && strcmp(HX_model_temp,HX_model)) || counter==max_iter 
 
-        % Close working fluid streams
-        gas.stage(iL,iG).type = 'end';
-        gas = count_Nstg(gas);
-        
-        % Close air (heat rejection) streams
-        iA_out = 1:3:(iA-1); iA_in  = iA_out + 2;
-        for i=iA_in, air.stage(iL,i).type = 'end'; end
-        air = count_Nstg(air);
-        
-        % Close storage fluid streams
-        iH_out = 1:3:(iH-1); iH_in  = iH_out + 2;
-        iC_out = 1:3:(iC-1); iC_in  = iC_out + 2;
-        for i=iH_in, fluidH.stage(iL,i).type = 'end'; end
-        for i=iC_in, fluidC.stage(iL,i).type = 'end'; end
-        fluidH = count_Nstg(fluidH);
-        fluidC = count_Nstg(fluidC);
-        
-        if Load.mode==3
-            % Close HTF streams
-            iHTF_out = 1:4:(iHTF-1); iHTF_in  = iHTF_out + 3;
-            for i=iHTF_in, HTF.stage(iL,i).type = 'end'; end
-            HTF = count_Nstg(HTF);
-        end
-        
-        % Uncomment these lines to print states
-        
-        
-        PRc = gas.state(iL,2).p / gas.state(iL,1).p ;
-        fpH = (gas.state(iL,2).p - gas.state(iL,5).p) / gas.state(iL,2).p ;
-        PRe = gas.state(iL,5).p / gas.state(iL,6).p ;
-        fpC = (gas.state(iL,6).p - gas.state(iL,8).p) / gas.state(iL,6).p ;
-        %fprintf(1,'%s\n',['P1, bar     P8, bar    PRc      fpH      PRe     fpC     mult']);
-        %fprintf(1,'%6.4f     %6.4f     %6.4f     %6.4f     %6.4f    %6.4f    %6.4f\n',[gas.state(iL,1).p/1e5;gas.state(iL,8).p/1e5;PRc;fpH;PRe;fpC;PRc*(1-fpH)*(1-fpC)/PRe])
-        
-        print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
-        print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
-        print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);
-        print_states(air,iL,1:air.Nstg(iL)+1,Load);
-        %print_states(HTF,iL,1:HTF.Nstg(iL)+1,Load);
-        %keyboard
-        %}
-        
-        % Exit loop
+        % If charge cycle is converged then exit loop
         break
         
     elseif convergence
@@ -154,11 +105,14 @@ for counter=1:max_iter
         end
         gas.state(iL,1) = gas.state(iL,iG);
         C_0 = C;
-        iG=1; iH=1; iC=1; iA=1; iPMP=1; iHTF=1;
         
     else
         
-        if ~design_mode
+        if design_mode
+            
+            gas.state(iL,1) = gas.state(iL,iG);
+        
+        else
             
             %print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
             
@@ -176,48 +130,23 @@ for counter=1:max_iter
             fprintf(1,'%s\n',['P1, bar     P8, bar    PRc      fpH      PRe     fpC     mult     err']);
             fprintf(1,'%8.6f     %8.6f     %8.6f     %8.6f     %8.6f    %8.6f    %8.6f         %8.6f\n',[gas.state(iL,1).p/1e5;gas.state(iL,8).p/1e5;PRc;100*fpH;PRe;100*fpC;PRc*(1-fpH)*(1-fpC)/PRe;100*(gas.state(iL,1).p-gas.state(iL,8).p)/gas.state(iL,1).p])
       
-%{
-            smooth = 0.025;% / double(counter)^0.2 ; % Reduce smoothing factor with number of iterations
-            if switcher == 0
-                gas.state(iL,1).p = gas.state(iL,1).p - smooth * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
-                switcher = 1;
-            elseif switcher == 1
-                gas.state(iL,1).T = gas.state(iL,1).T + smooth * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
-                switcher = 0;
-            elseif switcher == 2
-                %gas.state(iL,1).mdot = Load.mdot(iL);
-                gas.state(iL,1).mdot = gas.state(iL,1).mdot + smooth * (Load.mdot(iL) /( gas.state(iL,1).p / p1guess * sqrt(gas0.state(iL,1).T / gas.state(iL,1).T)) - gas.state(iL,1).mdot);
-                switcher = 0;
-            end
-%}
+            ernewP = gas.state(iL,1).p  - gas.state(iL,iG).p ;
+            ernewT = gas.state(iL,1).T  - gas.state(iL,iG).T ;
 
-            
             if counter == 1
-                
-                p1prev = gas.state(iL,1).p ;
-                T1prev = gas.state(iL,1).T ;
-                erprevP = gas.state(iL,1).p  - gas.state(iL,iG).p ;
-                erprevT = gas.state(iL,1).T  - gas.state(iL,iG).T ;
+               
                 smooth = 0.025 ;
-                
                 gas.state(iL,1).p = gas.state(iL,1).p - smooth * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
                 gas.state(iL,1).T = gas.state(iL,1).T + smooth * (gas.state(iL,iG).T - gas.state(iL,1).T) ;
+
             else
 
-                ernewP = gas.state(iL,1).p  - gas.state(iL,iG).p ;
                 gradPP  = (ernewP - erprevP) / (gas.state(iL,1).p - p1prev) ;
                 gradPT  = (ernewP - erprevP) / (gas.state(iL,1).T - T1prev) ;
                 
-                ernewT = gas.state(iL,1).T  - gas.state(iL,iG).T ;
                 gradTP  = (ernewT - erprevT) / (gas.state(iL,1).p - p1prev) ;
                 gradTT  = (ernewT - erprevT) / (gas.state(iL,1).T - T1prev) ;
-                
-                p1prev = gas.state(iL,1).p ;
-                erprevP = ernewP ;
-               
-                T1prev = gas.state(iL,1).T ;
-                erprevT = ernewT ;
-
+              
                 gas.state(iL,1).p = gas.state(iL,1).p - ernewP / gradPP;% - 0.2 * ernewP / gradPT;
                 gas.state(iL,1).T = gas.state(iL,1).T - ernewT / gradTT;% - 0.2 * ernewT / gradTP;
 %{
@@ -230,19 +159,61 @@ for counter=1:max_iter
 %}
   
             end
-            %}
+
+            p1prev = gas.state(iL,1).p ;
+            T1prev = gas.state(iL,1).T ;
+
+            erprevP = ernewP ;
+            erprevT = ernewT ;
+
             [gas] = update(gas,[iL,1],1);
             
             
-        else
-            gas.state(iL,1) = gas.state(iL,iG); 
         end
         
         C_0 = C;
-        %iG=1; iH=1; iC=1; iA=1; iPMP=1; iHTF=1;
         
     end
 end
+
+% Close working fluid streams
+gas.stage(iL,iG).type = 'end';
+gas = count_Nstg(gas);
+
+% Close air (heat rejection) streams
+iA_out = 1:3:(iA-1); iA_in  = iA_out + 2;
+for i=iA_in, air.stage(iL,i).type = 'end'; end
+air = count_Nstg(air);
+
+% Close storage fluid streams
+iH_out = 1:3:(iH-1); iH_in  = iH_out + 2;
+iC_out = 1:3:(iC-1); iC_in  = iC_out + 2;
+for i=iH_in, fluidH.stage(iL,i).type = 'end'; end
+for i=iC_in, fluidC.stage(iL,i).type = 'end'; end
+fluidH = count_Nstg(fluidH);
+fluidC = count_Nstg(fluidC);
+
+if Load.mode==3
+    % Close HTF streams
+    iHTF_out = 1:4:(iHTF-1); iHTF_in  = iHTF_out + 3;
+    for i=iHTF_in, HTF.stage(iL,i).type = 'end'; end
+    HTF = count_Nstg(HTF);
+end
+
+% Uncomment these lines to print states
+PRc = gas.state(iL,2).p / gas.state(iL,1).p ;
+fpH = (gas.state(iL,2).p - gas.state(iL,5).p) / gas.state(iL,2).p ;
+PRe = gas.state(iL,5).p / gas.state(iL,6).p ;
+fpC = (gas.state(iL,6).p - gas.state(iL,8).p) / gas.state(iL,6).p ;
+%fprintf(1,'%s\n',['P1, bar     P8, bar    PRc      fpH      PRe     fpC     mult']);
+%fprintf(1,'%6.4f     %6.4f     %6.4f     %6.4f     %6.4f    %6.4f    %6.4f\n',[gas.state(iL,1).p/1e5;gas.state(iL,8).p/1e5;PRc;fpH;PRe;fpC;PRc*(1-fpH)*(1-fpC)/PRe])
+
+print_states(gas,iL,1:gas.Nstg(iL)+1,Load);
+print_states(fluidH,iL,1:fluidH.Nstg(iL)+1,Load);
+print_states(fluidC,iL,1:fluidC.Nstg(iL)+1,Load);
+print_states(air,iL,1:air.Nstg(iL)+1,Load);
+
+
 if counter==max_iter
     warning('Exiting JB_CHARGE cycle without having reached convergence');
 end
@@ -339,6 +310,7 @@ function [gas,fluidH,fluidC,HT,CT,air,CCMP,CEXP,CPMP,CFAN,HX,PRch,iG,iH,iC,iA] =
     iA = 1;  % keeps track of the Air (heat rejection) stream number
     iPMP = 1 ; % Keeps track of which pump is being used
     iHTF = 1 ; % Keeps track of the heat transfer fluid stream number
+    PRch = 0 ;
 
     for iN = 1:ind.Nc_ch
         % COMPRESS
