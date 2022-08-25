@@ -62,8 +62,8 @@ else
     environ.T0 = Load.T0_off(iL) ;
     
     % Check if these can be deleted
-    p1prev = 0 ; erprevP = 0 ; gradPP = 0 ; gradPT = 0;
-    T1prev = 0 ; erprevT = 0 ; gradTP = 0 ; gradTT = 0;
+    p1prev = 0 ; erprevP = 0 ; gradPP = 0 ;
+    T1prev = 0 ; erprevT = 0 ; gradTT = 0;
 
     TOLconv = 1e-4 ;
 end
@@ -88,8 +88,8 @@ for counter=1:max_iter
         
     % Determine convergence and proceed
     C = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-    %D = 100*[abs(gas.state(iL,1).T-gas.state(iL,iG).T)/gas.state(iL,1).T ; abs(gas.state(iL,1).p-gas.state(iL,iG).p)/gas.state(iL,1).p];
     convergence = all(abs((C(C~=0) - C_0(C~=0))./C(C~=0))*100 < TOLconv);
+    %D = 100*[abs(gas.state(iL,1).T-gas.state(iL,iG).T)/gas.state(iL,1).T ; abs(gas.state(iL,1).p-gas.state(iL,iG).p)/gas.state(iL,1).p];
     %convergence = all(D < TOLconv);
     
     if (convergence && strcmp(HX_model_temp,HX_model)) || counter==max_iter 
@@ -147,9 +147,6 @@ for counter=1:max_iter
             else
 
                 gradPP  = (ernewP - erprevP) / (gas.state(iL,1).p - p1prev) ;
-                gradPT  = (ernewP - erprevP) / (gas.state(iL,1).T - T1prev) ;
-                
-                gradTP  = (ernewT - erprevT) / (gas.state(iL,1).p - p1prev) ;
                 gradTT  = (ernewT - erprevT) / (gas.state(iL,1).T - T1prev) ;
               
                 p1prev = gas.state(iL,1).p ;
