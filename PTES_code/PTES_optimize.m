@@ -66,7 +66,7 @@ try
                             JB_CHARGE_PB
                             iL=iL+1;
                         case 'dis'
-                            JB_DISCHARGE_alt_Qrej
+                            JB_DISCHARGE%_alt_Qrej
                             iL=iL+1;
                         case 'disPB'
                             JB_DISCHARGE_PB

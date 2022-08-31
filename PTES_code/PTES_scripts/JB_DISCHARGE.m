@@ -71,7 +71,7 @@ for counter = 1:max_iter
     fprintf(1,['Discharging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
     
     [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = ...
-        run_JB_discharge(ind,gas,gas0,fluidH,fluidC,HT,CT,air,environ,DCMP,DEXP,DPMP,DFAN,HX,HX0,TP,Load,design_mode,iL);
+        run_JB_discharge_alt_Qrej(ind,gas,gas0,fluidH,fluidC,HT,CT,air,environ,DCMP,DEXP,DPMP,DFAN,HX,HX0,TP,Load,design_mode,iL);
     
     % Determine convergence and proceed
     D = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
@@ -228,11 +228,6 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
                 fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p; %#ok<*SAGROW>
                 [fluidC] = update(fluidC,[iL,iC],1);
 
-                if CSmode == 2 && design_mode == 1
-                    warning('CSmode == 2 only works in off-design operation. Changing to CSmode == 1')
-                    CSmode = 1 ;
-                end
-
                 if CSmode == 0
                     % Equal mdot*cp on each side of heat exchanger
                     [HX(ind.ihx_cld(iN)),gas,iG,fluidC,iC] = hex_func(HX(ind.ihx_cld(iN)),iL,gas,iG,fluidC,iC,1,1.0);
@@ -252,6 +247,21 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
                     end
                     fluidC.state(iL,iC).mdot = HSrat * HX0(ind.ihx_cld(iN)).C(2).mdot ;
                     [HX(ind.ihx_cld(iN)),gas,iG,fluidC,iC] = hex_func(HX(ind.ihx_cld(iN)),iL,gas,iG,fluidC,iC,0,-1);
+
+                elseif CSmode == 2 && design_mode == 1
+                    % Discharge the CS at the same rate as the hot store so
+                    % they discharge in the same amount of time
+                    if isempty(HX(ind.ihx_hot(iN)).H(iL).mdot)
+                        HSrat = 1;
+                    else
+                        HSrat = HX(ind.ihx_hot(iN)).H(iL).mdot / HX(ind.ihx_hot(iN)).C(1).mdot ;
+                    end
+                    if HSrat <= 0 || isnan(HSrat)
+                        HSrat = 1;
+                    end
+                    fluidC.state(iL,iC).mdot = HSrat * HX(ind.ihx_cld(iN)).H(1).mdot ;
+                    [HX(ind.ihx_cld(iN)),gas,iG,fluidC,iC] = hex_func(HX(ind.ihx_cld(iN)),iL,gas,iG,fluidC,iC,0,-1);
+                
                 end
 
                 [DPMP(iPMP),fluidC,iC] = compexp_func (DPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
@@ -299,7 +309,7 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
     iA = 1;  % keeps track of the Air (heat rejection) stream number
     iPMP = 1 ; % Keeps track of which pump is being used
 
-    CSmode = 0 ; % Determines how cold store is discharged
+    CSmode = 2 ; % Determines how cold store is discharged
 
     % REGENERATE (gas-gas)
     [HX(ind.ihx_reg),gas,iG,~,~] = hex_func(HX(ind.ihx_reg),iL,gas,ind.iReg1,gas,ind.iReg2,0,0);
@@ -315,10 +325,10 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
                 fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p; %#ok<*SAGROW>
                 [fluidC] = update(fluidC,[iL,iC],1);
 
-                if CSmode == 2 && design_mode == 1
-                    warning('CSmode == 2 only works in off-design operation. Changing to CSmode == 1')
-                    CSmode = 1 ;
-                end
+                %if CSmode == 2 && design_mode == 1
+                %    warning('CSmode == 2 only works in off-design operation. Changing to CSmode == 1')
+                %    CSmode = 1 ;
+                %end
 
                 if CSmode == 0
                     % Equal mdot*cp on each side of heat exchanger
@@ -339,6 +349,20 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
                     end
                     fluidC.state(iL,iC).mdot = HSrat * HX0(ind.ihx_cld(iN)).C(2).mdot ;
                     [HX(ind.ihx_cld(iN)),gas,iG,fluidC,iC] = hex_func(HX(ind.ihx_cld(iN)),iL,gas,iG,fluidC,iC,0,-1);
+                elseif CSmode == 2 && design_mode == 1
+                    % Discharge the CS at the same rate as the hot store so
+                    % they discharge in the same amount of time
+                    if isempty(HX(ind.ihx_hot(iN)).H(iL).mdot)
+                        HSrat = 1;
+                    else
+                        HSrat = HX(ind.ihx_hot(iN)).H(iL).mdot / HX(ind.ihx_hot(iN)).C(1).mdot ;
+                    end
+                    if HSrat <= 0 || isnan(HSrat)
+                        HSrat = 1;
+                    end
+                    fluidC.state(iL,iC).mdot = HSrat * HX(ind.ihx_cld(iN)).H(1).mdot ;
+                    [HX(ind.ihx_cld(iN)),gas,iG,fluidC,iC] = hex_func(HX(ind.ihx_cld(iN)),iL,gas,iG,fluidC,iC,0,-1);
+                
                 end
 
                 [DPMP(iPMP),fluidC,iC] = compexp_func (DPMP(iPMP),iL,fluidC,iC,'Paim',fluidC.state(iL,1).p,1);
