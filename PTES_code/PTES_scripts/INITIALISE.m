@@ -303,3 +303,9 @@ if Loffdesign
 end
 
 design_mode = 1 ; % Logical - currently in design mode
+
+% Save design point gas states
+gas0 = gas ;
+HX0  = HX  ; % Also save the heat exchanger structures
+fluidC0 = fluidC ;
+fluidH0 = fluidH ;

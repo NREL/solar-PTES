@@ -25,6 +25,9 @@ air  = fluid_class('Nitrogen','ENV','CP','BICUBIC&HEOS',Load0.num,30);
 
 % Save design point gas states
 gas0 = gas ;
+HX0  = HX  ; % Also save the heat exchanger structures
+fluidC0 = fluidC ;
+fluidH0 = fluidH ;
 
 % Reset the Load parameter to be the off-design load cycle
 Load = Load0 ;
