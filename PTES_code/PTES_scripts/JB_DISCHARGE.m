@@ -43,6 +43,8 @@ if design_mode == 1
             error('not implemented')
     end
 
+    mprev  = 0 ; erprevM = 0 ; gradMM = 0;
+
 else
     for ii = 1 : numel(D(D~=0))/2
         gas.state(iL,ii).T    = D(1,ii) ;
@@ -69,7 +71,7 @@ D_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
 max_iter = 150;
 for counter = 1:max_iter
     fprintf(1,['Discharging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
-    
+
     [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = ...
         run_JB_discharge_alt_Qrej(ind,gas,gas0,fluidH,fluidC,HT,CT,air,environ,DCMP,DEXP,DPMP,DFAN,HX,HX0,TP,Load,design_mode,iL);
     
@@ -132,6 +134,25 @@ for counter = 1:max_iter
             
         else
             gas.state(iL,1) = gas.state(iL,iG);
+
+            ernewM = fluidH.state(1,1).mdot - fluidH.state(iL,1).mdot ;
+                
+            if counter == 1
+                
+                mprev = fluidH.state(iL,1).mdot ;
+                smooth = 0.025 ;
+                
+                %TP.PRdis = gas.state(iL,1).p - smooth * (gas.state(iL,iG).p - gas.state(iL,1).p) ;
+                
+            else
+                gradMM  = (ernewM - erprevM) / (fluidH.state(iL,1).mdot - mprev) ;
+                mprev = fluidH.state(iL,1).mdot ;
+                TP.PRdis = TP.PRdis - 0.05 * ernewM / gradMM ;
+            end
+            
+            erprevM = ernewM ;
+
+
         end
         
         D_0 = D;
@@ -296,7 +317,6 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
     
 
 end
-
 
 
 function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_JB_discharge_alt_Qrej(ind,gas,gas0,fluidH,fluidC,HT,CT,air,environ,DCMP,DEXP,DPMP,DFAN,HX,HX0,TP,Load,design_mode,iL)
