@@ -5,6 +5,7 @@
 % information is also used to calculate the capital cost of the system).
 
 % TURN OFF SETTMAX
+setTmax0 = setTmax ;
 setTmax = 0 ; % Instead everything is based off the pressure ratio
 pmax    = CCMP.pr0 * CCMP.Pin ;
 

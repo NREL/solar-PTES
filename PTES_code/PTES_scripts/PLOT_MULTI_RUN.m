@@ -116,15 +116,18 @@ end
 
 % EXTRACT DATA INTO ARRAYS
 chi_mat  = var_extract('chi_PTES_para',Npnt,Ncrv);
-lcos_mat = var_extract('lcosM',Npnt,Ncrv);
-capcost_mat = var_extract('cap_costM',Npnt,Ncrv);
 Wdis_mat = var_extract('E_net_dis',Npnt,Ncrv);
 tdis_mat = var_extract('t_dis',Npnt,Ncrv);
-
 Wpow_mat = Wdis_mat ./ tdis_mat ./ 1e6 ;
 
-mdot_mat = var_extract('mdot',Npnt,Ncrv);
-Ttop_mat = var_extract('Ttop',Npnt,Ncrv);
+
+if ~Loffdesign
+    mdot_mat = var_extract('mdot',Npnt,Ncrv);
+    Ttop_mat = var_extract('Ttop',Npnt,Ncrv);
+    lcos_mat = var_extract('lcosM',Npnt,Ncrv);
+    capcost_mat = var_extract('cap_costM',Npnt,Ncrv);
+end
+
 % WL_1_mat = var_extract('WL_comp',   Npnt,Ncrv);
 % WL_2_mat = var_extract('WL_exp',    Npnt,Ncrv);
 % WL_3_mat = var_extract('WL_hexs',   Npnt,Ncrv);
@@ -152,32 +155,9 @@ ylim([20 80])
 legend(Lcrv,'Location','Best')
 grid on;
 
-% LCOS
-figure(fignum+1);
-for icrv=1:Ncrv
-    plot(Apnt,lcos_mat(:,icrv),stl{icrv}); hold on;
-end
-hold off;
-xlabel([Tpnt,Upnt])
-ylabel('LCOS [$$\$$$/kWh]')
-ylim([0 0.5])
-legend(Lcrv,'Location','Best')
-grid on;
-
-% Capital cost
-figure(fignum+2);
-for icrv=1:Ncrv
-    plot(Apnt,capcost_mat(:,icrv),stl{icrv}); hold on;
-end
-hold off;
-xlabel([Tpnt,Upnt])
-ylabel('Capital cost [$$\$$$]')
-ylim([0 5e7])
-legend(Lcrv,'Location','Best')
-grid on;
 
 % Power output during discharging
-figure(fignum+3);
+figure(fignum+1);
 for icrv=1:Ncrv
     plot(Apnt,Wpow_mat(:,icrv),stl{icrv}); hold on;
 end
@@ -188,7 +168,33 @@ ylim([0 200])
 legend(Lcrv,'Location','Best')
 grid on;
 
+if ~Loffdesign
 
+    % LCOS
+    figure(fignum+2);
+    for icrv=1:Ncrv
+        plot(Apnt,lcos_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    xlabel([Tpnt,Upnt])
+    ylabel('LCOS [$$\$$$/kWh]')
+    ylim([0 0.5])
+    legend(Lcrv,'Location','Best')
+    grid on;
+
+
+    % Capital cost
+    figure(fignum+3);
+    for icrv=1:Ncrv
+        plot(Apnt,capcost_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    xlabel([Tpnt,Upnt])
+    ylabel('Capital cost [$$\$$$]')
+    ylim([0 5e7])
+    legend(Lcrv,'Location','Best')
+    grid on;
+end
 
 %{
 % Efficiency Rankine cycle

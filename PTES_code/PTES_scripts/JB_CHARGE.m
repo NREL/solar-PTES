@@ -297,7 +297,7 @@ function [gas,fluidH,fluidC,HT,CT,air,CCMP,CEXP,CPMP,CFAN,HX,PRch,iG,iH,iC,iA] =
             PRch = gas.state(iL,iG).p / gas.state(iL,iG-1).p ;
         else
             if design_mode == 1
-                PRc = (pmax/gas.state(iL,iG).p)^(1/(ind.Nc_ch+1-iN)); % stage compression pressure ratio
+                PRc = (TP.pmax/gas.state(iL,iG).p)^(1/(ind.Nc_ch+1-iN)); % stage compression pressure ratio
             else
                 PRc = CCMP.pr0 ;
             end

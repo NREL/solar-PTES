@@ -22,9 +22,14 @@ switch Vpnt
     case 'Ne_ch'
         Ne_ch = Apnt(ipnt);
     case 'mdot_off'
-        Load0.mdot = Design_Load.mdot .* Apnt(ipnt) ;
+        %Load0.mdot = Design_Load.mdot .* Apnt(ipnt) ;
+        if ~Loffdesign
+            Load0.mdot = ones(Design_Load.num,1) * Apnt(ipnt) ;
+        else
+            Load0.mdot = ones(Load0.num,1) * Apnt(ipnt) * Design_Load.mdot(1) ;
+        end
     case 'T0_off'
-        T0_off    = (T0 + Acrv(icrv)) * ones(Load.num,1) ;
+        Load0.T0_off    = (T0 + Acrv(icrv)) * ones(Load.num,1) ;
     case 'Wdis_req'
         Wdis_req = Apnt(ipnt);
     case 'stH'
@@ -64,9 +69,13 @@ switch Vcrv
     case 'Ne_ch'
         Ne_ch = Acrv(icrv);
     case 'mdot_off'
-        Load0.mdot = Design_Load.mdot .* Acrv(icrv) ;
+        if ~Loffdesign
+            Load0.mdot = ones(Design_Load.num,1) * Acrv(icrv) ;
+        else
+            Load0.mdot = ones(Load0.num,1) * Acrv(icrv) * Design_Load.mdot(1);
+        end
     case 'T0_off'
-        T0_off    = (T0 + Acrv(icrv)) * ones(Load.num,1) ;
+        Load0.T0_off    = (T0 + Acrv(icrv)) * ones(Load.num,1) ;
     case 'Wdis_req'
         Wdis_req = Acrv(icrv);
     case 'stH'
