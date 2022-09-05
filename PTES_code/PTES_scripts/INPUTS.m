@@ -127,7 +127,7 @@ environ = environment_class(T0,p0,Load.num,10);
 if multi_run==1
     % Set variable along curves
     Vpnt = 'mdot_off';  % variable along curve
-    Npnt = 5;            % points on curve
+    Npnt = 3;            % points on curve
     pnt1 = 1.0;    % min value
     pnt2 = 0.6;    % max value
     Apnt = linspace(pnt1,pnt2,Npnt); % array

@@ -126,6 +126,34 @@ if ~Loffdesign
     Ttop_mat = var_extract('Ttop',Npnt,Ncrv);
     lcos_mat = var_extract('lcosM',Npnt,Ncrv);
     capcost_mat = var_extract('cap_costM',Npnt,Ncrv);
+
+else
+    
+    CCMPeta_mat = var_extract('CCMPeta',Npnt,Ncrv);
+    CCMPpr_mat  = var_extract('CCMPpr',Npnt,Ncrv);
+    CEXPeta_mat = var_extract('CEXPeta',Npnt,Ncrv);
+    CEXPpr_mat  = var_extract('CEXPpr',Npnt,Ncrv);
+
+    DCMPeta_mat = var_extract('DCMPeta',Npnt,Ncrv);
+    DCMPpr_mat  = var_extract('DCMPpr',Npnt,Ncrv);
+    DEXPeta_mat = var_extract('DEXPeta',Npnt,Ncrv);
+    DEXPpr_mat  = var_extract('DEXPpr',Npnt,Ncrv);
+
+    flHmdotC_mat = var_extract('flHmdotC',Npnt,Ncrv);
+    flHT1C_mat = var_extract('flHT1C',Npnt,Ncrv);
+    flHT2C_mat = var_extract('flHT2C',Npnt,Ncrv);
+    flHmdotD_mat = var_extract('flHmdotD',Npnt,Ncrv);
+    flHT1D_mat = var_extract('flHT1D',Npnt,Ncrv);
+    flHT2D_mat = var_extract('flHT2D',Npnt,Ncrv);
+
+    flCmdotC_mat = var_extract('flCmdotC',Npnt,Ncrv);
+    flCT1C_mat   = var_extract('flCT1C',Npnt,Ncrv);
+    flCT2C_mat   = var_extract('flCT2C',Npnt,Ncrv);
+    flCmdotD_mat = var_extract('flCmdotD',Npnt,Ncrv);
+    flCT1D_mat   = var_extract('flCT1D',Npnt,Ncrv);
+    flCT2D_mat   = var_extract('flCT2D',Npnt,Ncrv);
+   
+
 end
 
 % WL_1_mat = var_extract('WL_comp',   Npnt,Ncrv);
@@ -151,7 +179,7 @@ end
 hold off;
 xlabel([Tpnt,Upnt])
 ylabel('Roundtrip efficiency [$$\%$$]')
-ylim([20 80])
+%ylim([20 80])
 legend(Lcrv,'Location','Best')
 grid on;
 
@@ -164,7 +192,7 @@ end
 hold off;
 xlabel([Tpnt,Upnt])
 ylabel('Discharging power output [$$MW_e$$]')
-ylim([0 200])
+%ylim([0 200])
 legend(Lcrv,'Location','Best')
 grid on;
 
@@ -194,6 +222,250 @@ if ~Loffdesign
     ylim([0 5e7])
     legend(Lcrv,'Location','Best')
     grid on;
+
+
+else
+
+
+    % Turbomachinery characteristics
+    figure(fignum+2);
+
+    % Charge compressor
+    subplot(4,2,1);
+    for icrv=1:Ncrv
+        plot(Apnt,CCMPeta_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    ylabel('Efficiency, \%');
+    title('Charge compressor');
+    fontsize(gca,10,"points")
+    grid on;
+
+    subplot(4,2,2);
+    for icrv=1:Ncrv
+        plot(Apnt,CCMPpr_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    ylabel('Pressure ratio')
+    title('Charge compressor');
+    fontsize(gca,10,"points")
+    grid on;
+
+    % Charge expander
+    subplot(4,2,3);
+    for icrv=1:Ncrv
+        plot(Apnt,CEXPeta_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    ylabel('Efficiency, \%')
+    title('Charge expander');
+    fontsize(gca,10,"points")
+    grid on;
+
+    subplot(4,2,4);
+    for icrv=1:Ncrv
+        plot(Apnt,CEXPpr_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    ylabel('Pressure ratio');
+    title('Charge expander');
+    fontsize(gca,10,"points")
+    grid on;
+
+    % Discharge compressor
+    subplot(4,2,5);
+    for icrv=1:Ncrv
+        plot(Apnt,DCMPeta_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    ylabel('Efficiency, \%')
+    title('Discharge compressor');
+    fontsize(gca,10,"points")
+    grid on;
+
+    subplot(4,2,6);
+    for icrv=1:Ncrv
+        plot(Apnt,DCMPpr_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    ylabel('Pressure ratio')
+    title('Discharge compressor');
+    fontsize(gca,10,"points")
+    grid on;
+
+    % Discharge expander
+    subplot(4,2,7);
+    for icrv=1:Ncrv
+        plot(Apnt,DEXPeta_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    xlabel([Tpnt,Upnt])
+    ylabel('Efficiency, \%')
+    title('Discharge expander');
+    fontsize(gca,10,"points")
+    grid on;
+
+    subplot(4,2,8);
+    for icrv=1:Ncrv
+        plot(Apnt,DEXPpr_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    xlabel([Tpnt,Upnt])
+    ylabel('Pressure ratio')
+    legend(Lcrv,'Location','Best');
+    title('Discharge expander');
+    fontsize(gca,10,"points")
+    grid on;
+
+
+    % Hot fluid behaviour
+    figure(fignum+3);
+
+    % Charge mass flow rate
+    subplot(3,2,1);
+    for icrv=1:Ncrv
+        plot(Apnt,flHmdotC_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    ylabel('Mass flow rate, kg/s');
+    title('Charge hot fluid');
+    fontsize(gca,10,"points")
+    grid on;
+
+    % Discharge mass flow rate
+    subplot(3,2,2);
+    for icrv=1:Ncrv
+        plot(Apnt,flHmdotD_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    ylabel('Mass flow rate, kg/s');
+    title('Discharge hot fluid');
+    fontsize(gca,10,"points")
+    grid on;
+
+
+    % Charge initial temperature of hot fluid
+    subplot(3,2,3);
+    for icrv=1:Ncrv
+        plot(Apnt,flHT1C_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    ylabel('Temperature, K');
+    title('Initial temperature (charge)');
+    fontsize(gca,10,"points")
+    grid on;
+
+    % Discharge initial temperature of hot fluid
+    subplot(3,2,4);
+    for icrv=1:Ncrv
+        plot(Apnt,flHT1D_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    ylabel('Temperature, K');
+    title('Initial temperature (discharge)');
+    fontsize(gca,10,"points")
+    grid on;
+
+    % Charge final temperature of hot fluid
+    subplot(3,2,5);
+    for icrv=1:Ncrv
+        plot(Apnt,flHT2C_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    xlabel([Tpnt,Upnt])
+    ylabel('Temperature, K');
+    title('Final temperature (charge)');
+    fontsize(gca,10,"points")
+    grid on;
+
+    % Discharge final temperature of hot fluid
+    subplot(3,2,6);
+    for icrv=1:Ncrv
+        plot(Apnt,flHT2D_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    xlabel([Tpnt,Upnt])
+    ylabel('Temperature, K');
+    title('Final temperature (discharge)');
+    legend(Lcrv,'Location','Best');
+    fontsize(gca,10,"points")
+    grid on;
+
+
+
+    % Cold fluid behaviour
+    figure(fignum+4);
+
+    % Charge mass flow rate
+    subplot(3,2,1);
+    for icrv=1:Ncrv
+        plot(Apnt,flCmdotC_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    ylabel('Mass flow rate, kg/s');
+    title('Charge cold fluid');
+    fontsize(gca,10,"points")
+    grid on;
+
+    % Discharge mass flow rate
+    subplot(3,2,2);
+    for icrv=1:Ncrv
+        plot(Apnt,flCmdotD_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    ylabel('Mass flow rate, kg/s');
+    title('Discharge cold fluid');
+    fontsize(gca,10,"points")
+    grid on;
+
+
+    % Charge initial temperature of hot fluid
+    subplot(3,2,3);
+    for icrv=1:Ncrv
+        plot(Apnt,flCT1C_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    ylabel('Temperature, K');
+    title('Initial temperature (charge)');
+    fontsize(gca,10,"points")
+    grid on;
+
+    % Discharge initial temperature of hot fluid
+    subplot(3,2,4);
+    for icrv=1:Ncrv
+        plot(Apnt,flCT1D_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    ylabel('Temperature, K');
+    title('Initial temperature (discharge)');
+    fontsize(gca,10,"points")
+    grid on;
+
+    % Charge final temperature of hot fluid
+    subplot(3,2,5);
+    for icrv=1:Ncrv
+        plot(Apnt,flCT2C_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    xlabel([Tpnt,Upnt])
+    ylabel('Temperature, K');
+    title('Final temperature (charge)');
+    fontsize(gca,10,"points")
+    grid on;
+
+    % Discharge final temperature of hot fluid
+    subplot(3,2,6);
+    for icrv=1:Ncrv
+        plot(Apnt,flCT2D_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    xlabel([Tpnt,Upnt])
+    ylabel('Temperature, K');
+    title('Final temperature (discharge)');
+    legend(Lcrv,'Location','Best');
+    fontsize(gca,10,"points")
+    grid on;
+
 end
 
 %{

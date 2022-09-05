@@ -27,15 +27,15 @@ switch Load.mode
         else
             filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',icrv,ipnt);
 
-            CCMPeta = CCMP.eta ;
-            CCMPpr  = CCMP.pr ;
-            CEXPeta = CEXP.eta ;
-            CEXPpr  = CEXP.pr ;
+            CCMPeta = CCMP.eta(i_chg) ;
+            CCMPpr  = CCMP.pr(i_chg) ;
+            CEXPeta = CEXP.eta(i_chg) ;
+            CEXPpr  = CEXP.pr(i_chg) ;
 
-            DCMPeta = DCMP.eta ;
-            DCMPpr  = DCMP.pr ;
-            DEXPeta = DEXP.eta ;
-            DEXPpr  = DEXP.pr ;
+            DCMPeta = DCMP.eta(i_dis) ;
+            DCMPpr  = DCMP.pr(i_dis) ;
+            DEXPeta = DEXP.eta(i_dis) ;
+            DEXPpr  = DEXP.pr(i_dis) ;
 
             lastci = fluidH.Nstg(i_chg)+1;
             lastdi = fluidH.Nstg(i_dis)+1;
