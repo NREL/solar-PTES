@@ -61,7 +61,7 @@ plossX    = 0.001;
 HX_shapeX = 'cross-flow';
 
 % Code options
-multi_run   = 1; % run cycle several times with different parameters?
+multi_run   = 0; % run cycle several times with different parameters?
 Lmulti_mdot = 0; % Read data from previous multirun to recalculate what the actual mass flow rates should be for a desired power
 optimise    = 0; % optimise cycle?
 make_plots  = 1; % make plots?
@@ -127,15 +127,15 @@ environ = environment_class(T0,p0,Load.num,10);
 if multi_run==1
     % Set variable along curves
     Vpnt = 'mdot_off';  % variable along curve
-    Npnt = 3;            % points on curve
+    Npnt = 5;            % points on curve
     pnt1 = 1.0;    % min value
-    pnt2 = 0.6;    % max value
+    pnt2 = 0.2;    % max value
     Apnt = linspace(pnt1,pnt2,Npnt); % array
     
     % Set variable between curves
     Vcrv = 'T0_off';
     %Acrv = [250,350,450]+273.15;
-    Acrv = [0 10];
+    Acrv = [-10 0 25];
     Ncrv = numel(Acrv);
     
     if Lmulti_mdot

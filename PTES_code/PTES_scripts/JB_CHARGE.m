@@ -84,7 +84,7 @@ for counter=1:max_iter
     fprintf(1,['Charging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
 
     [gas,fluidH,fluidC,HT,CT,air,CCMP,CEXP,CPMP,CFAN,HX,PRch,iG,iH,iC,iA] = ...
-        run_JB_charge(ind,gas,fluidH,fluidC,HT,CT,air,environ,CCMP,CEXP,CPMP,CFAN,HX,TP,Load,design_mode,iL);
+        run_JB_charge(ind,gas,gas0,fluidH,fluidC,HT,CT,air,environ,CCMP,CEXP,CPMP,CFAN,HX,TP,Load,design_mode,iL);
         
     % Determine convergence and proceed
     C = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
@@ -279,7 +279,7 @@ end
 
 
 
-function [gas,fluidH,fluidC,HT,CT,air,CCMP,CEXP,CPMP,CFAN,HX,PRch,iG,iH,iC,iA] = run_JB_charge(ind,gas,fluidH,fluidC,HT,CT,air,environ,CCMP,CEXP,CPMP,CFAN,HX,TP,Load,design_mode,iL)
+function [gas,fluidH,fluidC,HT,CT,air,CCMP,CEXP,CPMP,CFAN,HX,PRch,iG,iH,iC,iA] = run_JB_charge(ind,gas,gas0,fluidH,fluidC,HT,CT,air,environ,CCMP,CEXP,CPMP,CFAN,HX,TP,Load,design_mode,iL)
     % Set stage indices
     iG = 1;  % keeps track of the gas stage number
     iH = 1;  % keeps track of the Hot fluid stream number

@@ -53,7 +53,8 @@ else
         
         % For inventory control, assume that the pressure scales with the off-design mass flow rate
         %gas.state(iL,ii).p = (DEXP.Pin/DEXP.pr0) * Load.mdot(iL) / DEXP.mdot0 ;
-        gas.state(iL,ii).p = gas0.state(2,ii).p * (Load.mdot(iL) / DEXP.mdot0) *  sqrt(Load.T0_off(iL) / T0) ; % Second ever run is discharging
+        i_dis = Design_Load.ind(any(Design_Load.type == {'dis'},2));
+        gas.state(iL,ii).p = gas0.state(i_dis,ii).p * (Load.mdot(iL) / DEXP.mdot0) *  sqrt(Load.T0_off(iL) / T0) ; % Second ever run is discharging
         [gas] = update(gas,[iL,ii],1);
         
     end   
