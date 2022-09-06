@@ -129,7 +129,7 @@ if multi_run==1
     Vpnt = 'mdot_off';  % variable along curve
     Npnt = 2;            % points on curve
     pnt1 = 1.0;    % min value
-    pnt2 = 0.5;    % max value
+    pnt2 = 0.2;    % max value
     Apnt = linspace(pnt1,pnt2,Npnt); % array
     
     % Set variable between curves

@@ -3,7 +3,7 @@ set_graphics
 stl = {'-s','-.s','--s',':s',... % line styles
     '-^','-.^','--^',':^'};
 fignum = 20;
-save_multi_figs = 0;
+save_multi_figs = 1;
 
 % Load Multi_run_var file. This contains information about the variables
 % being changed along the multi-run calls
@@ -158,6 +158,9 @@ else
     E_net_chg_mat = var_extract('E_net_chg',Npnt,Ncrv);
     E_net_dis_mat = var_extract('E_net_dis',Npnt,Ncrv);
 
+    hSOC_final_mat = var_extract('hSOC_final',Npnt,Ncrv);
+    cSOC_final_mat = var_extract('cSOC_final',Npnt,Ncrv);
+
 end
 
 % WL_1_mat = var_extract('WL_comp',   Npnt,Ncrv);
@@ -263,9 +266,31 @@ else
     ylabel('Discharge duration [h]')
     legend(Lcrv,'Location','Best')
     grid on;
+    
+    % Hot storage final state-of-charge
+    figure(fignum+5);
+    for icrv=1:Ncrv
+        plot(Apnt,hSOC_final_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    xlabel([Tpnt,Upnt])
+    ylabel('Hot store final SOC [-]')
+    legend(Lcrv,'Location','Best')
+    grid on;
+
+    % Cold storage final state-of-charge
+    figure(fignum+6);
+    for icrv=1:Ncrv
+        plot(Apnt,cSOC_final_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    xlabel([Tpnt,Upnt])
+    ylabel('Cold store final SOC [-]')
+    legend(Lcrv,'Location','Best')
+    grid on;
 
     % Turbomachinery characteristics
-    figure(fignum+5);
+    figure(fignum+7);
 
     % Charge compressor
     subplot(4,2,1);
@@ -356,7 +381,7 @@ else
 
 
     % Hot fluid behaviour
-    figure(fignum+6);
+    figure(fignum+8);
 
     % Charge mass flow rate
     subplot(3,2,1);
@@ -431,7 +456,7 @@ else
 
 
     % Cold fluid behaviour
-    figure(fignum+7);
+    figure(fignum+9);
 
     % Charge mass flow rate
     subplot(3,2,1);
@@ -588,9 +613,29 @@ end
 %}
 switch save_multi_figs
     case 1
-        formats = {'epsc'};
-        save_fig(fignum,'./Outputs/exergy_eff',formats);
-        save_fig(fignum+1,'./Outputs/HEeff_and_time',formats);
+        if ~exist('./Outputs/Multi_run_figs','dir')
+            mkdir('./Outputs/Multi_run_figs')
+        else
+            delete('./Outputs/Multi_run_figs/*')
+        end
+        formats = {'svg','jpg'};
+
+        save_fig(fignum,'./Outputs/Multi_run_figs/RTeff',formats);
+        save_fig(fignum+1,'./Outputs/Multi_run_figs/Wdis',formats);
+
+        if ~Loffdesign
+            save_fig(fignum+2,'./Outputs/Multi_run_figs/LCOS',formats);
+            save_fig(fignum+3,'./Outputs/Multi_run_figs/Ccap',formats);
+        else
+            save_fig(fignum+2,'./Outputs/Multi_run_figs/COP',formats);
+            save_fig(fignum+3,'./Outputs/Multi_run_figs/HEeff',formats);
+            save_fig(fignum+4,'./Outputs/Multi_run_figs/tdis',formats);
+            save_fig(fignum+5,'./Outputs/Multi_run_figs/HSsoc',formats);
+            save_fig(fignum+6,'./Outputs/Multi_run_figs/CSsoc',formats);
+            save_fig(fignum+7,'./Outputs/Multi_run_figs/turbo',formats);
+            save_fig(fignum+8,'./Outputs/Multi_run_figs/fluidH',formats);
+            save_fig(fignum+9,'./Outputs/Multi_run_figs/fluidC',formats);
+        end
         %{
         for icrv=1:Ncrv
             savename = strcat('./Outputs/WL_mat_',sprintf('%d',icrv));
