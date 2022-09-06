@@ -152,7 +152,10 @@ else
     flCmdotD_mat = var_extract('flCmdotD',Npnt,Ncrv);
     flCT1D_mat   = var_extract('flCT1D',Npnt,Ncrv);
     flCT2D_mat   = var_extract('flCT2D',Npnt,Ncrv);
-   
+
+    QH_chg_mat    = var_extract('QH_chg',Npnt,Ncrv);
+    QH_dis_mat    = var_extract('QH_dis',Npnt,Ncrv);
+    E_net_dis_mat = var_extract('E_net_dis',Npnt,Ncrv);
 
 end
 
@@ -226,9 +229,42 @@ if ~Loffdesign
 
 else
 
+    % Heat pump COP
+    figure(fignum+2);
+    for icrv=1:Ncrv
+        plot(Apnt,QH_chg_mat(:,icrv)./E_net_chg_mat(:,icrv),stl{icrv}); hold on;
+    end
+    hold off;
+    xlabel([Tpnt,Upnt])
+    ylabel('Heat Pump COP [-]')
+    legend(Lcrv,'Location','Best')
+    grid on;
+
+    % Heat engine efficiency
+    figure(fignum+3);
+    for icrv=1:Ncrv
+        plot(Apnt,E_net_dis_mat(:,icrv)./QH_dis_mat(:,icrv).*100,stl{icrv}); hold on;
+    end
+    hold off;
+    xlabel([Tpnt,Upnt])
+    ylabel('Heat engine efficiency [$$\%$$]')
+    legend(Lcrv,'Location','Best')
+    grid on;
+
+
+    % Discharge duration
+    figure(fignum+4);
+    for icrv=1:Ncrv
+        plot(Apnt,tdis_mat(:,icrv)/3600,stl{icrv}); hold on;
+    end
+    hold off;
+    xlabel([Tpnt,Upnt])
+    ylabel('Discharge duration [h]')
+    legend(Lcrv,'Location','Best')
+    grid on;
 
     % Turbomachinery characteristics
-    figure(fignum+2);
+    figure(fignum+5);
 
     % Charge compressor
     subplot(4,2,1);
@@ -236,7 +272,7 @@ else
         plot(Apnt,CCMPeta_mat(:,icrv),stl{icrv}); hold on;
     end
     hold off;
-    ylabel('Efficiency, \%');
+    ylabel('Efficiency, [$$\%$$]');
     title('Charge compressor');
     fontsize(gca,10,"points")
     grid on;
@@ -257,7 +293,7 @@ else
         plot(Apnt,CEXPeta_mat(:,icrv),stl{icrv}); hold on;
     end
     hold off;
-    ylabel('Efficiency, \%')
+    ylabel('Efficiency, [$$\%$$]')
     title('Charge expander');
     fontsize(gca,10,"points")
     grid on;
@@ -278,7 +314,7 @@ else
         plot(Apnt,DCMPeta_mat(:,icrv),stl{icrv}); hold on;
     end
     hold off;
-    ylabel('Efficiency, \%')
+    ylabel('Efficiency, [$$\%$$]')
     title('Discharge compressor');
     fontsize(gca,10,"points")
     grid on;
@@ -300,7 +336,7 @@ else
     end
     hold off;
     xlabel([Tpnt,Upnt])
-    ylabel('Efficiency, \%')
+    ylabel('Efficiency, [$$\%$$]')
     title('Discharge expander');
     fontsize(gca,10,"points")
     grid on;
@@ -319,7 +355,7 @@ else
 
 
     % Hot fluid behaviour
-    figure(fignum+3);
+    figure(fignum+6);
 
     % Charge mass flow rate
     subplot(3,2,1);
@@ -394,7 +430,7 @@ else
 
 
     % Cold fluid behaviour
-    figure(fignum+4);
+    figure(fignum+7);
 
     % Charge mass flow rate
     subplot(3,2,1);
