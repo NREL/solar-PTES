@@ -1,6 +1,7 @@
 % Reset Load structure
-Load = Load0;
+Load    = Load0;
 setTmax = setTmax0;
+pmax    = pmax0;
 
 switch Load.mode
     case {0,1,2,3,4,5,6,7}

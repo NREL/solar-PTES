@@ -127,15 +127,15 @@ environ = environment_class(T0,p0,Load.num,10);
 if multi_run==1
     % Set variable along curves
     Vpnt = 'mdot_off';  % variable along curve
-    Npnt = 3;            % points on curve
+    Npnt = 2;            % points on curve
     pnt1 = 1.0;    % min value
-    pnt2 = 0.2;    % max value
+    pnt2 = 0.5;    % max value
     Apnt = linspace(pnt1,pnt2,Npnt); % array
     
     % Set variable between curves
     Vcrv = 'T0_off';
     %Acrv = [250,350,450]+273.15;
-    Acrv = [-10 30];
+    Acrv = [0];
     Ncrv = numel(Acrv);
     
     if Lmulti_mdot
@@ -166,6 +166,7 @@ end
 % discharge time)
 Load0 = Load;
 setTmax0 = setTmax ;
+pmax0    = pmax ;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

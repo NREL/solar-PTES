@@ -155,6 +155,7 @@ else
 
     QH_chg_mat    = var_extract('QH_chg',Npnt,Ncrv);
     QH_dis_mat    = var_extract('QH_dis',Npnt,Ncrv);
+    E_net_chg_mat = var_extract('E_net_chg',Npnt,Ncrv);
     E_net_dis_mat = var_extract('E_net_dis',Npnt,Ncrv);
 
 end
