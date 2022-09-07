@@ -46,6 +46,9 @@ switch Vpnt
     case 'T0_off'
         Tpnt = 'Change in ambient temperature';
         Upnt = 'K' ;
+    case 'CSmode'
+        Tpnt = 'Cold store discharge mode';
+        Upnt = ' ';
     case 'Wdis_req'
         Tpnt = 'Discharging power output';
         Upnt = ' MW$$_e$$';
@@ -100,6 +103,9 @@ switch Vcrv
     case 'T0_off'
         Tcrv = 'Change in ambient temperature';
         Ucrv = 'K' ;
+    case 'CSmode'
+        Tcrv = 'Cold store discharge mode';
+        Ucrv = ' ';
     case 'Wdis_req'
         Tcrv = 'Discharging power output';
         Ucrv = ' MW$$_e$$';

@@ -29,7 +29,12 @@ switch Vpnt
             Load0.mdot = ones(Load0.num,1) * Apnt(ipnt) * Design_Load.mdot(1) ;
         end
     case 'T0_off'
-        Load0.T0_off    = (T0 + Acrv(icrv)) * ones(Load.num,1) ;
+        Load0.T0_off    = (T0 + Apnt(ipnt)) * ones(Load.num,1) ;
+    case 'CSmode'
+        Load0.CSmode = int8(Apnt(ipnt) + zeros(Load.num,1));
+        if Load0.CSmode < 0 || Load0.CSmode > 2
+            error('Parametric studies.\nCSmode must take a value of 0 , 1, or 2.')
+        end
     case 'Wdis_req'
         Wdis_req = Apnt(ipnt);
     case 'stH'
@@ -76,6 +81,11 @@ switch Vcrv
         end
     case 'T0_off'
         Load0.T0_off    = (T0 + Acrv(icrv)) * ones(Load.num,1) ;
+    case 'CSmode'
+        Load0.CSmode = int8(Acrv(icrv) + zeros(Load.num,1));
+        if any(Load0.CSmode < 0) || any(Load0.CSmode > 2)
+            error('Parametric studies.\nCSmode must take a value of 0 , 1, or 2.')
+        end
     case 'Wdis_req'
         Wdis_req = Acrv(icrv);
     case 'stH'

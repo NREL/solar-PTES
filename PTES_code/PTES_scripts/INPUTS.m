@@ -128,14 +128,14 @@ if multi_run==1
     % Set variable along curves
     Vpnt = 'mdot_off';  % variable along curve
     Npnt = 2;            % points on curve
-    pnt1 = 1.0;    % min value
-    pnt2 = 0.2;    % max value
+    pnt1 = 0.2;    % min value
+    pnt2 = 1.0;    % max value
     Apnt = linspace(pnt1,pnt2,Npnt); % array
     
     % Set variable between curves
-    Vcrv = 'T0_off';
+    Vcrv = 'CSmode';
     %Acrv = [250,350,450]+273.15;
-    Acrv = [0];
+    Acrv = [0 1 2];
     Ncrv = numel(Acrv);
     
     if Lmulti_mdot

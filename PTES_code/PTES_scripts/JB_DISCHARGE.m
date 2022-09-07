@@ -219,7 +219,7 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
     iA = 1;  % keeps track of the Air (heat rejection) stream number
     iPMP = 1 ; % Keeps track of which pump is being used
 
-    CSmode = 1 ; % Determines how cold store is discharged
+    CSmode = Load.CSmode(iL) ; % Determines how cold store is discharged
 
     % REGENERATE (gas-gas)
     [HX(ind.ihx_reg),gas,iG,~,~] = hex_func(HX(ind.ihx_reg),iL,gas,ind.iReg1,gas,ind.iReg2,0,0);
@@ -327,7 +327,7 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
     iA = 1;  % keeps track of the Air (heat rejection) stream number
     iPMP = 1 ; % Keeps track of which pump is being used
 
-    CSmode = 2 ; % Determines how cold store is discharged
+    CSmode = Load.CSmode(iL) ; % Determines how cold store is discharged
 
     % REGENERATE (gas-gas)
     [HX(ind.ihx_reg),gas,iG,~,~] = hex_func(HX(ind.ihx_reg),iL,gas,ind.iReg1,gas,ind.iReg2,0,0);

@@ -44,7 +44,8 @@ switch Load.mode
         Design_Load.HT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank sink (B). Zero by default for design case.
         Design_Load.CT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of cold tank source (A). Zero by default for design case.
         Design_Load.CT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of cold tank sink (B). Zero by default for design case.
-        Design_Load.T0_off = zeros(numel(Design_Load.time),1) ;
+        Design_Load.T0_off = zeros(numel(Design_Load.time),1) ; % change in ambient temperature
+        Design_Load.CSmode = 1 + zeros(numel(Design_Load.time),1) ; % Mode for discharging the cold storage
         T0_inc    = 3.0 ; % Increment above ambient temperature that gas is cooled to
         
         if Loffdesign
@@ -60,6 +61,7 @@ switch Load.mode
                 Load.HT_B = [0;0;0;0] ; % change in temperature of hot tank sink (B)
                 Load.CT_A = [0;0;0;0] ; % change in temperature of cold tank source (A)
                 Load.CT_B = [0;0;0;0] ; % change in temperature of cold tank sink (B)
+                Load.CSmode = 1 + [0;0;0;0] ; % Mode for discharging the cold storage
             else
                 fload     = './Data/load2.csv';
                 fdat      = readmatrix(fload,'Range','A:B') ;
