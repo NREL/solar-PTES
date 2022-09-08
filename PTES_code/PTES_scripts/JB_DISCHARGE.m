@@ -74,7 +74,7 @@ for counter = 1:max_iter
     fprintf(1,['Discharging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
 
     [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = ...
-        run_JB_discharge_alt_Qrej(ind,gas,gas0,fluidH,fluidC,HT,CT,air,environ,DCMP,DEXP,DPMP,DFAN,HX,HX0,TP,Load,Design_Load,design_mode,iL);
+        run_JB_discharge_alt_Qrej(ind,gas,gas0,fluidH,fluidC,HT,HT0,CT,air,environ,DCMP,DEXP,DPMP,DFAN,HX,HX0,TP,Load,Design_Load,design_mode,iL);
     
     % Determine convergence and proceed
     D = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
@@ -135,8 +135,8 @@ for counter = 1:max_iter
             
         else
             gas.state(iL,1) = gas.state(iL,iG);
-
-            ernewM = fluidH.state(1,1).mdot * Design_Load.time(1) - fluidH.state(iL,1).mdot * Design_Load.time(iL);
+            i_chg = Design_Load.ind(any(Design_Load.type == {'chg'},2));
+            ernewM = fluidH.state(i_chg,1).mdot * Design_Load.time(i_chg) - fluidH.state(iL,1).mdot * Design_Load.time(iL);
                 
             if counter == 1
                 mprev = fluidH.state(iL,1).mdot ;
@@ -209,7 +209,7 @@ end
 AT = run_tanks(AT,iL,air,iA_out,iA_in,Load,T0);
 
 
-function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_JB_discharge(ind,gas,gas0,fluidH,fluidC,HT,CT,air,environ,DCMP,DEXP,DPMP,DFAN,HX,HX0,TP,Load,Design_Load,design_mode,iL)
+function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_JB_discharge(ind,gas,gas0,fluidH,fluidC,HT,HT0,CT,air,environ,DCMP,DEXP,DPMP,DFAN,HX,HX0,TP,Load,Design_Load,design_mode,iL)
 
     % Set stage indices
     iG = 1;  % keeps track of the gas stage number
@@ -245,12 +245,13 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
                 fluidC.state(iL,iC).T = CT.B(iL).T; fluidC.state(iL,iC).p = CT.B(iL).p; %#ok<*SAGROW>
                 [fluidC] = update(fluidC,[iL,iC],1);
 
+                i_chg = Design_Load.ind(any(Design_Load.type == {'chg'},2)) ;
                 if CSmode == 0
                     % Equal mdot*cp on each side of heat exchanger
                     [HX(ind.ihx_cld(iN)),gas,iG,fluidC,iC] = hex_func(HX(ind.ihx_cld(iN)),iL,gas,iG,fluidC,iC,1,1.0);
                 elseif CSmode == 1
                     % Force CS fluid to return to intial temperature
-                    [HX(ind.ihx_cld(iN)),gas,iG,fluidC,iC] = hex_func(HX(ind.ihx_cld(iN)),iL,gas,iG,fluidC,iC,3,fluidC.state(1,1).T);
+                    [HX(ind.ihx_cld(iN)),gas,iG,fluidC,iC] = hex_func(HX(ind.ihx_cld(iN)),iL,gas,iG,fluidC,iC,3,fluidC.state(i_chg,1).T);
                 elseif CSmode == 2 && design_mode == 0
                     i_dis = Design_Load.ind(any(Design_Load.type == {'dis'},2)) ;
                     % Discharge the CS at the same rate as the hot store so
@@ -269,7 +270,6 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
                 elseif CSmode == 2 && design_mode == 1
                     % Discharge the CS at the same rate as the hot store so
                     % they discharge in the same amount of time
-                    i_chg = Design_Load.ind(any(Design_Load.type == {'chg'},2)) ;
                     if isempty(HX(ind.ihx_hot(iN)).H(iL).mdot)
                         HSrat = 1;
                     else
@@ -299,7 +299,7 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
     
     for iN = 1:ind.Ne_dis
         % HEAT (gas-fluid)
-        fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p; THmin = HT.A(1).T;
+        fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p; THmin = HT0.A(1).T;
         [fluidH] = update(fluidH,[iL,iH],1);
         Taim = THmin;
 
@@ -317,7 +317,7 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
 end
 
 
-function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_JB_discharge_alt_Qrej(ind,gas,gas0,fluidH,fluidC,HT,CT,air,environ,DCMP,DEXP,DPMP,DFAN,HX,HX0,TP,Load,Design_Load,design_mode,iL)
+function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_JB_discharge_alt_Qrej(ind,gas,gas0,fluidH,fluidC,HT,HT0,CT,air,environ,DCMP,DEXP,DPMP,DFAN,HX,HX0,TP,Load,Design_Load,design_mode,iL)
 
     % Set stage indices
     iG = 1;  % keeps track of the gas stage number
@@ -348,12 +348,13 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
                 %    CSmode = 1 ;
                 %end
 
+                i_chg = Design_Load.ind(any(Design_Load.type == {'chg'},2)) ;
                 if CSmode == 0
                     % Equal mdot*cp on each side of heat exchanger
                     [HX(ind.ihx_cld(iN)),gas,iG,fluidC,iC] = hex_func(HX(ind.ihx_cld(iN)),iL,gas,iG,fluidC,iC,1,1.0);
                 elseif CSmode == 1
                     % Force CS fluid to return to intial temperature
-                    [HX(ind.ihx_cld(iN)),gas,iG,fluidC,iC] = hex_func(HX(ind.ihx_cld(iN)),iL,gas,iG,fluidC,iC,3,fluidC.state(1,1).T);
+                    [HX(ind.ihx_cld(iN)),gas,iG,fluidC,iC] = hex_func(HX(ind.ihx_cld(iN)),iL,gas,iG,fluidC,iC,3,fluidC.state(i_chg,1).T);
                 elseif CSmode == 2 && design_mode == 0
                     % Discharge the CS at the same rate as the hot store so
                     % they discharge in the same amount of time
@@ -369,7 +370,6 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
                     fluidC.state(iL,iC).mdot = HSrat * HX0(ind.ihx_cld(iN)).C(i_dis).mdot ;
                     [HX(ind.ihx_cld(iN)),gas,iG,fluidC,iC] = hex_func(HX(ind.ihx_cld(iN)),iL,gas,iG,fluidC,iC,0,-1);
                 elseif CSmode == 2 && design_mode == 1
-                    i_chg = Design_Load.ind(any(Design_Load.type == {'chg'},2)) ;
                     % Discharge the CS at the same rate as the hot store so
                     % they discharge in the same amount of time
                     if isempty(HX(ind.ihx_hot(iN)).H(iL).mdot)
@@ -414,7 +414,7 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
     
     for iN = 1:ind.Ne_dis
         % HEAT (gas-fluid)
-        fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p; THmin = HT.A(1).T;
+        fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p; THmin = HT0.A(1).T;
         [fluidH] = update(fluidH,[iL,iH],1);
         
         [HX(ind.ihx_hot(iN)),fluidH,iH,gas,iG] = hex_func(HX(ind.ihx_hot(iN)),iL,fluidH,iH,gas,iG,4,THmin);

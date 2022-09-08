@@ -55,7 +55,8 @@ else
         gas.state(iL,ii).mdot = Load.mdot(iL) ;
         
         % For inventory control, assume that the pressure scales with the off-design mass flow rate
-        gas.state(iL,ii).p = gas0.state(1,ii).p * (Load.mdot(iL) / CCMP.mdot0) * sqrt(Load.T0_off(iL) / T0) ; % First ever run is charging
+        i_dis = Design_Load.ind(any(Design_Load.type == {'dis'},2));
+        gas.state(iL,ii).p = gas0.state(i_dis,ii).p * (Load.mdot(iL) / CCMP.mdot0) * sqrt(Load.T0_off(iL) / T0) ; % First ever run is charging
         [gas] = update(gas,[iL,ii],1);
         
     end 
@@ -223,6 +224,8 @@ AT = run_tanks(AT,iL,air,iA_out,iA_in,Load,T0); % Atmospheric tanks
 
 if design_mode == 1
 
+    i_str = Design_Load.ind(any(Design_Load.type == {'str'},2)) ;
+
     for ir = 1 : Nhot
         sf = 1.02 ;
         dM = HT(ir).B(1,iL+1).M - HT(ir).B(1,iL).M ;
@@ -230,6 +233,12 @@ if design_mode == 1
         HT(ir).A(1,iL)   = update_tank_state(HT(ir),HT(ir).A(1,iL),T0,1);
         HT(ir).A(1,iL+1).M = HT(ir).A(1,iL).M - dM ;
         HT(ir).A(1,iL+1)   = update_tank_state(HT(ir),HT(ir).A(1,iL+1),T0,1);
+
+        % Also set initial masses of stores during storage phases
+        for qq = 1:numel(i_str)
+            HT(ir).A(1,i_str(qq)).M = dM * sf;
+            HT(ir).A(1,i_str(qq))   = update_tank_state(HT(ir),HT(ir).A(1,i_str(qq)),T0,1);
+        end
 
         MH_dis0(ir) = dM * sf;
     end
@@ -242,6 +251,12 @@ if design_mode == 1
         CT(ir).A(1,iL)   = update_tank_state(CT(ir),CT(ir).A(1,iL),T0,1);
         CT(ir).A(1,iL+1).M = CT(ir).A(1,iL).M - dM ;
         CT(ir).A(1,iL+1)   = update_tank_state(CT(ir),HT(ir).A(1,iL+1),T0,1);
+
+        % Also set initial masses of stores during storage phases
+        for qq = 1:numel(i_str)
+            CT(ir).A(1,i_str(qq)).M = dM * sf;
+            CT(ir).A(1,i_str(qq))   = update_tank_state(CT(ir),CT(ir).A(1,i_str(qq)),T0,1);
+        end
 
         MC_dis0(ir) = dM * sf;
     end

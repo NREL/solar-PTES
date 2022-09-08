@@ -29,6 +29,8 @@ gas0 = gas ;
 HX0  = HX  ; % Also save the heat exchanger structures
 fluidC0 = fluidC ;
 fluidH0 = fluidH ;
+CT0 = CT ;
+HT0 = HT ;
 
 % Reset the Load parameter to be the off-design load cycle
 Load = Load0 ;

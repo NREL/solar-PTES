@@ -311,3 +311,5 @@ gas0 = gas ;
 HX0  = HX  ; % Also save the heat exchanger structures
 fluidC0 = fluidC ;
 fluidH0 = fluidH ;
+CT0 = CT ;
+HT0 = HT ;

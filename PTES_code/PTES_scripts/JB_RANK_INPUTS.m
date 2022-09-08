@@ -38,7 +38,7 @@ switch Load.mode
         % This is the load scenario the plant is designed for
         Design_Load      = Load ;
         Design_Load.time = [stH/1;stH;stH;stH].*3600;  % time spent in each load period, s
-        Design_Load.type = ["chg";"str";"dis";"str"];    % type of load period
+        Design_Load.type = ["str";"chg";"str";"dis"];    % type of load period
         Design_Load.mdot = 100*[fac*1.;fac;fac;fac];  % working fluid mass flow rate, kg/s
         Design_Load.HT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank source (A). Zero by default for design case.
         Design_Load.HT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank sink (B). Zero by default for design case.
@@ -52,13 +52,13 @@ switch Load.mode
             % This is the actual load profile that the plant meets
             if ~Lreadload
                 Load.time = [stH;stH;stH;stH].*3600;      % time spent in each load period, s
-                Load.type = ["chg";"str";"dis";"str"];    % type of load period
+                Load.type = ["str";"chg";"str";"dis"];    % type of load period
                 %Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
                 %T0_off    = T0IN;
                 Load.mdot = 100*[1*fac;1.*fac;1*fac;fac];      % working fluid mass flow rate, kg/s
                 Load.T0_off = [T0;T0;T0;T0] ;
-                Load.HT_A = [0;0;0;0] ; % change in temperature of hot tank source (A)
-                Load.HT_B = [0;-50;0;0] ; % change in temperature of hot tank sink (B)
+                Load.HT_A = [50;0;0;0] ; % change in temperature of hot tank source (A)
+                Load.HT_B = [0;0;0;0] ; % change in temperature of hot tank sink (B)
                 Load.CT_A = [0;0;0;0] ; % change in temperature of cold tank source (A)
                 Load.CT_B = [0;0;0;0] ; % change in temperature of cold tank sink (B)
                 Load.CSmode = 2 + [0;0;0;0] ; % Mode for discharging the cold storage
