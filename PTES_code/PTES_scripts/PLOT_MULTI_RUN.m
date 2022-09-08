@@ -44,7 +44,19 @@ switch Vpnt
         Tpnt = '$$ \dot{m} / \dot{m}_0 $$';
         Upnt = ' ';
     case 'T0_off'
-        Tpnt = 'Change in ambient temperature';
+        Tpnt = 'Change in ambient temperature ';
+        Upnt = 'K' ;
+    case 'HT_A_dT'
+        Tpnt = 'Change in hot source tank temp ';
+        Upnt = 'K' ;
+    case 'HT_B_dT'
+        Tpnt = 'Change in hot sink tank temp ';
+        Upnt = 'K' ;
+    case 'CT_A_dT'
+        Tpnt = 'Change in cold source tank temp ';
+        Upnt = 'K' ;
+    case 'CT_B_dT'
+        Tpnt = 'Change in cold sink tank temp ';
         Upnt = 'K' ;
     case 'CSmode'
         Tpnt = 'Cold store discharge mode';
@@ -101,7 +113,19 @@ switch Vcrv
         Tcrv = '$$ \dot{m} / \dot{m}_0 $$';
         Ucrv = ' ';
     case 'T0_off'
-        Tcrv = 'Change in ambient temperature';
+        Tcrv = 'Change in ambient temperature ';
+        Ucrv = 'K' ;
+    case 'HT_A_dT'
+        Tcrv = 'Change in hot source tank temp ';
+        Ucrv = 'K' ;
+    case 'HT_B_dT'
+        Tcrv = 'Change in hot sink tank temp ';
+        Ucrv = 'K' ;
+    case 'CT_A_dT'
+        Tcrv = 'Change in cold source tank temp ';
+        Ucrv = 'K' ;
+    case 'CT_B_dT'
+        Tcrv = 'Change in cold sink tank temp ';
         Ucrv = 'K' ;
     case 'CSmode'
         Tcrv = 'Cold store discharge mode';
@@ -431,6 +455,7 @@ else
     hold off;
     ylabel('Temperature, K');
     title('Initial temperature (discharge)');
+    legend(Lcrv,'Location','Best');
     fontsize(gca,10,"points")
     grid on;
 
@@ -455,7 +480,6 @@ else
     xlabel([Tpnt,Upnt])
     ylabel('Temperature, K');
     title('Final temperature (discharge)');
-    legend(Lcrv,'Location','Best');
     fontsize(gca,10,"points")
     grid on;
 
@@ -506,6 +530,7 @@ else
     hold off;
     ylabel('Temperature, K');
     title('Initial temperature (discharge)');
+    legend(Lcrv,'Location','Best');
     fontsize(gca,10,"points")
     grid on;
 
@@ -530,7 +555,6 @@ else
     xlabel([Tpnt,Upnt])
     ylabel('Temperature, K');
     title('Final temperature (discharge)');
-    legend(Lcrv,'Location','Best');
     fontsize(gca,10,"points")
     grid on;
 

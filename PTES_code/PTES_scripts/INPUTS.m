@@ -126,16 +126,16 @@ environ = environment_class(T0,p0,Load.num,10);
 % have been defined in the SET_MULTI_RUN script
 if multi_run==1
     % Set variable along curves
-    Vpnt = 'mdot_off';  % variable along curve
-    Npnt = 2;            % points on curve
-    pnt1 = 0.2;    % min value
-    pnt2 = 1.0;    % max value
+    Vpnt = 'HT_B_dT';  % variable along curve
+    Npnt = 3;            % points on curve
+    pnt1 = -50;    % min value
+    pnt2 = 50;    % max value
     Apnt = linspace(pnt1,pnt2,Npnt); % array
-    
+   
     % Set variable between curves
     Vcrv = 'CSmode';
     %Acrv = [250,350,450]+273.15;
-    Acrv = [0 1 2];
+    Acrv = [2];
     Ncrv = numel(Acrv);
     
     if Lmulti_mdot
@@ -152,7 +152,7 @@ if multi_run==1
     % Store information on the variables being changed along the multi-run
     % calls
     save('./Outputs/Multi_run/Multi_run_var.mat',...
-        'Vpnt','Npnt','Apnt','Vcrv','Ncrv','Acrv');
+        'Vpnt','Npnt','Apnt','Vcrv','Ncrv','Acrv','Loffdesign');
     
 else
     Npnt=1; Ncrv=1;

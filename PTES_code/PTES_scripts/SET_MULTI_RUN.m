@@ -30,6 +30,14 @@ switch Vpnt
         end
     case 'T0_off'
         Load0.T0_off    = (T0 + Apnt(ipnt)) * ones(Load.num,1) ;
+    case 'HT_A_dT'
+        Load0.HT_A = ones(Load.num,1) * Apnt(ipnt) ;
+    case 'HT_B_dT'
+        Load0.HT_B = ones(Load.num,1) * Apnt(ipnt) ;
+    case 'CT_A_dT'
+        Load0.CT_A = ones(Load.num,1) * Apnt(ipnt) ;
+    case 'CT_B_dT'
+        Load0.CT_B = ones(Load.num,1) * Apnt(ipnt) ;
     case 'CSmode'
         Load0.CSmode = int8(Apnt(ipnt) + zeros(Load.num,1));
         if Load0.CSmode < 0 || Load0.CSmode > 2
@@ -81,6 +89,14 @@ switch Vcrv
         end
     case 'T0_off'
         Load0.T0_off    = (T0 + Acrv(icrv)) * ones(Load.num,1) ;
+    case 'HT_A_dT'
+        Load0.HT_A = ones(Load.num,1) * Acrv(icrv) ;
+    case 'HT_B_dT'
+        Load0.HT_B = ones(Load.num,1) * Acrv(icrv) ;
+    case 'CT_A_dT'
+        Load0.CT_A = ones(Load.num,1) * Acrv(icrv) ;
+    case 'CT_B_dT'
+        Load0.CT_B = ones(Load.num,1) * Acrv(icrv) ;
     case 'CSmode'
         Load0.CSmode = int8(Acrv(icrv) + zeros(Load.num,1));
         if any(Load0.CSmode < 0) || any(Load0.CSmode > 2)

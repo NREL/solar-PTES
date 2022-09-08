@@ -45,7 +45,7 @@ switch Load.mode
         Design_Load.CT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of cold tank source (A). Zero by default for design case.
         Design_Load.CT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of cold tank sink (B). Zero by default for design case.
         Design_Load.T0_off = zeros(numel(Design_Load.time),1) ; % change in ambient temperature
-        Design_Load.CSmode = 1 + zeros(numel(Design_Load.time),1) ; % Mode for discharging the cold storage
+        Design_Load.CSmode = 2 + zeros(numel(Design_Load.time),1) ; % Mode for discharging the cold storage
         T0_inc    = 3.0 ; % Increment above ambient temperature that gas is cooled to
         
         if Loffdesign
@@ -55,13 +55,13 @@ switch Load.mode
                 Load.type = ["chg";"str";"dis";"str"];    % type of load period
                 %Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
                 %T0_off    = T0IN;
-                Load.mdot = 100*0.5*[1*fac;1.*fac;1*fac;fac];      % working fluid mass flow rate, kg/s
+                Load.mdot = 100*[1*fac;1.*fac;1*fac;fac];      % working fluid mass flow rate, kg/s
                 Load.T0_off = [T0;T0;T0;T0] ;
                 Load.HT_A = [0;0;0;0] ; % change in temperature of hot tank source (A)
-                Load.HT_B = [0;0;0;0] ; % change in temperature of hot tank sink (B)
+                Load.HT_B = [0;-50;0;0] ; % change in temperature of hot tank sink (B)
                 Load.CT_A = [0;0;0;0] ; % change in temperature of cold tank source (A)
                 Load.CT_B = [0;0;0;0] ; % change in temperature of cold tank sink (B)
-                Load.CSmode = 1 + [0;0;0;0] ; % Mode for discharging the cold storage
+                Load.CSmode = 2 + [0;0;0;0] ; % Mode for discharging the cold storage
             else
                 fload     = './Data/load2.csv';
                 fdat      = readmatrix(fload,'Range','A:B') ;
@@ -177,7 +177,7 @@ switch PBmode
             case {0,1,2}
                 % Cold storage tanks
                 fCname  = 'Methanol'; % fluid name
-                TC_dis0 = T0+5;           % initial temperature of discharged cold fluid, K
+                TC_dis0 = 307.9;%T0+5;           % initial temperature of discharged cold fluid, K
                 MC_dis0 = 14.1e6;          % initial mass of discharged cold fluid, kg
                 TC_chg0 = T0-50;        % initial temperature of charged cold fluid, K
                 MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg
