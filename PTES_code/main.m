@@ -15,20 +15,14 @@ end
 % Load CoolProp library (low-level interface)
 load_coolprop
 
-%run_mode = 0: single run. Use INPUTS file to change the thermodynamic cycle
-%run_mode = 1: Multi run. Set parameters in INPUTS file
-%run_mode = 2: Optimizing PTES using NSGA2 (Two Objectives). Set Parameters in SET_OPTIMIZE_RUN
-%run_mode = 3: Optimizing PTES using MOPSO (Three Objectives). Set Parameters in SET_OPTIMIZE_RUN
+%run_mode = 0: Run PTES cases (may be single run, multiple run, or off-design cases). Use INPUTS file to change the thermodynamic cycle
+%run_mode = 1: Optimizing PTES using MOPSO (Three Objectives). Set Parameters in SET_OPTIMIZE_RUN
 run_mode = 0;
 fname='PTES_optimize';
 
 switch run_mode
     case 0
-        feval(fname, 0, 0, 0);
+        PTES_optimize(0, 0, 0);
     case 1
-        feval(fname, 1, 0, 0);
-    case 2
-        Optimize_NSGA2;
-    case 3
         Optimize_MOPSO;
 end

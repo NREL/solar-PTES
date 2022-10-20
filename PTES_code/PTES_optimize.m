@@ -1,4 +1,4 @@
-function [fit, err, extra]=PTES_optimize(x,opt_par,Nobjs)
+function [fit, err, extra]=PTES_optimize(x,opt_par,Nobjs) % These variables are only used for optimization studies
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % PTES
 % This code employs thermodynamic and economic models to predict the

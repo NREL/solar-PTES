@@ -86,7 +86,7 @@ end
 VEL = zeros(Np,nVar);
 for i =1:Np
     
-    [POS_fit(i,:),~,POS_extra(i,:)] =feval(fname, POS(i,:), Par, Nobjs);          % Objective function evaulation
+    [POS_fit(i,:),~,POS_extra(i,:)] = PTES_optimize(POS(i,:), Par, Nobjs);          % Objective function evaulation
     
 end
 if size(POS,1) ~= size(POS_fit,1)
@@ -129,7 +129,7 @@ while ~stopCondition
     % Evaluate the population
     for ii =1:Np
         
-        [POS_fit(ii,:),~,POS_extra(ii,:)] =feval(fname, POS(ii,:), Par, Nobjs);          % Objective function evaulation
+        [POS_fit(ii,:),~,POS_extra(ii,:)] = PTES_optimize(POS(ii,:), Par, Nobjs);          % Objective function evaulation
         
     end
     

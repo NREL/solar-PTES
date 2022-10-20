@@ -37,14 +37,14 @@ switch Load.mode
         Design_Load      = Load ;
         Design_Load.type = ["str";"chg";"str";"dis"];    % type of load period
         
-        Design_Load.mdot = zeros(numel(Design_Load.time),1);  % working fluid mass flow rate, kg/s
-        Design_Load.time = zeros(numel(Design_Load.time),1) ;%[stH/1;stH;stH;stH].*3600;  % time spent in each load period, s
-        Design_Load.HT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank source (A). Zero by default for design case.
-        Design_Load.HT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank sink (B). Zero by default for design case.
-        Design_Load.CT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of cold tank source (A). Zero by default for design case.
-        Design_Load.CT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of cold tank sink (B). Zero by default for design case.
-        Design_Load.T0_off = zeros(numel(Design_Load.time),1) ; % change in ambient temperature
-        Design_Load.CSmode = 2 + zeros(numel(Design_Load.time),1) ; % Mode for discharging the cold storage
+        Design_Load.mdot = zeros(numel(Design_Load.type),1);  % working fluid mass flow rate, kg/s
+        Design_Load.time = zeros(numel(Design_Load.type),1) ;%[stH/1;stH;stH;stH].*3600;  % time spent in each load period, s
+        Design_Load.HT_A = zeros(numel(Design_Load.type),1) ; % change in temperature of hot tank source (A). Zero by default for design case.
+        Design_Load.HT_B = zeros(numel(Design_Load.type),1) ; % change in temperature of hot tank sink (B). Zero by default for design case.
+        Design_Load.CT_A = zeros(numel(Design_Load.type),1) ; % change in temperature of cold tank source (A). Zero by default for design case.
+        Design_Load.CT_B = zeros(numel(Design_Load.type),1) ; % change in temperature of cold tank sink (B). Zero by default for design case.
+        Design_Load.T0_off = zeros(numel(Design_Load.type),1) ; % change in ambient temperature
+        Design_Load.CSmode = 2 + zeros(numel(Design_Load.type),1) ; % Mode for discharging the cold storage
         T0_inc    = 3.0 ; % Increment above ambient temperature that gas is cooled to
         
         % This is the actual load profile that the plant meets
@@ -255,7 +255,7 @@ STcost = econ_class(steamC(1), 0.2, 5, 0.2) ; % Economics class for steam turbin
 % accurate method but is very slow. 'BICUBIC&HEOS' is recommended over
 % 'TTSE' for speed and accuracy. 'num' indicates number of preallocated
 % elements in state arrays.
-gas = fluid_class(fluid_name,'WF','CP','BICUBIC&HEOS',Load.num,30);
+gas = fluid_class(fluid_name,'WF','CP','BICUBIC&HEOS',Design_Load.num,30);
 %{
 % Set up an ideal gas - should run faster
 
