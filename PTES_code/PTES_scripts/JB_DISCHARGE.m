@@ -63,13 +63,13 @@ else
     T1prev = 0 ; erprevT = 0 ; gradTT = 0;
 
     environ.T0 = Load.T0_off(iL) ;
-    TOLconv = 1e-4 ;
+    TOLconv = 1e-3 ;
 end
 
 
 % Set matrix of temperature and pressure points to test convergence
 D_0 = [[gas.state(iL,:).T];[gas.state(iL,:).p]];
-max_iter = 150;
+max_iter = 200;
 for counter = 1:max_iter
     fprintf(1,['Discharging JB PTES. Load period #',int2str(iL),'. Iteration #',int2str(counter),' \n'])
 
@@ -125,8 +125,8 @@ for counter = 1:max_iter
                 p1prev = gas.state(iL,1).p ;
                 T1prev = gas.state(iL,1).T ;
 
-                gas.state(iL,1).p = gas.state(iL,1).p - 0.2 * ernewP / gradPP;
-                gas.state(iL,1).T = gas.state(iL,1).T - 0.2 * ernewT / gradTT;
+                gas.state(iL,1).p = gas.state(iL,1).p - 0.05 * ernewP / gradPP;
+                gas.state(iL,1).T = gas.state(iL,1).T - 0.05 * ernewT / gradTT;
             end
             
             erprevP = ernewP ;
@@ -304,6 +304,7 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
         Taim = THmin;
 
         [HX(ind.ihx_hot(iN)),fluidH,iH,gas,iG] = hex_func(HX(ind.ihx_hot(iN)),iL,fluidH,iH,gas,iG,4,THmin);
+        %[HX(ind.ihx_hot(iN)),fluidH,iH,gas,iG] = hex_func(HX(ind.ihx_hot(iN)),iL,fluidH,iH,gas,iG,1,1);
         [DPMP(iPMP),fluidH,iH] = compexp_func (DPMP(iPMP),iL,fluidH,iH,'Paim',fluidH.state(iL,1).p,1);
         iH=iH+1; iPMP=iPMP+1;
         
@@ -417,7 +418,8 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
         fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p; THmin = HT0.A(1).T;
         [fluidH] = update(fluidH,[iL,iH],1);
         
-        [HX(ind.ihx_hot(iN)),fluidH,iH,gas,iG] = hex_func(HX(ind.ihx_hot(iN)),iL,fluidH,iH,gas,iG,4,THmin);
+        %[HX(ind.ihx_hot(iN)),fluidH,iH,gas,iG] = hex_func(HX(ind.ihx_hot(iN)),iL,fluidH,iH,gas,iG,4,THmin);
+        [HX(ind.ihx_hot(iN)),fluidH,iH,gas,iG] = hex_func(HX(ind.ihx_hot(iN)),iL,fluidH,iH,gas,iG,2,1);
         [DPMP(iPMP),fluidH,iH] = compexp_func (DPMP(iPMP),iL,fluidH,iH,'Paim',fluidH.state(iL,1).p,1);
         iH=iH+1; iPMP=iPMP+1;
         

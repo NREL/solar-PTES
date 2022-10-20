@@ -57,7 +57,7 @@ switch Load.mode
                 %T0_off    = T0IN;
                 Load.mdot = 100*[1*fac;1.*fac;1*fac;fac];      % working fluid mass flow rate, kg/s
                 Load.T0_off = [T0;T0;T0;T0] ;
-                Load.HT_A = [50;0;0;0] ; % change in temperature of hot tank source (A)
+                Load.HT_A = [0;0;0;0] ; % change in temperature of hot tank source (A)
                 Load.HT_B = [0;0;0;0] ; % change in temperature of hot tank sink (B)
                 Load.CT_A = [0;0;0;0] ; % change in temperature of cold tank source (A)
                 Load.CT_B = [0;0;0;0] ; % change in temperature of cold tank sink (B)

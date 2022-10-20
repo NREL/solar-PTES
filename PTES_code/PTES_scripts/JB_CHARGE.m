@@ -19,6 +19,11 @@ TP.p0   = p0;
 TP.T0   = T0;
 TP.pbot = pbot ;
 
+% These commands are only for if you want the discharge mass flow to vary
+% but not the charge mass flow
+%tempM = Load.mdot(iL) ;
+%Load.mdot(iL) = 100 ;
+
 if design_mode == 1
     % Initial guess of charge conditions
     % Compressor inlet (regenerator hot outlet)
@@ -292,7 +297,7 @@ if LPRr
 
 end
 
-
+%Load.mdot(iL) = tempM ;
 
 function [gas,fluidH,fluidC,HT,CT,air,CCMP,CEXP,CPMP,CFAN,HX,PRch,iG,iH,iC,iA] = run_JB_charge(ind,gas,gas0,fluidH,fluidC,HT,CT,air,environ,CCMP,CEXP,CPMP,CFAN,HX,TP,Load,design_mode,iL)
     % Set stage indices
