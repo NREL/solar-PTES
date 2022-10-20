@@ -111,8 +111,4 @@ switch Vcrv
         error('not implemented')
 end
 
-if Lmulti_mdot
-   Design_Load.mdot = multi_mdot(ipnt,icrv) * ones(Design_Load.num,1) ; 
-end
-
 fprintf(1,'\nMULTI RUN STEP: Point #%d of %d, Curve #%d of %d',ipnt,length(Apnt),icrv,length(Acrv))

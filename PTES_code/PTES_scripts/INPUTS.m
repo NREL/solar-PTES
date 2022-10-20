@@ -67,7 +67,6 @@ HX_shapeX = 'cross-flow';
 
 % Code options
 multi_run   = 0; % run cycle several times with different parameters?
-Lmulti_mdot = 0; % Read data from previous multirun to recalculate what the actual mass flow rates should be for a desired power
 optimise    = 0; % optimise cycle?
 make_plots  = 1; % make plots?
 save_figs   = 0; % save figures at the end?
@@ -143,11 +142,7 @@ if multi_run==1
     %Acrv = [0.6 0.8 1.0 1.2 1.4];
     Acrv = 1.0;
     Ncrv = numel(Acrv);
-    
-    if Lmulti_mdot
-        multi_mdot = mdot_extract(Npnt,Ncrv,Wdis_req) ;
-    end
-    
+        
     if ~exist('./Outputs/Multi_run','dir')
         mkdir('./Outputs/Multi_run')
     end
