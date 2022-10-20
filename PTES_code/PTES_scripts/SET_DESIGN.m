@@ -33,6 +33,5 @@ CT0 = CT ;
 HT0 = HT ;
 
 % Reset the Load parameter to be the off-design load cycle
-Load = Load0 ;
-
+Load = OffD_Load ;
 design_mode = 0 ; % Logical - no longer in design mode

@@ -30,7 +30,7 @@ simple_interface = 0;
 
 % Call the correct input file
 Load.mode  = 0 ;
-Loffdesign = 1 ; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
+Loffdesign = 0 ; % 'L' for Logical. 0 just run design case. 1 run design case then off-design load cycle.
 Lreadload  = 0 ;
 PBmode     = 0 ; % Liquid stores = 0; Packed beds = 1; Heat exchangers between power cycle and a storage fluid, which then passes through packed beds = 2
 
@@ -45,8 +45,13 @@ switch Load.mode
         error('not implemented')
 end
 
-% Required average power output during discharge
-Wdis_req = 100e6 ;
+% If Wdis_req is zero, then the power output will be based on the mass flow rates in JB_RANK_INPUTS.m
+Wdis_req = 100e6 ; % Required average power output during discharge
+HP_mult  = 1; % Heat pump multiplier - i.e. the power rating of the heat pump compared to Wdis_req
+chg_dur  = 10; % Charge duration, h
+dis_dur  = 10; % Discharge duration, h
+str_dur  = 10; % Storage duration, h
+
 
 % Set heat exchanger parameters
 HX_model  = 'geom';
@@ -61,7 +66,7 @@ plossX    = 0.001;
 HX_shapeX = 'cross-flow';
 
 % Code options
-multi_run   = 1; % run cycle several times with different parameters?
+multi_run   = 0; % run cycle several times with different parameters?
 Lmulti_mdot = 0; % Read data from previous multirun to recalculate what the actual mass flow rates should be for a desired power
 optimise    = 0; % optimise cycle?
 make_plots  = 1; % make plots?
@@ -162,10 +167,7 @@ else
     diary  ./Outputs/log.txt
 end
 
-% Save initial values of Load structure (to be reset during the INITIALISE
-% subroutine, in case any values changed during running time, e.g.
-% discharge time)
-Load0 = Load;
+% Save some initial values
 setTmax0 = setTmax ;
 pmax0    = pmax ;
 

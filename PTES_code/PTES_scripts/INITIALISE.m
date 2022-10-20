@@ -1,5 +1,5 @@
 % Reset Load structure
-Load    = Load0;
+Load    = Design_Load;
 setTmax = setTmax0;
 pmax    = pmax0;
 
@@ -299,11 +299,7 @@ DPMP(1:10) = compexp_class('pump', 'isen', PMPmode(1), 0.8, Load.num) ;
 % Mixers may be required (e.g. in Rankine cycle)
 MIX(1:2)    = misc_class('mix',Load.num) ;
 
-% Put design case load cycles in load for the first iteration.
-if Loffdesign
-    Load = Design_Load ; % Later reset Load using Load0
-end
-
+% First iteration should be in design mode
 design_mode = 1 ; % Logical - currently in design mode
 
 % Save design point gas states

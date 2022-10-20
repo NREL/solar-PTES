@@ -37,9 +37,10 @@ switch Load.mode
         stH = 10 ;
         % This is the load scenario the plant is designed for
         Design_Load      = Load ;
-        Design_Load.time = [stH/1;stH;stH;stH].*3600;  % time spent in each load period, s
         Design_Load.type = ["str";"chg";"str";"dis"];    % type of load period
         Design_Load.mdot = 100*[fac*1.;fac;fac;fac];  % working fluid mass flow rate, kg/s
+        
+        Design_Load.time = zeros(numel(Design_Load.time),1) ;%[stH/1;stH;stH;stH].*3600;  % time spent in each load period, s
         Design_Load.HT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank source (A). Zero by default for design case.
         Design_Load.HT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank sink (B). Zero by default for design case.
         Design_Load.CT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of cold tank source (A). Zero by default for design case.
@@ -48,32 +49,29 @@ switch Load.mode
         Design_Load.CSmode = 2 + zeros(numel(Design_Load.time),1) ; % Mode for discharging the cold storage
         T0_inc    = 3.0 ; % Increment above ambient temperature that gas is cooled to
         
-        if Loffdesign
-            % This is the actual load profile that the plant meets
-            if ~Lreadload
-                Load.time = [stH;stH;stH;stH].*3600;      % time spent in each load period, s
-                Load.type = ["str";"chg";"str";"dis"];    % type of load period
-                %Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
-                %T0_off    = T0IN;
-                Load.mdot = 100*[1*fac;1.*fac;1*fac;fac];      % working fluid mass flow rate, kg/s
-                Load.T0_off = [T0;T0;T0;T0] ;
-                Load.HT_A = [0;0;0;0] ; % change in temperature of hot tank source (A)
-                Load.HT_B = [0;0;0;0] ; % change in temperature of hot tank sink (B)
-                Load.CT_A = [0;0;0;0] ; % change in temperature of cold tank source (A)
-                Load.CT_B = [0;0;0;0] ; % change in temperature of cold tank sink (B)
-                Load.CSmode = 2 + [0;0;0;0] ; % Mode for discharging the cold storage
-            else
-                fload     = './Data/load2.csv';
-                fdat      = readmatrix(fload,'Range','A:B') ;
-                T0_off    = fdat(:,1) ;
-                Load.mdot = fdat(:,2) .* Design_Load.mdot(1) ;
-                Load.type = readmatrix(fload,'Range','C','OutputType','string') ;
-                Load.time = ones(numel(Load.mdot),1) * 3600.;
-            end
-
+        % This is the actual load profile that the plant meets
+        OffD_Load = Load ;
+        if ~Lreadload
+            OffD_Load.time = [stH;stH;stH;stH].*3600;      % time spent in each load period, s
+            OffD_Load.type = ["str";"chg";"str";"dis"];    % type of load period
+            %Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
+            %T0_off    = T0IN;
+            OffD_Load.mdot = 100*[1*fac;1.*fac;1*fac;fac];      % working fluid mass flow rate, kg/s
+            OffD_Load.T0_off = [T0;T0;T0;T0] ;
+            OffD_Load.HT_A = [0;0;0;0] ; % change in temperature of hot tank source (A)
+            OffD_Load.HT_B = [0;0;0;0] ; % change in temperature of hot tank sink (B)
+            OffD_Load.CT_A = [0;0;0;0] ; % change in temperature of cold tank source (A)
+            OffD_Load.CT_B = [0;0;0;0] ; % change in temperature of cold tank sink (B)
+            OffD_Load.CSmode = 2 + [0;0;0;0] ; % Mode for discharging the cold storage
         else
-            Load = Design_Load ;
+            fload     = './Data/load2.csv';
+            fdat      = readmatrix(fload,'Range','A:B') ;
+            OffD_Load.T0_off    = fdat(:,1) ;
+            OffD_Load.mdot = fdat(:,2) .* Design_Load.mdot(1) ;
+            OffD_Load.type = readmatrix(fload,'Range','C','OutputType','string') ;
+            OffD_Load.time = ones(numel(Load.mdot),1) * 3600.;
         end
+
                 
     case 1 % Heat pump
         Design_Load      = Load ;
@@ -82,16 +80,14 @@ switch Load.mode
         Design_Load.type = "chg";                     % type of load period
         Design_Load.mdot = 1000;                        % working fluid mass flow rate, kg/s
         T0_inc           = 5.0 ; % Increase in ambient temperature
-        
-        if Loffdesign
-            % This is the actual load profile that the plant meets
-            Load.time = [stH].*3600;      % time spent in each load period, s
-            Load.type = ["chg"];    % type of load period
-            Load.mdot = [1000];      % working fluid mass flow rate, kg/s
-            T0_inc    = 10.0 ; % Increase in ambient temperature
-        else
-            Load = Design_Load ;
-        end
+  
+        % This is the actual load profile that the plant meets
+        OffD_Load = Load ;
+        OffD_Load.time = [stH].*3600;      % time spent in each load period, s
+        OffD_Load.type = ["chg"];    % type of load period
+        OffD_Load.mdot = [1000];      % working fluid mass flow rate, kg/s
+        T0_inc    = 10.0 ; % Increase in ambient temperature
+
         
     case 2 % Heat engine (no cold tanks)
         
@@ -101,15 +97,13 @@ switch Load.mode
         Design_Load.mdot = [0;10];                        % working fluid mass flow rate, kg/s
         T0_inc           = 5;  % Increase in ambient temperature
         
-        if Loffdesign
-            % This is the actual load profile that the plant meets
-            Load.time = [0;10].*3600;      % time spent in each load period, s
-            Load.type = ["sol";"dis"];    % type of load period
-            Load.mdot = [0;10];      % working fluid mass flow rate, kg/s
-            T0_inc    = 0;  % Increase in ambient temperature
-        else
-            Load = Design_Load ;
-        end
+        % This is the actual load profile that the plant meets
+        OffD_Load = Load ;
+        OffD_Load.time = [0;10].*3600;      % time spent in each load period, s
+        OffD_Load.type = ["sol";"dis"];    % type of load period
+        OffD_Load.mdot = [0;10];      % working fluid mass flow rate, kg/s
+        T0_inc    = 0;  % Increase in ambient temperature
+
         
     case 3 % JB charge, Rankine discharge
         fac = 100.0/1.3109 ; % This can be used to more easily set the mass flow to obtain a desired power output 
@@ -123,20 +117,17 @@ switch Load.mode
         
         T0_inc    = 5.0 ; % Increase in ambient temperature
         
-        if Loffdesign
-            % This is the actual load profile that the plant meets
-            fac = 100 ;
-            Load.time = [10;4;10;10].*3600;         % time spent in each load period, s
-            Load.type = ["chg";"str";"ran";"ran"];  % type of load period
-            Load.mdot = [10*fac;0;1*fac;1*fac];     % working fluid mass flow rate, kg/s
-            Load.options.useCold = [0;0;1;0];        % Use cold stores during Rankine discharge?
-            T0_off    = [T0-0;T0-0;T0-0;T0-0] ;
-            %Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
-            %T0_off    = T0IN;
+        % This is the actual load profile that the plant meets
+        fac = 100 ;
+        OffD_Load = Load ;
+        OffD_Load.time = [10;4;10;10].*3600;         % time spent in each load period, s
+        OffD_Load.type = ["chg";"str";"ran";"ran"];  % type of load period
+        OffD_Load.mdot = [10*fac;0;1*fac;1*fac];     % working fluid mass flow rate, kg/s
+        OffD_Load.options.useCold = [0;0;1;0];        % Use cold stores during Rankine discharge?
+        T0_off    = [T0-0;T0-0;T0-0;T0-0] ;
+        %Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
+        %T0_off    = T0IN;
 
-        else
-            Load = Design_Load ;
-        end
         
     case 7 % Electric heater charge, Rankine discharge
         fac = 1.0 ; % This can be used to more easily set the mass flow to obtain a desired power output 
@@ -148,21 +139,19 @@ switch Load.mode
         Design_Load.mdot = [10*fac;0;1*fac];         % working fluid mass flow rate, kg/s
         Design_Load.options.useCold = [0;0;0];       % Use cold stores during Rankine discharge? This should be set to 0 for design cases of retrofits.
         
-        if Loffdesign
-            % This is the actual load profile that the plant meets
-            Load.time = [10;4;10].*3600;         % time spent in each load period, s
-            Load.type = ["sol";"str";"ran"];     % type of load period
-            Load.mdot = [10*fac;0;1*fac];        % working fluid mass flow rate, kg/s
-            Load.options.useCold = [0;0;0];      % Use cold stores during Rankine discharge?
-            T0_inc    = 0.0 ; % Increase in ambient temperature
-        else
-            Load = Design_Load ;
-        end
+        % This is the actual load profile that the plant meets
+        OffD_Load = Load ;
+        OffD_Load.time = [10;4;10].*3600;         % time spent in each load period, s
+        OffD_Load.type = ["sol";"str";"ran"];     % type of load period
+        OffD_Load.mdot = [10*fac;0;1*fac];        % working fluid mass flow rate, kg/s
+        OffD_Load.options.useCold = [0;0;0];      % Use cold stores during Rankine discharge?
+        T0_inc    = 0.0 ; % Increase in ambient temperature
+        
 end
 Design_Load.num  = numel(Design_Load.time);
 Design_Load.ind  = (1:Design_Load.num)';
-Load.num  = numel(Load.time);
-Load.ind  = (1:Load.num)';
+OffD_Load.num  = numel(OffD_Load.time);
+OffD_Load.ind  = (1:OffD_Load.num)';
 
 % Hot storage tanks
 switch PBmode
@@ -209,11 +198,11 @@ switch PBmode
                Design_Load.type(ii) = "disPB" ;
            end
         end
-        for ii = 1 : Load.num
-           if strcmp(Load.type(ii),"chg")
-               Load.type(ii) = "chgPB" ;
-           elseif strcmp(Load.type(ii),"dis")
-               Load.type(ii) = "disPB" ;
+        for ii = 1 : OffD_Load.num
+           if strcmp(OffD_Load.type(ii),"chg")
+               OffD_Load.type(ii) = "chgPB" ;
+           elseif strcmp(OffD_Load.type(ii),"dis")
+               OffD_Load.type(ii) = "disPB" ;
            end
         end
     otherwise

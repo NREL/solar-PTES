@@ -17,7 +17,7 @@ heater_mult = 2 ;            % How much faster heat pump operates compared to he
 stH         = 10 ;            % Hours of storage, h (really discharging duration)
 Tmax        = 570 + 273.15;   % Compressor outlet temperature (which is > Hot storage hot temperature, K)
 TH_dis0     = 370.0+273.15;   % Hot storage cold temperautre, K
-pow_out     = 100 ;           % Cycle thermodynamic power, MW-e
+Wdis_req    = 100 ;           % Cycle thermodynamic power, MW-e
 
 % INPUTS CORRESPONDING TO 'LOCATION AND RESOURCE' TAB
 T0         = 25 + 273.15;    % ambient temp, K
@@ -55,14 +55,14 @@ TC_dis0    = T0;             % initial temperature of discharged cold fluid, K. 
 
 if (SIiter == 0)
     % Guess mass flow rate
-    massflow = pow_out * 1e6 / (1000 * ((554-250)-(25--67)));
+    massflow = Wdis_req * 1e6 / (1000 * ((554-250)-(25--67)));
 else
     % Calculate mass flow rate from power
-    SIconv = 100*abs(W_out_dis/t_dis/1e6 - pow_out) / pow_out ;
-    massflow = massflow * pow_out / (W_out_dis/t_dis/1e6) ;
+    SIconv = 100*abs(W_out_dis/t_dis/1e6 - Wdis_req) / Wdis_req ;
+    massflow = massflow * Wdis_req / (W_out_dis/t_dis/1e6) ;
 end
 
-
+Design_Load.type = ["chg";"dis"];
 Design_Load.mdot = [heater_mult*massflow;massflow];
 Load.mdot = Design_Load.mdot ;
 Load0.mdot = Design_Load.mdot ;
@@ -70,6 +70,13 @@ Load0.mdot = Design_Load.mdot ;
 Design_Load.time = [stH/heater_mult;stH].*3600;  % time spent in each load period, s
 Load.time = Design_Load.time;
 Load0.time = Design_Load.time ;
+
+Design_Load.HT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank source (A). Zero by default for design case.
+Design_Load.HT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank sink (B). Zero by default for design case.
+Design_Load.CT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of cold tank source (A). Zero by default for design case.
+Design_Load.CT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of cold tank sink (B). Zero by default for design case.
+Design_Load.T0_off = zeros(numel(Design_Load.time),1) ; % change in ambient temperature
+Design_Load.CSmode = 2 + zeros(numel(Design_Load.time),1) ; % Mode for discharging the cold storage
 
 
 SIiter = SIiter + 1;

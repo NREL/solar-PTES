@@ -418,8 +418,8 @@ function [gas,fluidH,fluidC,HT,CT,air,DCMP,DEXP,DPMP,DFAN,HX,iG,iH,iC,iA] = run_
         fluidH.state(iL,iH).T = HT.B(iL).T; fluidH.state(iL,iH).p = HT.B(iL).p; THmin = HT0.A(1).T;
         [fluidH] = update(fluidH,[iL,iH],1);
         
-        %[HX(ind.ihx_hot(iN)),fluidH,iH,gas,iG] = hex_func(HX(ind.ihx_hot(iN)),iL,fluidH,iH,gas,iG,4,THmin);
-        [HX(ind.ihx_hot(iN)),fluidH,iH,gas,iG] = hex_func(HX(ind.ihx_hot(iN)),iL,fluidH,iH,gas,iG,2,1);
+        [HX(ind.ihx_hot(iN)),fluidH,iH,gas,iG] = hex_func(HX(ind.ihx_hot(iN)),iL,fluidH,iH,gas,iG,4,THmin);
+        %[HX(ind.ihx_hot(iN)),fluidH,iH,gas,iG] = hex_func(HX(ind.ihx_hot(iN)),iL,fluidH,iH,gas,iG,2,1);
         [DPMP(iPMP),fluidH,iH] = compexp_func (DPMP(iPMP),iL,fluidH,iH,'Paim',fluidH.state(iL,1).p,1);
         iH=iH+1; iPMP=iPMP+1;
         
