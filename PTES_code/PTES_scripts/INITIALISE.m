@@ -1,3 +1,26 @@
+for iL=1:Design_Load.num
+    if any(strcmp(Design_Load.type(iL),{'chg'}))
+        Design_Load.time(iL) = dis_dur * 3600. / HP_mult ;
+        Design_Load.mdot(iL) = wf_mdot * HP_mult ;
+    elseif any(strcmp(Design_Load.type(iL),{'dis'}))
+        Design_Load.time(iL) = dis_dur * 3600. ;
+        Design_Load.mdot(iL) = wf_mdot ;
+    elseif any(strcmp(Design_Load.type(iL),{'str'}))
+        Design_Load.time(iL) = str_dur * 3600. ;
+        Design_Load.mdot(iL) = 0;
+    end
+end
+
+for iL=1:OffD_Load.num
+    if any(strcmp(OffD_Load.type(iL),{'chg'}))
+        OffD_Load.time(iL) = chg_dur * 3600. ;
+    elseif any(strcmp(OffD_Load.type(iL),{'dis'}))
+        OffD_Load.time(iL) = dis_dur * 3600. ;
+    elseif any(strcmp(OffD_Load.type(iL),{'str'}))
+        OffD_Load.time(iL) = str_dur * 3600. ;
+    end
+end
+
 % Reset Load structure
 Load    = Design_Load;
 setTmax = setTmax0;

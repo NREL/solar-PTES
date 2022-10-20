@@ -48,7 +48,7 @@ end
 % If Wdis_req is zero, then the power output will be based on the mass flow rates in JB_RANK_INPUTS.m
 Wdis_req = 100e6 ; % Required average power output during discharge
 HP_mult  = 1; % Heat pump multiplier - i.e. the power rating of the heat pump compared to Wdis_req
-chg_dur  = 10; % Charge duration, h
+wf_mdot  = 1000 ; % Mass flow rate of working fluid during discharge. If Wdis_req > 0 then this is used as a first guess, otherwise, this is the mass flow that is actually used
 dis_dur  = 10; % Discharge duration, h
 str_dur  = 10; % Storage duration, h
 

@@ -33,13 +33,11 @@ Nhot = 1; % number of hot stores. Not implemented for >2
 % Set parameters of Load structure
 switch Load.mode
     case 0 % PTES
-        fac = 1; % This can be used to more easily set the mass flow to obtain a desired power output
-        stH = 10 ;
         % This is the load scenario the plant is designed for
         Design_Load      = Load ;
         Design_Load.type = ["str";"chg";"str";"dis"];    % type of load period
-        Design_Load.mdot = 100*[fac*1.;fac;fac;fac];  % working fluid mass flow rate, kg/s
         
+        Design_Load.mdot = zeros(numel(Design_Load.time),1);  % working fluid mass flow rate, kg/s
         Design_Load.time = zeros(numel(Design_Load.time),1) ;%[stH/1;stH;stH;stH].*3600;  % time spent in each load period, s
         Design_Load.HT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank source (A). Zero by default for design case.
         Design_Load.HT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank sink (B). Zero by default for design case.
@@ -52,11 +50,10 @@ switch Load.mode
         % This is the actual load profile that the plant meets
         OffD_Load = Load ;
         if ~Lreadload
-            OffD_Load.time = [stH;stH;stH;stH].*3600;      % time spent in each load period, s
             OffD_Load.type = ["str";"chg";"str";"dis"];    % type of load period
-            %Load.mdot = mdotIN;      % working fluid mass flow rate, kg/s
-            %T0_off    = T0IN;
-            OffD_Load.mdot = 100*[1*fac;1.*fac;1*fac;fac];      % working fluid mass flow rate, kg/s
+            
+            OffD_Load.mdot = [wf_mdot;wf_mdot;wf_mdot;wf_mdot];      % working fluid mass flow rate, kg/s
+            OffD_Load.time = [str_dur;dis_dur;str_dur;dis_dur].*3600;      % time spent in each load period, s
             OffD_Load.T0_off = [T0;T0;T0;T0] ;
             OffD_Load.HT_A = [0;0;0;0] ; % change in temperature of hot tank source (A)
             OffD_Load.HT_B = [0;0;0;0] ; % change in temperature of hot tank sink (B)
@@ -69,7 +66,7 @@ switch Load.mode
             OffD_Load.T0_off    = fdat(:,1) ;
             OffD_Load.mdot = fdat(:,2) .* Design_Load.mdot(1) ;
             OffD_Load.type = readmatrix(fload,'Range','C','OutputType','string') ;
-            OffD_Load.time = ones(numel(Load.mdot),1) * 3600.;
+            OffD_Load.time = ones(numel(Design_Load.mdot),1) * 3600.;
         end
 
                 
