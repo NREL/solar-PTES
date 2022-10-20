@@ -170,6 +170,7 @@ end
 % Save some initial values
 setTmax0 = setTmax ;
 pmax0    = pmax ;
+Design_Load0 = Design_Load ;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
