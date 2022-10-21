@@ -1,3 +1,7 @@
+if mdot_iter == 0
+    wf_mdot = wf_mdot0;
+end
+
 for iL=1:Design_Load.num
     if any(strcmp(Design_Load.type(iL),{'chg'}))
         Design_Load.time(iL) = dis_dur * 3600. / HP_mult ;

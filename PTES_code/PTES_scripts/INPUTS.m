@@ -9,7 +9,7 @@
 % Set 'simple_interface' to 1 to use this mode.
 % Then edit the variables in SET_SIMPLE_INTERFACE.m
 % Ignore the rest of this file
-simple_interface = 0;
+simple_interface = 1;
 
 % To use the detailed interface set 'simple_interface' to 0
 % Then make edits to the file below.
@@ -35,7 +35,7 @@ Lreadload  = 0 ;
 PBmode     = 0 ; % Liquid stores = 0; Packed beds = 1; Heat exchangers between power cycle and a storage fluid, which then passes through packed beds = 2
 
 % If Wdis_req is zero, then the power output will be based on the mass flow rates in JB_RANK_INPUTS.m
-Wdis_req = 0;%100e6 ; % Required average thermodynamic power output during discharge (not including parasitics).
+Wdis_req = 100 ; % Required average thermodynamic power output during discharge (not including parasitics), MW-e
 HP_mult  = 1; % Heat pump multiplier - i.e. the power rating of the heat pump compared to Wdis_req
 wf_mdot  = 100 ; % Mass flow rate of working fluid during discharge. If Wdis_req > 0 then this is used as a first guess, otherwise, this is the mass flow that is actually used
 dis_dur  = 10; % Discharge duration, h
@@ -65,7 +65,7 @@ plossX    = 0.001;
 HX_shapeX = 'cross-flow';
 
 % Code options
-multi_run   = 1; % run cycle several times with different parameters?
+multi_run   = 0; % run cycle several times with different parameters?
 optimise    = 0; % optimise cycle?
 make_plots  = 1; % make plots?
 save_figs   = 0; % save figures at the end?
@@ -165,6 +165,7 @@ end
 setTmax0 = setTmax ;
 pmax0    = pmax ;
 Design_Load0 = Design_Load ;
+wf_mdot0 = wf_mdot ;
 
 % Iterate to provide a defined power output
 mdot_iter = 0;

@@ -16,7 +16,7 @@
 HP_mult     = 1 ;            % How much faster heat pump operates compared to heat engine
 dis_dur     = 10 ;            % Hours of storage, h (really discharging duration)
 Tmax        = 570 + 273.15;   % Compressor outlet temperature (which is > Hot storage hot temperature, K)
-TH_dis0     = 250.0+273.15;   % Hot storage cold temperautre, K
+TH_dis0     = 322.0+273.15;   % Hot storage cold temperautre, K
 Wdis_req    = 100 ;           % Cycle thermodynamic power (not including parasitics)., MW-e
 
 % INPUTS CORRESPONDING TO 'LOCATION AND RESOURCE' TAB
@@ -24,8 +24,8 @@ T0         = 25 + 273.15;    % ambient temp, K
 p0         = 1e5;            % ambient pressure, Pa
 
 % Some other important inputs that do not get entered into SAM
-eff        = 0.95;           % heat exchanger effectiveness
-ploss      = 0.01;           % pressure loss in HEXs
+eff        = 0.96;           % heat exchanger effectiveness
+ploss      = 0.006;           % pressure loss in HEXs
 eta        = 0.90;           % polytropic efficiency
 fluid_name = 'Nitrogen';     % Power cycle working fluid
 fHname     = 'SolarSalt';    % hot storage fluid name
