@@ -67,8 +67,8 @@ switch Vpnt
     case 'stH'
         Tpnt = 'Discharging duration';
         Upnt = ' h';
-    case 'unbalanced'
-        Tpnt = 'Charge duration / discharge duration' ;
+    case 'HP_mult'
+        Tpnt = 'Heat pump charge rate / Heat engine discharge rate' ;
         Upnt = ' ';
     otherwise
         error('not implemented')
@@ -136,6 +136,9 @@ switch Vcrv
     case 'stH'
         Tcrv = 'Discharging duration';
         Ucrv = ' h';
+    case 'HP_mult'
+        Tcrv = 'Heat pump charge rate / Heat engine discharge rate' ;
+        Ucrv = ' ';
     otherwise
         error('not implemented')
 end

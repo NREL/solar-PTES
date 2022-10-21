@@ -49,10 +49,13 @@ switch Vpnt
     case 'stH'
         Design_Load.time = Apnt(ipnt) * 3600 * ones(Design_Load.num,1);
         OffD_Load.time = Apnt(ipnt) * 3600 * ones(OffD_Load.num,1);
-    case 'unbalanced'
-        Design_Load.time = [stH/Apnt(ipnt);stH;stH/Apnt(ipnt);stH;stH/Apnt(ipnt);stH]*3600.;  % time spent in each load period, s
-        Design_Load.mdot = [fac*Apnt(ipnt);fac;fac*Apnt(ipnt);fac;fac*Apnt(ipnt);fac];  % working fluid mass flow rate, kg/s
-        OffD_Load  = Design_Load ;
+    case 'HP_mult'
+        %Design_Load.time = [stH/Apnt(ipnt);stH;stH/Apnt(ipnt);stH;stH/Apnt(ipnt);stH]*3600.;  % time spent in each load period, s
+        %Design_Load.mdot = [fac*Apnt(ipnt);fac;fac*Apnt(ipnt);fac;fac*Apnt(ipnt);fac];  % working fluid mass flow rate, kg/s
+        %OffD_Load  = Design_Load ;
+
+        HP_mult = Apnt(ipnt) ;
+        
     otherwise
         error('not implemented')
 end
@@ -107,6 +110,8 @@ switch Vcrv
     case 'stH'
         Design_Load.time = Acrv(ipnt) * 3600 * ones(Design_Load.num,1);
         OffD_Load.time = Acrv(ipnt) * 3600 * ones(OffD_Load.num,1);
+    case 'HP_mult'
+        HP_mult = Acrv(ipnt) ;
     otherwise
         error('not implemented')
 end

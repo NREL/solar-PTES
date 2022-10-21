@@ -11,9 +11,6 @@ for iL=1:Design_Load.num
     end
 end
 
-
-
-
 % Reset Load structure
 Load    = Design_Load;
 setTmax = setTmax0;
