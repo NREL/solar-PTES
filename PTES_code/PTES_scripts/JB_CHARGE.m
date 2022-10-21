@@ -24,7 +24,7 @@ TP.pbot = pbot ;
 %tempM = Load.mdot(iL) ;
 %Load.mdot(iL) = 100 ;
 
-if design_mode == 1
+if design_mode == 1 && mdot_iter == 0
     % Initial guess of charge conditions
     % Compressor inlet (regenerator hot outlet)
     gas.state(iL,1).p    = pbot; gas.state(iL,1).T = T1;
@@ -51,8 +51,12 @@ if design_mode == 1
         otherwise
             error('not implemented')
     end
+
+elseif design_mode == 1 && mdot_iter > 0
+    gas.state(iL,1).mdot = Load.mdot(iL);
+    gas.state(iL,ind.iReg2).mdot = gas.state(iL,1).mdot;
     
-else
+elseif design_mode == 0
     % Set up matrix that guesses the converged solution
     for ii = 1 : numel(C(C~=0))/2
         gas.state(iL,ii).T    = C(1,ii) ;

@@ -32,6 +32,7 @@ try
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     for icrv = 1:Ncrv
         for ipnt = 1:Npnt
+            mdot_iter = 0 ;
             % Select Write Mode (if WM=1, then write cycle for plotting)
             if all([icrv,ipnt] == 1), WM=1; else, WM=0; end
             

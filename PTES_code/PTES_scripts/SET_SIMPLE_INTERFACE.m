@@ -53,28 +53,9 @@ TC_dis0    = T0+10;             % initial temperature of discharged cold fluid, 
 % design-point run of a molten-salt Joule-Brayton PTES cycle. 
 % DO NOT EDIT.
 
-if (mdot_iter == 0)
-    % Guess mass flow rate
-    wf_mdot = Wdis_req * 1e6 / (1000 * ((554-250)-(25--67)));
-end
-
-Design_Load.type = ["chg";"dis"];
 Design_Load.mdot = [HP_mult*wf_mdot;wf_mdot];
 Design_Load.time = [dis_dur/HP_mult;dis_dur].*3600;  % time spent in each load period, s
 
-Design_Load.num  = numel(Design_Load.time);
-Design_Load.ind  = (1:Design_Load.num)';
-
-Load.mdot = Design_Load.mdot ;
-Load.time = Design_Load.time;
-
-Design_Load.HT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank source (A). Zero by default for design case.
-Design_Load.HT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank sink (B). Zero by default for design case.
-Design_Load.CT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of cold tank source (A). Zero by default for design case.
-Design_Load.CT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of cold tank sink (B). Zero by default for design case.
-Design_Load.T0_off = zeros(numel(Design_Load.time),1) ; % change in ambient temperature
-Design_Load.CSmode = 2 + zeros(numel(Design_Load.time),1) ; % Mode for discharging the cold storage
-Design_Load0 = Design_Load;
 
 if x ~= 0
    error('SIMPLE INTERFACE ERROR: Set run_mode = 0 in main.m') 

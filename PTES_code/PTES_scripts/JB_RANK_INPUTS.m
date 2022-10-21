@@ -36,6 +36,11 @@ switch Load.mode
         % This is the load scenario the plant is designed for
         Design_Load      = Load ;
         Design_Load.type = ["str";"chg";"str";"dis"];    % type of load period
+
+        if simple_interface == 1
+            %wf_mdot = Wdis_req * 1e6 / (1000 * ((554-250)-(25--67))); % Guess mass flow rate
+            Design_Load.type = ["chg";"dis"];
+        end
         
         Design_Load.mdot = zeros(numel(Design_Load.type),1);  % working fluid mass flow rate, kg/s
         Design_Load.time = zeros(numel(Design_Load.type),1) ;%[stH/1;stH;stH;stH].*3600;  % time spent in each load period, s

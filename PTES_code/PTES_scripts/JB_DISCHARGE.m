@@ -13,10 +13,12 @@ ind.Nc_dis   = Nc_dis ;
 ind.Ne_dis   = Ne_dis ;
 
 % Compute PR_dis based on charge pressure ratio and PRr
-TP.PRdis = PRr*PRch;
+if mdot_iter == 0
+    TP.PRdis = PRr*PRch;
+end
 TP.ploss = ploss ;
 
-if design_mode == 1
+if design_mode == 1 && mdot_iter == 0
     % Initial guess of discharge conditions
     % Expander outlet (regenerator hot inlet)
     gas.state(iL,1).p    = pbot; gas.state(iL,1).T = T1;
@@ -45,7 +47,11 @@ if design_mode == 1
 
     mprev  = 0 ; erprevM = 0 ; gradMM = 0;
 
-else
+elseif design_mode == 1 && mdot_iter > 0
+    gas.state(iL,1).mdot = Load.mdot(iL);
+    gas.state(iL,ind.iReg2).mdot = gas.state(iL,1).mdot;
+
+elseif design_mode == 0
     for ii = 1 : numel(D(D~=0))/2
         gas.state(iL,ii).T    = D(1,ii) ;
         gas.state(iL,ii).p    = D(2,ii) ;
