@@ -6,8 +6,12 @@
 % calculate the sensitivity assuming each cost is normally distributed
 % TRUE: Calculate the cost numerous times using different combinations of
 % different cost correlations
-Lsuper = 0 ;
+Lsuper = 1 ;
 Lopt = 0 ;
+
+if simple_interface == 1
+    Lsuper = 1;
+end
 
 % Retrofit? Then don't pay for steam turbine or hot storage system        
 Lretro = false ; 
@@ -36,7 +40,7 @@ Cdata.indirect    = 0;%0.25 ;        % Indirect costs
 
 if Lsuper
     Nsens    = 1 ;      % How many points to take from distribution for sensitivity analysis
-    Ncomb    = 10000 ;   % How many combinations of cost correlations?
+    Ncomb    = 1000 ;   % How many combinations of cost correlations?
     
     costMAT      = zeros(Ncomb,1) ;
     cost_enMAT   = zeros(Ncomb,1) ;

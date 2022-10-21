@@ -714,3 +714,10 @@ end
 if Lreadload
    ENERGY_LOAD 
 end
+
+if simple_interface == 1 || Wdis_req > 0
+    % Calculate mass flow rate from power
+    mdot_err = abs(W_out_dis/t_dis/1e6 - Wdis_req) / Wdis_req ;
+    wf_mdot = wf_mdot * Wdis_req / (W_out_dis/t_dis/1e6) ;
+end
+mdot_iter = mdot_iter + 1 ;

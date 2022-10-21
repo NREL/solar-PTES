@@ -14,10 +14,10 @@
 
 % INPUTS CORRESPONDING TO 'SYSTEM DESIGN' TAB
 HP_mult     = 1 ;            % How much faster heat pump operates compared to heat engine
-stH         = 10 ;            % Hours of storage, h (really discharging duration)
+dis_dur     = 10 ;            % Hours of storage, h (really discharging duration)
 Tmax        = 570 + 273.15;   % Compressor outlet temperature (which is > Hot storage hot temperature, K)
-TH_dis0     = 370.0+273.15;   % Hot storage cold temperautre, K
-Wdis_req    = 100 ;           % Cycle thermodynamic power, MW-e
+TH_dis0     = 250.0+273.15;   % Hot storage cold temperautre, K
+Wdis_req    = 100 ;           % Cycle thermodynamic power (not including parasitics)., MW-e
 
 % INPUTS CORRESPONDING TO 'LOCATION AND RESOURCE' TAB
 T0         = 25 + 273.15;    % ambient temp, K
@@ -30,7 +30,7 @@ eta        = 0.90;           % polytropic efficiency
 fluid_name = 'Nitrogen';     % Power cycle working fluid
 fHname     = 'SolarSalt';    % hot storage fluid name
 fCname     = 'Methanol';     % cold storage fluid name
-TC_dis0    = T0;             % initial temperature of discharged cold fluid, K. This corresponds to the cold tank hot temperature. At the moment, the cycle requires this to be ambient temperature.
+TC_dis0    = T0+10;             % initial temperature of discharged cold fluid, K. This corresponds to the cold tank hot temperature. At the moment, the cycle requires this to be ambient temperature.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -53,23 +53,20 @@ TC_dis0    = T0;             % initial temperature of discharged cold fluid, K. 
 % design-point run of a molten-salt Joule-Brayton PTES cycle. 
 % DO NOT EDIT.
 
-if (SIiter == 0)
+if (mdot_iter == 0)
     % Guess mass flow rate
-    massflow = Wdis_req * 1e6 / (1000 * ((554-250)-(25--67)));
-else
-    % Calculate mass flow rate from power
-    SIconv = 100*abs(W_out_dis/t_dis/1e6 - Wdis_req) / Wdis_req ;
-    massflow = massflow * Wdis_req / (W_out_dis/t_dis/1e6) ;
+    wf_mdot = Wdis_req * 1e6 / (1000 * ((554-250)-(25--67)));
 end
 
 Design_Load.type = ["chg";"dis"];
-Design_Load.mdot = [HP_mult*massflow;massflow];
-Load.mdot = Design_Load.mdot ;
-Load0.mdot = Design_Load.mdot ;
+Design_Load.mdot = [HP_mult*wf_mdot;wf_mdot];
+Design_Load.time = [dis_dur/HP_mult;dis_dur].*3600;  % time spent in each load period, s
 
-Design_Load.time = [stH/HP_mult;stH].*3600;  % time spent in each load period, s
+Design_Load.num  = numel(Design_Load.time);
+Design_Load.ind  = (1:Design_Load.num)';
+
+Load.mdot = Design_Load.mdot ;
 Load.time = Design_Load.time;
-Load0.time = Design_Load.time ;
 
 Design_Load.HT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank source (A). Zero by default for design case.
 Design_Load.HT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of hot tank sink (B). Zero by default for design case.
@@ -77,10 +74,7 @@ Design_Load.CT_A = zeros(numel(Design_Load.time),1) ; % change in temperature of
 Design_Load.CT_B = zeros(numel(Design_Load.time),1) ; % change in temperature of cold tank sink (B). Zero by default for design case.
 Design_Load.T0_off = zeros(numel(Design_Load.time),1) ; % change in ambient temperature
 Design_Load.CSmode = 2 + zeros(numel(Design_Load.time),1) ; % Mode for discharging the cold storage
-
-
-SIiter = SIiter + 1;
-
+Design_Load0 = Design_Load;
 
 if x ~= 0
    error('SIMPLE INTERFACE ERROR: Set run_mode = 0 in main.m') 
@@ -106,8 +100,4 @@ if multi_run   ~= 0
    error('SIMPLE INTERFACE ERROR: Set multi_run   = 0 in INPUTS.m') 
 end
 
-if Lmulti_mdot ~= 0
-   error('SIMPLE INTERFACE ERROR: Set Lmulti_mdot = 0 in INPUTS.m') 
-end
-
-       
+ 
