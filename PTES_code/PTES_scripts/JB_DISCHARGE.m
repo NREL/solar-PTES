@@ -136,19 +136,19 @@ for counter = 1:max_iter
         else
             gas.state(iL,1) = gas.state(iL,iG);
             i_chg = Design_Load.ind(any(Design_Load.type == {'chg'},2));
-            ernewM = fluidH.state(i_chg,1).mdot * Design_Load.time(i_chg) - fluidH.state(iL,1).mdot * Design_Load.time(iL);
-                
-            if counter == 1
-                mprev = fluidH.state(iL,1).mdot ;
-                smooth = 0.025 ;                
-            else
-                gradMM  = (ernewM - erprevM) / ((fluidH.state(iL,1).mdot - mprev));
-                mprev = fluidH.state(iL,1).mdot ;
-                TP.PRdis = TP.PRdis - 0.05 * ernewM / gradMM ;
-            end
             
-            erprevM = ernewM ;
-
+            %ernewM = fluidH.state(i_chg,1).mdot * Design_Load.time(i_chg) - fluidH.state(iL,1).mdot * Design_Load.time(iL);
+            %smooth = 1e-6 ;
+            %TP.PRdis = TP.PRdis + smooth * ernewM;
+    
+            ernewM = fluidC.state(i_chg,1).T - fluidC.state(iL,2).T ;
+            if counter == 1
+                TP.PRdis = TP.PRdis - 0.0001 * ernewM;
+                smooth = 0.05 ;                
+            else
+                TP.PRdis = TP.PRdis - smooth * ernewM;
+            end
+    
         end
         
         D_0 = D;

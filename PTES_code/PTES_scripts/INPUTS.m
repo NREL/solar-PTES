@@ -34,15 +34,12 @@ Loffdesign = 0 ; % 'L' for Logical. 0 just run design case. 1 run design case th
 Lreadload  = 0 ;
 PBmode     = 0 ; % Liquid stores = 0; Packed beds = 1; Heat exchangers between power cycle and a storage fluid, which then passes through packed beds = 2
 
-
 % If Wdis_req is zero, then the power output will be based on the mass flow rates in JB_RANK_INPUTS.m
 Wdis_req = 100e6 ; % Required average power output during discharge
 HP_mult  = 1; % Heat pump multiplier - i.e. the power rating of the heat pump compared to Wdis_req
 wf_mdot  = 100 ; % Mass flow rate of working fluid during discharge. If Wdis_req > 0 then this is used as a first guess, otherwise, this is the mass flow that is actually used
 dis_dur  = 10; % Discharge duration, h
 str_dur  = 10; % Storage duration, h
-
-
 
 switch Load.mode
     case {0,1,2,3,7} % Joule-Bratyon PTES / Joule-Brayton + Rankine

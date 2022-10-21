@@ -163,7 +163,7 @@ switch PBmode
             case {0,1,2}
                 % Cold storage tanks
                 fCname  = 'Methanol'; % fluid name
-                TC_dis0 = 307.9;%T0+5;           % initial temperature of discharged cold fluid, K
+                TC_dis0 = T0+10;           % initial temperature of discharged cold fluid, K
                 MC_dis0 = 14.1e6;          % initial mass of discharged cold fluid, kg
                 TC_chg0 = T0-50;        % initial temperature of charged cold fluid, K
                 MC_chg0 = 0.00*MC_dis0; % initial mass of charged cold fluid, kg

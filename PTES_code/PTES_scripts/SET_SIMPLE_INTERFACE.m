@@ -13,7 +13,7 @@
 % desirable. 
 
 % INPUTS CORRESPONDING TO 'SYSTEM DESIGN' TAB
-heater_mult = 2 ;            % How much faster heat pump operates compared to heat engine
+HP_mult     = 1 ;            % How much faster heat pump operates compared to heat engine
 stH         = 10 ;            % Hours of storage, h (really discharging duration)
 Tmax        = 570 + 273.15;   % Compressor outlet temperature (which is > Hot storage hot temperature, K)
 TH_dis0     = 370.0+273.15;   % Hot storage cold temperautre, K
@@ -63,11 +63,11 @@ else
 end
 
 Design_Load.type = ["chg";"dis"];
-Design_Load.mdot = [heater_mult*massflow;massflow];
+Design_Load.mdot = [HP_mult*massflow;massflow];
 Load.mdot = Design_Load.mdot ;
 Load0.mdot = Design_Load.mdot ;
 
-Design_Load.time = [stH/heater_mult;stH].*3600;  % time spent in each load period, s
+Design_Load.time = [stH/HP_mult;stH].*3600;  % time spent in each load period, s
 Load.time = Design_Load.time;
 Load0.time = Design_Load.time ;
 
