@@ -246,7 +246,7 @@ if ~Loffdesign
     hold off;
     xlabel([Tpnt,Upnt])
     ylabel('LCOS [$$\$$$/kWh]')
-    ylim([0 0.5])
+    %ylim([0 0.5])
     legend(Lcrv,'Location','Best')
     grid on;
 
@@ -259,7 +259,7 @@ if ~Loffdesign
     hold off;
     xlabel([Tpnt,Upnt])
     ylabel('Capital cost [$$\$$$]')
-    ylim([0 5e7])
+    %ylim([0 5e7])
     legend(Lcrv,'Location','Best')
     grid on;
 
