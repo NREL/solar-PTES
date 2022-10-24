@@ -142,12 +142,17 @@ if multi_run==1
     Acrv = 1.0;
     Ncrv = numel(Acrv);
         
+    % Check previous directories
     if ~exist('./Outputs/Multi_run','dir')
         mkdir('./Outputs/Multi_run')
+    end
+    if ~exist('./Outputs/Multi_run_json','dir')
+        mkdir('./Outputs/Multi_run_json')
     end
     
     % Delete previous files
     delete('./Outputs/Multi_run/*.mat')
+    delete('./Outputs/Multi_run_json/*.json')
     
     % Store information on the variables being changed along the multi-run
     % calls

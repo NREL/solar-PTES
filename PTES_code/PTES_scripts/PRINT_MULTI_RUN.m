@@ -1,7 +1,11 @@
-filename = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',icrv,ipnt);
+filename      = sprintf('./Outputs/Multi_run/Crv_%d_Pnt_%d.mat',icrv,ipnt);
+JSONFILE_name = sprintf('./Outputs/Multi_run_json/PTES_output_for_SAM_%s_%g_%s_%g.json',Vcrv,Acrv(icrv),Vpnt,Apnt(ipnt));
 
 switch Load.mode
     case {0,4}
+
+        PRINT_JSON
+
         if ~Loffdesign
             chi = chi_PTES;
 

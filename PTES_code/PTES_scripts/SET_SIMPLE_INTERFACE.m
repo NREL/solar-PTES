@@ -78,7 +78,7 @@ if PBmode     ~= 0
 end
 
 if multi_run   ~= 0
-   error('SIMPLE INTERFACE ERROR: Set multi_run   = 0 in INPUTS.m') 
+   warning('SIMPLE INTERFACE ERROR: Set multi_run   = 0 in INPUTS.m') 
 end
 
  

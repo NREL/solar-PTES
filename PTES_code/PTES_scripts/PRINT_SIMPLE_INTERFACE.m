@@ -48,41 +48,5 @@ fprintf(1,'-----------------------------\n\n');
 % Write the same output into json format
 % Names correspond to variables in SAM
 JSONFILE_name= 'Outputs/PTES_output_for_SAM.json'; 
-fid=fopen(JSONFILE_name,'w');
-
-s.tshours = t_dis/3600 ;
-s.T_HT_cold_htf_des       = fluidH.state(1,1).T-273.15;
-s.W_dot_pc_thermo_des      = W_out_dis/t_dis/1e6;
-s.cop_hp_thermo_des                  = QH_chg/W_in_chg;
-s.eta_pc_thermo_des = W_out_dis/QH_dis*100;
-s.T_HT_hot_htf_des        = fluidH.state(1,fluidH(1).Nstg(1)+1).T-273.15;
-s.T_CT_hot_htf_des       = fluidC.state(1,1).T-273.15;
-s.T_CT_cold_htf_des      = fluidC.state(1,fluidC(1).Nstg(1)+1).T-273.15;
-
-
-s.f_hp_parasitic_des            = (E_in_chg-W_in_chg+W_fan_chg)/E_in_chg;
-s.heat_pump_HT_HTF_pump_coef  = -CPMP(1).W(1)/t_chg/1e3/fluidH.state(1,1).mdot;
-s.heat_pump_CT_HTF_pump_coef = -CPMP(2).W(1)/t_chg/1e3/fluidC.state(1,1).mdot;
-
-
-s.f_pc_parasitic_des            = (W_out_dis-E_out_dis+W_fan_dis + heater_in)/W_out_dis;
-s.pb_pump_coef  = -DPMP(2).W(2)/t_chg/1e3/fluidH.state(2,1).mdot;
-s.CT_pb_pump_coef = -DPMP(1).W(2)/t_chg/1e3/fluidC.state(2,1).mdot;
-
-s.heat_pump_spec_cost  = HPcost/abs(QH_chg/t_chg/1e3);
-s.cycle_spec_cost = HEcost/abs(W_out_dis/t_dis/1e3);
-
-s.tes_spec_cost = HTEScost/abs(QH_chg/3600e3);
-s.CT_tes_spec_cost = CTEScost/abs(QC_chg/3600e3);
-
-s.heater_multiple = 1;
-
-
-encodedJSON = jsonencode(s); 
-fprintf(fid, encodedJSON);
-fclose('all');
-
-
-
-
+PRINT_JSON
 
